@@ -315,6 +315,14 @@ const FT = 0.3048;
 const tier = c => c == null ? 'unknown' : c < 6.5 * FT ? 'severely constrained' : c < 8.5 * FT ? 'moderately constrained' : c < 10 * FT ? 'constrained' : 'not narrow';
 const NARROW_FACTOR = { 'severely constrained': 4, 'moderately constrained': 3, constrained: 2, 'not narrow': 1, unknown: 1 };
 
+// Engine-blocked choke arcs (clear width under access.engineClearM). An edge is behind one only if
+// the choke arc dominates every arc of the edge, i.e. the choke lies on every route from the edge to every exit.
+const blockedChoke = new Set(chokeArcs.filter(m => { const c = clearOf(arcs[m - nN][0]); return c != null && c < A.access.engineClearM; }));
+const behindArc = (m, e) => { const as = edgeArcs.get(e.id) || []; return as.length > 0 && as.every(x => inSub(m, x)); };
+const engineBlocked = new Uint8Array(edges.length);
+for (const e of vehEdges) { const as = edgeArcs.get(e.id) || []; if (!as.length) continue;
+  for (let v = as[0]; v >= 0 && v !== ROOT; v = idom[v]) if (blockedChoke.has(v) && behindArc(v, e)) { engineBlocked[e.id] = 1; break; } }
+
 // ---------- per-area metrics ----------
 const out = areas.map((a, i) => {
   const entrance = a.entrance.map(m => edges[arcs[m - nN][0]]), stem = a.list.map(m => edges[arcs[m - nN][0]]);
@@ -324,6 +332,8 @@ const out = areas.map((a, i) => {
   for (const e of a.members) { const k = e.fireZone ?? 0; fz[k] = (fz[k] || 0) + people[e.id]; lenFz[k] = (lenFz[k] || 0) + e.len; }
   const minClear = list => { let best = null; for (const e of list) { const c = clearOf(e.id); if (c != null && (best == null || c < best.c)) best = { c, e }; } return best; };
   const cE = minClear(entrance), cS = minClear(stem);
+  const sArc = cS ? a.list.find(m => arcs[m - nN][0] === cS.e.id) : null;
+  const behindS = cS ? a.members.filter(e => behindArc(sArc, e)) : [];
   const widths = entrance.map(e => e.widthM).filter(w => w != null);
   const grades = a.members.filter(e => e.gradeReliable !== false).map(e => Math.abs(e.gradeMax ?? e.grade ?? 0));
   const memberSet = new Set(a.members.map(e => e.id));
@@ -359,7 +369,9 @@ const out = areas.map((a, i) => {
       sb99Tier: t, engineFits: cE ? cE.c >= A.access.engineClearM : null, fireCodeWidth: cE ? cE.c >= A.access.fireCodeClearM : null,
       cityNarrowRoad: entrance.some(e => e.narrow), widthSrc: [...new Set(entrance.map(e => e.clearWidthSrc || e.widthSrc).filter(Boolean))],
       gradeMaxPct: r1(Math.max(...entrance.map(e => Math.abs(e.gradeMax ?? 0)))) },
-    narrowestStemChoke: cS ? { clearWidthM: r1(cS.c), street: title(cS.e.name), edge: cS.e.id, engineFits: cS.c >= A.access.engineClearM } : null,
+    narrowestStemChoke: cS ? { clearWidthM: r1(cS.c), street: title(cS.e.name), edge: cS.e.id, engineFits: cS.c >= A.access.engineClearM,
+      residentsBehind: r1(behindS.reduce((s, e) => s + people[e.id], 0)), hillResidentsBehind: r1(behindS.reduce((s, e) => s + (hills(e) ? people[e.id] : 0), 0)) } : null,
+    residentsBehindEngineBlockedChoke: r1(a.members.reduce((s, e) => s + (engineBlocked[e.id] ? people[e.id] : 0), 0)),
     steepestGradePct: grades.length ? r1(Math.max(...grades)) : null,
     nearestOtherStreet: hint(nearOther),
     nearestFreeStreet: hint(nearFree),
@@ -392,7 +404,7 @@ const totals = {
   hillResidentsBehindDeadEnd: r0(sumP(behind, e => hills(e) && dead(e))),
   hillResidentsBehindOneWayOnly: r0(sumP(behind, e => hills(e) && !dead(e))),
   hillResidentsBehindTwoOrMore: r0(sumP(behind, e => hills(e) && out[areaOf[e.id]].nesting >= 2)),
-  hillResidentsBehindEngineBlockedChoke: r0(sumP(behind, e => hills(e) && chain(out[areaOf[e.id]]).some(a => a.choke.engineFits === false || a.narrowestStemChoke?.engineFits === false))),
+  hillResidentsBehindEngineBlockedChoke: r0(sumP(vehEdges, e => hills(e) && engineBlocked[e.id])),
   berkeleyHillResidents: r0(sumP(vehEdges, e => hills(e) && isBerk(e))),
   berkeleyHillResidentsBehindAnyChoke: r0(sumP(behind, e => hills(e) && isBerk(e))),
   berkeleyHillResidentsBehindDeadEnd: r0(sumP(behind, e => hills(e) && isBerk(e) && dead(e))),
@@ -491,6 +503,8 @@ const result = {
       residents: 'synthetic: zone population inside the model area (Genasys, or the 2020 Census where data/assumptions.json population.overrides or a missing estimate says so) spread over street length as js/sim.js does (Principal Arterials weighted 0.7; no freeways or ramps); expected values',
       households: `assumption: residents / ${D.personsPerHousehold} persons per household (data/assumptions.json demand)`,
       vehicles: `assumption: households × (1 − ${D.householdsWithoutVehicleShare}) × ${meanVeh.toFixed(3)} vehicles taken (Time Study Fig. D-11 shares, data/assumptions.json demand)`,
+      narrowestStemChoke: 'derived: narrowest choke edge on the stem, same parking state; residentsBehind counts residents on streets from which every route to every exit crosses it (the edge itself included)',
+      residentsBehindEngineBlockedChoke: 'derived: residents on streets from which every route to every exit crosses a choke edge under access.engineClearM (10 ft) of clear width, this area\'s or one further out',
       choke: 'derived: narrowest entrance edge under status-quo parking in its nominal state (js/parking.js, seed null: both sides where they fit, perfect parking); engine fits if clear width ≥ access.engineClearM (10 ft); fire-code width 20 ft; tiers from the SB 99 report p. 4',
       steepestGradePct: 'derived: largest 25 m-window grade (gradeMax, DEM) on any street in the area, unreliable segments left out',
       nearestOtherStreet: `derived: shortest straight line from the area streets (sampled every 10 m) to a drivable street outside the area (no freeways or ramps) where driving from the area point to the outside point now, along legal one-way directions, takes at least ${MIN_DETOUR_M} m and ${DETOUR_RATIO} times the line (model rule); climb from the DEM. A hint, not a route or a design`,
