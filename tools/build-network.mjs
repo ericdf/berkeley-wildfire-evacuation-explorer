@@ -156,7 +156,10 @@ const norm = s => (s || '').toUpperCase().replace(/\s+/g, ' ').replace(/ (AVE|AV
 const cityLines = lineIndex(cityLayer('street_centerline_city'));
 const narrowLines = lineIndex(cityLayer('narrow_roads'));
 const fireZoneOf = zoneIndex(cityLayer('fire_zones'), p => p.PLN_HILL_Z);
-const evacZoneOf = zoneIndex(cityLayer('evac_zones'), p => p.zonenum);
+// Genasys zone label as the City website and Genasys map show it, e.g. US-CA-XAL-BER-E006 -> BER-006.
+// The layer's own zonenum field is not unique (Albany's and Oakland's zone 6 are also "BER-06").
+const zoneLabel = zid => String(zid || '').replace(/^US-CA-XAL-/, '').replace(/-E0*(\d+)$/, (m, n) => '-' + n.padStart(3, '0'));
+const evacZoneOf = zoneIndex(cityLayer('evac_zones'), p => zoneLabel(p.zone_id));
 
 // ---------- 4. edges ----------
 const FT = 0.3048;
@@ -286,7 +289,7 @@ const network = {
       gradeMax: { category: 'derived', source: '90th percentile of ~25 m window grades along the centerline, DEM sampled every 4 m. Can be wrong where the road sits on a cut, fill, bridge or retaining wall.' },
       gradeReliable: { category: 'derived', source: 'false for Interstate and Ramp (the bare-earth DEM is the ground under the structure) and where the steep grade exceeds 35% (a DEM artefact: cut, fill or retaining wall)' },
       fireZone: { category: 'sourced', source: 'City of Berkeley FireZones_WFL1 PLN_HILL_Z at segment midpoint' },
-      evacZone: { category: 'sourced', source: 'City of Berkeley GenasysZonesBerkeley zonenum at segment midpoint' },
+      evacZone: { category: 'sourced', source: 'City of Berkeley GenasysZonesBerkeley zone_id at segment midpoint, shown as e.g. BER-006 (the layer\'s zonenum field is not unique across cities)' },
       lanes: { category: 'mixed', source: '[forward, backward] lanes. lanesSrc says where: city:PAV_LANES = City pavement-management lanes (total); assumption:hillsLocal = Eric, 2026-10-31: hill streets are one lane each way; assumption:byClass = data/assumptions.json' },
       widthM: { category: 'sourced', source: 'City of Berkeley Street_Centerline PAV_WIDTH_RD (pavement-management width, feet) or Narrow_Roads PAV_WIDTH_, matched to County segments by name and distance (<= 12 m)' },
       parking: { category: 'assumption', source: 'data/assumptions.json parking.hills / parking.flats. Hills default per Eric, 2026-10-31: parking on both sides. Not yet checked against posted no-parking signs.' },
@@ -305,6 +308,22 @@ fs.mkdirSync(P('data/game'), { recursive: true });
 fs.writeFileSync(P('data/game/network.json'), JSON.stringify(network));
 
 // ---------- 7. context layers ----------
+// One entry per zone: parts and duplicate features merged, population counted once.
+function zonesOut(features, tol = 3) {
+  const by = new Map();
+  for (const f of features) {
+    const p = f.properties, k = p.zone_id;
+    if (!by.has(k)) by.set(k, { id: zoneLabel(k), zoneId: k, pop: +p.est_popula || 0, knownAs: p.known_as || '', rings: [], seen: new Set() });
+    const z = by.get(k);
+    if ((+p.est_popula || 0) !== z.pop) console.warn(`zone ${k}: features disagree on population (${z.pop} vs ${p.est_popula}); keeping the first`);
+    for (const rings of polygonsOf(f.geometry)) {
+      const rr = rings.map(r => simplify(r, tol).map(([x, y]) => [Math.round(x), Math.round(y)]));
+      const sig = JSON.stringify(rr[0]); if (z.seen.has(sig)) continue; z.seen.add(sig);
+      z.rings.push(...rr);
+    }
+  }
+  return [...by.values()].map(({ seen, ...z }) => z);
+}
 function polysOut(features, propFn, tol = 3) {
   const out = [];
   for (const f of features) for (const rings of polygonsOf(f.geometry))
@@ -324,7 +343,7 @@ const layers = {
     ] },
   cityBoundary: polysOut(cityLayer('city_boundary'), () => ({}), 2),
   neighborhoods: polysOut(cityLayer('neighborhoods'), p => ({ name: p.Name })),
-  evacZones: polysOut(cityLayer('evac_zones'), p => ({ id: p.zonenum, zoneId: p.zone_id, pop: +p.est_popula || 0, knownAs: p.known_as || '' })),
+  evacZones: zonesOut(cityLayer('evac_zones')),
   evacRegions: polysOut(cityLayer('evac_regions'), p => ({ id: p.Region, name: p.RegionName })),
   fireZones: polysOut(cityLayer('fire_zones'), p => ({ zone: p.PLN_HILL_Z })),
   fire1923: polysOut(cityLayer('fire_1923'), () => ({}), 2),

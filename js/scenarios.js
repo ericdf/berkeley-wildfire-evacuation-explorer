@@ -2,6 +2,10 @@
 // otherwise; they are listed in the Assumptions & limits panel.
 import { toUTM } from '../tools/utm.mjs';
 
+// City Leave Early Zones (Upper Berkeley Hills and Panoramic Hill), from
+// https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation (read 2026-11-01).
+export const LEAVE_EARLY_ZONES = ['BER-006', 'BER-007', 'BER-008', 'BER-015', 'BER-016', 'BER-017', 'BER-030', 'BER-031', 'BER-057', 'BER-058'];
+
 export const SEVERITY = {
   low:     { label: 'Low',     rosMpm: 7,  windFactor: 0.75, emberM: 300,  spotProb: 0.004, spotDelayMin: 4 },
   central: { label: 'Central', rosMpm: 14, windFactor: 1.0,  emberM: 800,  spotProb: 0.012, spotDelayMin: 3 },

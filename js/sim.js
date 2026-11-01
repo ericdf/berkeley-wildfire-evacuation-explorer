@@ -16,6 +16,7 @@
 
 import { mulberry32 } from './rng.js';
 import { parkingState, PARKING_PLANS } from './parking.js';
+import { LEAVE_EARLY_ZONES } from './scenarios.js';
 import { minFilter, cellOf, MinHeap, inPoly, bbox, inBB, CELL } from './fire.js';
 
 // Sample minutes from a histogram of % per 15-minute period (Time Study Table 5-9 format).
@@ -36,7 +37,7 @@ export function sampleCurve(curve, u) {
 const CLASS_RANK = { Local: 0, 'Major Collector': 1, 'Principal Arterial': 2, Ramp: 3, Interstate: 3 };
 const INTERSECTION_KEY = ['localVph', 'collectorVph', 'arterialVph', 'freewayVph'];
 
-export const DEFAULT_PLAN = { name: 'Baseline', alertKm: 0, orderDelayMin: 10, hillsOrderMin: null, earlyShare: 0, hillsParking: 'both' };
+export const DEFAULT_PLAN = { name: 'Baseline', alertKm: 0, orderDelayMin: 10, hillsOrderMin: null, earlyShare: 0, earlyZones: 'lez', hillsParking: 'both' };
 
 export class Evacuation {
   constructor(data, grid, fire, scenario, sevKey, plan, seed, tod) {
@@ -189,6 +190,7 @@ export class Evacuation {
     const vs = D.vehiclesTakenShares, vTot = Object.values(vs).reduce((a, b) => a + b, 0);
     const drawVehicles = () => { let u = rand() * vTot; for (const [k, p] of Object.entries(vs)) { if (u < p) return +k; u -= p; } return 1; };
     const zoneIdx = new Map(zones.map((z, i) => [z.id, i]));
+    const lez = new Set(LEAVE_EARLY_ZONES);
     const hhEdge = [], hhZone = [], hhVeh = [], hhEarly = [];
     let unplaced = 0;
     for (let zi = 0; zi < zones.length; zi++) {
@@ -200,11 +202,11 @@ export class Evacuation {
       const H = pop / D.personsPerHousehold;
       for (const [eid, w] of list) {
         const exp = H * w / W; let n = Math.floor(exp); if (rand() < exp - n) n++;
-        const hills = net.edges[eid].fireZone >= 2;
+        const eligible = plan.earlyZones === 'fz23' ? net.edges[eid].fireZone >= 2 : lez.has(z.id);
         for (let k = 0; k < n; k++) {
           hhEdge.push(eid); hhZone.push(zoneIdx.get(z.id));
           hhVeh.push(rand() < D.householdsWithoutVehicleShare ? 0 : drawVehicles());
-          hhEarly.push(hills && plan.earlyShare > 0 && rand() < plan.earlyShare ? 1 : 0);
+          hhEarly.push(eligible && plan.earlyShare > 0 && rand() < plan.earlyShare ? 1 : 0);
         }
       }
     }
@@ -540,7 +542,7 @@ export class Evacuation {
     }
     let shadowVeh = 0, inbound = 0; for (let i = 0; i < v.n; i++) { if (v.cls[i] === 1) shadowVeh++; if (v.cls[i] === 2) inbound++; }
     if (inbound) this.log(`${inbound.toLocaleString()} commuters drive home into the evacuating area before their households leave (Time Study: households awaiting a returning commuter). On streets with one lane between parked cars they must take turns with evacuees driving out.`, 'order');
-    if (early) this.log(`Early departure: ${early.toLocaleString()} households (${earlyVeh.toLocaleString()} vehicles) in Fire Zones 2–3 left before the fire, so they did not enter the road network during the alert.`, 'plan');
+    if (early) this.log(`Early departure: ${early.toLocaleString()} households (${earlyVeh.toLocaleString()} vehicles) in ${this.plan.earlyZones === 'fz23' ? 'Fire Zones 2–3' : 'the City Leave Early Zones'} left before the fire, so they did not enter the road network during the alert.`, 'plan');
     { const ps = parkingStats;
       this.log(`Parked cars this run (seed ${this.seed}): of ${ps.hillsKnown} hill segments with a known width, ${ps.twoSides} parked on both sides and ${ps.oneSide} on one side; ${ps.pinched} segments have a bad parking job narrowing the gap. ${ps.engineBlocked} segments are too narrow for an engine; ${this.sharedLanes} two-way segments leave one lane, so oncoming drivers take turns.`, 'plan'); }
     if (plan.hillsParking !== 'both') this.log(`Parking plan "${PARKING_PLANS[plan.hillsParking]}": ${parkingChanged(parkingStats)}.`, 'plan');

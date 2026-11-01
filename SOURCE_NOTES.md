@@ -173,7 +173,16 @@ Counts: `data/field/aerial-parking-counts-2020.json` (derived; the imagery is no
 | C4 | Curb offset, vehicle width and off-pavement parking cannot be judged at 15 cm per pixel from directly above. | **context**: bad parking jobs and off-pavement shares stay photo-based placeholders. Evening street-level photos or a tape-measure survey would replace them. |
 | C5 | The County centerline is offset by up to about 5 m from the pavement on some curving hill streets (Bret Harte Rd, Poppy Ln). | **context**: matters for snapping future curb or imagery data to segments. |
 
-## OpenStreetMap barriers and traffic calming (Overpass API, 2026-11-01)
+## City of Berkeley "Fire Weather and Evacuation" web page, read 2026-11-01 (via Eric)
+
+URL: https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation. Eric also sent screenshots of the zones on the Genasys Protect map (protect.genasys.com, OpenStreetMap basemap).
+
+| # | Insight | Status / use |
+|---|---|---|
+| W1 | **Leave Early Zones** are the Upper Berkeley Hills and Panoramic Hill: BER-006, 007, 008, 015, 016, 017, 030, 031, 057, 058 (about 7,950 residents by the Genasys estimates). | **applied**: `LEAVE_EARLY_ZONES` in `js/scenarios.js`; the plan's early-departure share now applies to these zones by default (option: all of Fire Zones 2–3, as before). Resolves the "Leave Early Zones" gap in DATA_INVENTORY. |
+| W2 | Checking those IDs exposed two bugs in our zone layer: (1) the layer's `zonenum` field is not unique across cities (Albany's and Oakland's zone 6 were also labelled "BER-06"), so some households were assigned to the wrong zone's order time; (2) five Berkeley zones (E013, E023, E035, E047, E050) are split into 2–5 features that each carry the full population, adding about 10,000 people. | **fixed**: zones are keyed and merged by `zone_id` and labelled as the City shows them (BER-006). Berkeley zone population now totals 121,759. The zone descriptions now match Eric's screenshots (BER-007 Woodmont Av, BER-058 Panoramic Hill). |
+
+
 
 Files: `data/raw/osm/berkeley-barriers.json` (mirror, data as of 2026-05-31) and `data/raw/osm/barriers-on-roads.json` (overpass-api.de, data as of 2026-11-01). Bounding box 37.835–37.91 N, 122.31–122.23 W (includes parts of Oakland, Albany, Kensington). © OpenStreetMap contributors, ODbL. Query suggested by Eric.
 
@@ -227,6 +236,8 @@ Treated as suggestions, not evidence: no citations, and some claims could not be
 | 2026-11-01 | Returning commuters drive in against the evacuation before their household leaves (Time Study households awaiting a commuter); a commuter turned back by fire leaves the household one car short | E9, E11 |
 | 2026-11-01 | New parking plans: one side only in Fire Zones 2–3; enforce parking tight to the curb | Eric photos |
 | 2026-11-01 | Gridlock relief (180 s) and rotating processing order, after a permanent lock-up at the Marin traffic circle | model fix |
+| 2026-11-01 | Early departure applies to the City's 10 Leave Early Zones by default (all of Fire Zones 2–3 as an option) | W1 |
+| 2026-11-01 | Zones keyed and merged by `zone_id`: fixes households assigned to same-numbered Albany/Oakland zones and five double-counted Berkeley zones | W2 |
 
 ### Calibration check (fire off, study order/warning zones, seed 1), 2026-10-31
 
@@ -243,5 +254,7 @@ Treated as suggestions, not evidence: no citations, and some claims could not be
 Reading: night and weekend cases are within about 15 min at the 90th percentile; the study says these are set by mobilization, which we now take from the study. Weekday daytime cases are too fast because employees, students, visitors and through traffic (E12) are missing; the study says congestion sets those cases. The 100th percentile is 20–40 min short, partly because the study's tail includes 180-min transit-dependent mobilization (E29), which we don't model.
 
 **Recheck 2026-11-01** after the parking, take-turns and returning-commuter changes (median of 3 seeds): R02 S2/S3/S5/S6 1:34–1:35, S1 1:45, S4 1:51; R04 S2/S3/S5/S6 1:35, S1 1:45, S4 1:51 (range up to 2:09). All vehicles now finish in every case (100th percentile R02 3:09–3:31). These changes move the 90th percentile by about 1–2 min: evacuation traffic runs mostly one way, so taking turns rarely binds, and departure timing and intersections still set the ETE. Engine access is where parking matters: hill length closed to engines is about 10–12 km under the status quo, 6–9 km with tight-to-curb parking, 3–4 km with one side only, 5–6 km with no parking on City narrow roads.
+
+**Recheck 2026-11-01 after the zone fix (W2):** R02 evacuating vehicles fell from about 25,500 to 20,300 (order zones 27,097 people → 11,390 households → 12,714 vehicles; warning zones add about 7,600). ETE barely moved: R02 S2/S3/S5/S6 1:34–1:35, S1 1:46, S4 1:52; R04 S2/S3/S5/S6 1:32, S1 1:48, S4 1:50. The Time Study cites about 27,830 evacuating vehicles for R02 (E13), which likely includes demand we don't model yet (employees, students, visitors); the earlier, closer vehicle count was partly the bug.
 
 Also consistent with the study: in the 1923 repeat, 50% leave-early (Plan B) changes the 90th-percentile ETE by about 1 min. The study found −3% to −14% with normal mobilization (E13). It does cut exposure to fire and embers by about 40% in the game.

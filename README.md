@@ -33,7 +33,8 @@ Loading takes a few seconds: about 10 MB of terrain and 2 MB of street network.
    Time of day changes who is home and how much background traffic there is.
 2. **Operating plan.** Plan A and Plan B are edited in tabs: when zones are ordered,
    how long detection and the decision take, whether all hill zones are ordered at once,
-   early departure on Red Flag days, and parking on hill streets.
+   early departure on Red Flag days (from the City's Leave Early Zones, or all of Fire Zones 2–3),
+   and parking on hill streets.
 3. **Run.** Watch the fire, embers, vehicles, queues and the fire-engine route. Drag the
    slider to jump to a time. Click a street or zone to inspect it; hover a badge (ⓘ)
    to see where each value comes from.

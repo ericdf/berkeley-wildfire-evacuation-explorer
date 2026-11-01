@@ -45,7 +45,7 @@ for (const [k, label] of Object.entries(LAYER_NAMES)) {
 }
 
 const scenario = () => scenarios.find(s => s.id === $('scenario').value);
-const PLAN_FIELDS = ['name', 'alertKm', 'orderDelayMin', 'hillsOrderMin', 'earlyShare', 'hillsParking'];
+const PLAN_FIELDS = ['name', 'alertKm', 'orderDelayMin', 'hillsOrderMin', 'earlyShare', 'earlyZones', 'hillsParking'];
 function showPlan() {
   const p = state.plans[state.editing];
   for (const f of PLAN_FIELDS) $(`p-${f}`).value = p[f] == null ? '' : p[f];
@@ -57,7 +57,7 @@ function readPlan() {
   p.name = $('p-name').value || `Plan ${state.editing}`;
   p.alertKm = +$('p-alertKm').value; p.orderDelayMin = +$('p-orderDelayMin').value;
   p.hillsOrderMin = $('p-hillsOrderMin').value === '' ? null : +$('p-hillsOrderMin').value;
-  p.earlyShare = +$('p-earlyShare').value; p.hillsParking = $('p-hillsParking').value;
+  p.earlyShare = +$('p-earlyShare').value; p.earlyZones = $('p-earlyZones').value; p.hillsParking = $('p-hillsParking').value;
   parkingNote();
 }
 for (const [k, label] of Object.entries(PARKING_PLANS)) $('p-hillsParking').add(new Option(label, k));
