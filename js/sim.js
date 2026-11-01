@@ -872,6 +872,10 @@ function nonResidentAreas(data) {
   const hood = names => { const ps = data.layers.neighborhoods.filter(n => names.includes(n.name)).map(n => ({ rings: n.rings, bb: bbox(n.rings) })); return ([x, y]) => ps.some(q => inBB(q.bb, x, y) && inPoly(x, y, q.rings)); };
   const P_ = Object.fromEntries(Object.entries(NR.points).map(([k, v]) => [k, P(v)]));
   const inUC = hood(['University of California Berkeley']), inWest = hood(NR.westNeighborhoods);
+  // Berkeley zones whose Genasys outline reaches into Oakland (BER-013, BER-069, BER-074, BER-075; SOURCE_NOTES Z1):
+  // the Time Study's employees, students and visitors are Berkeley's, so OSM streets outside the city limits get none.
+  const city = data.layers.cityBoundary.map(q => ({ rings: q.rings, bb: bbox(q.rings) }));
+  const inCity = ([x, y]) => city.some(q => inBB(q.bb, x, y) && inPoly(x, y, q.rings));
   const isBcc = near(P_.bcc, 400), nearCampus = near(P_.campus, NR.studentParkingM);
   const isTilden = p => near(P_.tildenNorth, 400)(p) || near(P_.tildenSouth, 400)(p);
   const out = {}; const add = (k, id, w) => { (out[k] ??= { ids: [], cum: [], total: 0 }); out[k].total += w; out[k].ids.push(id); out[k].cum.push(out[k].total); };
@@ -879,6 +883,7 @@ function nonResidentAreas(data) {
     const zl = String(e.evacZone || '');
     if (e.mode !== 'vehicle' || e.disconnected || e.barrier?.closed || CLASS_RANK[e.cls] === 3 || !(zl.startsWith('BER') || zl.startsWith('LBL'))) continue;
     const m = data.edgeMid[e.id], w = e.len;
+    if (e.src.osmWay && !inCity(m)) continue;
     const hills = e.fireZone >= 2;
     const area = zl.startsWith('LBL') ? 'lbnl' : inUC(m) ? 'uc' : inWest(m) ? 'west' : hills ? (m[1] > P_.campus[1] ? 'northHills' : 'southHills') : 'flats';
     add(area, e.id, w);

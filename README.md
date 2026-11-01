@@ -107,6 +107,15 @@ width for the same road class in the hills or flats. Outside Berkeley a street a
 elevation or higher follows the hill rules (one lane each way, hill speeds and parking).
 Streets cut at the edge of the grid are the exits: traffic that reaches one has left.
 
+The County file stops the Lawrence Berkeley National Laboratory's streets at the city line, and
+OSM tags the Lab's roads `highway=service`, which the street extract leaves out, so the Lab once
+had a single way out (Cyclotron Rd to Hearst Av). Two OSM roads from a short, labeled list
+(`network.osmAdditions` in `data/assumptions.json`, matched by way and node ids) restore its
+other two gates on Centennial Dr: McMillan Road to the Grizzly Peak Gate and Lawrence Road to the
+Strawberry Canyon Gate. The Lab's streets are private and its gates staffed, so the simulator
+lets cars leave by any of the three gates and lets none drive in (model rule
+`network.labGatesExitOnly`); engines still pass (SOURCE_NOTES Z5).
+
 **Parked cars and clear width** (`js/parking.js`). Clear width is pavement width minus 8 ft
 per parked side (the value KLD used for the City's SB 99 and AB 747 analyses). Parking varies
 by block and by seed: hill blocks are parked on neither side, one side or both (shares from
@@ -130,7 +139,9 @@ distance upwind of it. The overlay puts plausible, comparable pressure on the ev
 it does not predict how a real fire would behave.
 
 **Evacuation** (`js/sim.js`). Synthetic households are placed on streets from Genasys zone
-population estimates. Zones outside Berkeley take their outlines from Genasys Protect and,
+population estimates. Zones outside Berkeley, and the Berkeley and Lab zones that the City
+layer clips at the city line (BER-013, the Oakland part of Panoramic Hill, and ten others;
+SOURCE_NOTES Z1), take their outlines from Genasys Protect. Zones outside Berkeley take,
 where the City layer has no estimate, their population from 2020 Census blocks; only people
 inside the model area are placed (about 74,700 outside Berkeley). Household size, vehicle ownership, ridesharing, compliance
 (100% of Order zones, 50% of Warning zones, 20% shadow, which the study applies to Berkeley
@@ -211,7 +222,7 @@ add any parking-removal bonus.
 | `data/model/access-constraints.json` | Built by `tools/access-constraints.mjs`; the simulator runs without it |
 | `data/terrain/dem.i16`, `dem.json` | Elevation grid, built by `tools/fetch-dem.mjs` |
 | `data/field/` | Field and aerial observations (counts only), e.g. parked cars on 22 hill blocks |
-| `data/raw/` | Downloaded source data (reproducible, large; City layers and report PDFs are not in git). `osm/east-bay-roads.json` (OSM streets), `genasys/zones.json` (zone outlines), `census/` (2020 block counts) each have a retrieval note |
+| `data/raw/` | Downloaded source data (reproducible, large; City layers and report PDFs are not in git). `osm/east-bay-roads.json` (OSM streets), `osm/lbnl-gate-roads.json` (the Lab's gate roads), `genasys/zones.json` (zone outlines), `census/` (2020 block counts) each have a retrieval note |
 | `correspondence/` | Drafts of letters, such as the informal question to Berkeley Fire |
 | `tools/` | Data pipeline (Node 18+, no npm packages) |
 | `tests/headless.mjs` | Runs every scenario × two plans in Node and prints summaries |
@@ -266,7 +277,7 @@ by the simulator at load time. Scenario presets, severities and time-of-day valu
   but where they park is approximated by area. Signals and stop signs are not modeled one by
   one: every junction has a typical delay and a capacity by road class. Panoramic Hill matches
   the study's evacuation times; the 1923 and Fire Zones 2–3 regions run about 15 min fast at
-  night and 35–80 min fast on weekdays (see `SOURCE_NOTES.md`, calibration). Tuning junction
+  night and 25–80 min fast on weekdays (see `SOURCE_NOTES.md`, calibration). Tuning junction
   capacity to close that gap broke Panoramic Hill, so it is left untuned.
 - Streets outside Berkeley come from OpenStreetMap with assumed widths. The model area ends at
   the edge of the elevation grid (37.84–37.91° N, 122.33–122.21° W), about 1 km into Oakland
@@ -274,10 +285,12 @@ by the simulator at load time. Scenario presets, severities and time-of-day valu
   south of that line are not modeled. Traffic that reaches the edge has left.
 - Fire spread, ember distances and spot-fire rates are illustrative model values.
 - Future growth: with the Time Study's maximum ADU build-out the simulator's evacuation time
-  grows far less than the study's (fire off, fall weekday S4: 1923 region +30% against the
-  study's +58%; Panoramic Hill +2% against +25%; Fire Zones 2–3 +3% against +97%), because its junctions pass traffic faster
-  than the study's signals and stop signs. Read growth effects on evacuation time as a lower
-  bound (`SOURCE_NOTES.md`, "Future growth and R0").
+  in the large regions grows less than the study's (fire off, fall weekday S4: 1923 region +42%
+  against the study's +58%; Fire Zones 2–3 +3% against +97%), because its junctions pass traffic
+  faster than the study's signals and stop signs; read growth effects there as a lower bound.
+  Panoramic Hill grows more than the study's (+115% against +25%): with one way out, its
+  streets lock up and the gridlock rule fires hundreds of times per run, so that figure is less
+  certain (`SOURCE_NOTES.md` R3, R7).
 
 ## Access-constrained areas
 
@@ -296,6 +309,6 @@ Rerun it after `tools/build-network.mjs`.
 - A band under each street in an area, shaded in one blue ramp by the synthetic residents behind the area's outermost choke (under 25, 25, 100, 250, 500 or more). Solid for a dead end, dashed for a one-way-only area, which is softer: running its entrance two-way would open it. The band sits under the street line, so "Color streets by" still shows.
 - The choke as a thick bar along the first 25 m or more of the entrance from its outer end: red where an engine does not fit (under 10 ft clear with both sides parked, status-quo parking in its nominal state), dark where it fits, open (white center) where the width is unknown. Zoomed in, the bar is labeled with the clear width in feet.
 - Once zoomed in past 2 m per screen pixel (and always for the selected area), the nearest other street as a dashed straight line between two dots, labeled with length and climb when zoomed in or selected (dead ends with 10 or more residents only), and any existing path or stairway out, drawn heavier in the paths style.
-- A hatched, dashed box with "⚠ population placement artifact" around areas with an `allocationWarning` (Albany Hill, AC-316: zone ALB-011's 2,535 residents all land on one 221 m segment).
+- A hatched, dashed box with "⚠ population placement artifact" around areas with an `allocationWarning` (Albany Hill, AC-315: zone ALB-011's 2,535 residents all land on one 221 m segment).
 
-Clicking a street in an area, with the layer on, outlines the innermost area in yellow and puts an "Access-constrained area" card above the street card: entrance, type, streets, residents, households and vehicles (synthetic), evacuation zones, nesting with the enclosing areas, clear width and engine fit at the entrance, steepest grade, fire-zone mix, nearest other street, existing path, and the constraint score with its components, each with its provenance badge and source note. With the layer off, the street card names the area in one row. Below the layer list, a line gives hill residents behind a choke point (5,734 of 41,395; Berkeley and LBNL 3,133 of 27,759) and opens a sortable table of the union of the two top-50 rankings (68 areas), with the score and its components labeled a model rule; clicking an area zooms to it. None of this appears in Simple view.
+Clicking a street in an area, with the layer on, outlines the innermost area in yellow and puts an "Access-constrained area" card above the street card: entrance, type, streets, residents, households and vehicles (synthetic), evacuation zones, nesting with the enclosing areas, clear width and engine fit at the entrance, steepest grade, fire-zone mix, nearest other street, existing path, and the constraint score with its components, each with its provenance badge and source note. With the layer off, the street card names the area in one row. Below the layer list, a line gives hill residents behind a choke point (5,749 of 41,475; Berkeley and LBNL 3,149 of 27,840) and opens a sortable table of the union of the two top-50 rankings (68 areas), with the score and its components labeled a model rule; clicking an area zooms to it. None of this appears in Simple view.
