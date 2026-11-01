@@ -14,8 +14,9 @@
 // Variants (model rules for this harness):
 //   asIs            the network as it stands
 //   order delay     plan.orderDelayMin 10 (the simulator default) and 20 (a later order)
-//   urgent          every mobilization curve replaced by an even spread over 30 minutes, the Time
-//                   Study's "urgent mobilization" (§10.4), for the Panoramic Hill benchmark only
+//   urgent          every mobilization curve replaced by an even spread over 30 minutes and no separate
+//                   commuter drive to the area's edge, the Time Study's "urgent mobilization" (§10.4),
+//                   for the Panoramic Hill benchmark only
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -60,16 +61,21 @@ if (argv[0] === '--worker') {
     const c = cand ? cands[cand] : null;
     const spec = { open: [...VARIANT_OPEN[variant], ...(c?.open || [])], links: c && !c.open ? [{ id: c.id, a: c.a, b: c.b, geom: c.geom, fireZone: c.fireZone }] : [] };
     let A = base.A;
-    if (mob === 'urgent') { A = structuredClone(base.A); for (const k2 of Object.keys(A.demand.mobilization15min)) A.demand.mobilization15min[k2] = URGENT_HIST.slice(); }
+    // Urgent: every household's whole pre-departure process fits in 30 minutes, as in the Time Study's case (§10.4).
+    // Commuters set off within that window and start at the area's edge (no separate drive to reach it); their
+    // drive home through outbound traffic is still simulated. Codex review on PR #15.
+    if (mob === 'urgent') { A = structuredClone(base.A); for (const k2 of Object.keys(A.demand.mobilization15min)) A.demand.mobilization15min[k2] = URGENT_HIST.slice(); A.demand.returnDriveMin = [0, 0]; }
     const net = withLinks(base.net, base.A, elev, spec);
     const d = prepare({ net, layers: base.layers, dem: base.dem, Z: base.Z, A });
     d.linkEdgeIds = spec.links.length ? [net.edges.length - 1] : spec.open.filter(id => !VARIANT_OPEN[variant].includes(id));
     dataMemo.set(k, d); return d;
   };
-  const fireFor = (fire, sev, seed) => { const k = `${fire}|${sev}|${seed}`; if (!fireMemo.has(k)) fireMemo.set(k, runFire(grid, scen[fire], SEVERITY[sev], seed)); return fireMemo.get(k); };
+  // '<fire>-nofire': the same scenario's orders and time of day with the fire switched off (Time Study benchmark; its runs have no fire)
+  const noFire = { arrival: new Float64Array(grid.W * grid.H).fill(Infinity), ember: new Float32Array(grid.W * grid.H).fill(Infinity), W: grid.W, H: grid.H, spots: 0, LB: 1 };
+  const fireFor = (fire, sev, seed) => { if (fire.endsWith('-nofire')) return noFire; const k = `${fire}|${sev}|${seed}`; if (!fireMemo.has(k)) fireMemo.set(k, runFire(grid, scen[fire], SEVERITY[sev], seed)); return fireMemo.get(k); };
   const out = [];
   for (const j of jobs) {
-    const data = dataFor(j.variant, j.cand, j.mob), sc = scen[j.fire];
+    const data = dataFor(j.variant, j.cand, j.mob), sc = scen[j.fire.replace(/-nofire$/, '')];
     const sim = new Evacuation(data, grid, fireFor(j.fire, j.sev, j.seed), sc, j.sev, { ...DEFAULT_PLAN, orderDelayMin: j.delay }, j.seed, TIME_OF_DAY[sc.timeOfDay]);
     const { v, hh, links } = sim, pph = data.A.demand.personsPerHousehold;
     const track = j.areas.map(id => {
@@ -162,8 +168,8 @@ console.log(`testing ${tested.length}: ${tested.map(c => `${c.id} for ${c.measur
 // jobs
 const seeds = Array.from({ length: NSEED }, (_, i) => i + 1);
 const jobs = [], baseKeys = new Map();
-const addPair = (c, variant, mob, fire, delay) => {
-  for (const sev of SEVS) for (const seed of seeds) {
+const addPair = (c, variant, mob, fire, delay, sevs = SEVS) => {
+  for (const sev of sevs) for (const seed of seeds) {
     const k = `${variant}|${mob}|${fire}|${sev}|${seed}|${delay}`;
     if (!baseKeys.has(k)) { const j = { variant, mob, fire, sev, seed, delay, cand: null, areas: [] }; baseKeys.set(k, j); jobs.push(j); }
     const bj = baseKeys.get(k); if (!bj.areas.includes(c.measureArea)) bj.areas.push(c.measureArea);
@@ -174,6 +180,9 @@ for (const c of tested) for (const { fire } of threat[c.measureArea]) {
   for (const delay of [10, 20]) addPair(c, 'asIs', 'normal', fire, delay);
   if (c.panoramic && fire !== 'eastWind') addPair(c, 'asIs', 'urgent', fire, 10);
 }
+// Time Study benchmark (§10.4, Tables 10-9 and 10-10): the same orders with the fire off, normal and urgent mobilization.
+// Severity changes nothing without a fire, so central only.
+for (const c of tested) if (c.panoramic) for (const f of ['ref1923', 'panoramic']) for (const mob of ['normal', 'urgent']) addPair(c, 'asIs', mob, `${f}-nofire`, 10, ['central']);
 console.log(`${jobs.length} runs on ${WORKERS} workers`);
 // group by network so each worker builds few variants
 jobs.sort((a, b) => `${a.cand}|${a.variant}|${a.mob}`.localeCompare(`${b.cand}|${b.variant}|${b.mob}`));
