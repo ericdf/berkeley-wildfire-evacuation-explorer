@@ -8,6 +8,13 @@
 //                                                what-if: treat these segments as two-way drivable streets
 //                                                (a new or reopened connection, or a one-way street run two-way);
 //                                                prints results, writes nothing
+//   node tools/access-constraints.mjs --links <file.json> [--quick] [--json out.json]
+//                                                what-if: add new links between existing nodes and open
+//                                                segments, from a file { links: [{ id, a, b, geom }], open: [ids] }
+//                                                (tools/egress-link.mjs builds them as two-way local streets with
+//                                                no residents); prints results, writes nothing
+//   --quick                                      skip the per-area second-connection hints and the SB 99
+//                                                comparison (for many what-if runs)
 //
 // Method (model rules unless marked otherwise; see docs/access-constraints.md):
 // - Graph: the residents' drivable network as js/sim.js builds its links: vehicle edges that are
@@ -34,7 +41,8 @@ import { fileURLToPath } from 'node:url';
 const R = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const { parkingState } = await import(R + '/js/parking.js');
 const readJSON = f => JSON.parse(fs.readFileSync(path.join(R, f), 'utf8'));
-const net = readJSON('data/model/network.json'), layers = readJSON('data/model/layers.json'), A = readJSON('data/assumptions.json');
+let net = readJSON('data/model/network.json');
+const layers = readJSON('data/model/layers.json'), A = readJSON('data/assumptions.json');
 const dem = readJSON('data/terrain/dem.json');
 const demBuf = fs.readFileSync(path.join(R, 'data/terrain/dem.i16'));
 const Z = new Int16Array(demBuf.buffer, demBuf.byteOffset, demBuf.length / 2);
@@ -48,7 +56,13 @@ const title = s => (s || '').toLowerCase().replace(/\b[a-z]/g, c => c.toUpperCas
 
 const argv = process.argv.slice(2);
 const OPEN = new Set((argv[argv.indexOf('--open') + 1] && argv.includes('--open') ? argv[argv.indexOf('--open') + 1] : '').split(',').filter(Boolean).map(Number));
-const VERBOSE = argv.includes('-v');
+const VERBOSE = argv.includes('-v'), QUICK = argv.includes('--quick');
+const LINKS = argv.includes('--links') ? JSON.parse(fs.readFileSync(argv[argv.indexOf('--links') + 1], 'utf8')) : null;
+if (LINKS) { // new links are appended as edges (tools/egress-link.mjs); opened segments join OPEN
+  const { withLinks } = await import(R + '/tools/egress-link.mjs');
+  net = withLinks(net, A, elev, { links: LINKS.links || [] });
+  for (const id of LINKS.open || []) OPEN.add(id);
+}
 
 const { nodes, edges } = net, nN = nodes.length;
 const CLASS_RANK = { Local: 0, 'Major Collector': 1, 'Principal Arterial': 2, Ramp: 3, Interstate: 3 };
@@ -340,11 +354,11 @@ const out = areas.map((a, i) => {
   const insideNode = new Set(); for (const e of a.members) for (const n of [e.a, e.b]) if (inSub(a.head, n)) insideNode.add(n);
   const outer = arcs[a.head - nN][2];
   const dIn = dijkstra(outer, id => memberSet.has(id), 8000, true), dOut = dijkstra(outer, id => !memberSet.has(id)); // to the choke from inside; from the choke outside
-  const pts = samples(a.members, dIn);
-  const nearOther = nearestOutside(pts, id => !memberSet.has(id), dOut);
-  const nearFree = nearestOutside(pts, id => areaOf[id] < 0, dOut);
-  const walk = existingLink(insideNode, e => e.mode === 'path' || e.mode === 'restricted' || e.barrier?.closed, dIn, dOut);
-  const gate = existingLink(insideNode, e => e.mode === 'vehicle' && e.barrier?.closed, dIn, dOut);
+  const pts = QUICK ? null : samples(a.members, dIn);
+  const nearOther = QUICK ? null : nearestOutside(pts, id => !memberSet.has(id), dOut);
+  const nearFree = QUICK ? null : nearestOutside(pts, id => areaOf[id] < 0, dOut);
+  const walk = QUICK ? null : existingLink(insideNode, e => e.mode === 'path' || e.mode === 'restricted' || e.barrier?.closed, dIn, dOut);
+  const gate = QUICK ? null : existingLink(insideNode, e => e.mode === 'vehicle' && e.barrier?.closed, dIn, dOut);
   const zones = {}; for (const e of a.members) if (people[e.id] > 0) zones[e.evacZone] = (zones[e.evacZone] || 0) + people[e.id];
   const hh = res / D.personsPerHousehold, hillShare = res > 0 ? resHill / res : 0;
   const t = tier(cE?.c ?? null);
@@ -424,7 +438,7 @@ const crowded = layers.evacZones.filter(z => (z.popModeled ?? z.pop) > 300 && zo
 // ---------- SB 99 Table 1 primary AINs (KLD TR-1380 Rev. 3, pp. 6–9) vs the areas found here ----------
 let sb99 = null;
 const sbPath = path.join(R, 'data/raw/docs/sb99.txt');
-if (fs.existsSync(sbPath)) {
+if (!QUICK && fs.existsSync(sbPath)) {
   const lines = fs.readFileSync(sbPath, 'utf8').split('\n');
   const s0 = lines.findIndex(l => /Table 1\. Access Impaired Neighborhoods\s*$/.test(l)), s1 = lines.findIndex(l => /Total Primary AIN\b/.test(l));
   // Zone labels are printed in the middle of each zone's group of rows, so a row belongs to the
@@ -499,7 +513,7 @@ const result = {
   meta: {
     built: new Date().toISOString().slice(0, 10), tool: 'tools/access-constraints.mjs', report: 'docs/access-constraints.md',
     note: 'Educational comparison, not a prediction and not an official evacuation plan. Street-segment level only; no parcels or addresses. Coordinates in local meters (network.json crs).',
-    crs: net.meta.crs, opened: [...OPEN],
+    crs: net.meta.crs, opened: [...OPEN], addedLinks: LINKS ? (LINKS.links || []).map(l => l.id) : [],
     provenance: {
       graph: 'derived: data/model/network.json drivable edges as js/sim.js builds links (vehicle mode, not disconnected, not closed by a barrier; one arc per direction with lanes)',
       exits: 'model rule: net.meta.exitNodes, streets cut at the edge of the elevation grid',
@@ -525,17 +539,19 @@ const result = {
   rankings: { byResidents: top(o => o.residents, 50).map(o => o.id), byConstraint: top(o => o.constraint.score, 50).map(o => o.id) },
   areas: out,
 };
+// For what-if comparisons (tools/egress-candidates.mjs): residents on each street segment behind a choke
+if (QUICK) result.edgeResidents = Object.fromEntries(behind.filter(e => people[e.id] > 0).map(e => [e.id, Math.round(people[e.id] * 100) / 100]));
 
 const fmt = o => `${o.id} ${o.type} n${o.nesting} [${o.chokeStreets.join('/')}] ${o.streets.slice(0, 6).join(', ')}${o.streets.length > 6 ? '…' : ''} | res ${o.residents} hill ${o.hillResidents} hh ${o.households} veh ${o.vehicles} | clear ${o.choke.clearWidthM} ${o.choke.engineFits === false ? 'NO-ENGINE' : o.choke.engineFits ? 'engine' : '?'} stem ${o.narrowestStemChoke?.clearWidthM} | ${o.streetLengthM} m | grade ${o.steepestGradePct} | alt ${o.nearestOtherStreet?.street} ${o.nearestOtherStreet?.distM} m (drive ${o.nearestOtherStreet?.drivingNowM}) free ${o.nearestFreeStreet?.street} ${o.nearestFreeStreet?.distM}${o.existingLink ? ` | link ${o.existingLink.kinds.join('+')} ${o.existingLink.names.join('+')} ${o.existingLink.lengthM} m` : ''} | score ${o.constraint.score}`;
 if (argv.includes('--json')) { fs.writeFileSync(argv[argv.indexOf('--json') + 1], JSON.stringify(result)); process.exit(0); } // used by the report's what-if
 console.log(JSON.stringify(totals));
-if (VERBOSE || OPEN.size) {
+if (VERBOSE || OPEN.size || LINKS) {
   console.log('\nBY RESIDENTS'); top(o => o.residents, 30).forEach(o => console.log(fmt(o)));
   console.log('\nBY CONSTRAINT'); top(o => o.constraint.score, 30).forEach(o => console.log(fmt(o)));
   console.log('\ntrapped', JSON.stringify(trapped), '\ncrowded', JSON.stringify(crowded), '\nnarrow', JSON.stringify(narrowStats));
   if (sb99) console.log('\nSB99', JSON.stringify({ ...sb99, rows: undefined }));
 }
-if (OPEN.size) process.exit(0);
+if (OPEN.size || LINKS) process.exit(0);
 fs.writeFileSync(path.join(R, 'data/model/access-constraints.json'), JSON.stringify(result));
 fs.mkdirSync(path.join(R, 'docs'), { recursive: true });
 // What-if for the report: the County's no-vehicle piece of Bancroft Way between Prospect St and the

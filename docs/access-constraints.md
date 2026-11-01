@@ -4,10 +4,10 @@ Built 2026-11-01 by `tools/access-constraints.mjs` from `data/model/network.json
 
 ## Findings
 
-- **5,749 of the model area's 41,475 hill residents (14%) live behind at least one choke point**: a single street segment whose loss leaves them with no drivable route out of the model area. For Berkeley and LBNL zones alone the figure is 3,149 of 27,840 (11%). "Hill" means a street in City Fire Zone 2 or 3, or outside Berkeley at 90 m elevation or higher (the simulator's proxy).
-- 4,479 of those hill residents are behind a true dead end (the choke is the only street connection at all); 1,271 are behind a choke created only by one-way rules, which drivers or police could override in an emergency.
-- 758 hill residents are behind two or more choke points in series (a dead end inside a dead end). 1,236 are behind a choke too narrow for a fire engine with status-quo parking in its nominal state (both sides parked where they fit, perfect parking; under 10 ft of clear width): every route from their street to every exit crosses the narrow segment.
-- **Panoramic Hill is the largest hill area**: 972 synthetic residents, 410 households and 458 vehicles on 4.2 km of street behind one choke, with up to 4 choke points in series on upper Panoramic Way. Its entrance is the foot of Panoramic Way at Prospect St, as the SB 99 report describes (p. 4), reached over the 45 m Bancroft Wy link since the County record for that link was corrected (SOURCE_NOTES K1–K6). 83 of the residents live in the Oakland part of the hill (zone BER-013).
+- **5,779 of the model area's 41,514 hill residents (14%) live behind at least one choke point**: a single street segment whose loss leaves them with no drivable route out of the model area. For Berkeley and LBNL zones alone the figure is 3,178 of 27,879 (11%). "Hill" means a street in City Fire Zone 2 or 3, or outside Berkeley at 90 m elevation or higher (the simulator's proxy).
+- 4,508 of those hill residents are behind a true dead end (the choke is the only street connection at all); 1,271 are behind a choke created only by one-way rules, which drivers or police could override in an emergency.
+- 797 hill residents are behind two or more choke points in series (a dead end inside a dead end). 1,275 are behind a choke too narrow for a fire engine with status-quo parking in its nominal state (both sides parked where they fit, perfect parking; under 10 ft of clear width): every route from their street to every exit crosses the narrow segment.
+- **Panoramic Hill is the largest hill area**: 1,011 synthetic residents, 427 households and 477 vehicles on 4.2 km of street behind one choke, with up to 4 choke points in series on upper Panoramic Way. Its entrance is the foot of Panoramic Way at Prospect St, as the SB 99 report describes (p. 4), reached over the 45 m Bancroft Wy link since the County record for that link was corrected (SOURCE_NOTES K1–K6). 122 of the residents live in the Oakland part of the hill (zone BER-013).
 - Of the 132 named-street primary rows in the SB 99 report's Table 1 (KLD, 2024; dead-end streets), 113 name a street that lies inside an area found here, in the same or a neighboring zone (1,262 of the 1,446 parcels in all rows). Most of the 19 misses are flatland blocks that SB 99 counts as dead ends because of diverters, and three are streets the network does not have.
 
 ## Method
@@ -18,7 +18,7 @@ Each item carries its provenance category: sourced, derived, assumption, model r
 - **Out of the model area (model rule).** A home has a way out if it can drive to one of the 167 exit nodes, where streets are cut at the edge of the elevation grid. The simulator uses the same exits for shadow evacuees.
 - **Choke point (derived).** A directed street link that lies on every route from some node to every exit (an edge dominator of the reversed network). If the street is also a bridge of the undirected network, the area behind it is a **dead end**; if only one-way rules make it a choke, the area is **one-way**.
 - **Area and nesting (model rule).** Choke links along one dead-end stem belong to one area, named by its entrance (the first choke from the exit, together with links in series with it through nodes that join only two streets). A choke whose outer end sits on a loop of streets starts a nested area. Loops under 200 m of street (turnarounds, splits around islands, doubled driveways) do not count. Nesting is the number of areas in series between a home and an exit, its own included.
-- **Residents (synthetic).** The simulator's allocation: each Genasys zone's population inside the model area (2020 Census counts where the City layer has no estimate, and for OKL-003 by Eric's choice), spread over the zone's streets in proportion to length, Principal Arterials weighted 0.7, no freeways or ramps. Expected values, not one random draw. Residents on the entrance segment count as behind it.
+- **Residents (synthetic).** The simulator's allocation: each Genasys zone's population inside the model area (2020 Census counts where the City layer has no estimate, and for OKL-003 and BER-013 by Eric's choice), spread over the zone's streets in proportion to length, Principal Arterials weighted 0.7, no freeways or ramps. Expected values, not one random draw. Residents on the entrance segment count as behind it.
 - **Households and vehicles (assumption).** Households = residents / 2.37; vehicles taken = households × (1 − 7.47% without a vehicle) × 1.21 vehicles per driving household (2025 Evacuation Time Study, Fig. D-11, renormalized as in `data/assumptions.json`).
 - **Clear width and engine access (derived, from sourced widths and assumed parking).** Narrowest entrance segment under status-quo parking in its nominal state (`js/parking.js`, no seed: both sides parked where a car still fits, perfect parking). An engine fits at 10 ft (3.05 m) or more; 20 ft is the fire-code width. Tiers follow the SB 99 report (p. 4): severely constrained 6 ft or less, moderately 7–8 ft, constrained 9–10 ft. A resident counts as behind a narrow choke only if every route from their street to every exit crosses it; residents on a stem between the entrance and a narrower segment farther in are not behind the narrower one. Seeded runs of the simulator park fewer cars on some blocks and add bad parking jobs, so this is one representative state.
 - **Steepest grade (derived).** Largest 25 m-window grade from the 4 m lidar DEM on any street in the area, leaving out segments flagged unreliable.
@@ -30,17 +30,17 @@ Each item carries its provenance category: sourced, derived, assumption, model r
 
 | Measure | Value |
 |---|---|
-| Residents in the model area (synthetic) | 196,720 |
-| Residents behind at least one choke point | 20,449 (10%) |
-| Hill residents | 41,475 |
-| Hill residents behind at least one choke point | 5,749 (14%) |
-| … behind a dead end | 4,479 |
+| Residents in the model area (synthetic) | 196,759 |
+| Residents behind at least one choke point | 20,478 (10%) |
+| Hill residents | 41,514 |
+| Hill residents behind at least one choke point | 5,779 (14%) |
+| … behind a dead end | 4,508 |
 | … behind a one-way choke only | 1,271 |
-| … behind two or more choke points in series | 758 |
-| … behind a choke too narrow for an engine (nominal parking) | 1,236 |
-| Berkeley and LBNL hill residents | 27,840 |
-| … behind at least one choke point | 3,149 (11%) |
-| … behind a dead end | 2,382 |
+| … behind two or more choke points in series | 797 |
+| … behind a choke too narrow for an engine (nominal parking) | 1,275 |
+| Berkeley and LBNL hill residents | 27,879 |
+| … behind at least one choke point | 3,178 (11%) |
+| … behind a dead end | 2,411 |
 | Areas (all; with at least 1 resident; mostly hill) | 576; 496; 187 |
 | Dead-end areas; one-way areas | 367; 209 |
 | Areas by nesting | 1: 562; 2: 6; 3: 4; 4: 4 |
@@ -53,12 +53,12 @@ Nesting 2 or more means the area lies inside a larger one, so rows overlap. Clea
 | # | Area | Type | Entrance (choke) | Streets behind it | Residents | Households | Vehicles | Nesting | Clear width, ft | Engine fits | Fire zone | Nearest other street | Existing path |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 1 | AC-315 ⚠ | dead end | Hillside Av | Taft St, Hillside Av | 2,597 | 1,096 | 1,225 | 1 | 20 | yes | no zone 100% | Hillside Av: 67 m line, -27 m climb (40.3%), 313 m by road now | — |
-| 2 | AC-075 | one-way | Bancroft Wy | Bancroft Wy, Ellsworth St | 1,013 | 428 | 478 | 1 | 32 | yes | FZ1 100% | n/a: two-way operation of the entrance would open it | — |
-| 3 | AC-155 | dead end | Panoramic Wy | Panoramic Wy, Mosswood Rd, Orchard Ln, Panoramic Pl +4 | 972 | 410 | 458 | 1 | 9 | **no** | FZ3 84%, FZ2 16% | Canyon Rd: 45 m line, -20 m climb (44%), 334 m by road now | — |
-| 4 | AC-158 | dead end | Panoramic Wy | Panoramic Wy, Panoramic Pl, Orchard Ln, Arden Rd +2 | 614 | 259 | 290 | 2 | 15 | yes | FZ3 79%, FZ2 21% | Mosswood Rd: 35 m line, -21 m climb (59.6%), 337 m by road now | Arden Steps (stairs), 35 m to Mosswood Rd, max grade 70.8% |
+| 2 | AC-077 | one-way | Bancroft Wy | Bancroft Wy, Ellsworth St | 1,013 | 428 | 478 | 1 | 32 | yes | FZ1 100% | n/a: two-way operation of the entrance would open it | — |
+| 3 | AC-155 | dead end | Panoramic Wy | Panoramic Wy, Mosswood Rd, Orchard Ln, Panoramic Pl +4 | 1,011 | 427 | 477 | 1 | 9 | **no** | FZ3 81%, FZ2 19% | Canyon Rd: 45 m line, -20 m climb (44%), 334 m by road now | — |
+| 4 | AC-158 | dead end | Panoramic Wy | Panoramic Wy, Panoramic Pl, Orchard Ln, Arden Rd +2 | 653 | 276 | 308 | 2 | 15 | yes | FZ3 74%, FZ2 26% | Mosswood Rd: 35 m line, -21 m climb (59.6%), 337 m by road now | Arden Steps (stairs), 35 m to Mosswood Rd, max grade 70.8% |
 | 5 | AC-311 | dead end | Buchanan St | Buchanan St | 599 | 253 | 282 | 1 | 20 | yes | no zone 100% | Buchanan St: 8 m line, +0 m climb (1.2%), 303 m by road now | — |
-| 6 | AC-169 | one-way | Dwight Wy | Dana St, Dwight Wy | 457 | 193 | 215 | 1 | 24 | yes | FZ1 100% | n/a: two-way operation of the entrance would open it | — |
-| 7 | AC-160 | dead end | Panoramic Wy | Panoramic Wy, Panoramic Pl, Dwight Wy, Dwight Pl | 437 | 184 | 206 | 3 | 15 | yes | FZ3 70%, FZ2 30% | Arden Rd: 48 m line, -15 m climb (30.9%), 576 m by road now | Arden Pa (path), 60 m to Arden Rd, max grade 27.7% |
+| 6 | AC-160 | dead end | Panoramic Wy | Panoramic Wy, Panoramic Pl, Dwight Wy, Dwight Pl | 476 | 201 | 224 | 3 | 15 | yes | FZ3 65%, FZ2 35% | Arden Rd: 48 m line, -15 m climb (30.9%), 576 m by road now | Arden Pa (path), 60 m to Arden Rd, max grade 27.7% |
+| 7 | AC-169 | one-way | Dwight Wy | Dana St, Dwight Wy | 457 | 193 | 215 | 1 | 24 | yes | FZ1 100% | n/a: two-way operation of the entrance would open it | — |
 | 8 | AC-540 | dead end | Caldecott Ln | Caldecott Ln | 276 | 117 | 130 | 1 | 16 | yes | FZ2 100% | Tunnel Rd: 46 m line, +23 m climb (50.7%), 2,289 m by road now | — |
 | 9 | AC-012 | one-way | Dwight Wy | Dwight Wy | 252 | 107 | 119 | 1 | 20 | yes | FZ2 100% | n/a: two-way operation of the entrance would open it | Etna St (diverter), 3 m to Etna St, max grade 3.9% |
 | 10 | AC-139 | one-way | Blake St | Blake St, Fulton St | 249 | 105 | 117 | 1 | 26 | yes | FZ1 100% | n/a: two-way operation of the entrance would open it | Blake St (diverter), 3 m to Blake St, max grade 2.3% |
@@ -70,8 +70,8 @@ Nesting 2 or more means the area lies inside a larger one, so rows overlap. Clea
 | 16 | AC-286 | one-way | Central Av | Isabel St, Central Av | 149 | 63 | 70 | 1 | 11 | yes | no zone 100% | n/a: two-way operation of the entrance would open it | — |
 | 17 | AC-187 | dead end | Fairview St | Fairview St, Dover St | 117 | 49 | 55 | 1 | 20 | yes | FZ1 57%, no zone 43% | 65th St: 47 m line, -1 m climb (1.9%), 595 m by road now | — |
 | 18 | AC-282 | dead end | 59th St | 59th St | 116 | 49 | 55 | 1 | 20 | yes | no zone 100% | 59th St: 8 m line, 0 m climb (1.3%), 854 m by road now | — |
-| 19 | AC-073 | dead end | Regent St | Regent St, Webster St | 106 | 45 | 50 | 1 | 20 | yes | FZ1 100% | Bateman St: 3 m line, 0 m climb (0%), 881 m by road now | Bateman St (diverter), 3 m to Bateman St, max grade 1.9% |
-| 20 | AC-066 | dead end | Grant St / Berkeley Wy | Berkeley Wy, Grant St | 104 | 44 | 49 | 1 | 20 | yes | FZ1 100% | Grant St: 3 m line, 0 m climb (0%), 602 m by road now | Grant St (diverter), 3 m to Grant St, max grade 0.8% |
+| 19 | AC-075 | dead end | Regent St | Regent St, Webster St | 106 | 45 | 50 | 1 | 20 | yes | FZ1 100% | Bateman St: 3 m line, 0 m climb (0%), 881 m by road now | Bateman St (diverter), 3 m to Bateman St, max grade 1.9% |
+| 20 | AC-068 | dead end | Grant St / Berkeley Wy | Berkeley Wy, Grant St | 104 | 44 | 49 | 1 | 20 | yes | FZ1 100% | Grant St: 3 m line, 0 m climb (0%), 602 m by road now | Grant St (diverter), 3 m to Grant St, max grade 0.8% |
 | 21 | AC-211 | dead end | Laurel St / Oak St / High Ct | High Ct, Laurel St, Oak St | 104 | 44 | 49 | 1 | 14 | yes | FZ2 100% | Euclid Av: 56 m line, -6 m climb (10.6%), 374 m by road now | Oak St (no-vehicle street), 99 m to Oak St, max grade 21.3% |
 | 22 | AC-438 | one-way | Miles Av | Miles Av | 98 | 42 | 46 | 1 | 11 | yes | no zone 100% | n/a: two-way operation of the entrance would open it | — |
 | 23 | AC-228 | dead end | Jefferson | Jefferson | 98 | 41 | 46 | 1 | — | width unknown | FZ1 100% | Addison St: 3 m line, +0 m climb (3.3%), 598 m by road now | Addison St (diverter), 3 m to Addison St, max grade 1.9% |
@@ -86,11 +86,11 @@ Score = residents × nesting × narrowness × hill factor (model rule).
 
 | # | Area | Type | Entrance (choke) | Streets behind it | Residents | Nesting | Clear width, ft (SB 99 tier) | Narrowness | Hill factor | Score | Steepest grade | Nearest other street | Existing path |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | AC-155 | dead end | Panoramic Wy | Panoramic Wy, Mosswood Rd, Orchard Ln, Panoramic Pl +4 | 972 | 1 | 9 (constrained) | 2 | 2 | 3,888 | 32.3% | Canyon Rd: 45 m line, -20 m climb (44%), 334 m by road now | — |
-| 2 | AC-160 | dead end | Panoramic Wy | Panoramic Wy, Panoramic Pl, Dwight Wy, Dwight Pl | 437 | 3 | 15 (not narrow) | 1 | 2 | 2,620 | 28.2% | Arden Rd: 48 m line, -15 m climb (30.9%), 576 m by road now | Arden Pa (path), 60 m to Arden Rd, max grade 27.7% |
-| 3 | AC-315 ⚠ | dead end | Hillside Av | Taft St, Hillside Av | 2,597 | 1 | 20 (not narrow) | 1 | 1 | 2,597 | 13.4% | Hillside Av: 67 m line, -27 m climb (40.3%), 313 m by road now | — |
-| 4 | AC-158 | dead end | Panoramic Wy | Panoramic Wy, Panoramic Pl, Orchard Ln, Arden Rd +2 | 614 | 2 | 15 (not narrow) | 1 | 2 | 2,457 | 28.2% | Mosswood Rd: 35 m line, -21 m climb (59.6%), 337 m by road now | Arden Steps (stairs), 35 m to Mosswood Rd, max grade 70.8% |
-| 5 | AC-075 | one-way | Bancroft Wy | Bancroft Wy, Ellsworth St | 1,013 | 1 | 32 (not narrow) | 1 | 1 | 1,013 | 4.4% | n/a: two-way operation of the entrance would open it | — |
+| 1 | AC-155 | dead end | Panoramic Wy | Panoramic Wy, Mosswood Rd, Orchard Ln, Panoramic Pl +4 | 1,011 | 1 | 9 (constrained) | 2 | 2 | 4,044 | 32.3% | Canyon Rd: 45 m line, -20 m climb (44%), 334 m by road now | — |
+| 2 | AC-160 | dead end | Panoramic Wy | Panoramic Wy, Panoramic Pl, Dwight Wy, Dwight Pl | 476 | 3 | 15 (not narrow) | 1 | 2 | 2,854 | 28.2% | Arden Rd: 48 m line, -15 m climb (30.9%), 576 m by road now | Arden Pa (path), 60 m to Arden Rd, max grade 27.7% |
+| 3 | AC-158 | dead end | Panoramic Wy | Panoramic Wy, Panoramic Pl, Orchard Ln, Arden Rd +2 | 653 | 2 | 15 (not narrow) | 1 | 2 | 2,613 | 28.2% | Mosswood Rd: 35 m line, -21 m climb (59.6%), 337 m by road now | Arden Steps (stairs), 35 m to Mosswood Rd, max grade 70.8% |
+| 4 | AC-315 ⚠ | dead end | Hillside Av | Taft St, Hillside Av | 2,597 | 1 | 20 (not narrow) | 1 | 1 | 2,597 | 13.4% | Hillside Av: 67 m line, -27 m climb (40.3%), 313 m by road now | — |
+| 5 | AC-077 | one-way | Bancroft Wy | Bancroft Wy, Ellsworth St | 1,013 | 1 | 32 (not narrow) | 1 | 1 | 1,013 | 4.4% | n/a: two-way operation of the entrance would open it | — |
 | 6 | AC-311 | dead end | Buchanan St | Buchanan St | 599 | 1 | 20 (not narrow) | 1 | 1 | 599 | 2.4% | Buchanan St: 8 m line, +0 m climb (1.2%), 303 m by road now | — |
 | 7 | AC-540 | dead end | Caldecott Ln | Caldecott Ln | 276 | 1 | 16 (not narrow) | 1 | 2 | 552 | 17.5% | Tunnel Rd: 46 m line, +23 m climb (50.7%), 2,289 m by road now | — |
 | 8 | AC-012 | one-way | Dwight Wy | Dwight Wy | 252 | 1 | 20 (not narrow) | 1 | 2 | 505 | 5.3% | n/a: two-way operation of the entrance would open it | Etna St (diverter), 3 m to Etna St, max grade 3.9% |
@@ -98,15 +98,15 @@ Score = residents × nesting × narrowness × hill factor (model rule).
 | 10 | AC-169 | one-way | Dwight Wy | Dana St, Dwight Wy | 457 | 1 | 24 (not narrow) | 1 | 1 | 457 | 3.6% | n/a: two-way operation of the entrance would open it | — |
 | 11 | AC-504 | dead end | Contra Costa Rd | Contra Costa Rd, Contra Costa Pl | 227 | 1 | 16 (not narrow) | 1 | 2 | 455 | 14.1% | Buena Vista Av: 51 m line, -12 m climb (24.3%), 666 m by road now | — |
 | 12 | AC-038 | one-way | Piedmont Av Tc | Piedmont Av Tc, Piedmont Av | 196 | 1 | — (unknown) | 1 | 2 | 393 | 6.3% | n/a: two-way operation of the entrance would open it | — |
-| 13 | AC-161 | dead end | Panoramic Pl | Panoramic Pl | 46 | 4 | 15 (not narrow) | 1 | 2 | 367 | 28.2% | Mosswood Rd: 73 m line, -28 m climb (39%), 931 m by road now | — |
-| 14 | AC-500 | dead end | Slater Ln | Evergreen Ln, Slater Ln | 153 | 1 | 16 (not narrow) | 1 | 2 | 306 | 13.6% | Alvarado Rd: 68 m line, +25 m climb (36.9%), 404 m by road now | — |
-| 15 | AC-036 | dead end | Oak Ridge Rd | Oak Ridge Rd | 72 | 1 | 9 (constrained) | 2 | 2 | 289 | 10.1% | El Camino Real: 44 m line, -15 m climb (34.1%), 617 m by road now | Park Pa (path), 46 m to El Camino Real, max grade 35.6% |
-| 16 | AC-164 | dead end | Panoramic Wy | Panoramic Wy, Panoramic Pl | 33 | 4 | 16 (not narrow) | 1 | 2 | 261 | 19.5% | Panoramic Wy: 68 m line, -34 m climb (50.2%), 338 m by road now | — |
+| 13 | AC-164 | dead end | Panoramic Wy | Panoramic Wy, Panoramic Pl | 48 | 4 | 16 (not narrow) | 1 | 2 | 384 | 19.5% | Panoramic Wy: 68 m line, -34 m climb (50.2%), 338 m by road now | — |
+| 14 | AC-161 | dead end | Panoramic Pl | Panoramic Pl | 46 | 4 | 15 (not narrow) | 1 | 2 | 367 | 28.2% | Mosswood Rd: 73 m line, -28 m climb (39%), 931 m by road now | — |
+| 15 | AC-500 | dead end | Slater Ln | Evergreen Ln, Slater Ln | 153 | 1 | 16 (not narrow) | 1 | 2 | 306 | 13.6% | Alvarado Rd: 68 m line, +25 m climb (36.9%), 404 m by road now | — |
+| 16 | AC-036 | dead end | Oak Ridge Rd | Oak Ridge Rd | 72 | 1 | 9 (constrained) | 2 | 2 | 289 | 10.1% | El Camino Real: 44 m line, -15 m climb (34.1%), 617 m by road now | Park Pa (path), 46 m to El Camino Real, max grade 35.6% |
 | 17 | AC-541 | dead end | Caldecott Ln | Caldecott Ln | 63 | 2 | 16 (not narrow) | 1 | 2 | 251 | 10% | Tunnel Rd: 51 m line, +19 m climb (36.7%), 2,847 m by road now | — |
 | 18 | AC-139 | one-way | Blake St | Blake St, Fulton St | 249 | 1 | 26 (not narrow) | 1 | 1 | 249 | 2.3% | n/a: two-way operation of the entrance would open it | Blake St (diverter), 3 m to Blake St, max grade 2.3% |
 | 19 | AC-133 | dead end | Maybeck Twin Dr | Maybeck Twin Dr | 39 | 1 | 8 (moderately constrained) | 3 | 2 | 234 | 19.9% | Buena Vista Wy: 38 m line, +11 m climb (28.1%), 617 m by road now | — |
 | 20 | AC-156 | dead end | Mosswood Rd | Mosswood Rd | 57 | 2 | 15 (not narrow) | 1 | 2 | 230 | 19.4% | Arden Rd: 35 m line, +20 m climb (56.3%), 334 m by road now | Arden Steps (stairs), 35 m to Arden Rd, max grade 70.8% |
-| 21 | AC-059 | dead end | Hillside Ct | Hillside Ct | 35 | 1 | 8 (moderately constrained) | 3 | 2 | 210 | 16.2% | Panoramic Wy: 51 m line, +21 m climb (40.8%), 540 m by road now | — |
+| 21 | AC-061 | dead end | Hillside Ct | Hillside Ct | 35 | 1 | 8 (moderately constrained) | 3 | 2 | 210 | 16.2% | Panoramic Wy: 51 m line, +21 m climb (40.8%), 540 m by road now | — |
 | 22 | AC-211 | dead end | Laurel St / Oak St / High Ct | High Ct, Laurel St, Oak St | 104 | 1 | 14 (not narrow) | 1 | 2 | 208 | 15.1% | Euclid Av: 56 m line, -6 m climb (10.6%), 374 m by road now | Oak St (no-vehicle street), 99 m to Oak St, max grade 21.3% |
 | 23 | AC-413 | one-way | Edgecroft Rd | Edgecroft Rd | 95 | 1 | 15 (not narrow) | 1 | 2 | 190 | 6.6% | n/a: two-way operation of the entrance would open it | — |
 | 24 | AC-049 | dead end | Etna St | Etna St | 167 | 1 | 20 (not narrow) | 1 | 1 | 167 | 3.9% | Dwight Wy: 3 m line, 0 m climb (0%), 605 m by road now | Etna St (diverter), 3 m to Dwight Wy, max grade 3.9% |
@@ -120,23 +120,23 @@ The SB 99 report (p. 4) says the whole Panoramic Way neighborhood has "only one 
 
 | Area | Entrance | Residents | Nesting | Clear width, ft | Streets |
 |---|---|---|---|---|---|
-| AC-155 | Panoramic Wy | 972 | 1 | 9 | Panoramic Wy, Mosswood Rd, Orchard Ln, Panoramic Pl, Mosswood Ln, Arden Rd, Dwight Wy, Dwight Pl |
+| AC-155 | Panoramic Wy | 1,011 | 1 | 9 | Panoramic Wy, Mosswood Rd, Orchard Ln, Panoramic Pl, Mosswood Ln, Arden Rd, Dwight Wy, Dwight Pl |
 | AC-157 | Panoramic Wy | 24 | 2 | 15 | Panoramic Wy |
-| AC-158 | Panoramic Wy | 614 | 2 | 15 | Panoramic Wy, Panoramic Pl, Orchard Ln, Arden Rd, Dwight Wy, Dwight Pl |
-| AC-160 | Panoramic Wy | 437 | 3 | 15 | Panoramic Wy, Panoramic Pl, Dwight Wy, Dwight Pl |
+| AC-158 | Panoramic Wy | 653 | 2 | 15 | Panoramic Wy, Panoramic Pl, Orchard Ln, Arden Rd, Dwight Wy, Dwight Pl |
+| AC-160 | Panoramic Wy | 476 | 3 | 15 | Panoramic Wy, Panoramic Pl, Dwight Wy, Dwight Pl |
 | AC-162 | Panoramic Wy | 11 | 4 | 15 | Panoramic Wy |
 
 The entrance agrees with the SB 99 report: the foot of Panoramic Way at Prospect St, reached over the 45 m Bancroft Wy link. The County centerline file codes that link "BANCROFT STEPS WY" with TRVLWAY NT (no vehicle travel); OpenStreetMap (Bancroft Way, way 24025453), the City pavement layer and SB 99 all treat it as a street, so the network builder corrects that record (`network.segmentCorrections` in `data/assumptions.json`, SOURCE_NOTES K1–K6). Before the correction the model sent the neighborhood out around Memorial Stadium on Rim Rd and Stadium Rim Rd.
 
-Zone BER-013 ("Panoramic Hill Oakland" in Genasys, 83 people by the City layer's Genasys estimate) covers the Oakland part of the hill: upper Dwight Wy, Dwight Pl, and Panoramic Wy and Panoramic Pl above the city line. The City layer clips it to a sliver along the line, so the network builder takes its outline from Genasys (SOURCE_NOTES Z1); all its residents are behind the Panoramic Wy choke, and the SB 99 rows for BER-E013 match the areas above. The gate on upper Panoramic Way (OSM node 35719248, engines pass) leads only to a dead end in the model, because the fire road beyond it is not a drivable OSM way, so the model shows no emergency second exit; SB 99 says those upper barriers "will not expedite the evacuation" because they "do not provide additional access points to Prospect St/Canyon Rd".
+Zone BER-013 ("Panoramic Hill Oakland" in Genasys; 122 people, the 2020 Census count Eric chose over the City layer's Genasys estimate of 83, SOURCE_NOTES Z2) covers the Oakland part of the hill: upper Dwight Wy, Dwight Pl, and Panoramic Wy and Panoramic Pl above the city line. The City layer clips it to a sliver along the line, so the network builder takes its outline from Genasys (SOURCE_NOTES Z1); all its residents are behind the Panoramic Wy choke, and the SB 99 rows for BER-E013 match the areas above. The gate on upper Panoramic Way (OSM node 35719248, engines pass) leads only to a dead end in the model, because the fire road beyond it is not a drivable OSM way, so the model shows no emergency second exit; SB 99 says those upper barriers "will not expedite the evacuation" because they "do not provide additional access points to Prospect St/Canyon Rd".
 
 ### Known cul-de-sacs
 
-- Wilson Cir behind Olympus Ave: AC-058, dead end, entrance Olympus Av, 34 residents, clear width 13 ft, engine fits: yes. Matches the SB 99 Table 1 rows for Olympus Ave (BER-E031 and BER-E032).
+- Wilson Cir behind Olympus Ave: AC-060, dead end, entrance Olympus Av, 34 residents, clear width 13 ft, engine fits: yes. Matches the SB 99 Table 1 rows for Olympus Ave (BER-E031 and BER-E032).
 - Maybeck Twin Dr: AC-133, dead end, entrance Maybeck Twin Dr, 39 residents, nesting 1, clear width 8 ft, engine fits: **no**.
 - Oak Ridge Rd: AC-036, dead end, entrance Oak Ridge Rd, 72 residents, nesting 1, clear width 9 ft, engine fits: **no**.
 - Hill Rd: AC-005, dead end, entrance Hill Rd, 33 residents, nesting 1, clear width 14 ft, engine fits: yes.
-- Woodhaven Rd: AC-097, dead end, entrance Woodhaven Rd, 12 residents, nesting 1, clear width — ft, engine fits: width unknown.
+- Woodhaven Rd: AC-098, dead end, entrance Woodhaven Rd, 12 residents, nesting 1, clear width — ft, engine fits: width unknown.
 - Stoddard Wy: AC-030, dead end, entrance Stoddard Wy, 14 residents, nesting 1, clear width 12 ft, engine fits: yes.
 - Vistamont Av: AC-143, dead end, entrance Vistamont Av, 11 residents, nesting 1, clear width — ft, engine fits: width unknown.
 
@@ -147,15 +147,15 @@ SB 99's primary Access Impaired Neighborhoods (AIN) are residential parcels in a
 - Table 1 lists 141 primary AINs with 1,461 parcels (p. 4). The text extraction in `data/raw/docs/sb99.txt` yields 138 rows with 1,446 parcels; 6 are private drives off a named street.
 - **113 of 132 named-street rows** (1,262 parcels) have a street of that name inside a choke area in the same zone or within 150 m of it; 111 of those are dead ends.
 - Rows not matched (19): Martin Ave (BER-014/BER-016, 4) [street not in the network]; Eunice St (BER-027/BER-028, 1); Ross St (BER-029/BER-030, 3); Grizzly Peak Blvd (BER-030/BER-031, 3); Ross St (BER-033/BER-036, 2); Lincoln St (BER-033/BER-036, 15); West St (BER-036/BER-037, 2); California St (BER-036/BER-037, 5); Delaware St (BER-036/BER-037, 9); Mc Gee Ave (BER-037/BER-038, 5); Leroy Ave (BER-040/BER-046, 4); Noth Valley St (BER-046/BER-047, 14) [street not in the network]; West St (BER-046/BER-047, 4); 8Th St (BER-047/BER-051, 10); Fernwald Rd (BER-053/BER-058, 6); Grant St (BER-062/BER-063, 2); Colby St (BER-066/BER-067, 3); Claremont Blvd (BER-072/BER-073, 10); Mystic Ct (OKL-017/OKL-018, 6) [street not in the network]. Most are in the flats, where SB 99 counts dead-end blocks made by diverters. The simulator models each diverter from OSM geometry, and several of these are open or one-way pieces in the model (README, "Diverters and traffic circles"). The rest are private courts missing from the County file or blocks where the County file has a through street.
-- In the other direction, 64 Berkeley hill dead ends with 5 or more residents were found; 9 contain no street named in Table 1: Smyth Ln (54); Bay Tree Ln (39); Somerset Pl (32); Summit Rd (31); Unnamed (13); Rosemont Av (10); Summit Ln (8); Arcade Ln (8); Marin Av (7). Being inside the 5-minute fire-station service area would leave a dead end out of SB 99's primary list, so these are expected differences, not errors on either side.
+- In the other direction, 64 Berkeley hill dead ends with 5 or more residents were found; 9 contain no street named in Table 1: Smyth Ln (54); Bay Tree Ln (39); Somerset Pl (32); Summit Rd (31); Unnamed (13); Rosemont Av (10); Summit Ln (8); Arcade Ln (8); Marin Av (6). Being inside the 5-minute fire-station service area would leave a dead end out of SB 99's primary list, so these are expected differences, not errors on either side.
 
 ### City Narrow_Roads layer
 
-The City's narrow-roads survey covers 326 drivable segments (40.1 km). Only 50 of them (4.5 km) lie behind a choke, and 29 of 187 mostly-hill areas have a surveyed narrow road at the entrance. Narrow roads are concentrated in the looped street grid north of Codornices Park, which SB 99 rates as secondary AINs (several routes, all but one narrow or winding). The two analyses agree on that split: dead ends and narrow roads are mostly different places, and Panoramic Hill is where they coincide.
+The City's narrow-roads survey covers 327 drivable segments (40.2 km). Only 48 of them (4.3 km) lie behind a choke, and 29 of 187 mostly-hill areas have a surveyed narrow road at the entrance. Narrow roads are concentrated in the looped street grid north of Codornices Park, which SB 99 rates as secondary AINs (several routes, all but one narrow or winding). The two analyses agree on that split: dead ends and narrow roads are mostly different places, and Panoramic Hill is where they coincide.
 
 ## Data problems found
 
-1. **Panoramic Way to Prospect St (corrected).** The County record for the 45 m Bancroft Wy link ("BANCROFT STEPS WY", no vehicle travel) contradicted OSM, the City pavement layer and SB 99; the network builder now corrects it (SOURCE_NOTES K1–K6), and this analysis runs on the corrected network. The City's zone layer also clipped zone BER-013 to a sliver, leaving the Oakland part of the hill in no zone; its outline now comes from Genasys (SOURCE_NOTES Z1).
+1. **Panoramic Way to Prospect St (corrected).** The County record for the 45 m Bancroft Wy link ("BANCROFT STEPS WY", no vehicle travel) contradicted OSM, the City pavement layer and SB 99; the network builder now corrects it (SOURCE_NOTES K1–K6), and this analysis runs on the corrected network. The City's zone layer also clipped zone BER-013 to a sliver, leaving the Oakland part of the hill in no zone; its outline now comes from Genasys (SOURCE_NOTES Z1). The County file also codes The Crossways (67 m, Overlook Rd to Middlefield Rd) as no vehicle travel; OpenStreetMap, the City pavement records and KLD's AB 747 model treat it as a street, while the City segment's network fields code it a stairway. Eric chose the street (SOURCE_NOTES K8), and the builder opens it the same way.
 2. **Albany Hill population.** Zone ALB-011 ("Albany Hill Wildland Park Area") has 2,535 people from 2020 Census block interior points but only one drivable segment whose midpoint lies in it (Taft St, 221 m), so the simulator puts all of them, about 1,070 households, on that segment, behind a dead end (AC-315). The Census blocks most likely hold the apartment towers at the foot of the hill, reached from other streets. Placing zone populations by Census block, or spreading a zone's people onto streets within a buffer of its outline, would fix it.
 3. **No route out.** Martin Luther King Jr Wy (edge 2386, 12 m, 3.3 residents) is a one-way County piece at the Oakland line that points into the same node as the one-way OSM carriageway (way 272608978), so nothing can leave it. Vehicles the simulator places there never leave.
 4. **One-way chokes in Southside and near the stadium.** The largest one-way areas (Bancroft Wy 1013; Dwight Wy 457; Dwight Wy 252; Blake St 249; Piedmont Av 240) come from County one-way directions combined with diverters. They are real in the sense that the law sends drivers one way, but police or drivers would override them in an emergency, and HANDOFF item 4b already questions some County one-way directions. Treat them as softer than dead ends.
