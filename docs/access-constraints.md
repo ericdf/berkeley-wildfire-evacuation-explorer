@@ -7,7 +7,7 @@ Built 2026-11-01 by `tools/access-constraints.mjs` from `data/model/network.json
 - **5,684 of the model area's 41,395 hill residents (14%) live behind at least one choke point**: a single street segment whose loss leaves them with no drivable route out of the model area. For Berkeley and LBNL zones alone the figure is 3,083 of 27,759 (11%). "Hill" means a street in City Fire Zone 2 or 3, or outside Berkeley at 90 m elevation or higher (the simulator's proxy).
 - 4,413 of those hill residents are behind a true dead end (the choke is the only street connection at all); 1,271 are behind a choke created only by one-way rules, which drivers or police could override in an emergency.
 - 676 hill residents are behind two or more choke points in series (a dead end inside a dead end). 1,156 are behind a choke too narrow for a fire engine with status-quo parking in its nominal state (both sides parked where they fit, perfect parking; under 10 ft of clear width): every route from their street to every exit crosses the narrow segment.
-- **Panoramic Hill is the largest hill area**: 889 synthetic residents, 375 households and 419 vehicles on 4.2 km of street behind one choke, with up to 4 choke points in series on upper Panoramic Way. The model's choke there is wrong in location (see Data problems): the County file marks the short drivable link from Panoramic Way to Prospect St as no-vehicle, so the model's only exit is around Memorial Stadium on Rim Rd and Stadium Rim Rd.
+- **Panoramic Hill is the largest hill area**: 889 synthetic residents, 375 households and 419 vehicles on 4.2 km of street behind one choke, with up to 4 choke points in series on upper Panoramic Way. Its entrance is the foot of Panoramic Way at Prospect St, as SB 99 describes, since the County record for that link was corrected (SOURCE_NOTES K1–K4).
 - Of the 132 named-street primary rows in the SB 99 report's Table 1 (KLD, 2024; dead-end streets), 113 name a street that lies inside an area found here, in the same or a neighboring zone (1,262 of the 1,446 parcels in all rows). Most of the 19 misses are flatland blocks that SB 99 counts as dead ends because of diverters, and three are streets the network does not have.
 
 ## Method
@@ -126,16 +126,7 @@ The SB 99 report (p. 4) says the whole Panoramic Way neighborhood has "only one 
 | AC-164 | Panoramic Wy | 354 | 3 | 15 | Panoramic Wy, Panoramic Pl, Dwight Wy, Dwight Pl |
 | AC-166 | Panoramic Wy | 11 | 4 | 15 | Panoramic Wy |
 
-The location of the first choke disagrees with the SB 99 report. In the model the neighborhood drives out over Rim Rd and Stadium Rim Rd, around the east side of Memorial Stadium, because the County centerline file marks the 45 m piece between the foot of Panoramic Way and Prospect St as "BANCROFT STEPS WY" with TRVLWAY NT (no vehicle travel). OpenStreetMap maps the same piece as drivable Bancroft Way (way 24025453, tertiary) joining Prospect St, Canyon Rd and Panoramic Way, which matches the SB 99 description. With that piece opened to cars (`node tools/access-constraints.mjs --open 2322`):
-
-| Area | Entrance | Residents | Nesting | Clear width, ft | Engine fits |
-|---|---|---|---|---|---|
-| AC-159 | Panoramic Wy | 889 | 1 | 9 | **no** |
-| AC-161 | Panoramic Wy | 24 | 2 | 15 | yes |
-| AC-162 | Panoramic Wy | 531 | 2 | 15 | yes |
-| AC-164 | Panoramic Wy | 354 | 3 | 15 | yes |
-
-The choke moves to the foot of Panoramic Way, as SB 99 describes, and Canyon Rd and Stadium Rim Rd drop out of the area. Hill residents behind any choke change from 5,684 to 5,684.
+The entrance agrees with the SB 99 report: the foot of Panoramic Way at Prospect St. The County centerline file marks the 45 m link there as "BANCROFT STEPS WY" with no vehicle travel; OpenStreetMap (Bancroft Way, way 24025453), the City pavement layer and SB 99 all treat it as a street, so the network builder corrects that record (`network.segmentCorrections` in data/assumptions.json; SOURCE_NOTES K1–K4). Before the correction the model sent the neighborhood out around Memorial Stadium on Rim Rd and Stadium Rim Rd.
 
 Zone BER-013 (83 people in the Genasys layer, "Panoramic Hill") has no street segment whose midpoint falls inside it, so the simulator places none of its people; the SB 99 rows for BER-E013 match the BER-058 areas above. The gate on upper Panoramic Way (OSM node 35719248, engines pass) leads only to a dead end in the model, because the fire road beyond it is not a drivable OSM way, so the model shows no emergency second exit; SB 99 says those upper barriers "will not expedite the evacuation" because they "do not provide additional access points to Prospect St/Canyon Rd".
 
@@ -164,7 +155,7 @@ The City's narrow-roads survey covers 326 drivable segments (40.1 km). Only 50 o
 
 ## Data problems found
 
-1. **Panoramic Way to Prospect St.** County edge 2322 ("BANCROFT STEPS WY", TRVLWAY NT) blocks the drivable link that OSM and SB 99 show. The simulator inherits this: Panoramic Hill traffic leaves around the stadium on Rim Rd and Stadium Rim Rd. R04 calibration matches the Time Study anyway, but the route is wrong. Fix in `tools/build-network.mjs` (treat that segment as a two-way Local street, with a SOURCE_NOTES entry), then rebuild and recalibrate.
+1. **Panoramic Way to Prospect St (corrected).** The County record for this 45 m link ("BANCROFT STEPS WY", no vehicle travel) contradicted OSM, the City pavement layer and SB 99; the builder now corrects it (SOURCE_NOTES K1–K4), and this analysis runs on the corrected network.
 2. **Albany Hill population.** Zone ALB-011 ("Albany Hill Wildland Park Area") has 2,535 people from 2020 Census block interior points but only one drivable segment whose midpoint lies in it (Taft St, 221 m), so the simulator puts all of them, about 1,070 households, on that segment, behind a dead end (AC-317). The Census blocks most likely hold the apartment towers at the foot of the hill, reached from other streets. Placing zone populations by Census block, or spreading a zone's people onto streets within a buffer of its outline, would fix it.
 3. **No route out.** Martin Luther King Jr Wy (edge 2386, 12 m, 5.8 residents) is a one-way County piece at the Oakland line that points into the same node as the one-way OSM carriageway (way 272608978), so nothing can leave it. Vehicles the simulator places there never leave.
 4. **One-way chokes in Southside and near the stadium.** The largest one-way areas (Bancroft Wy 1013; Dwight Wy 457; Dwight Wy 252; Blake St 249; Piedmont Av 240) come from County one-way directions combined with diverters. They are real in the sense that the law sends drivers one way, but police or drivers would override them in an emergency, and HANDOFF item 4b already questions some County one-way directions. Treat them as softer than dead ends.
