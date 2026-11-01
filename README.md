@@ -170,9 +170,11 @@ add any parking-removal bonus.
 | `js/fire.js`, `js/sim.js`, `js/parking.js`, `js/scenarios.js`, `js/rng.js` | Models and presets |
 | `js/presets.js` | Simple view: its fires, questions, per-fire "What to look for" text and the reasons a question is withheld |
 | `js/worker.js` | Runs comparison batches off the main thread |
-| `js/data.js` | Loads the data files |
+| `js/access.js` | Access-constrained areas: inspector card, Expert-view summary, ranking table, map key |
+| `js/data.js` | Loads the data files (`access-constraints.json` is optional) |
 | `data/assumptions.json` | **Editable** assumptions and model rules, each with a category and note |
 | `data/model/network.json`, `layers.json` | Built by `tools/build-network.mjs` (do not edit by hand) |
+| `data/model/access-constraints.json` | Built by `tools/access-constraints.mjs`; the simulator runs without it |
 | `data/terrain/dem.i16`, `dem.json` | Elevation grid, built by `tools/fetch-dem.mjs` |
 | `data/field/` | Field and aerial observations (counts only), e.g. parked cars on 22 hill blocks |
 | `data/raw/` | Downloaded source data (reproducible, large; City layers and report PDFs are not in git). `osm/east-bay-roads.json` (OSM streets), `genasys/zones.json` (zone outlines), `census/` (2020 block counts) each have a retrieval note |
@@ -246,3 +248,12 @@ node tools/access-constraints.mjs --open 2322  # what-if: treat segment 2322 (or
 ```
 
 Rerun it after `tools/build-network.mjs`.
+
+**On the map.** Expert view, Map section: the "Access constraints" layer (off by default) draws each area from `data/model/access-constraints.json`:
+
+- A band under each street in an area, shaded in one blue ramp by the synthetic residents behind the area's outermost choke (under 25, 25, 100, 250, 500 or more). Solid for a dead end, dashed for a one-way-only area, which is softer: running its entrance two-way would open it. The band sits under the street line, so "Color streets by" still shows.
+- The choke as a thick bar along the first 25 m or more of the entrance from its outer end: red where an engine does not fit (under 10 ft clear with both sides parked, status-quo parking in its nominal state), dark where it fits, open (white center) where the width is unknown. Zoomed in, the bar is labeled with the clear width in feet.
+- Once zoomed in past 2 m per screen pixel (and always for the selected area), the nearest other street as a dashed straight line between two dots, labeled with length and climb when zoomed in or selected (dead ends with 10 or more residents only), and any existing path or stairway out, drawn heavier in the paths style.
+- A hatched, dashed box with "⚠ population placement artifact" around areas with an `allocationWarning` (Albany Hill, AC-316: zone ALB-011's 2,535 residents all land on one 221 m segment).
+
+Clicking a street in an area, with the layer on, outlines the innermost area in yellow and puts an "Access-constrained area" card above the street card: entrance, type, streets, residents, households and vehicles (synthetic), evacuation zones, nesting with the enclosing areas, clear width and engine fit at the entrance, steepest grade, fire-zone mix, nearest other street, existing path, and the constraint score with its components, each with its provenance badge and source note. With the layer off, the street card names the area in one row. Below the layer list, a line gives hill residents behind a choke point (5,734 of 41,395; Berkeley and LBNL 3,133 of 27,759) and opens a sortable table of the union of the two top-50 rankings (68 areas), with the score and its components labeled a model rule; clicking an area zooms to it. None of this appears in Simple view.

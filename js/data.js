@@ -6,7 +6,9 @@ export async function loadData(load = browserLoad) {
     load('data/model/network.json', 'json'), load('data/model/layers.json', 'json'),
     load('data/terrain/dem.json', 'json'), load('data/terrain/dem.i16', 'buffer'), load('data/assumptions.json', 'json'),
   ]);
-  return prepare({ net, layers, dem, Z: new Int16Array(demBuf), A });
+  // Optional: access-constrained areas (tools/access-constraints.mjs). The simulator runs without them.
+  const access = await Promise.resolve().then(() => load('data/model/access-constraints.json', 'json')).catch(() => null);
+  return prepare({ net, layers, dem, Z: new Int16Array(demBuf), A, access });
 }
 
 async function browserLoad(path, kind) {
@@ -36,8 +38,21 @@ export function prepare(data) {
   };
   data.vehicleNodes = []; for (let n = 0; n < nN; n++) if (vehNode[n]) data.vehicleNodes.push(n);
   data.stationNodes = layers.fireStations.map(s => data.nearestNode(...s.pt));
+  if (data.access?.areas) prepareAccess(data.access);
   data.names = [...new Set(net.edges.map(e => e.name).filter(n => n && n !== 'UNNAMED'))].sort();
   return data;
+}
+
+// Index access-constrained areas by id and by member street. Areas nest, so an edge can lie
+// in several; edgeAreas lists them innermost (highest nesting) first.
+function prepareAccess(acc) {
+  acc.byId = new Map(acc.areas.map(a => [a.id, a]));
+  acc.edgeAreas = new Map(); acc.chokeOf = new Map();
+  for (const a of acc.areas) {
+    for (const e of a.memberEdges) { if (!acc.edgeAreas.has(e)) acc.edgeAreas.set(e, []); acc.edgeAreas.get(e).push(a); }
+    for (const e of a.chokeEdges) acc.chokeOf.set(e, a);
+  }
+  for (const l of acc.edgeAreas.values()) l.sort((p, q) => q.nesting - p.nesting);
 }
 
 export function midpoint(pts) {

@@ -6,6 +6,7 @@ import { PARKING_PLANS } from './parking.js';
 import { PRESETS, FIRES } from './presets.js';
 import { MapView, STREET_MODES } from './map.js';
 import { fromUTM } from '../tools/utm.mjs';
+import { accessCard, accessSummary, accessTable, accessLegend } from './access.js';
 
 const $ = id => document.getElementById(id);
 const fmt = (x, d = 0) => x == null || Number.isNaN(x) ? '—' : x === Infinity ? '∞' : Number(x).toLocaleString(undefined, { maximumFractionDigits: d, minimumFractionDigits: d });
@@ -37,12 +38,13 @@ for (const [k, v] of Object.entries(STREET_MODES)) $('street-mode').add(new Opti
 for (const n of data.names) $('street-names').append(new Option(titleCase(n)));
 for (const n of [...data.layers.neighborhoods].sort((a, b) => a.name.localeCompare(b.name))) $('nbhd').add(new Option(n.name, n.name));
 const LAYER_NAMES = { terrain: 'Terrain (DEM)', contours: 'Contours', streets: 'Streets', paths: 'Paths & stairways', evacZones: 'Evacuation zones', fireZones: 'Fire Zones 2–3',
-  neighborhoods: 'Neighborhoods', fire1923: '1923 boundary', cityBoundary: 'City limits', stations: 'Stations & shelters', noParking: 'No-parking signs', tightTurns: 'Tight turns',
+  neighborhoods: 'Neighborhoods', fire1923: '1923 boundary', cityBoundary: 'City limits', stations: 'Stations & shelters', noParking: 'No-parking signs', tightTurns: 'Tight turns', access: 'Access constraints',
   fire: 'Fire & embers', vehicles: 'Vehicles', queues: 'Queues', responder: 'Responder route' };
 for (const [k, label] of Object.entries(LAYER_NAMES)) {
+  if (k === 'access' && !data.access) continue; // optional data file
   const l = document.createElement('label');
   l.innerHTML = `<input type="checkbox" ${map.layers[k] ? 'checked' : ''}> ${label}`;
-  l.querySelector('input').onchange = e => { map.layers[k] = e.target.checked; map.draw(); legend(); };
+  l.querySelector('input').onchange = e => { map.layers[k] = e.target.checked; if (k === 'access') inspect(map.selected); map.draw(); legend(); };
   $('layers').append(l);
 }
 
@@ -255,6 +257,7 @@ map.onHover = (x, y) => {
 };
 function inspect(sel, quiet) {
   const box = $('inspector');
+  map.selectedArea = sel?.kind === 'edge' && map.layers.access ? data.access?.edgeAreas.get(sel.id)?.[0] ?? null : null;
   if (!sel) { box.innerHTML = '<h2>Inspector</h2><p class="muted small">Click a street or an evacuation zone.</p>'; return; }
   const sim = state.sim, F = data.net.meta.fields;
   const row = (k, v, cat, note) => `<tr><td>${k}</td><td>${v}${badge(cat, note)}</td></tr>`;
@@ -292,7 +295,9 @@ function inspect(sel, quiet) {
     }
     rows += e.src.osmWay ? row('Source record', `OpenStreetMap way <a href="https://www.openstreetmap.org/way/${e.src.osmWay}" target="_blank" rel="noopener">${e.src.osmWay}</a> (© OpenStreetMap contributors, ODbL)`, 'sourced', F.osm.source)
       : row('Source record', `County OBJECTID ${e.src.OBJECTID}, SEGID ${e.src.SEGID}`, 'sourced');
-    box.innerHTML = `<h2>Street segment</h2><table class="kv">${rows}</table>`;
+    const areas = data.access?.edgeAreas.get(e.id);
+    if (areas && !map.layers.access) rows += row('Access-constrained area', `${esc(areas[0].id)}, behind ${esc(areas[0].chokeStreets.join(' / '))} (turn on the Access constraints layer)`, 'derived');
+    box.innerHTML = (map.selectedArea ? accessCard(data, map.selectedArea, H) : '') + `<h2>Street segment</h2><table class="kv">${rows}</table>`;
   } else {
     const z = data.layers.evacZones[sel.id];
     let rows = row('Zone', esc(z.id), 'sourced') + row('Described as', esc(z.knownAs || '—'), 'sourced')
@@ -328,8 +333,9 @@ function legend() {
     + (map.layers.responder ? sw('#0e7490', 'Engine route to fire edge') : '')
     + (map.layers.streets ? '<div><b style="color:#111">✕</b> diverter or bollard, closed to cars · <b style="color:#7c3aed">✕</b> engines can pass (City diverter list, OpenStreetMap)</div>' : '')
     + (map.layers.paths ? `<div><span class="sw" style="background:repeating-linear-gradient(90deg,#8a5a2b 0 3px,transparent 3px 6px)"></span>Paths &amp; stairways (no vehicles)</div>` : '');
+  const access = map.layers.access && data.access ? accessLegend() : '';
   const open = localStorage.getItem('bhe-key') !== 'hidden';
-  $('legend').innerHTML = `<button class="key-toggle" title="${open ? 'Hide' : 'Show'} the map key">${open ? 'Hide key ▾' : 'Show key ▸'}</button>${open ? `<div><b>${STREET_MODES[m]}</b>${L}${extra}</div>` : ''}`;
+  $('legend').innerHTML = `<button class="key-toggle" title="${open ? 'Hide' : 'Show'} the map key">${open ? 'Hide key ▾' : 'Show key ▸'}</button>${open ? `<div><b>${STREET_MODES[m]}</b>${L}${extra}${access}</div>` : ''}`;
   $('legend').querySelector('.key-toggle').onclick = () => { localStorage.setItem('bhe-key', open ? 'hidden' : 'shown'); legend(); };
 }
 
@@ -503,6 +509,22 @@ $('btn-sources').onclick = () => {
   modal(`<h2>Data sources</h2><p class="small">Every imported layer, where it came from and how the simulator uses it. See <code>DATA_INVENTORY.md</code> for missing inputs.</p>
   <table><tr><th>Layer</th><th>Publisher · retrieved</th><th>Used for</th></tr>${S.map(s => `<tr><td>${esc(s.title)} ${badge(s.category)}${s.url ? `<div class="small"><a href="${esc(s.url)}" target="_blank" rel="noopener">service</a></div>` : ''}</td><td class="small">${esc(s.publisher)}<br>${esc(s.retrieved || '')}${s.lastEdit ? `<br>last edited ${esc(s.lastEdit)}` : ''}</td><td class="small">${esc(s.why)}</td></tr>`).join('')}</table>`);
 };
+
+// ---------- access-constrained areas (Expert view, Map section) ----------
+const H = { badge, esc, fmt };
+if (data.access) {
+  $('access-summary').innerHTML = accessSummary(data, H);
+  $('access-table-link').onclick = ev => {
+    ev.preventDefault();
+    const t = accessTable(data, H, a => {
+      $('modal').close();
+      if (!map.layers.access) { map.layers.access = true; [...$('layers').querySelectorAll('label')].find(l => l.textContent.trim() === LAYER_NAMES.access).querySelector('input').checked = true; legend(); }
+      const [x0, y0, x1, y1] = a.bbox; map.fit([x0 - 150, y0 - 150, x1 + 150, y1 + 150]);
+      map.selected = { kind: 'edge', id: a.chokeEdges[0] }; inspect(map.selected); map.draw();
+    });
+    modal(t.html, 'wide'); t.render();
+  };
+}
 
 // ---------- start ----------
 showScenario(); showPlan(); legend(); newRun();

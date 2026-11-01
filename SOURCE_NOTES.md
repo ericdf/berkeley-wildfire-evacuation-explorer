@@ -363,6 +363,7 @@ Sources: Special Item 01a, "Effective Mitigations for Berkeley's Ember Resilienc
 | 2026-11-01 | Diverters from the City's list of record, shaped from OSM: junction splits, closures at the barrier and one-way pieces instead of whole-block closures; barriers close only same-named streets and skip dead ends; upper Panoramic Way closed beyond its gate; City circles added to the circle capacity | G6, O2a–O7 |
 | 2026-11-01 | OKL-003 population from the 2020 Census (307) instead of Genasys (27), as a labeled per-zone override | Eric 2026-11-01, X6 |
 | 2026-11-01 | Simple view gets a Fire row (east wind, 1923 repeat, Panoramic Hill), remembered across visits; each question is offered only on fires where it passed the per-fire test, with per-fire "What to look for" numbers; weekday vs night is withheld on the 1923 fire and Panoramic Hill; a trial Claremont Canyon fire was tested and not added | P19–P22 |
+| 2026-11-01 | Access constraints map layer and inspector (Expert view, off by default): areas from `data/model/access-constraints.json` shaded by synthetic residents behind the choke, dead end vs one-way-only, choke bars red where an engine does not fit, nearest-other-street hints and existing paths, ⚠ hatch for AC-316; area card with provenance badges; hill summary line (5,734 of 41,395) and sortable ranking table. Display only: no model, parking or calibration change | AC1–AC11 |
 
 ### Calibration check (fire off, study order/warning zones, seed 1), 2026-10-31
 

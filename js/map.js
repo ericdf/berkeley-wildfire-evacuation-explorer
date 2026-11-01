@@ -13,6 +13,10 @@ export const STREET_MODES = {
   oneway: 'Direction of travel',
 };
 
+// Access-constrained areas: residents behind the choke (synthetic), one blue ramp light to dark.
+export const ACCESS_BINS = [[0, '#9ec5f4', '0'], [25, '#6da7ec', '25'], [100, '#3987e5', '100'], [250, '#256abf', '250'], [500, '#184f95', '500+']];
+export const accessColor = r => ACCESS_BINS.reduce((c, b) => r >= b[0] ? b[1] : c, ACCESS_BINS[0][1]);
+
 export class MapView {
   constructor(canvas, data) {
     this.cv = canvas; this.ctx = canvas.getContext('2d'); this.data = data;
@@ -21,7 +25,7 @@ export class MapView {
     this.terrain = makeTerrainCanvas(data.dem, data.Z);
     this.contours = makeContours(data.dem, data.Z, 20, 3);
     this.layers = { terrain: true, contours: true, streets: true, paths: true, evacZones: false, fireZones: true, neighborhoods: false, fire1923: true,
-      cityBoundary: true, stations: true, noParking: false, tightTurns: false, fire: true, vehicles: true, queues: true, responder: true };
+      cityBoundary: true, stations: true, noParking: false, tightTurns: false, access: false, fire: true, vehicles: true, queues: true, responder: true };
     this.streetMode = 'class';
     this.sim = null; this.selected = null; this.hover = null;
     this.zoneShapes = data.layers.evacZones.map((z, i) => ({ i, rings: z.rings, bb: bbox(z.rings) }));
@@ -106,8 +110,10 @@ export class MapView {
     if (L.cityBoundary) this.drawPolys(data.layers.cityBoundary, null, 'rgba(40,40,40,0.7)', null, [6, 4], 1.5);
     if (L.fire1923) this.drawPolys(data.layers.fire1923, null, 'rgba(150,20,20,0.8)', () => '1923 fire (archival boundary)', [3, 3], 1.5);
     if (L.fire && this.sim) this.drawFire();
+    if (L.access && data.access) this.drawAccessUnder();
     if (L.streets) this.drawStreets();
     if (L.paths) this.drawPaths();
+    if (L.access && data.access) this.drawAccessOver();
     if (L.queues && this.sim) this.drawQueues();
     if (L.responder && this.sim) this.drawResponder();
     if (L.vehicles && this.sim) this.drawVehicles();
@@ -215,6 +221,106 @@ export class MapView {
     const { ctx } = this; ctx.setLineDash([3, 3]); ctx.strokeStyle = '#8a5a2b'; ctx.lineWidth = Math.max(1, Math.min(2, this.scale * 1.2));
     for (const e of this.data.net.edges) if (e.mode !== 'vehicle') { ctx.beginPath(); this.path(e.geom); ctx.stroke(); }
     ctx.setLineDash([]);
+  }
+  // Access layer, below the streets: a band under each member street, so "Color streets by"
+  // still shows on top. Shade = residents behind the outermost choke; dashed band = one-way area.
+  inView(m, pad = 300) { return m[0] > this.wx(0) - pad && m[0] < this.wx(this.w) + pad && m[1] > this.wy(this.h) - pad && m[1] < this.wy(0) + pad; }
+  accessBand() { return Math.max(6, Math.min(18, this.scale * 9)); }
+  drawAccessUnder() {
+    const { ctx, data } = this, acc = data.access, band = this.accessBand();
+    ctx.lineCap = 'butt'; ctx.lineJoin = 'round';
+    const sel = this.selectedArea;
+    if (sel) { // selected area: a yellow rim under the band
+      ctx.strokeStyle = 'rgba(250,204,21,0.9)'; ctx.lineWidth = band + 8;
+      for (const id of sel.memberEdges) { ctx.beginPath(); this.path(data.net.edges[id].geom); ctx.stroke(); }
+    }
+    for (const [id, areas] of acc.edgeAreas) {
+      if (!this.inView(data.edgeMid[id])) continue;
+      const a = areas[areas.length - 1], e = data.net.edges[id]; // outermost area
+      ctx.strokeStyle = accessColor(a.residents); ctx.lineWidth = band;
+      ctx.setLineDash(a.type === 'one-way' ? [band * 1.2, band * 0.8] : []);
+      ctx.beginPath(); this.path(e.geom); ctx.stroke();
+    }
+    ctx.setLineDash([]); ctx.lineCap = 'round';
+  }
+  // Above the streets: chokes, hints, existing paths, allocation warnings.
+  drawAccessOver() {
+    const { ctx, data } = this, acc = data.access, band = this.accessBand(), sel = this.selectedArea;
+    const near = this.scale > 0.5;
+    // Allocation warnings: hatched, outlined box around the area
+    for (const a of acc.areas) {
+      if (!a.allocationWarning) continue;
+      const [x0, y0, x1, y1] = a.bbox, P = 40, X = this.sx(x0 - P), Y = this.sy(y1 + P), W = (x1 - x0 + 2 * P) * this.scale, H = (y1 - y0 + 2 * P) * this.scale;
+      ctx.fillStyle = this.hatch(); ctx.fillRect(X, Y, W, H);
+      ctx.strokeStyle = '#9a3412'; ctx.lineWidth = 1.5; ctx.setLineDash([5, 3]); ctx.strokeRect(X, Y, W, H); ctx.setLineDash([]);
+      ctx.font = 'bold 11px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillStyle = '#9a3412';
+      ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 3;
+      const t = this.scale > 0.3 ? '⚠ population placement artifact' : '⚠'; ctx.strokeText(t, X, Y - 4); ctx.fillText(t, X, Y - 4);
+    }
+    // Existing paths and stairways out of an area, and the nearest-other-street hint (dead ends only)
+    for (const a of acc.areas) {
+      const show = a === sel || (near && a.residents >= 10 && this.inView(a.chokeAt, 600)); // hints for areas with 10+ residents, or the selected one
+      if (!show) continue;
+      if (a.existingLink) {
+        ctx.setLineDash([3, 3]); ctx.strokeStyle = '#8a5a2b'; ctx.lineWidth = 3.5;
+        for (const id of a.existingLink.edges) { ctx.beginPath(); this.path(data.net.edges[id].geom); ctx.stroke(); }
+      }
+      const h = a.nearestOtherStreet;
+      if (a.type === 'dead end' && h && h.distM > 0) {
+        const fx = this.sx(h.from[0]), fy = this.sy(h.from[1]), tx = this.sx(h.to[0]), ty = this.sy(h.to[1]);
+        ctx.setLineDash([6, 4]); ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(tx, ty); ctx.stroke();
+        ctx.strokeStyle = '#111'; ctx.lineWidth = 1.8; ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = '#111'; for (const [x, y] of [[fx, fy], [tx, ty]]) { ctx.beginPath(); ctx.arc(x, y, 2.5, 0, 7); ctx.fill(); }
+        if (this.scale > 1.2 || a === sel) {
+          const t = `${Math.round(h.distM)} m, ${h.climbM >= 0 ? '+' : '−'}${Math.abs(Math.round(h.climbM))} m climb`;
+          this.halo(t, (fx + tx) / 2 + 4, (fy + ty) / 2 - 4, '#111', 'left');
+        }
+      }
+    }
+    ctx.setLineDash([]);
+    // Chokes: a thick bar; red if an engine does not fit (under 10 ft clear, both sides parked), open if width unknown
+    ctx.lineCap = 'butt';
+    for (const a of acc.areas) {
+      if (!this.inView(a.chokeAt)) continue;
+      const fits = a.choke.engineFits, g = this.chokeMouth(a, Math.max(25, 16 / this.scale));
+      if (!g) continue;
+      ctx.beginPath(); this.path(g);
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = band + 6; ctx.stroke();
+      ctx.strokeStyle = fits === false ? '#c0262d' : '#1f2937'; ctx.lineWidth = band + 3; ctx.stroke();
+      if (fits == null) { ctx.strokeStyle = '#fff'; ctx.lineWidth = Math.max(2, band - 3); ctx.stroke(); }
+      if (this.scale > 1.5) {
+        const [lx, ly] = g[g.length - 1];
+        this.halo(a.choke.clearWidthFt == null ? 'width unknown' : `${Math.round(a.choke.clearWidthFt)} ft`, this.sx(lx) + band, this.sy(ly) + 4, fits === false ? '#c0262d' : '#111', 'left', 'bold 11px');
+      }
+    }
+    ctx.lineCap = 'round';
+  }
+  // The first L meters of the entrance, starting at its outer end (chokeAt), as a polyline.
+  chokeMouth(a, L) {
+    const ed = this.data.net.edges, d2 = (p, q) => (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2;
+    let best = null;
+    for (const id of a.chokeEdges) {
+      const g = ed[id].geom, f = d2(g[0], a.chokeAt), b = d2(g[g.length - 1], a.chokeAt);
+      const c = f <= b ? [f, g] : [b, [...g].reverse()]; if (!best || c[0] < best[0]) best = c;
+    }
+    if (!best) return null;
+    const g = best[1], out = [g[0]]; let acc = 0;
+    for (let i = 1; i < g.length; i++) {
+      const d = Math.hypot(g[i][0] - g[i - 1][0], g[i][1] - g[i - 1][1]);
+      if (acc + d >= L) { const u = d ? (L - acc) / d : 0; out.push([g[i - 1][0] + u * (g[i][0] - g[i - 1][0]), g[i - 1][1] + u * (g[i][1] - g[i - 1][1])]); return out; }
+      acc += d; out.push(g[i]);
+    }
+    return out;
+  }
+  halo(t, x, y, color, align = 'center', font = '10.5px') {
+    const { ctx } = this; ctx.font = `${font} system-ui, sans-serif`; ctx.textAlign = align;
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 3; ctx.strokeText(t, x, y); ctx.fillStyle = color; ctx.fillText(t, x, y);
+  }
+  hatch() {
+    if (this._hatch) return this._hatch;
+    const c = document.createElement('canvas'); c.width = c.height = 8; const g = c.getContext('2d');
+    g.strokeStyle = 'rgba(154,52,18,0.35)'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(0, 8); g.lineTo(8, 0); g.stroke();
+    return (this._hatch = this.ctx.createPattern(c, 'repeat'));
   }
   drawTightTurns() {
     const { ctx } = this; ctx.strokeStyle = '#d97706'; ctx.lineWidth = 4;
