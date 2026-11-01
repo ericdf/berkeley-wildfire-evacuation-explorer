@@ -3,7 +3,7 @@ import { buildFireGrid, runFire, cellOf, demAt, FUEL, LB_MAX, CELL } from './fir
 import { makeScenarios, SEVERITY, SEVERITY_NOTE, TIME_OF_DAY, TIME_NOTE, ETE_TARGETS } from './scenarios.js';
 import { Evacuation, DEFAULT_PLAN, titleCase } from './sim.js';
 import { PARKING_PLANS } from './parking.js';
-import { PRESETS } from './presets.js';
+import { PRESETS, FIRES } from './presets.js';
 import { MapView, STREET_MODES } from './map.js';
 import { fromUTM } from '../tools/utm.mjs';
 
@@ -19,12 +19,13 @@ const srcCat = src => !src ? 'unknown' : src.startsWith('city:') ? 'sourced' : s
 const A_NOTE = k => data.A._meta[k]?.note || '';
 const state = {
   plans: { A: { ...DEFAULT_PLAN, name: 'Plan A: baseline' }, B: { ...DEFAULT_PLAN, name: 'Plan B: leave early + targeted parking', earlyShare: 0.5, hillsParking: 'narrow' } },
-  editing: 'A', preset: null, playing: false, speed: 300, sim: null, fires: new Map(), batch: 0,
+  editing: 'A', preset: null, fire: null, playing: false, speed: 300, sim: null, fires: new Map(), batch: 0,
 };
 
 const data = await loadData();
 const grid = buildFireGrid(data);
 const scenarios = makeScenarios(data);
+state.fire = FIRES.find(f => f.id === localStorage.getItem('bhe-fire'))?.id ?? FIRES[0].id;
 const map = new MapView($('map'), data);
 $('loading').remove();
 const worker = new Worker(new URL('./worker.js', import.meta.url), { type: 'module' });
@@ -105,26 +106,39 @@ $('nbhd').onchange = e => {
 };
 
 // ---------- simple view ----------
-// Presets fix the scenario, time of day and both plans; the expert controls are hidden but
-// stay in sync, so switching to Expert shows exactly what the preset set.
+// Presets fix the time of day and both plans; the chosen fire sets the scenario. The expert
+// controls are hidden but stay in sync, so switching to Expert shows exactly what the preset set.
+// A question is offered on a fire only where its answer held in every tested run (presets.js).
 function renderSimple() {
-  const p = state.preset;
-  $('simple').innerHTML = `<h2>Pick a question</h2>
-    <div class="presets">${PRESETS.map(q => `<button class="preset${p?.id === q.id ? ' on' : ''}" data-id="${q.id}"><b>${esc(q.title)}</b><span>${esc(q.question)}</span></button>`).join('')}</div>
+  const p = state.preset, fire = FIRES.find(f => f.id === state.fire);
+  $('simple').innerHTML = `<h2>Pick a fire</h2>
+    <div class="fires">${FIRES.map(f => `<button class="fire-pick${f.id === state.fire ? ' on' : ''}" data-fire="${f.id}"><b>${esc(f.title)}</b><span>${esc(f.line)}</span></button>`).join('')}</div>
+    <h2>Pick a question</h2>
+    <div class="presets">${PRESETS.map(q => { const ok = q.on[state.fire]; return `<button class="preset${p?.id === q.id ? ' on' : ''}" data-id="${q.id}"${ok ? '' : ' disabled'}><b>${esc(q.title)}</b><span>${esc(q.question)}</span>${ok ? '' : `<span class="why">Not offered on ${esc(fire.title)}: ${esc(q.off[state.fire])}</span>`}</button>`; }).join('')}</div>
     ${p ? `<div class="plans-ab"><div><b>Plan A</b> ${esc(p.A.name.replace(/^A: /, ''))}</div><div><b>Plan B</b> ${esc(p.B.name.replace(/^B: /, ''))}</div>
       <div class="small muted">${esc(scenario().name)} · ${p.tods ? 'time of day as above' : esc(TIME_OF_DAY[p.tod].label)} · central severity</div></div>
-      <div class="watch"><b>What to look for.</b> ${esc(p.watch)}</div>
+      <div class="watch"><b>What to look for.</b> ${esc(p.on[state.fire])}</div>
       <div class="btns"><button data-watch="A" class="${state.editing === 'A' ? 'on' : ''}">▶ Watch Plan A</button><button data-watch="B" class="${state.editing === 'B' ? 'on' : ''}">▶ Watch Plan B</button>
       <button class="primary" id="simple-compare">Compare A and B on 9 fires</button></div>
       <div id="simple-progress" class="small" style="margin-top:4px;color:var(--accent)"></div><div id="simple-result"></div>
       <p class="small muted">Watch starts that plan on the map; pause, restart or slow it in the playback controls below. Compare runs both plans on the same 9 fires (low, central and high severity, 3 random seeds each) and the same households, takes about half a minute, and shows the answer here. Trust a difference that shows up in every run.</p>` : '<p class="small muted">Each question compares two plans on the same fire and the same households. The Expert switch at the top right lets you set everything yourself.</p>'}`;
-  $('simple').querySelectorAll('.preset').forEach(b => b.onclick = () => applyPreset(b.dataset.id));
+  $('simple').querySelectorAll('.fire-pick').forEach(b => b.onclick = () => pickFire(b.dataset.fire));
+  $('simple').querySelectorAll('.preset').forEach(b => b.onclick = () => { if (!b.disabled) applyPreset(b.dataset.id); });
   $('simple').querySelectorAll('[data-watch]').forEach(b => b.onclick = () => { state.editing = b.dataset.watch; showPlan(); if (p.tods) { $('tod').value = p.tods[state.editing]; todNote(); } newRun(); renderSimple(); state.playing = true; $('run').textContent = '❚❚ Pause'; });
   if ($('simple-compare')) $('simple-compare').onclick = () => { $('cmp-scope').value = 'severities'; $('compare').click(); };
 }
+// The chosen fire applies to every question. Keep the current question if it holds on the new
+// fire; otherwise switch to the first question that does.
+function pickFire(id) {
+  state.fire = id; localStorage.setItem('bhe-fire', id);
+  const q = state.preset?.on[id] ? state.preset : PRESETS.find(x => x.on[id]);
+  applyPreset(q.id);
+}
 function applyPreset(id) {
-  const p = state.preset = PRESETS.find(q => q.id === id);
-  $('scenario').value = p.scenarioId; showScenario();
+  const p = PRESETS.find(q => q.id === id);
+  if (!p.on[state.fire]) return; // withheld on this fire
+  state.preset = p;
+  $('scenario').value = state.fire; showScenario();
   $('tod').value = p.tod; todNote(); $('severity').value = 'central'; $('seed').value = 1;
   state.plans.A = { ...p.A }; state.plans.B = { ...p.B }; state.editing = 'A'; showPlan();
   $('compare-out').innerHTML = ''; newRun(); renderSimple();
@@ -133,7 +147,7 @@ function setMode(m) {
   document.body.classList.toggle('simple', m === 'simple'); document.body.classList.toggle('expert', m === 'expert');
   document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
   localStorage.setItem('bhe-mode', m);
-  if (m === 'simple') { if (!state.preset) applyPreset(PRESETS[0].id); else renderSimple(); }
+  if (m === 'simple') { if (!state.preset) pickFire(state.fire); else renderSimple(); }
 }
 document.querySelectorAll('#modes button').forEach(b => b.onclick = () => setMode(b.dataset.mode));
 // Changing any expert control leaves the preset; the simple view then shows no plan detail.
@@ -417,7 +431,7 @@ function intro() {
   modal(`<div class="intro"><h2>Berkeley Hills Wildfire Evacuation: Scenario Explorer</h2>
   <p>Run a wildfire on Berkeley's real streets and watch residents' cars, parked cars and fire engines compete for the same narrow roads. Compare two ways of running an evacuation on the same fire and the same households.</p>
   <p class="note">This is a teaching tool, not a prediction and not an official evacuation plan. The households are synthetic and the fire is illustrative. For real instructions see the <a href="https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation" target="_blank" rel="noopener">City's fire weather and evacuation page</a>.</p>
-  <div class="steps"><div><b>1 · Pick a question</b>Each one sets a fire and two plans, A and B, that differ in one choice.</div><div><b>2 · Watch</b>Run Plan A, then Plan B. Fire is orange, embers amber, cars blue, queues red.</div><div><b>3 · Compare</b>Run both plans on 9 fires. A difference that shows up in every run is worth discussing.</div></div>
+  <div class="steps"><div><b>1 · Pick a fire and a question</b>Each question sets two plans, A and B, that differ in one choice. A question is switched off on a fire where its answer did not hold.</div><div><b>2 · Watch</b>Run Plan A, then Plan B. Fire is orange, embers amber, cars blue, queues red.</div><div><b>3 · Compare</b>Run both plans on 9 fires. A difference that shows up in every run is worth discussing.</div></div>
   <h3>The inputs and what they change</h3>
   <table><tr><th>Input</th><th>What it sets</th><th>What to watch</th></tr>${INPUTS.map(r => `<tr><td><b>${r[0]}</b></td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`).join('')}</table>
   <h3>Reading the results</h3>
@@ -426,7 +440,7 @@ function intro() {
     <li><b>Evacuation time</b>: minutes after the first order until 90% of cars have left the order area, with the 2025 Evacuation Time Study's figure next to it for scale. The simulator lacks the City's signal timing, so on weekdays its times run 35–80 min short of the study's.</li>
     <li><b>Fire-engine travel</b> from the nearest station to the fire edge, and streets where parked cars leave less than an engine's width.</li>
   </ul>
-  <p class="small muted">Simple view offers a few questions with clear answers. Expert view (the Simple / Expert switch at the top right of the page) opens every control: scenario, severity, seed, time of day and both plans. Every number shows whether it is sourced, derived, an assumption, a model rule or synthetic; see Assumptions &amp; limits and Data sources. Streets and residents beyond Berkeley (Oakland, Albany, Kensington, El Cerrito) are included up to the edge of the elevation data; north Kensington and Oakland south of about 37.84° N are not.</p>
+  <p class="small muted">Simple view offers three fires and four questions; a question is offered on a fire only where Plan B did better than Plan A in every one of 15 test runs there. Expert view (the Simple / Expert switch at the top right of the page) opens every control: scenario, severity, seed, time of day and both plans. Every number shows whether it is sourced, derived, an assumption, a model rule or synthetic; see Assumptions &amp; limits and Data sources. Streets and residents beyond Berkeley (Oakland, Albany, Kensington, El Cerrito) are included up to the edge of the elevation data; north Kensington and Oakland south of about 37.84° N are not.</p>
   <div class="start"><button id="intro-expert">Open expert view</button><button class="primary" id="intro-simple">Start with a question</button></div></div>`, 'intro');
   const go = m => { localStorage.setItem('bhe-intro-seen', '1'); $('modal').close(); setMode(m); };
   $('intro-simple').onclick = () => go('simple'); $('intro-expert').onclick = () => go('expert');

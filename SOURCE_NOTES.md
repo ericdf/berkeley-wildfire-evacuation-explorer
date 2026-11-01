@@ -284,6 +284,33 @@ Eric pasted an AI-written list of public sources for the four data-request items
 | P16 | In Panoramic Hill most people still there when embers arrived are in zones with no order (9,444 of about 15,700, central, seed 1), and in 10 of 15 runs not all ordered vehicles clear within 240 min. | **context**: Panoramic preset dropped from simple view. |
 | P17 | At high severity most of the count is people in zones that never got an order (eastWind seed 1: 21,768 of 37,000), so plan effects shrink to a few percent. Seed-to-seed spread (eastWind central 2,935–9,298) is larger than most plan effects, which is why every comparison pairs runs on the same seed. | **context**: simple view defaults to central severity and compares same-seed pairs. |
 | P18 | Recheck 2026-11-01 on the final network (streets beyond Berkeley, City diverters, OKL-003 from the Census; 120 runs, 3 severities × 5 seeds): every preset still wins in 15 of 15 same-seed pairs. Central medians: leave early (Fire Zones 2–3) 5,080 → 3,647 still there when embers arrived, 90% clearance 92 → 91 min; Leave Early Zones only 5,080 → 4,858; decide faster 6,807 → 5,460, clearance unchanged; weekday vs night 105 vs 92 min, 17,214 vs 15,063 vehicles; one-side parking 284 → 143 segments too narrow for an engine, clearance unchanged. | **applied**: preset texts updated with these numbers. |
+| P19 | Per-fire test for a Simple-view fire choice, 2026-11-01: 360 runs, fires eastWind, ref1923, panoramic and a trial Claremont Canyon fire (P22) at low, central and high severity, seeds 1–5, same seed for A and B. Each question keeps its time of day on every fire: leave early and parking at S6 (fall night), decide faster at S4 (fall weekday midday, as on the 1923 fire it was built on), weekday vs night S4 against S6. eastWindDay was not tested separately: it is the eastWind fire at S4, which the questions already set. Rule: a question is offered on a fire if Plan B beats Plan A on the headline measure in 15 of 15 pairs and the central-severity median changes by 5% or more; a missing 90% time counts as a failure. Results in the table below. | **applied**: Simple view has a Fire row; each question is switched off, with a one-line reason, on a fire where it fails. "What to look for" gives each fire's central medians. |
+| P20 | Weekday vs night on the 1923 fire passes the win count (15 of 15) but the central gap is 4 min (95 vs 91 min, −5%). For region R02 the 2025 Evacuation Time Study gives 175 min on a fall weekday and 105 at night (Table 7-1), a 70-min gap; the simulator runs 50–80 min fast on weekdays there (calibration check). Offering it would teach a gap about a seventeenth of the study's. | **applied**: withheld on the 1923 fire, with that reason. A judgment beyond the P19 rule. |
+| P21 | Panoramic Hill: in 10 of 15 runs per time of day (every central and high run) not all ordered cars leave the order area within the 240-min run, so there is no 90% time and weekday vs night fails. Leave early (−21% central) and decide faster (−9% central, −3% to −19% by run) pass, but most people still there when embers arrived live in zones this fire never orders (about 9,000 of 15,000, central). | **applied**: weekday vs night withheld; the other two questions say where the people still there live. |
+| P22 | Trial fourth fire, Claremont Canyon: ignition at −122.2250, 37.8640 (Claremont Canyon Regional Preserve, north side), wind from 60° at 32 mph, 240 min, default S6, City region R10 "South Berkeley Hills" ordered (11 zones, about 8,400 people: Panoramic Hill, Claremont, the Southside east of College Ave, Upper Rockridge, Oakland's Claremont Hills). All four questions pass, but none teaches anything new: weekday vs night matches the east-wind fire (106 vs 92 min), and most people still there are in zones the fire never orders (about 5,300 of 6,800, central), as on Panoramic Hill. | **not applied**: left out of `js/scenarios.js`; the definition above is enough to restore it, for example to give south-side residents a fire of their own. |
+
+Per-fire results, P19–P22. Headline measure: people still there when embers arrived (at home, on the road, without a car, or in zones with no order) for leave early and decide faster; minutes until 90% of order-zone cars are out for weekday vs night; hill street segments too narrow for an engine for parking. Medians are central severity; the range is the change over all 15 same-seed pairs.
+
+| Fire | Question | Median A | Median B | Change | Range, 15 pairs | B better | Simple view |
+|---|---|---|---|---|---|---|---|
+| East wind (Grizzly Peak) | Leave early (Fire Zones 2–3) | 5,080 | 3,647 | −28% | −18% to −63% | 15 of 15 | offered |
+| East wind | Decide faster | 6,508 | 5,600 | −14% | −5% to −32% | 15 of 15 | offered |
+| East wind | Weekday vs night | 105 min | 92 min | −12% | −12% to −16% | 15 of 15 | offered |
+| East wind | One-side parking | 284 | 143 | −50% | −43% to −50% | 15 of 15 | offered |
+| 1923 repeat | Leave early | 4,740 | 3,090 | −35% | −21% to −63% | 15 of 15 | offered |
+| 1923 repeat | Decide faster | 6,807 | 5,460 | −20% | −11% to −26% | 15 of 15 | offered |
+| 1923 repeat | Weekday vs night | 95 min | 91 min | −5% | −4% to −19% | 15 of 15 | withheld (P20) |
+| 1923 repeat | One-side parking | 284 | 143 | −50% | −43% to −50% | 15 of 15 | offered |
+| Panoramic Hill | Leave early | 14,970 | 11,862 | −21% | −7% to −47% | 15 of 15 | offered |
+| Panoramic Hill | Decide faster | 16,835 | 15,358 | −9% | −3% to −19% | 15 of 15 | offered |
+| Panoramic Hill | Weekday vs night | no time | no time | — | −11% to −19% in the 5 runs with a time | 5 of 15 | withheld (P21) |
+| Panoramic Hill | One-side parking | 284 | 143 | −50% | −43% to −50% | 15 of 15 | offered |
+| Claremont Canyon (trial) | Leave early | 6,769 | 5,498 | −19% | −7% to −52% | 15 of 15 | fire not added (P22) |
+| Claremont Canyon (trial) | Decide faster | 7,750 | 7,054 | −9% | −2% to −9% | 15 of 15 | fire not added |
+| Claremont Canyon (trial) | Weekday vs night | 106 min | 92 min | −14% | −13% to −24% | 15 of 15 | fire not added |
+| Claremont Canyon (trial) | One-side parking | 284 | 143 | −50% | −43% to −50% | 15 of 15 | fire not added |
+
+The parking count covers hill streets citywide and depends on the seed and time of day, not on the fire, so it is identical on every fire. Hill parking leaves the 90% time unchanged (median change 0 min on every fire with a time). All of these are model results on synthetic households and illustrative fires, not predictions.
 
 ## Change log: insights applied to the simulator
 
@@ -322,6 +349,7 @@ Eric pasted an AI-written list of public sources for the four data-request items
 | 2026-11-01 | Network and population extended beyond Berkeley: OSM streets joined at the city line, exits only where streets leave the model area, non-Berkeley zone outlines from Genasys, population from Genasys or the 2020 Census, shadow evacuation across the model area, CA-24 through traffic; Tanglewood Rd bollard now closes its segment; `network.hillStreetsContinuingOutOfCity` removed | X1–X11 |
 | 2026-11-01 | Diverters from the City's list of record, shaped from OSM: junction splits, closures at the barrier and one-way pieces instead of whole-block closures; barriers close only same-named streets and skip dead ends; upper Panoramic Way closed beyond its gate; City circles added to the circle capacity | G6, O2a–O7 |
 | 2026-11-01 | OKL-003 population from the 2020 Census (307) instead of Genasys (27), as a labeled per-zone override | Eric 2026-11-01, X6 |
+| 2026-11-01 | Simple view gets a Fire row (east wind, 1923 repeat, Panoramic Hill), remembered across visits; each question is offered only on fires where it passed the per-fire test, with per-fire "What to look for" numbers; weekday vs night is withheld on the 1923 fire and Panoramic Hill; a trial Claremont Canyon fire was tested and not added | P19–P22 |
 
 ### Calibration check (fire off, study order/warning zones, seed 1), 2026-10-31
 
