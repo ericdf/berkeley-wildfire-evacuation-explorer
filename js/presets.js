@@ -29,7 +29,7 @@ export const PRESETS = [
     on: {
       eastWind: 'In Plan B more than a quarter fewer people are still there when embers arrive (about 5,100 against 3,650 in the central case), and the roads clear a minute or so sooner. If only the City\'s smaller Leave Early Zones do it, the drop is about 4%: most hill residents live outside them.',
       ref1923: 'In Plan B about a third fewer people are still there when embers arrive (about 4,750 against 3,100 in the central case), and 90% of cars are out about 2 minutes sooner (89 against 91 min).',
-      panoramic: `In Plan B about a fifth fewer people are still there when embers arrive (about 15,000 against 11,850 in the central case). ${PANORAMIC_UNORDERED} In most runs not all ordered cars get out within the 4 hours simulated, so watch the count, not the clearance time.`,
+      panoramic: `In Plan B about a fifth fewer people are still there when embers arrive (about 14,900 against 11,900 in the central case). ${PANORAMIC_UNORDERED} In most runs not all ordered cars get out within the 4 hours simulated, so watch the count, not the clearance time.`,
     },
     off: {},
     headline: { label: 'People still there when embers arrived', f: exposed, dir: -1 },
@@ -44,7 +44,7 @@ export const PRESETS = [
     on: {
       ref1923: 'About a fifth fewer people are still there when embers arrive (about 6,800 against 5,450 in the central case). The time to clear the roads hardly changes: the gain is people getting out ahead of the fire, not faster traffic.',
       eastWind: 'About 15% fewer people are still there when embers arrive (about 6,500 against 5,600 in the central case). The time to clear the roads hardly changes: the gain is people getting out ahead of the fire, not faster traffic.',
-      panoramic: `About 9% fewer people are still there when embers arrive (about 16,850 against 15,350 in the central case), a smaller gain than on the two larger fires. ${PANORAMIC_UNORDERED}`,
+      panoramic: `About 9% fewer people are still there when embers arrive (about 16,800 against 15,300 in the central case), a smaller gain than on the two larger fires. ${PANORAMIC_UNORDERED}`,
     },
     off: {},
     headline: { label: 'People still there when embers arrived', f: exposed, dir: -1 },

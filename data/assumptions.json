@@ -312,6 +312,10 @@
     "growth.r0Areas": {
       "category": "model rule",
       "note": "R0 (plan setting, Eric 2026-11-01): no added units in a chosen area. It removes only the growth placed there and does not count homes lost to fire as people moving out. Legal status per SOURCE_NOTES L1–L9."
+    },
+    "network.segmentCorrections": {
+      "category": "sourced",
+      "note": "County street-file records corrected where other sources agree the County coding is wrong; each is matched by SEGID and OBJECTID, sets the listed County fields before the network is built, and is listed in network.meta.segmentCorrections and on the edge (correction). Eric, 2026-11-01: the 45 m link from the foot of Panoramic Way to Prospect St / Canyon Rd (County OBJECTID 25386, SEGID 181025458, \"BANCROFT STEPS WY\", TRVLWAY NT) is a two-way street. OpenStreetMap maps it as Bancroft Way (way 24025453, highway=tertiary, lanes=2, no access or oneway tags, checked 2026-11-01); the City Street_Centerline layer has it as pavement section 627042086 (Seg-00193, Prospect St to Panoramic Way, 30 ft, 2 lanes, two-way); the City's AB 747 street layer gives it a capacity of 1,125 vehicles/h; the SB 99 report (KLD, Rev. 3, p. 4) puts Panoramic Hill's single access point at \"Panoramic Way and Prospect St/Canyon Rd\". The Bancroft Steps stairway is a separate feature (OSM ways 311861379-311861382 and 24025452, motor_vehicle=no, Warring St to Prospect St) and is not in the County file. SOURCE_NOTES K1-K6."
     }
   },
   "sharedLane": {
@@ -445,5 +449,23 @@
       "legal": "Current law lets Berkeley bar ADUs beyond the state's by-right minimum in designated areas, with ADU-specific findings on traffic and public safety (Gov. Code §66314(a); HCD ADU Handbook, March 2026, pp. 42–43), and deny single SB 9 projects case by case (§65852.21(d)). Each single-family lot keeps a by-right conversion ADU, an 800 sq ft detached ADU and a JADU (§66323), which is all of the Time Study's maximum, so barring those units or SB 9 across an area would need a change in state law or an HCD-approved moratorium on an imminent-threat finding (§66300(b)(1)(B)).",
       "provenance": "Model rule: R0 removes the added homes on streets in the chosen area and moves none elsewhere. Areas: Leave Early Zones and Fire Zones 2–3 from City sources; access-constrained areas derived from the street network. Legal status: sourced from the Government Code, HCD's ADU Handbook and HCD's letters to Berkeley (2022, 2026); which units are by-right is our reading of §66323 (SOURCE_NOTES L1–L9)."
     }
+  },
+  "network": {
+    "segmentCorrections": [
+      {
+        "OBJECTID": 25386,
+        "SEGID": 181025458,
+        "county": {
+          "STREET": "BANCROFT STEPS WY",
+          "TRVLWAY": "NT"
+        },
+        "set": {
+          "STREET": "BANCROFT WY",
+          "TRVLWAY": "B"
+        },
+        "osmWay": 24025453,
+        "why": "Drivable two-way link from the foot of Panoramic Way to Prospect St / Canyon Rd, Panoramic Hill's single exit (SB 99, p. 4). OSM: Bancroft Way, tertiary, 2 lanes, no access restriction; City Street_Centerline Seg-00193: 30 ft, 2 lanes, two-way. The County record codes it no vehicle travel and names it after the Bancroft Steps stairway, which runs from Warring St to Prospect St and is a separate feature."
+      }
+    ]
   }
 }

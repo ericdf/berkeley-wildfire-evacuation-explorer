@@ -85,7 +85,14 @@ Every number is visible in **Assumptions & limits** in the app and in `data/assu
 
 **Street network** (`tools/build-network.mjs`). The County street centerlines are projected
 to UTM 10N meters. Segment endpoints are snapped into intersections (1 m tolerance).
-Paths, walks and steps become a separate pedestrian layer. Each segment is matched by
+Paths, walks and steps become a separate pedestrian layer. County records that other sources
+show to be miscoded are corrected from a short, labeled list (`network.segmentCorrections` in
+`data/assumptions.json`), matched by SEGID; the build stops if a corrected record no longer
+holds the County values the correction expects. The one correction so far opens the 45 m link
+from the foot of Panoramic Way to Prospect St, which the County file codes as no vehicle travel
+and names "Bancroft Steps Wy". OpenStreetMap maps it as two-way Bancroft Way, the City's street
+layers as a 30 ft, two-lane street, and the SB 99 report puts Panoramic Hill's single access point at Panoramic Way
+and Prospect St/Canyon Rd (SOURCE_NOTES K1–K6). The inspector shows the County value next to the corrected one. Each segment is matched by
 name and distance to the City's centerline and narrow-roads layers, which supply
 pavement width (84% of Berkeley's vehicle segments) and lane counts. Grade is sampled from the DEM
 every 4 m. Lanes, parking, speeds and capacities that the data does not give come from
