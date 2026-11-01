@@ -46,9 +46,9 @@ After the network was extended beyond Berkeley (2026-11-01) these moved by at mo
 - "Not a prediction" statements stay (exception to the style guide's denial-first rule).
 - Follow `../berkeley-council-analysis/docs/STYLE.md` in chat and in products (see `CLAUDE.md`).
 
-## Pending rename (Eric, 2026-11-01)
+## Rename (done 2026-11-01)
 
-Do right after the Oakland/Kensington branch merges, in one pass: retire the word "game" for "simulator" ("it's educational but not fun") in every user-facing string, doc and comment; rename the provenance category "model rule" to "model rule"; rename `data/model/` and update its readers; rename the folder and repo to `berkeley-wildfire-simulator` (no remote yet). Moving the folder also changes Claude Code's memory folder for the project, so copy `~/.claude/projects/-Users-eric-prj-berkeley-wildfire-simulator/memory/` to the new project's memory folder.
+"Game" is now "simulator" everywhere except `specfication.md` (Eric's brief, left as written); the provenance category "game rule" is "model rule"; generated data lives in `data/model/`; the folder is `berkeley-wildfire-simulator` (no remote yet). Claude Code's project memory was copied to `~/.claude/projects/-Users-eric-prj-berkeley-wildfire-simulator/memory/`.
 
 ## Punch list
 

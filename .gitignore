@@ -5,3 +5,5 @@ data/raw/city/
 data/raw/docs/*.pdf
 # Aerial imagery clips (public City service): large; keep derived counts only.
 data/raw/imagery/
+# Claude Code worktrees and local settings
+.claude/
