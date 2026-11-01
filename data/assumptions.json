@@ -300,6 +300,10 @@
     "population.overrides": {
       "category": "assumption",
       "note": "Eric, 2026-11-01: OKL-003 (Claremont Canyon, an R04 Panoramic Hill order zone) uses the 2020 Census count (307 people in the blocks whose interior point lies in the zone; Census TIGERweb, POP100) instead of the Genasys estimate (27). Per zone: \"census2020\" replaces the Genasys estimate with the Census count. SOURCE_NOTES X6."
+    },
+    "network.segmentCorrections": {
+      "category": "sourced",
+      "note": "County street-file records corrected where other sources agree the County coding is wrong; each is matched by SEGID and OBJECTID, sets the listed County fields before the network is built, and is listed in network.meta.segmentCorrections and on the edge (correction). Eric, 2026-11-01: the 45 m link from the foot of Panoramic Way to Prospect St / Canyon Rd (County OBJECTID 25386, SEGID 181025458, \"BANCROFT STEPS WY\", TRVLWAY NT) is a two-way street. OpenStreetMap maps it as Bancroft Way (way 24025453, highway=tertiary, lanes=2, no access or oneway tags, checked 2026-11-01); the City Street_Centerline layer has it as pavement section 627042086 (Seg-00193, Prospect St to Panoramic Way, 30 ft, 2 lanes, two-way); the City's AB 747 street layer gives it a capacity of 1,125 vehicles/h; the SB 99 report (KLD, Rev. 3, p. 4) puts Panoramic Hill's single access point at \"Panoramic Way and Prospect St/Canyon Rd\". The Bancroft Steps stairway is a separate feature (OSM ways 311861379-311861382 and 24025452, motor_vehicle=no, Warring St to Prospect St) and is not in the County file. SOURCE_NOTES K1-K6."
     }
   },
   "sharedLane": {
@@ -388,5 +392,17 @@
     "overrides": {
       "OKL-003": "census2020"
     }
+  },
+  "network": {
+    "segmentCorrections": [
+      {
+        "OBJECTID": 25386,
+        "SEGID": 181025458,
+        "county": { "STREET": "BANCROFT STEPS WY", "TRVLWAY": "NT" },
+        "set": { "STREET": "BANCROFT WY", "TRVLWAY": "B" },
+        "osmWay": 24025453,
+        "why": "Drivable two-way link from the foot of Panoramic Way to Prospect St / Canyon Rd, Panoramic Hill's single exit (SB 99, p. 4). OSM: Bancroft Way, tertiary, 2 lanes, no access restriction; City Street_Centerline Seg-00193: 30 ft, 2 lanes, two-way. The County record codes it no vehicle travel and names it after the Bancroft Steps stairway, which runs from Warring St to Prospect St and is a separate feature."
+      }
+    ]
   }
 }

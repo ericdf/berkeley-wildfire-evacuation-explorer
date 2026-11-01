@@ -118,6 +118,7 @@ table.sortable td { font-size: 11.5px; }
 #legend .ramp { display: flex; gap: 1px; margin: 2px 0 3px; }
 #legend .ramp span { display: flex; flex-direction: column; font-size: 10px; color: #444; width: 36px; }
 #legend .ramp i { display: block; height: 6px; margin-bottom: 1px; }
+.delta-mixed { color: var(--muted); }
 #clock .of { font-weight: 400; color: var(--muted); font-size: 12px; }
 #clock.done { background: #ecfdf5; box-shadow: 0 0 0 2px #16a34a; }
 #clock .done-tag { color: #15803d; margin-right: 4px; }
