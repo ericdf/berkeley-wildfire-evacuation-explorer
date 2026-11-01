@@ -52,7 +52,7 @@ Loading takes a few seconds: about 10 MB of terrain and 2 MB of street network.
   the last household with a car reaches safety. No single average is shown.
 - **No vehicle: not moved in Phase 1.** Households without a car stay put and are
   counted as at risk. Phase 2 adds transport assistance.
-- **Fire-engine travel** is responder ingress, which is modelled separately from resident
+- **Fire-engine travel** is responder ingress, which is modeled separately from resident
   egress. "Blocked by parked cars" means no route to the fire edge has an engine's width
   of clear road under that plan's parking rules.
 - **Event log** explains the results, e.g. "Early departure: 2,896 households left
@@ -65,9 +65,9 @@ Loading takes a few seconds: about 10 MB of terrain and 2 MB of street network.
 Every number is visible in **Assumptions & limits** in the app and in `data/assumptions.json`.
 
 **Street network** (`tools/build-network.mjs`). The County street centerlines are projected
-to UTM 10N metres. Segment endpoints are snapped into intersections (1 m tolerance).
+to UTM 10N meters. Segment endpoints are snapped into intersections (1 m tolerance).
 Paths, walks and steps become a separate pedestrian layer. Each segment is matched by
-name and distance to the City's own centerline and narrow-roads layers, which supply
+name and distance to the City's centerline and narrow-roads layers, which supply
 pavement width (84% of vehicle segments) and lane counts. Grade is sampled from the DEM
 every 4 m. Lanes, parking, speeds and capacities that the data does not give come from
 `data/assumptions.json`.
@@ -91,15 +91,15 @@ as driveways and the street loses capacity. Under 10 ft, a fire engine cannot ge
 search spreads fire from the ignition, using wind (an elliptical shape), slope, and a
 proxy fuel factor taken from the City fire zones. Random spot fires mean different seeds
 give different footprints. A cell is ember-exposed once anything burns within the ember
-distance upwind of it. This is not a fire-behaviour model; it exists to create plausible,
-comparable pressure on the evacuation.
+distance upwind of it. The overlay puts plausible, comparable pressure on the evacuation;
+it does not predict how a real fire would behave.
 
 **Evacuation** (`js/sim.js`). Synthetic households are placed on streets from the City's
 Genasys zone population estimates. Household size, vehicle ownership, ridesharing, compliance
 (100% of Order zones, 50% of Warning zones, 20% shadow) and departure times come from the
 2025 Evacuation Time Study. Orders and warnings use the study's zone lists. Evacuation time is
 measured as the study's ETE, from the first order. Directed links have a capacity and
-storage, and every intersection has its own capacity. The 2025 study named intersections
+storage, and every intersection has a capacity. The 2025 study named intersections
 as the main constraint. Vehicles may use every street and re-route every minute around
 queues, fire and embers toward the nearest node outside every ordered zone and the ember
 area. Households waiting for a commuter (Time Study) wait for that person to drive home
@@ -152,7 +152,7 @@ FeatureCollection of LineStrings in EPSG:4326. It needs the County fields `STREE
 differently, map them near the top of `build-network.mjs`. Then rebuild.
 
 **Replacing the elevation raster.** `fetch-dem.mjs` writes `data/terrain/dem.i16`, which
-is int16 little-endian in decimetres, north row first, -32768 = no data. Alongside it is
+is int16 little-endian in decimeters, north row first, -32768 = no data. Alongside it is
 `dem.json`, which holds `width`, `height`, `resolution`, `xmin`, `ymin`, `xmax`, `ymax` in
 EPSG:32610 plus provenance. To use another DEM, convert it to that format and that grid
 (e.g. `gdalwarp -t_srs EPSG:32610 -tr 4 4 -te <xmin ymin xmax ymax>`, then write the
@@ -176,8 +176,8 @@ by the game at load time. Scenario presets, severities and time-of-day values ar
 - No buildings yet, so no structures exposed or lost, and no home-hardening or
   vegetation effects.
 - No stair or path access time, and no assisted evacuation (Phase 2).
-- Employees, students, visitors and I-80 through traffic come from the Time Study's own tables,
-  but where they park is approximated by area. Signals and stop signs are not modelled one by
+- Employees, students, visitors and I-80 through traffic come from the Time Study's tables,
+  but where they park is approximated by area. Signals and stop signs are not modeled one by
   one: every junction has a typical delay and a capacity by road class. Panoramic Hill matches
   the study's evacuation times; the 1923 and Fire Zones 2–3 regions run about 15 min fast at
   night and 35–80 min fast on weekdays (see `SOURCE_NOTES.md`, calibration). Tuning junction

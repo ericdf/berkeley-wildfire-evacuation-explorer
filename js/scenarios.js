@@ -11,7 +11,7 @@ export const SEVERITY = {
   central: { label: 'Central', rosMpm: 14, windFactor: 1.0,  emberM: 800,  spotProb: 0.012, spotDelayMin: 3 },
   high:    { label: 'High',    rosMpm: 28, windFactor: 1.3,  emberM: 1500, spotProb: 0.03,  spotDelayMin: 2 },
 };
-export const SEVERITY_NOTE = 'Central head spread rate is calibrated to the City StoryMap\'s 1923 present-day repeat (about 5 h from the eastern edge to Shattuck; SOURCE_NOTES S11); low and high are half and double. Ember distance and spot-fire probability are illustrative. The Evacuation Time Study contains no fire modelling (E31). This is not a fire-behaviour model.';
+export const SEVERITY_NOTE = 'Central head spread rate is calibrated to the City StoryMap\'s 1923 present-day repeat (about 5 h from the eastern edge to Shattuck; SOURCE_NOTES S11); low and high are half and double. Ember distance and spot-fire probability are illustrative. The Evacuation Time Study contains no fire modeling (E31). This is not a fire-behavior model.';
 
 // The Evacuation Time Study's six scenarios (Table 6-5, p. 6-11; SOURCE_NOTES E11).
 // Residents are never reduced. commuterShare = households waiting for a returning commuter
@@ -82,7 +82,7 @@ export function makeScenarios(data) {
       blurb: 'Fire starts in the hills above Panoramic Hill, a neighborhood reached by essentially one road (Panoramic Way). Use it to test early departure; a secondary route is a Phase 2 intervention.',
       ignition: L(-122.2410, 37.8728), ignitionLabel: 'Hillside north-east of and above Panoramic Hill (illustrative)',
       windFrom: 45, windMph: 30, durationMin: 240, timeOfDay: 'S4', orders: R04,
-      sources: ['Orders and warnings: Evacuation Time Study region R04 zone lists (p. 6-7). The Oakland zones have no streets in our network, so their residents are not modelled',
+      sources: ['Orders and warnings: Evacuation Time Study region R04 zone lists (p. 6-7). The Oakland zones have no streets in our network, so their residents are not modeled',
         'Single exit at the stop-controlled intersection of Panoramic Way and Prospect St/Canyon Rd (SB 99 report p. 4)', 'Ignition point and wind are illustrative'],
     },
     {
@@ -91,7 +91,7 @@ export function makeScenarios(data) {
       blurb: 'Same fire as "Extreme east wind", but on a fall weekday at midday (Time Study S4): some households wait for a commuter to come home, parents pick up children, and there is more other traffic. Compare with the night run.',
       ignition: L(-122.2425, 37.8845), ignitionLabel: 'Wildland near Grizzly Peak Blvd (illustrative)',
       windFrom: 75, windMph: 35, durationMin: 240, timeOfDay: 'S4', orderRegion: 'R05',
-      sources: ['Time-of-day behaviour from the Time Study (Table 6-5, Table 5-9); background traffic is a game rule; employees and students are not yet placed'],
+      sources: ['Time-of-day behavior from the Time Study (Table 6-5, Table 5-9); background traffic is a game rule; employees and students are not yet placed'],
     },
   ];
 }

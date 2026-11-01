@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Build the game's elevation grid from USGS 3DEP 1-metre lidar DEM tiles.
+// Build the game's elevation grid from USGS 3DEP 1-meter lidar DEM tiles.
 //
 //   node tools/fetch-dem.mjs [overview_level=2]
 //
@@ -10,7 +10,7 @@
 // then the 2018 NoCAL Wildfires lidar to fill the Contra Costa side of the ridge.
 //
 // Writes:
-//   data/terrain/dem.i16   int16 little-endian, elevation in decimetres, -32768 = no data,
+//   data/terrain/dem.i16   int16 little-endian, elevation in decimeters, -32768 = no data,
 //                          rows run north to south
 //   data/terrain/dem.json  grid metadata + provenance
 // To use a DEM you obtained yourself instead, see README "Replacing the elevation raster".
@@ -32,7 +32,7 @@ const SOURCES = [
     tiles: ['x55y419', 'x55y420', 'x56y419', 'x56y420', 'x57y419', 'x57y420'].map(t => `USGS_1m_${t}_CA_NoCAL_Wildfires_B5b_2018.tif`) },
 ];
 
-// Output grid in UTM 10N, aligned to whole metres.
+// Output grid in UTM 10N, aligned to whole meters.
 const corners = [[AREA_LONLAT.west, AREA_LONLAT.south], [AREA_LONLAT.west, AREA_LONLAT.north],
   [AREA_LONLAT.east, AREA_LONLAT.south], [AREA_LONLAT.east, AREA_LONLAT.north]].map(([lo, la]) => toUTM(lo, la));
 const xmin = Math.floor(Math.min(...corners.map(c => c[0])) / RES) * RES;
@@ -109,7 +109,7 @@ for (const src of SOURCES) {
     let fetched = 0, cells = 0;
     for (let t = 0; t < ov[324].length; t++) {
       const tx0 = (t % across) * tw, ty0 = Math.floor(t / across) * th;
-      // output cells whose centres fall in this tile
+      // output cells whose centers fall in this tile
       const c0 = Math.max(0, Math.floor((ox + tx0 * scale - xmin) / RES)), c1 = Math.min(W, Math.ceil((ox + (tx0 + tw) * scale - xmin) / RES));
       const r0 = Math.max(0, Math.floor((ymax - (oy - ty0 * scale)) / RES)), r1 = Math.min(H, Math.ceil((ymax - (oy - (ty0 + th) * scale)) / RES));
       if (c0 >= c1 || r0 >= r1) continue;
@@ -144,17 +144,17 @@ for (let i = 0; i < W * H; i++) {
 fs.mkdirSync(path.join(ROOT, 'data/terrain'), { recursive: true });
 fs.writeFileSync(path.join(ROOT, 'data/terrain/dem.i16'), Buffer.from(out.buffer));
 const meta = {
-  crs: 'EPSG:32610 (WGS 84 / UTM zone 10N)', units: 'metres', verticalDatum: 'NAVD88 (per 3DEP 1 m DEM specification)',
-  encoding: 'int16 little-endian; value = elevation in decimetres; -32768 = no data (open water or no coverage); rows run north to south',
+  crs: 'EPSG:32610 (WGS 84 / UTM zone 10N)', units: 'meters', verticalDatum: 'NAVD88 (per 3DEP 1 m DEM specification)',
+  encoding: 'int16 little-endian; value = elevation in decimeters; -32768 = no data (open water or no coverage); rows run north to south',
   width: W, height: H, resolution: RES, xmin, ymin, xmax, ymax, min: lo, max: hi, nodataCells,
   provenance: {
     category: 'derived',
     sources: SOURCES.map(s => s.label),
     tilesUsed: used,
-    method: `Read overview level ${LEVEL} (${RES} m) of each 1 m Cloud Optimized GeoTIFF via HTTP range requests; nearest overview pixel to each ${RES} m cell centre; Alameda 2021 has priority, NoCAL 2018 fills cells it does not cover. Overviews are averages computed by USGS/GDAL from the 1 m data.`,
+    method: `Read overview level ${LEVEL} (${RES} m) of each 1 m Cloud Optimized GeoTIFF via HTTP range requests; nearest overview pixel to each ${RES} m cell center; Alameda 2021 has priority, NoCAL 2018 fills cells it does not cover. Overviews are averages computed by USGS/GDAL from the 1 m data.`,
     retrieved: new Date().toISOString().slice(0, 10),
     license: 'US public domain (USGS)',
-    limits: 'Bare-earth terrain. It does not show buildings, stairs, retaining walls, or whether a route is passable, and it does not determine fire behaviour.',
+    limits: 'Bare-earth terrain. It does not show buildings, stairs, retaining walls, or whether a route is passable, and it does not determine fire behavior.',
   },
 };
 fs.writeFileSync(path.join(ROOT, 'data/terrain/dem.json'), JSON.stringify(meta, null, 2));

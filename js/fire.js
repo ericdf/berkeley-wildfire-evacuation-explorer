@@ -1,8 +1,8 @@
-// Illustrative fire and ember overlay. NOT a calibrated fire-behaviour model.
+// Illustrative fire and ember overlay. NOT a calibrated fire-behavior model.
 //
 // The play area is divided into 30 m cells. Fire arrival time is found with a
 // shortest-time search (Dijkstra) from the ignition cell, where the time to cross
-// into a neighbouring cell depends on:
+// into a neighboring cell depends on:
 //   - a scenario head spread rate (low / central / high),
 //   - wind alignment (elliptical spread shape, length-to-breadth from Anderson 1983),
 //   - slope (faster uphill, slower downhill), from the DEM,
@@ -80,7 +80,7 @@ export function runFire(grid, sc, sev, seed) {
   }
   const heap = new MinHeap();
   arrival[ign] = 0; heap.push(0, ign);
-  // 16-neighbour stencil (adds knight moves) to reduce grid-direction bias
+  // 16-neighbor stencil (adds knight moves) to reduce grid-direction bias
   const NB = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1],
     [2, 1], [1, 2], [-1, 2], [-2, 1], [-2, -1], [-1, -2], [1, -2], [2, -1]];
   let spots = 0;

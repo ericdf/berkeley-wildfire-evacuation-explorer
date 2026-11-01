@@ -11,7 +11,7 @@ Hello [name],
 I'm a Berkeley Hills resident building an educational, browser-based tool that lets residents
 explore wildfire evacuation tradeoffs on Berkeley's real street network: when zones are
 ordered, leaving early, parking on narrow hill streets, and fire-engine access. It is clearly
-labelled as a teaching tool, not a prediction or an official plan, and it points people to the
+labeled as a teaching tool, not a prediction or an official plan, and it points people to the
 City's evacuation pages. Every number in it shows where it came from.
 
 I've built it on the City's public GIS layers (street centerlines, Narrow_Roads, Genasys zones,
@@ -19,7 +19,7 @@ Evac_Regions, fire zones) and calibrated it against the 2025 Evacuation Time Stu
 Access Impaired Neighborhood report and the AB 747 route analysis. Its evacuation times for the
 1923 Repeat and Panoramic Hill night and weekend cases come within about 15 minutes of the study.
 
-A few datasets would replace guesses with the City's own data. Would it be possible to share
+A few datasets would replace guesses with the City's data. Would it be possible to share
 any of the following?
 
 1. **Curb parking data** used by KLD for the SB 99 and AB 747 analyses: where parking is allowed

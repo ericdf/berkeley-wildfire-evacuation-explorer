@@ -40,7 +40,7 @@ export class MapView {
     this.cx = (ext[0] + ext[2]) / 2; this.cy = (ext[1] + ext[3]) / 2;
     this.scale = Math.min(this.w / (ext[2] - ext[0]), this.h / (ext[3] - ext[1])) * 0.95;
   }
-  zoomTo(x, y, metresAcross = 800) { this.cx = x; this.cy = y; this.scale = this.w / metresAcross; this.draw(); }
+  zoomTo(x, y, metersAcross = 800) { this.cx = x; this.cy = y; this.scale = this.w / metersAcross; this.draw(); }
   sx(x) { return (x - this.cx) * this.scale + this.w / 2; }
   sy(y) { return this.h / 2 - (y - this.cy) * this.scale; }
   wx(px) { return (px - this.w / 2) / this.scale + this.cx; }

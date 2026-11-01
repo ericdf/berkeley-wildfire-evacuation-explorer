@@ -51,7 +51,7 @@ export function midpoint(pts) {
   return pts[0];
 }
 
-// Nearest edge to a point within maxD metres.
+// Nearest edge to a point within maxD meters.
 export function pickEdge(data, x, y, maxD) {
   const G = data.gridSize; let best = null, bd = maxD;
   for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {

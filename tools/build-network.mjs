@@ -12,7 +12,7 @@
 //   data/game/network.json   road graph: nodes, edges, per-field provenance
 //   data/game/layers.json    zones, fire zones, 1923 boundary, stations, shelters, paths
 //
-// Every coordinate in the outputs is metres in UTM 10N (EPSG:32610) minus the DEM
+// Every coordinate in the outputs is meters in UTM 10N (EPSG:32610) minus the DEM
 // origin (xmin, ymin), with y pointing north. Nothing is measured in lon/lat.
 
 import fs from 'node:fs';
@@ -31,7 +31,7 @@ const dem = readJSON('data/terrain/dem.json');
 const demBuf = fs.readFileSync(P('data/terrain/dem.i16'));
 const Z = new Int16Array(demBuf.buffer, demBuf.byteOffset, demBuf.length / 2);
 const OX = dem.xmin, OY = dem.ymin;
-function elev(x, y) { // local metres → elevation (m) by bilinear interpolation, null if no data
+function elev(x, y) { // local meters → elevation (m) by bilinear interpolation, null if no data
   const fx = x / dem.resolution - 0.5, fy = (dem.ymax - OY - y) / dem.resolution - 0.5;
   const c = Math.floor(fx), r = Math.floor(fy);
   if (c < 0 || r < 0 || c >= dem.width - 1 || r >= dem.height - 1) return null;
@@ -81,7 +81,7 @@ function inRing(p, ring) {
   return inside;
 }
 const inPoly = (p, rings) => rings.length && inRing(p, rings[0]) && !rings.slice(1).some(h => inRing(p, h));
-function polygonsOf(geom) { // → array of polygons (each an array of rings) in local metres
+function polygonsOf(geom) { // → array of polygons (each an array of rings) in local meters
   if (!geom) return [];
   const polys = geom.type === 'Polygon' ? [geom.coordinates] : geom.type === 'MultiPolygon' ? geom.coordinates : [];
   return polys.map(rings => rings.map(r => r.map(local)));
@@ -107,7 +107,7 @@ for (const f of raw.features) {
 }
 
 // ---------- 2. snap endpoints into nodes ----------
-const SNAP = 1.0; // metres
+const SNAP = 1.0; // meters
 const nodes = [], grid = new Map();
 const cellKey = (x, y) => `${Math.floor(x / SNAP)},${Math.floor(y / SNAP)}`;
 function nodeFor(pt) {
@@ -157,7 +157,7 @@ const cityLines = lineIndex(cityLayer('street_centerline_city'));
 const narrowLines = lineIndex(cityLayer('narrow_roads'));
 const fireZoneOf = zoneIndex(cityLayer('fire_zones'), p => p.PLN_HILL_Z);
 // Genasys zone label as the City website and Genasys map show it, e.g. US-CA-XAL-BER-E006 -> BER-006.
-// The layer's own zonenum field is not unique (Albany's and Oakland's zone 6 are also "BER-06").
+// The layer's zonenum field is not unique (Albany's and Oakland's zone 6 are also "BER-06").
 const zoneLabel = zid => String(zid || '').replace(/^US-CA-XAL-/, '').replace(/-E0*(\d+)$/, (m, n) => '-' + n.padStart(3, '0'));
 const evacZoneOf = zoneIndex(cityLayer('evac_zones'), p => zoneLabel(p.zone_id));
 
@@ -275,7 +275,7 @@ const nodesOut = nodes.map(nd => { const z = elev(...nd.pt); return [r1(nd.pt[0]
 const network = {
   meta: {
     built: new Date().toISOString().slice(0, 10),
-    crs: 'EPSG:32610 local: x = easting - xmin, y = northing - ymin (metres)', origin: [OX, OY],
+    crs: 'EPSG:32610 local: x = easting - xmin, y = northing - ymin (meters)', origin: [OX, OY],
     terrain: { width: dem.width, height: dem.height, resolution: dem.resolution, xmax: dem.xmax - OX, ymax: dem.ymax - OY },
     stats: { ...stats, nodes: nodes.length, components: ncomp, mainComponentNodes: compSize[main] },
     fields: {

@@ -1,6 +1,6 @@
 // Compare the game's traffic model with the 2025 Evacuation Time Study (KLD).
 // The study models traffic only, so these runs switch the fire off (no blocked roads,
-// no embers) and use only the study's own order/warning zones.
+// no embers) and use only the study's order/warning zones.
 //   node tests/calibration.mjs [seeds=3] [intersection scale]
 import fs from 'node:fs';
 import { loadData } from '../js/data.js';

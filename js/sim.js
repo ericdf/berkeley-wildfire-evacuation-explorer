@@ -5,11 +5,11 @@
 // City's Genasys zone population estimates) leave after their zone is ordered plus
 // a notice delay and a preparation time. Each vehicle drives on directed links;
 // a link passes at most its capacity, holds at most its storage, and every
-// intersection passes at most its own capacity. Vehicles route toward the nearest
+// intersection passes at most its capacity. Vehicles route toward the nearest
 // node outside the scenario's ordered zones and ember area, re-planning every minute
 // with current queues. All streets can be used.
 //
-// Responder ingress is modelled separately: an engine's travel time from the
+// Responder ingress is modeled separately: an engine's travel time from the
 // nearest fire station to the ignition area, slowed by oncoming evacuees on
 // streets with one usable lane and blocked where parked cars leave less than an
 // engine's width.
@@ -260,7 +260,7 @@ export class Evacuation {
       if (dep > this.end) continue;
       for (let k = 0; k < hh.veh[h]; k++) { vHH.push(h); vDep.push(dep + k * 20); vCls.push(kind === 3 ? 1 : 0); }
     }
-    // Carless households: most ride with a neighbour (Time Study: 86.9% rideshare, E7).
+    // Carless households: most ride with a neighbor (Time Study: 86.9% rideshare, E7).
     this.stranded = 0;
     for (let h = 0; h < nH; h++) {
       if (hh.veh[h] || !hh.kind[h] || hh.kind[h] === 3 || hh.early[h]) continue;
@@ -400,7 +400,7 @@ export class Evacuation {
         const k = v.cls[i];
         if (k === 2) { // inbound commuter
           const path = this.paths.get(i), nl = path?.[v.pidx[i]];
-          if (L.to === v.dest[i] || L.e === hh.edge[v.hh[i]] || nl == null) { L.q.shift(); L.lastOut = t; B.budget--; if (L.share) L.share.used[L.dir]++; this.commuterHome(i, true); continue; } // reached their own street
+          if (L.to === v.dest[i] || L.e === hh.edge[v.hh[i]] || nl == null) { L.q.shift(); L.lastOut = t; B.budget--; if (L.share) L.share.used[L.dir]++; this.commuterHome(i, true); continue; } // reached their street
           if (nb[L.to] < 1) break;
           if (this.linkCost[nl] === Infinity) { L.q.shift(); L.lastOut = t; B.budget--; this.commuterHome(i, false); continue; } // fire ahead: turned back
           const N = links[nl]; if (N.q.length >= N.storage && !this.relieve(i, L, N)) break;
@@ -617,7 +617,7 @@ export class Evacuation {
     if (plan.hillsParking !== 'both') this.log(`Parking plan "${PARKING_PLANS[plan.hillsParking]}": ${parkingChanged(parkingStats)}.`, 'plan');
     if (warned) this.log(`${warned.toLocaleString()} households in warning zones choose to leave (Time Study: 50% of warned households).`, 'order');
     if (shadow) this.log(`${shadow.toLocaleString()} households outside the order and warning zones leave anyway (${shadowVeh.toLocaleString()} vehicles heading out of the city; Time Study: 20% shadow evacuation).`, 'order');
-    if (riders) this.log(`${riders.toLocaleString()} households without a vehicle ride with a neighbour.`, 'order');
+    if (riders) this.log(`${riders.toLocaleString()} households without a vehicle ride with a neighbor.`, 'order');
     if (stranded) this.log(`${stranded.toLocaleString()} households without a vehicle found no ride. Phase 1 gives them no transport: they stay where they are and are counted as at risk.`, 'warn');
   }
   logOrders() {
@@ -655,7 +655,7 @@ export class Evacuation {
       if (hh.veh[h]) { drivingHH++; drivingVeh += hh.veh[h]; }
       const k = hh.kind[h], z = hh.zone[h];
       const told = (k === 1 && this.orderT[z] <= t) || (k === 2 && this.warnT[z] <= t);
-      const e = hh.ride[h] >= 0 ? hh.ride[h] : h; // riders share their neighbour's trip
+      const e = hh.ride[h] >= 0 ? hh.ride[h] : h; // riders share their neighbor's trip
       const te = this.tEmber[hh.edge[h]];
       const exposedAtHome = te <= t && hh.leftHome[e] > te && !hh.early[h];
       if (k === 3 && hh.leftHome[h] <= t) S.shadowLeaving += pph;
@@ -736,7 +736,7 @@ function nonResidentAreas(data) {
   return (data._nrAreas = out);
 }
 
-// Vehicle nodes within 100 m of the city limits on through roads: where shadow evacuees leave the modelled city.
+// Vehicle nodes within 100 m of the city limits on through roads: where shadow evacuees leave the modeled city.
 function cityExitNodes(data) {
   const out = new Set(), rings = data.layers.cityBoundary.flatMap(p => p.rings);
   // Only roads that carry traffic out of the city (arterials, collectors, freeways and ramps):

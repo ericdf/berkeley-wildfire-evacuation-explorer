@@ -145,12 +145,12 @@ function update(full) {
     <div class="cards">
       ${c('people in ordered zones', fmt(S.orderedPeople), '', 'Modeled residents in zones ordered so far (Time Study: 100% leave)')}
       ${c('warned and leaving', fmt(S.warnedLeaving), '', 'Time Study: 50% of households in warning zones leave')}
-      ${c('reached safety', fmt(S.reachedSafety), 'good', `Ordered or warned people whose household's vehicles left the order/warning area and ember zone. Includes ${fmt(S.riders)} people riding with a neighbour.`)}
+      ${c('reached safety', fmt(S.reachedSafety), 'good', `Ordered or warned people whose household's vehicles left the order/warning area and ember zone. Includes ${fmt(S.riders)} people riding with a neighbor.`)}
       ${c('shadow evacuees on the move', fmt(S.shadowLeaving), '', `People outside the order/warning zones who leave anyway (Time Study: 20%), driving to the city edge. ${fmt(S.shadowVehicles)} vehicles.`)}
       ${c('left early (before ignition)', fmt(S.leftEarly), S.leftEarly ? 'good' : '')}
       ${c('on the road now', fmt(S.onRoad))}
       ${c('ordered, not yet left', fmt(S.notLeft), S.notLeft ? 'bad' : '')}
-      ${c('no vehicle and no ride', fmt(S.noVehicle), S.noVehicle ? 'bad' : '', 'Carless households that found no neighbour to ride with (Time Study: 86.9% rideshare). Phase 2 adds buses, paratransit and check-ins.')}
+      ${c('no vehicle and no ride', fmt(S.noVehicle), S.noVehicle ? 'bad' : '', 'Carless households that found no neighbor to ride with (Time Study: 86.9% rideshare). Phase 2 adds buses, paratransit and check-ins.')}
       ${c('people exposed to fire/embers', fmt(exposed), exposed ? 'bad' : '', `At home ${fmt(S.exposedHome)}; on roads ${fmt(S.exposedRoad)}; without a vehicle ${fmt(S.exposedNoVehicle)}; in zones with no order ${fmt(S.notOrderedExposed)}`)}
       ${c('vehicles trapped (no open route)', fmt(S.vehiclesNoRoute), S.vehiclesNoRoute ? 'bad' : '')}
     </div>
@@ -197,7 +197,7 @@ function inspect(sel, quiet) {
     const e = data.net.edges[sel.id];
     const travel = { B: 'two-way', FT: 'one-way (drawn direction)', TF: 'one-way (against drawn direction)', NT: 'no vehicle travel' }[e.trav] || e.trav;
     let rows = row('Street', esc(titleCase(e.name)), 'sourced') + row('Class', esc(e.cls), 'sourced') + row('Direction', travel, 'sourced', F.trav.source)
-      + row('Use', e.mode, 'derived', F.mode.source) + row('Length', `${fmt(e.len)} m`, 'derived', 'Measured in UTM 10N metres');
+      + row('Use', e.mode, 'derived', F.mode.source) + row('Length', `${fmt(e.len)} m`, 'derived', 'Measured in UTM 10N meters');
     if (e.mode === 'vehicle') {
       rows += row('Lanes [forward, back]', `${e.lanes.join(', ')}`, srcCat(e.lanesSrc), e.lanesSrc)
         + row('Pavement width', e.widthM == null ? 'unknown' : `${fmt(e.widthM, 1)} m (${fmt(e.widthM / 0.3048)} ft)`, srcCat(e.widthSrc), e.widthSrc)
@@ -325,7 +325,7 @@ $('btn-assumptions').onclick = () => {
   const A = data.A, F = data.net.meta.fields;
   const val = path => { const v = path.split('.').reduce((o, k) => o?.[k], A); return typeof v === 'object' ? JSON.stringify(v).replace(/[{}"]/g, '').replace(/,/g, ', ') : v; };
   modal(`<h2>Assumptions &amp; limits</h2>
-  <p class="note">This is an educational comparison tool. It is not a calibrated fire-behaviour or traffic model, not an official evacuation plan, and it must not guide real evacuation decisions. Follow official instructions: <a href="https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation" target="_blank" rel="noopener">City of Berkeley fire weather &amp; evacuation</a>.</p>
+  <p class="note">This is an educational comparison tool. It is not a calibrated fire-behavior or traffic model, not an official evacuation plan, and it must not guide real evacuation decisions. Follow official instructions: <a href="https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation" target="_blank" rel="noopener">City of Berkeley fire weather &amp; evacuation</a>.</p>
   <p>Labels used throughout: ${badge('sourced')} published data used as-is · ${badge('derived')} computed from sourced data · ${badge('assumption')} a placeholder you can change in <code>data/assumptions.json</code> · ${badge('game rule')} a simplification that makes the game work · ${badge('synthetic')} generated people or vehicles.</p>
   <h3>Editable assumptions and game rules (data/assumptions.json)</h3>
   <table>${Object.entries(A._meta).map(([k, m]) => `<tr><td><code>${k}</code></td><td>${esc(val(k))}</td><td>${badge(m.category)} ${esc(m.note)}</td></tr>`).join('')}</table>
@@ -339,12 +339,12 @@ $('btn-assumptions').onclick = () => {
   <h3>How people and vehicles are modeled ${badge('synthetic')}</h3>
   <ul class="small">
     <li>Households are synthetic. Each zone's Genasys population estimate (sourced) is cut to the share inside the city, divided by ${A.demand.personsPerHousehold} persons per household (Time Study), and spread over the zone's streets in proportion to length. Residents are not reduced by time of day (Time Study).</li>
-    <li>${(A.demand.householdsWithoutVehicleShare * 100).toFixed(2)}% of households have no vehicle; ${A.demand.carlessRideshareShare * 100}% of those ride with a neighbour on the same street; the rest are stranded and counted as at risk. Households that drive take 1–4 vehicles (Time Study survey). Age is not used at all.</li>
+    <li>${(A.demand.householdsWithoutVehicleShare * 100).toFixed(2)}% of households have no vehicle; ${A.demand.carlessRideshareShare * 100}% of those ride with a neighbor on the same street; the rest are stranded and counted as at risk. Households that drive take 1–4 vehicles (Time Study survey). Age is not used at all.</li>
     <li>Who leaves: everyone in Order zones, ${A.demand.compliance.warning * 100}% of Warning zones, and ${A.demand.compliance.shadow * 100}% of all other households in the city as shadow evacuees driving to the city edge (Time Study). Orders follow the Time Study's zone lists for the 1923 and Panoramic Hill regions, the City's Fire Zones 2–3 region for the east-wind fires, and optionally the plan's distance rule.</li>
     <li>When: each household's departure after the order is drawn from the Time Study's survey-based mobilization tables (Table 5-9), which include noticing the order and getting ready. Households waiting for a commuter, or picking up children on school days, leave later.</li>
     <li>Evacuation time is measured like the Time Study's ETE: from the first order until 90% (and 100%) of evacuating vehicles have left the order and warning area. <code>node tests/calibration.mjs</code> compares the game with the study's results with the fire switched off.</li>
     <li>Vehicles may use every street. They head for the nearest road node outside every ordered or warned zone and the ember area, and re-plan every minute around queues, fire and embers.</li>
-    <li>Each link passes at most its capacity, holds at most its storage, and each intersection passes at most its own capacity. On two-way streets with only one moving lane between parked cars, both directions share that lane: when cars come from both ways they take turns at gaps such as driveways, and the street loses capacity. Removing parking does not add evacuation lanes on two-way streets.</li>
+    <li>Each link passes at most its capacity, holds at most its storage, and each intersection passes at most its capacity. On two-way streets with only one moving lane between parked cars, both directions share that lane: when cars come from both ways they take turns at gaps such as driveways, and the street loses capacity. Removing parking does not add evacuation lanes on two-way streets.</li>
     <li>Parked cars vary by block and seed: hill blocks are parked on one side or both, some cars sit partly off the pavement, and an occasional bad parking job (a wide vehicle, or a car far from the curb) narrows the gap. Residents stop parking where less than 8 ft would remain for a car. The City survey's "width with parking" is treated as the both-sides case.</li>
     <li>Households awaiting a commuter (Time Study) wait for that person to drive home first. The commuter enters at the edge of the evacuating area nearest home and drives in against the outbound traffic. A commuter turned back by fire leaves the household one car short.</li>
     <li>Gridlock relief: a vehicle stuck ${data.A.capacity.gridlockReliefS} s at the head of a queue squeezes forward. Without it the queue model can lock up for good in rings such as traffic circles.</li>

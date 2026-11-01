@@ -26,7 +26,7 @@ export function makeTerrainCanvas(dem, Z) {
   return cv;
 }
 
-// Muted hypsometric tint: flats warm grey, hills sage, ridge tan.
+// Muted hypsometric tint: flats warm gray, hills sage, ridge tan.
 const STOPS = [[0, [232, 228, 218]], [60, [226, 226, 212]], [150, [214, 222, 200]], [300, [210, 214, 188]], [450, [222, 210, 186]], [600, [232, 222, 206]]];
 function hypso(e) {
   for (let i = 1; i < STOPS.length; i++) if (e <= STOPS[i][0]) {
@@ -36,7 +36,7 @@ function hypso(e) {
   return STOPS[STOPS.length - 1][1];
 }
 
-// Marching-squares contour segments in local metres, every `interval` metres.
+// Marching-squares contour segments in local meters, every `interval` meters.
 export function makeContours(dem, Z, interval = 20, step = 3) {
   const W = dem.width, H = dem.height, res = dem.resolution, ymax = dem.ymax - dem.ymin;
   const cols = Math.floor((W - 1) / step), rows = Math.floor((H - 1) / step);
