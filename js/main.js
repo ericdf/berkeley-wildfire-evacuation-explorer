@@ -124,7 +124,7 @@ function renderSimple() {
       <div class="btns"><button data-watch="A" class="${state.editing === 'A' ? 'on' : ''}">▶ Watch Plan A</button><button data-watch="B" class="${state.editing === 'B' ? 'on' : ''}">▶ Watch Plan B</button>
       <button class="primary" id="simple-compare">Compare A and B on 9 fires</button></div>
       <div id="simple-progress" class="small" style="margin-top:4px;color:var(--accent)"></div><div id="simple-result"></div>
-      <p class="small muted">Watch starts that plan on the map; pause, restart or slow it in the playback controls below. Compare runs both plans on the same 9 fires (low, central and high severity, 3 random seeds each) and the same households, takes about half a minute, and shows the answer here. Trust a difference that shows up in every run.</p>` : '<p class="small muted">Each question compares two plans on the same fire and the same households. The Expert switch at the top right lets you set everything yourself.</p>'}`;
+      <p class="small muted">Watch starts that plan on the map; pause, restart or slow it with the buttons beside the clock on the map. Compare runs both plans on the same 9 fires (low, central and high severity, 3 random seeds each) and the same households, takes a few minutes, and shows the answer here. Trust a difference that shows up in every run.</p>` : '<p class="small muted">Each question compares two plans on the same fire and the same households. The Expert switch at the top right lets you set everything yourself.</p>'}`;
   $('simple').querySelectorAll('.fire-pick').forEach(b => b.onclick = () => pickFire(b.dataset.fire));
   $('simple').querySelectorAll('.preset').forEach(b => b.onclick = () => { if (!b.disabled) applyPreset(b.dataset.id); });
   $('simple').querySelectorAll('[data-watch]').forEach(b => b.onclick = () => { state.editing = b.dataset.watch; showPlan(); if (p.tods) { $('tod').value = p.tods[state.editing]; todNote(); } newRun(); renderSimple(); state.playing = true; runLabel('❚❚ Pause'); });
@@ -349,7 +349,7 @@ $('compare').onclick = () => {
   const batch = ++state.batch, results = [];
   const progress = t => { $('cmp-progress').textContent = t; if ($('simple-progress')) $('simple-progress').textContent = t; };
   if ($('simple-compare')) $('simple-compare').disabled = true;
-  progress(`Running ${jobs.length} simulations (identical fires and households for both plans). This takes about half a minute…`);
+  progress(`Running ${jobs.length} simulations (identical fires and households for both plans). This takes a few minutes…`);
   worker.onmessage = ev => {
     const m = ev.data; if (m.batch !== batch) return;
     if (m.done) {
