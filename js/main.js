@@ -87,8 +87,11 @@ const todNote = () => { $('tod-note').textContent = TIME_OF_DAY[$('tod').value].
 ['severity', 'seed', 'tod'].forEach(id => $(id).onchange = () => { todNote(); newRun(); });
 $('street-mode').onchange = e => { map.streetMode = e.target.value; map.draw(); legend(); };
 $('speed').onchange = e => state.speed = +e.target.value;
-$('run').onclick = () => { if (state.sim.t >= state.sim.end) newRun(); state.playing = !state.playing; $('run').textContent = state.playing ? '❚❚ Pause' : '▶ Play'; };
+$('run').onclick = () => { if (state.sim.t >= state.sim.end) newRun(); state.playing = !state.playing; runLabel(state.playing ? '❚❚ Pause' : '▶ Play'); update(false); };
 $('reset').onclick = () => newRun();
+$('map-run').onclick = () => $('run').click();
+$('map-reset').onclick = () => newRun();
+function runLabel(t) { $('run').textContent = t; $('map-run').textContent = t; }
 $('scrub').oninput = e => seek(+e.target.value * 60);
 $('search').onchange = e => {
   const SUF = { AVENUE: 'AV', AVE: 'AV', WAY: 'WY', STREET: 'ST', ROAD: 'RD', DRIVE: 'DR', PLACE: 'PL', COURT: 'CT', LANE: 'LN', BOULEVARD: 'BL', TERRACE: 'TE', PATH: 'PA', WALK: 'WK' };
@@ -120,11 +123,11 @@ function renderSimple() {
       <div class="watch"><b>What to look for.</b> ${esc(p.on[state.fire])}</div>
       <div class="btns"><button data-watch="A" class="${state.editing === 'A' ? 'on' : ''}">▶ Watch Plan A</button><button data-watch="B" class="${state.editing === 'B' ? 'on' : ''}">▶ Watch Plan B</button>
       <button class="primary" id="simple-compare">Compare A and B on 9 fires</button></div>
-      <div id="simple-progress" class="small" style="margin-top:4px;color:var(--accent)"></div><div id="simple-result"></div>
-      <p class="small muted">Watch starts that plan on the map; pause, restart or slow it in the playback controls below. Compare runs both plans on the same 9 fires (low, central and high severity, 3 random seeds each) and the same households, takes about half a minute, and shows the answer here. Trust a difference that shows up in every run.</p>` : '<p class="small muted">Each question compares two plans on the same fire and the same households. The Expert switch at the top right lets you set everything yourself.</p>'}`;
+<div id="simple-result"></div>
+      <p class="small muted">Watch starts that plan on the map; pause, restart or slow it with the buttons beside the clock on the map. Compare runs both plans on the same 9 fires (low, central and high severity, 3 random seeds each) and the same households, takes a few minutes, and shows the answer here. Trust a difference that shows up in every run.</p>` : '<p class="small muted">Each question compares two plans on the same fire and the same households. The Expert switch at the top right lets you set everything yourself.</p>'}`;
   $('simple').querySelectorAll('.fire-pick').forEach(b => b.onclick = () => pickFire(b.dataset.fire));
   $('simple').querySelectorAll('.preset').forEach(b => b.onclick = () => { if (!b.disabled) applyPreset(b.dataset.id); });
-  $('simple').querySelectorAll('[data-watch]').forEach(b => b.onclick = () => { state.editing = b.dataset.watch; showPlan(); if (p.tods) { $('tod').value = p.tods[state.editing]; todNote(); } newRun(); renderSimple(); state.playing = true; $('run').textContent = '❚❚ Pause'; });
+  $('simple').querySelectorAll('[data-watch]').forEach(b => b.onclick = () => { state.editing = b.dataset.watch; showPlan(); if (p.tods) { $('tod').value = p.tods[state.editing]; todNote(); } newRun(); renderSimple(); state.playing = true; runLabel('❚❚ Pause'); });
   if ($('simple-compare')) $('simple-compare').onclick = () => { $('cmp-scope').value = 'severities'; $('compare').click(); };
 }
 // The chosen fire applies to every question. Keep the current question if it holds on the new
@@ -162,7 +165,7 @@ function getFire(sc, sev, seed) {
 function newRun() {
   const sc = scenario(), sev = $('severity').value, seed = +$('seed').value || 1;
   state.sim = new Evacuation(data, grid, getFire(sc, sev, seed), sc, sev, { ...state.plans[state.editing] }, seed, TIME_OF_DAY[$('tod').value]);
-  map.sim = state.sim; state.playing = false; $('run').textContent = '▶ Play'; $('scrub').value = 0;
+  map.sim = state.sim; state.playing = false; runLabel('▶ Play'); $('scrub').value = 0;
   $('run-plan').textContent = `Plan ${state.editing}${state.preset ? ': ' + state.plans[state.editing].name.replace(/^[AB]: /, '') : ''}`;
   update(true); map.draw();
 }
@@ -178,7 +181,7 @@ function loop(now) {
   if (state.playing && sim) {
     let steps = Math.min(400, Math.round(state.speed * dt / sim.dt));
     while (steps-- > 0 && sim.t < sim.end) sim.step();
-    if (sim.t >= sim.end) { state.playing = false; $('run').textContent = '▶ Play again'; }
+    if (sim.t >= sim.end) { state.playing = false; runLabel('▶ Play again'); update(true); map.draw(); requestAnimationFrame(loop); return; }
     $('scrub').value = Math.floor(sim.t / 60);
     map.draw();
     if (now - lastUi > 300) { update(false); lastUi = now; }
@@ -189,11 +192,14 @@ function loop(now) {
 // ---------- results panel ----------
 function update(full) {
   const sim = state.sim, S = sim.summary(), sc = sim.scenario;
-  $('clock').innerHTML = `t + ${hm(sim.t)} <span class="sub">${esc(sc.name)} · ${SEVERITY[sim.sevKey].label} severity · seed ${sim.seed} · ${esc(sim.plan.name)}</span>`;
+  const done = sim.t >= sim.end;
+  $('clock').classList.toggle('done', done);
+  $('clock').innerHTML = `${done ? '<span class="done-tag">✓ Run complete</span> ' : ''}t + ${hm(sim.t)} <span class="of">of ${hm(sim.end)}${done ? '' : state.playing ? ' · playing' : sim.t > 0 ? ' · paused' : ''}</span> <span class="sub">${esc(sc.name)} · ${SEVERITY[sim.sevKey].label} severity · seed ${sim.seed} · ${esc(sim.plan.name)}</span>`;
   const c = (k, v, cls = '', tip = '') => `<div class="card ${cls}" title="${esc(tip)}"><div class="v">${v}</div><div class="k">${k}${tip ? ' <span class="tip">ⓘ</span>' : ''}</div></div>`;
   const tr = (label, value, tip) => `<tr title="${esc(tip)}"><td>${label} <span class="tip">ⓘ</span></td><td class="num">${value}</td></tr>`;
   const exposed = S.exposedHome + S.exposedRoad + S.exposedNoVehicle + S.notOrderedExposed;
-  $('results').innerHTML = `<h2>Results so far ${badge('synthetic')}</h2>
+  if ($('run-status')) $('run-status').innerHTML = done ? `<b>✓ Run complete.</b> ${esc(sim.plan.name)} ran the full ${hm(sim.end)} (h:mm) after ignition. The results on the right are final for this run; Play again restarts it.` : '';
+  $('results').innerHTML = `<h2>${done ? 'Results at the end of the run' : 'Results so far'} ${badge('synthetic')}</h2>
     <p class="small muted">People are synthetic households placed from Genasys zone population estimates (2020 Census blocks where Genasys publishes none); the fire is an illustrative overlay. Compare plans on the same scenario and seed; do not read the numbers as predictions.</p>
     <div class="cards">
       ${c('people in ordered zones', fmt(S.orderedPeople), '', 'Residents of zones under an evacuation order so far. An order means leave now; the 2025 Evacuation Time Study assumes everyone in an order zone leaves.')}
@@ -341,9 +347,10 @@ $('compare').onclick = () => {
     : scenarios.flatMap(s => seeds.map(seed => ({ scenarioId: s.id, sev: 'central', seed, tod: s.timeOfDay })));
   const jobs = ['A', 'B'].flatMap(p => cases.map(c => ({ ...c, tod: state.preset?.tods?.[p] ?? c.tod, planKey: p, plan: { ...state.plans[p] } })));
   const batch = ++state.batch, results = [];
-  const progress = t => { $('cmp-progress').textContent = t; if ($('simple-progress')) $('simple-progress').textContent = t; };
+  // Progress goes in a small banner above the map (Eric, 2026-11-01), visible from either panel.
+  const progress = (t, done = 0) => { $('sim-banner').hidden = !t; $('sim-banner-text').textContent = t; $('sim-banner-bar').style.width = `${Math.round(100 * done / jobs.length)}%`; };
   if ($('simple-compare')) $('simple-compare').disabled = true;
-  progress(`Running ${jobs.length} simulations (identical fires and households for both plans). This takes about half a minute…`);
+  progress(`Comparing Plan A and Plan B: running ${jobs.length} simulations on the same fires and households. This takes a few minutes…`);
   worker.onmessage = ev => {
     const m = ev.data; if (m.batch !== batch) return;
     if (m.done) {
@@ -355,7 +362,7 @@ $('compare').onclick = () => {
       }
       return;
     }
-    results.push(m); progress(`Ran ${results.length} of ${jobs.length} simulations…`);
+    results.push(m); progress(`Comparing Plan A and Plan B: ${results.length} of ${jobs.length} simulations done…`, results.length);
   };
   worker.postMessage({ batch, jobs });
 };
@@ -383,7 +390,7 @@ function renderCompare(results, scope) {
   const med = a => { const s = a.filter(x => x != null && !Number.isNaN(x)).sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : null; };
   const range = a => { const s = a.filter(x => x != null && !Number.isNaN(x)); return s.length ? `${fmt(Math.min(...s))}–${fmt(Math.max(...s))}` : '—'; };
   let html = `<h2>Plan comparison ${badge('synthetic')}</h2>
-    <p class="small">Green or red means B is better or worse than A in every run; gray means it is better in some runs and worse in others, so there is no clear difference. A: <b>${esc(state.plans.A.name)}</b> · B: <b>${esc(state.plans.B.name)}</b>. Both plans ran the same fires, households and random seeds (1–3). Values are the median of 3 seeds with the min–max range under it. A difference smaller than the range is not a robust result.</p>`;
+    <p class="small">Green or red means B is better or worse than A in every run, by at least 5%; gray means the change is smaller or points different ways across runs, so there is no clear difference. A: <b>${esc(state.plans.A.name)}</b> · B: <b>${esc(state.plans.B.name)}</b>. Both plans ran the same fires, households and random seeds (1–3). Values are the median of 3 seeds with the min–max range under it. A difference smaller than the range is not a robust result.</p>`;
   html += takeaway(results, scope);
   for (const g of groups) {
     const A = pick('A', g), B = pick('B', g);
@@ -395,9 +402,10 @@ function renderCompare(results, scope) {
       // Color a difference only when B moves the same way as A in every same-seed run; otherwise it is noise.
       const pairs = a.map((x, i) => [x, b[i]]).filter(([x, y]) => x != null && y != null && isFinite(x) && isFinite(y));
       const better = pairs.filter(([x, y]) => (y - x) * dir > 0.5 * Math.abs(dir)).length, worse = pairs.filter(([x, y]) => (y - x) * dir < -0.5 * Math.abs(dir)).length;
-      const steady = pairs.length && (better === pairs.length || worse === pairs.length);
+      // ...and only when the median change is at least 5% of A's value: three runs can agree on a tiny change by chance.
+      const steady = pairs.length && (better === pairs.length || worse === pairs.length) && (d != null && Math.abs(d) >= 0.05 * Math.abs(ma || 0));
       const cls = d == null || dir === 0 || Math.abs(d) < 1e-9 ? '' : !steady ? 'delta-mixed' : (d * dir > 0 ? 'delta-good' : 'delta-bad');
-      html += `<tr><td>${esc(label)}</td><td class="num">${fmt(ma)}<div class="small muted">${range(a)}</div></td><td class="num">${fmt(mb)}<div class="small muted">${range(b)}</div></td><td class="num ${cls}"${cls === 'delta-mixed' ? ' title="B is better in some runs and worse in others: no clear difference"' : ''}>${d == null ? '—' : (d > 0 ? '+' : '') + fmt(d)}</td></tr>`;
+      html += `<tr><td>${esc(label)}</td><td class="num">${fmt(ma)}<div class="small muted">${range(a)}</div></td><td class="num">${fmt(mb)}<div class="small muted">${range(b)}</div></td><td class="num ${cls}"${cls === 'delta-mixed' ? ' title="Smaller than 5%, or B is better in some runs and worse in others: no clear difference"' : ''}>${d == null ? '—' : (d > 0 ? '+' : '') + fmt(d)}</td></tr>`;
     }
     html += '</table>';
   }
