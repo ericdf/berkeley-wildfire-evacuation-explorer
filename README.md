@@ -29,6 +29,18 @@ Loading takes a few seconds: about 10 MB of terrain and 2 MB of street network.
 
 ## Playing
 
+**Simple view** (the default) offers three fires and four questions (`js/presets.js`). The
+fires are the east-wind fire near Grizzly Peak Blvd (all of Fire Zones 2–3 ordered), the 1923
+fire repeated today, and Panoramic Hill. The chosen fire applies to every question and is
+remembered across visits. A question is offered on a fire only where Plan B beat Plan A on its
+headline measure in all 15 same-seed test runs (low, central and high severity, seeds 1–5) and
+the central-severity median changed by 5% or more; elsewhere it is shown switched off with the
+reason (SOURCE_NOTES P19–P22). "Weekday midday or night" is offered only on the east-wind fire.
+Each question's "What to look for" gives that fire's central-severity medians. Watch plays one
+plan on the map; Compare runs both on 9 fires (3 severities × 3 seeds) and states how often B won.
+
+**Expert view** opens every control:
+
 1. **Scenario.** Pick a preset, a severity (low / central / high) and a random seed.
    Time of day changes who is home and how much background traffic there is.
    Future growth (Expert view) adds homes in the hills for both plans: none, the 2025
@@ -173,6 +185,7 @@ add any parking-removal bonus.
 | `js/main.js` | UI: controls, results, inspector, comparison, modals |
 | `js/map.js`, `js/terrain.js` | Canvas map, hillshade and contours |
 | `js/fire.js`, `js/sim.js`, `js/parking.js`, `js/scenarios.js`, `js/rng.js` | Models and presets |
+| `js/presets.js` | Simple view: its fires, questions, per-fire "What to look for" text and the reasons a question is withheld |
 | `js/worker.js` | Runs comparison batches off the main thread |
 | `js/data.js` | Loads the data files |
 | `data/assumptions.json` | **Editable** assumptions and model rules, each with a category and note |

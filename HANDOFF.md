@@ -16,7 +16,7 @@ Checks after any model change:
 - `node tests/leftover.mjs <scenario> <S1..S6> [seed]` lists order-zone vehicles that never leave the order area, by start street and last link. A "—" with no jam usually means a car is placed on a dead-end piece of network.
 - A browser smoke test needs puppeteer-core, which lives outside the repo; any headless Chrome check of `http://127.0.0.1:8766` for console errors will do.
 
-Git: all work is committed on `main` (no remote). City layers and report PDFs are git-ignored and can be re-fetched (`tools/fetch-city-layers.mjs`; PDF URLs in `SOURCE_NOTES.md`).
+Git: work goes through pull requests on https://github.com/ericdf/berkeley-wildfire-simulator, reviewed by Codex under `AGENTS.md`; only Eric merges. GitHub Pages serves the `pages` branch, updated only with Eric's approval (`git push origin main:pages`). Pushes need `git config http.postBuffer 157286400`.
 
 ## What the model does now
 
@@ -25,6 +25,7 @@ Git: all work is committed on `main` (no remote). City layers and report PDFs ar
 - **Traffic** (`js/sim.js`): 5 s steps; link and junction capacities; take-turns lanes where parked cars leave one lane; junction delay by road class; reroutes every minute. Gridlock relief lets one car squeeze forward after 3 min if the link ahead has not moved.
 - **Demand:** synthetic households from Genasys zone populations (2020 Census blocks for zones the City layer lacks; about 74,700 people outside Berkeley), the Time Study's compliance, departure-time tables, rideshare and returning commuters; plus employees, students, visitors and I-80 and CA-24 through traffic from the study's tables, placed by area.
 - **Evacuation time** is measured as the study does: vehicles starting in Order zones, until they leave the order area (Table 7-1 notes).
+- **Simple view** (`js/presets.js`): three fires (east wind near Grizzly Peak, 1923 repeat, Panoramic Hill) and four questions. A question is offered on a fire only if Plan B beat Plan A in 15 of 15 same-seed runs there with a central median change of 5% or more (SOURCE_NOTES P19–P22). Weekday vs night is withheld on the 1923 fire (4-min gap against the study's 70) and Panoramic Hill (no 90% time in most runs). A Claremont Canyon fire (region R10) passed every question but taught nothing new, so it was left out; its definition is in P22. Rerun the per-fire test after any model change that moves these numbers, and update the "What to look for" text.
 - **Leave Early Zones:** the City's 10 zones (BER-006, 007, 008, 015, 016, 017, 030, 031, 057, 058).
 
 ## Calibration (fire off, median of 3 seeds, 90th percentile)
@@ -48,7 +49,7 @@ After the diverter rebuild and the OKL-003 Census override (2026-11-01) these mo
 
 ## Rename (done 2026-11-01)
 
-"Game" is now "simulator" everywhere except `specfication.md` (Eric's brief, left as written); the provenance category "game rule" is "model rule"; generated data lives in `data/model/`; the folder is `berkeley-wildfire-simulator` (no remote yet). Claude Code's project memory was copied to `~/.claude/projects/-Users-eric-prj-berkeley-wildfire-simulator/memory/`.
+"Game" is now "simulator" everywhere except `specfication.md` (Eric's brief, left as written); the provenance category "game rule" is "model rule"; generated data lives in `data/model/`; the folder is `berkeley-wildfire-simulator`. Claude Code's project memory was copied to `~/.claude/projects/-Users-eric-prj-berkeley-wildfire-simulator/memory/`.
 
 ## Punch list
 
@@ -77,4 +78,5 @@ In rough priority order. Items marked **Eric** need him.
 - `tools/build-network.mjs` step 3b joins OSM to the County network. If you change it, rerun the dead-end check described in SOURCE_NOTES X2 and look for one-way pieces that dead-end (the I-80 ends at Ashby Av and Gilman St were the hard cases).
 - Comparing plans relies on the parking draws and household draws depending on the seed, not the plan; keep it that way. Future-growth units are appended after today's households and each draws from its own seeded stream (`js/sim.js` buildHouseholds), so growth and R0 leave today's households unchanged; with maximum growth, R0 in Fire Zones 2–3 reproduces the no-growth run exactly, which is a quick check.
 - The error bounds in Assumptions & limits and the results panel (`studyRow` in `js/main.js`) are typed in from the calibration table. Update them whenever calibration changes.
+- Simple view remembers the chosen fire in `localStorage` key `bhe-fire`; a fire id that is no longer in `FIRES` falls back to the first fire. Adding a fire means running every question on it (P19 rule) and filling `on` or `off` for each question.
 - zsh does not split unquoted variables; use `${=var}` in shell loops.
