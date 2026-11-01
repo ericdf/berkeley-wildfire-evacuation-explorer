@@ -485,8 +485,15 @@ const narrowStats = {
 const crowdedSet = new Set(crowded.filter(z => z.perKm > 5000).map(z => z.zone));
 for (const o of out) { const c = Object.entries(o.evacZones).filter(([z]) => crowdedSet.has(z)).reduce((s, [, v]) => s + v, 0); if (c > o.residents / 2) o.allocationWarning = `most residents come from ${Object.keys(o.evacZones).filter(z => crowdedSet.has(z)).join(', ')}, whose whole population lands on ${crowded.find(z => crowdedSet.has(z.zone)).streetM} m of street`; }
 // Edge effect: hill residents within 500 m of driving to an exit on a hill street (that exit may hide a dead end beyond the grid)
-{ const d = dijkstra(hillExits, () => true, 500, true), near = e => (d.get(e.a) ?? Infinity) <= 500 || (d.get(e.b) ?? Infinity) <= 500;
-  totals.hillResidentsWithin500mOfHillExit = r0(sumP(vehEdges, e => hills(e) && near(e))); }
+// Residents are spread evenly along a segment. A point at fraction t can drive to end a (if the segment
+// allows travel b→a) in t·len, or to end b (if it allows a→b) in (1−t)·len, then on to the exit; count
+// only the fraction of the segment within 500 m of driving along legal directions (Codex review, PR #3).
+{ const L = 500, d = dijkstra(hillExits, () => true, L, true);
+  const share = e => { const [fwd, back] = lanesOf(e) || [1, 1], len = Math.max(e.len, 1e-6);
+    const fa = back > 0 ? Math.min(1, Math.max(0, (L - (d.get(e.a) ?? Infinity)) / len)) : 0;
+    const fb = fwd > 0 ? Math.min(1, Math.max(0, (L - (d.get(e.b) ?? Infinity)) / len)) : 0;
+    return Math.min(1, fa + fb); };
+  totals.hillResidentsWithin500mOfHillExit = r0(vehEdges.reduce((s, e) => s + (hills(e) ? people[e.id] * share(e) : 0), 0)); }
 const top = (k, n) => out.slice().sort((a, b) => k(b) - k(a)).slice(0, n);
 const result = {
   meta: {
