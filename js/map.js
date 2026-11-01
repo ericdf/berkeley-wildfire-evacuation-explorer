@@ -8,6 +8,7 @@ export const STREET_MODES = {
   class: 'Road class',
   clearWidth: 'Clear width with parked cars',
   engine: 'Fire-engine access (current plan)',
+  engineTime: 'Engine drive time (plan and seed)',
   grade: 'Grade (from DEM)',
   widthSource: 'Width data source',
   oneway: 'Direction of travel',
@@ -171,6 +172,8 @@ export class MapView {
     if (m === 'class') c = { Interstate: '#7a4b9c', Ramp: '#7a4b9c', 'Principal Arterial': '#c0703a', 'Major Collector': '#c09a3a' }[e.cls] || (e.fireZone >= 2 ? '#3d4f63' : '#5b5b5b');
     else if (m === 'clearWidth') { const cw = sim ? sim.clear[e.id] : e.clearWidthM; const ft = cw / 0.3048; c = cw == null || Number.isNaN(cw) ? '#aaa' : ft < 6.5 ? '#c0262d' : ft < 8.5 ? '#e07a1e' : ft < 10 ? '#e8c21e' : ft < 20 ? '#9cc65a' : '#2f8a4a'; }
     else if (m === 'engine') { const ok = sim ? sim.engineOK[e.id] : !e.engineBlocked; const eff = sim ? sim.eff[e.id] : e.effLanes; c = !ok ? '#c0262d' : eff === 1 || eff === 0 ? '#e08a1e' : eff === 2 ? '#2f8a4a' : '#aaa'; }
+    else if (m === 'engineTime') { // minutes at ignition, no traffic (sim.engineReach0; SOURCE_NOTES ER1)
+      const t = sim?.engineReach0?.[e.id]; c = t == null ? '#aaa' : t === Infinity ? '#7f1d1d' : t <= 300 ? '#2f8a4a' : t <= 480 ? '#e0a21e' : '#c0262d'; }
     else if (m === 'grade') { const g = e.gradeReliable ? e.gradeMax : null; c = g == null ? '#aaa' : g < 5 ? '#4f7f9b' : g < 10 ? '#8fae4a' : g < 15 ? '#e0b21e' : g < 20 ? '#e07a1e' : '#c0262d'; }
     else if (m === 'widthSource') c = e.widthSrc === 'unknown' ? '#aaa' : e.narrow ? '#8a3fb8' : '#2b6cb0';
     else if (m === 'oneway') c = e.trav === 'FT' || e.trav === 'TF' ? '#d1495b' : e.trav === 'NT' ? '#aaa' : '#666';
