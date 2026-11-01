@@ -299,7 +299,7 @@
     },
     "population.overrides": {
       "category": "assumption",
-      "note": "Eric, 2026-11-01: OKL-003 (Claremont Canyon, an R04 Panoramic Hill order zone) uses the 2020 Census count (307 people in the blocks whose interior point lies in the zone; Census TIGERweb, POP100) instead of the Genasys estimate (27). Per zone: \"census2020\" replaces the Genasys estimate with the Census count. SOURCE_NOTES X6."
+      "note": "Per zone, \"census2020\" replaces the Genasys estimate with the 2020 Census count of the blocks whose interior point lies in the zone (Census TIGERweb, POP100). Eric's choices, 2026-11-01: OKL-003 (Claremont Canyon, an R04 Panoramic Hill order zone) uses 307 instead of the Genasys estimate of 27 (SOURCE_NOTES X6); BER-013 (Panoramic Hill, the part in Oakland, an R04 order zone; Genasys outline per Z1) uses 122 instead of the Genasys estimate of 83 (SOURCE_NOTES Z2)."
     },
     "network.osmAdditions": {
       "category": "sourced",
@@ -323,7 +323,7 @@
     },
     "network.segmentCorrections": {
       "category": "sourced",
-      "note": "County street-file records corrected where other sources agree the County coding is wrong; each is matched by SEGID and OBJECTID, sets the listed County fields before the network is built, and is listed in network.meta.segmentCorrections and on the edge (correction). Eric, 2026-11-01: the 45 m link from the foot of Panoramic Way to Prospect St / Canyon Rd (County OBJECTID 25386, SEGID 181025458, \"BANCROFT STEPS WY\", TRVLWAY NT) is a two-way street. OpenStreetMap maps it as Bancroft Way (way 24025453, highway=tertiary, lanes=2, no access or oneway tags, checked 2026-11-01); the City Street_Centerline layer has it as pavement section 627042086 (Seg-00193, Prospect St to Panoramic Way, 30 ft, 2 lanes, two-way); the City's AB 747 street layer gives it a capacity of 1,125 vehicles/h; the SB 99 report (KLD, Rev. 3, p. 4) puts Panoramic Hill's single access point at \"Panoramic Way and Prospect St/Canyon Rd\". The Bancroft Steps stairway is a separate feature (OSM ways 311861379-311861382 and 24025452, motor_vehicle=no, Warring St to Prospect St) and is not in the County file. SOURCE_NOTES K1-K6."
+      "note": "County street-file records corrected where other sources show the County coding is wrong, each on Eric's decision; each is matched by SEGID and OBJECTID, sets the listed County fields before the network is built, and is listed in network.meta.segmentCorrections and on the edge (correction), with its sources in the entry's why. (1) Eric, 2026-11-01: the 45 m link from the foot of Panoramic Way to Prospect St / Canyon Rd (County OBJECTID 25386, SEGID 181025458, \"BANCROFT STEPS WY\", TRVLWAY NT) is a two-way street. OpenStreetMap maps it as Bancroft Way (way 24025453, highway=tertiary, lanes=2, no access or oneway tags, checked 2026-11-01); the City Street_Centerline layer has it as pavement section 627042086 (Seg-00193, Prospect St to Panoramic Way, 30 ft, 2 lanes, two-way); the City's AB 747 street layer gives it a capacity of 1,125 vehicles/h; the SB 99 report (KLD, Rev. 3, p. 4) puts Panoramic Hill's single access point at \"Panoramic Way and Prospect St/Canyon Rd\". The Bancroft Steps stairway is a separate feature (OSM ways 311861379-311861382 and 24025452, motor_vehicle=no, Warring St to Prospect St) and is not in the County file. SOURCE_NOTES K1-K6. (2) Eric, 2026-11-01, choosing between conflicting sources: The Crossways (County OBJECTID 35701, SEGID 181035806, 67 m, Overlook Rd to Middlefield Rd, TRVLWAY NT) is a two-way street, as OpenStreetMap (way 6391261, residential, with a stop sign), the City pavement records (Seg-02488, 21 ft, 2 lanes), the City Narrow_Roads survey and KLD's AB 747 model (capacity 1,125 veh/h) have it; the County record and the City segment's network fields (CATEGORY PEDESTRIAN, NET_CFCC A72 stairway) code it a walkway. SOURCE_NOTES K5, K8."
     }
   },
   "sharedLane": {
@@ -410,7 +410,8 @@
   },
   "population": {
     "overrides": {
-      "OKL-003": "census2020"
+      "OKL-003": "census2020",
+      "BER-013": "census2020"
     }
   },
   "growth": {
@@ -472,7 +473,20 @@
           "TRVLWAY": "B"
         },
         "osmWay": 24025453,
-        "why": "Drivable two-way link from the foot of Panoramic Way to Prospect St / Canyon Rd, Panoramic Hill's single exit (SB 99, p. 4). OSM: Bancroft Way, tertiary, 2 lanes, no access restriction; City Street_Centerline Seg-00193: 30 ft, 2 lanes, two-way. The County record codes it no vehicle travel and names it after the Bancroft Steps stairway, which runs from Warring St to Prospect St and is a separate feature."
+        "why": "Drivable two-way link from the foot of Panoramic Way to Prospect St / Canyon Rd, Panoramic Hill's single exit (SB 99, p. 4). OSM: Bancroft Way, tertiary, 2 lanes, no access restriction; City Street_Centerline Seg-00193: 30 ft, 2 lanes, two-way. The County record codes it no vehicle travel and names it after the Bancroft Steps stairway, which runs from Warring St to Prospect St and is a separate feature. SOURCE_NOTES K1-K6."
+      },
+      {
+        "OBJECTID": 35701,
+        "SEGID": 181035806,
+        "county": {
+          "STREET": "THE CROSSWAYS",
+          "TRVLWAY": "NT"
+        },
+        "set": {
+          "TRVLWAY": "B"
+        },
+        "osmWay": 6391261,
+        "why": "Eric, 2026-11-01, choosing between conflicting sources: The Crossways, a 67 m link from Overlook Rd to Middlefield Rd, is a two-way street. For a street: OSM way 6391261 (highway=residential, surface=asphalt, no access tag, stop sign node 10819110534 on the way; an unreviewed TIGER import), the City Street_Centerline pavement fields for Seg-02488 (pavement section THE CROSSWAYS, Overlook Rd to Middlefield Rd, 21 ft, 2 lanes), the City Narrow_Roads survey (Link_ID 1503, 21 ft) and the City's AB 747 street layer (KLD's model: capacity 1,125 veh/h, volume-to-capacity 0.41-0.44). Against: the County record (TRVLWAY NT) and the network fields of the same City segment (CATEGORY PEDESTRIAN, NET_CFCC A72 stairway, drive times -1). SOURCE_NOTES K5, K8."
       }
     ],
     "labGatesExitOnly": true,
