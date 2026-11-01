@@ -1,0 +1,2 @@
+Census 2020 blocks (POP100, HU100, interior points; no geometry): https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Tracts_Blocks/MapServer/12 query envelope -122.334,37.836,-122.206,37.912, 2026-11-01T15:30:39Z
+Kensington CDP 2020 boundary and POP100: https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Places_CouSub_ConCity_SubMCD/MapServer/26, 2026-11-01

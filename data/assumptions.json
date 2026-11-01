@@ -275,11 +275,7 @@
     },
     "nonResident": {
       "category": "sourced",
-      "note": "Vehicle counts from the 2025 Evacuation Time Study: employees by area (Table 3-5), college students (Tables 3-8, 3-9), visitors including 549 at Tilden lots (§3.5), I-80 through traffic over 2 h after the order (Table 3-12); scaled by the scenario's percent present (Table 6-5) (SOURCE_NOTES E32-E36). Placement is a game rule: the study's areas are approximated from City neighborhoods (West Berkeley = 4th St., Gilman, NW/SW Berkeley, Marina), fire zones (hills north/south of campus), LBNL employees on streets in the Lab's zones (LBL-*), 400 m around Berkeley City College, streets within 1 km of the campus center, outside the campus and outside Fire Zones 2-3, for commuting students; visitors on streets outside Fire Zones 2-3, 400 m around two Tilden entrances (approximate points), weighted by street length. Only the I-80 part of the study's through traffic is on our network."
-    },
-    "network.hillStreetsContinuingOutOfCity": {
-      "category": "assumption",
-      "note": "The County street file stops at the city line. A dead end within 100 m of the line is treated as a way out of the city in the flats (the grid continues into Albany, Oakland and Emeryville). In Fire Zones 2-3 only these streets count, from general knowledge of the area; streets such as Panoramic Way that end at the line are not exits. Check against a map; an OpenStreetMap network beyond the city would replace this list."
+      "note": "Vehicle counts from the 2025 Evacuation Time Study: employees by area (Table 3-5), college students (Tables 3-8, 3-9), visitors including 549 at Tilden lots (§3.5), I-80 through traffic over 2 h after the order (Table 3-12); scaled by the scenario's percent present (Table 6-5) (SOURCE_NOTES E32-E36). Placement is a game rule: the study's areas are approximated from City neighborhoods (West Berkeley = 4th St., Gilman, NW/SW Berkeley, Marina), fire zones (hills north/south of campus), LBNL employees on streets in the Lab's zones (LBL-*), 400 m around Berkeley City College, streets within 1 km of the campus center, outside the campus and outside Fire Zones 2-3, for commuting students; visitors on streets outside Fire Zones 2-3, 400 m around two Tilden entrances (approximate points), weighted by street length. The I-80 and CA-24 westbound (the study's \"SB\") parts of the study's through traffic are on our network; I-580 and I-880 lie outside the game area except where I-580 shares the I-80 freeway."
     },
     "intersections.delayS": {
       "category": "assumption",
@@ -351,6 +347,9 @@
       },
       "I80 WB": {
         "vehicles": 8610
+      },
+      "CA24 SB": {
+        "vehicles": 6930
       }
     },
     "throughHours": 2,
@@ -380,25 +379,5 @@
       "Berkeley Marina"
     ],
     "studentParkingM": 1000
-  },
-  "network": {
-    "hillStreetsContinuingOutOfCity": [
-      "TUNNEL RD",
-      "CLAREMONT AV",
-      "ALVARADO RD",
-      "VICENTE RD",
-      "GRIZZLY PEAK BL",
-      "WILDCAT CANYON RD",
-      "HILLCREST RD",
-      "ROBLE RD",
-      "EUCALYPTUS RD",
-      "BROOKSIDE AV",
-      "EL CAMINO REAL",
-      "ROANOKE RD",
-      "COLUSA AV",
-      "VASSAR AV",
-      "SUMMIT RD",
-      "CENTENNIAL DR"
-    ]
   }
 }

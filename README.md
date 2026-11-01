@@ -68,9 +68,18 @@ Every number is visible in **Assumptions & limits** in the app and in `data/assu
 to UTM 10N meters. Segment endpoints are snapped into intersections (1 m tolerance).
 Paths, walks and steps become a separate pedestrian layer. Each segment is matched by
 name and distance to the City's centerline and narrow-roads layers, which supply
-pavement width (84% of vehicle segments) and lane counts. Grade is sampled from the DEM
+pavement width (84% of Berkeley's vehicle segments) and lane counts. Grade is sampled from the DEM
 every 4 m. Lanes, parking, speeds and capacities that the data does not give come from
 `data/assumptions.json`.
+
+Outside Berkeley the streets come from OpenStreetMap (Oakland about 1 km south of the city
+line, Emeryville, Albany, Kensington, El Cerrito and Richmond, up to the edge of the
+elevation grid). OSM streets end where they meet a County street and are joined to the
+nearest County dead end (one-way direction and freeway/street kind must match). Lanes and
+speed limits come from OSM tags where present; widths are assumed from Berkeley's median
+width for the same road class in the hills or flats. Outside Berkeley a street at 90 m
+elevation or higher follows the hill rules (one lane each way, hill speeds and parking).
+Streets cut at the edge of the grid are the exits: traffic that reaches one has left.
 
 **Parked cars and clear width** (`js/parking.js`). Clear width is pavement width minus 8 ft
 per parked side (the value KLD used for the City's SB 99 and AB 747 analyses). Parking varies
@@ -94,10 +103,13 @@ give different footprints. A cell is ember-exposed once anything burns within th
 distance upwind of it. The overlay puts plausible, comparable pressure on the evacuation;
 it does not predict how a real fire would behave.
 
-**Evacuation** (`js/sim.js`). Synthetic households are placed on streets from the City's
-Genasys zone population estimates. Household size, vehicle ownership, ridesharing, compliance
-(100% of Order zones, 50% of Warning zones, 20% shadow) and departure times come from the
-2025 Evacuation Time Study. Orders and warnings use the study's zone lists. Evacuation time is
+**Evacuation** (`js/sim.js`). Synthetic households are placed on streets from Genasys zone
+population estimates. Zones outside Berkeley take their outlines from Genasys Protect and,
+where the City layer has no estimate, their population from 2020 Census blocks; only people
+inside the game area are placed (about 74,700 outside Berkeley). Household size, vehicle ownership, ridesharing, compliance
+(100% of Order zones, 50% of Warning zones, 20% shadow, which the study applies to Berkeley
+and to a Shadow Region around it) and departure times come from the 2025 Evacuation Time Study.
+Shadow evacuees drive out of the game area. Orders and warnings use the study's zone lists. Evacuation time is
 measured as the study's ETE, from the first order. Directed links have a capacity and
 storage, and every intersection has a capacity. The 2025 study named intersections
 as the main constraint. Vehicles may use every street and re-route every minute around
@@ -108,9 +120,10 @@ car short. A vehicle stuck 3 minutes at the head of a queue squeezes forward, so
 model cannot lock up for good (as it did at the Marin traffic circle).
 
 **Diverters and traffic circles.** Bollards, planters and jersey barriers that OpenStreetMap
-records on public streets close those segments to residents' cars (18 segments; ✕ on the map).
-Engines get through gates and removable bollards after 3 minutes. A closure that would cut
-streets off in our network (which stops at the city line) stays open and is flagged. Junctions
+records on public streets close those segments to residents' cars (32 segments, 10 of them
+outside Berkeley; ✕ on the map). Engines get through gates and removable bollards after 3
+minutes. A closure that would cut streets off from the rest of the network would stay open and
+be flagged; none does now that Oakland's streets reach Tanglewood Rd. Junctions
 inside OpenStreetMap traffic circles pass at most 900 vehicles per hour (Time Study).
 
 **Parking and the 2025 study.** On a two-way street, removing parking opens the oncoming
@@ -135,10 +148,11 @@ add any parking-removal bonus.
 | `data/game/network.json`, `layers.json` | Built by `tools/build-network.mjs` (do not edit by hand) |
 | `data/terrain/dem.i16`, `dem.json` | Elevation grid, built by `tools/fetch-dem.mjs` |
 | `data/field/` | Field and aerial observations (counts only), e.g. parked cars on 22 hill blocks |
-| `data/raw/` | Downloaded source data (reproducible, large; City layers and report PDFs are not in git) |
+| `data/raw/` | Downloaded source data (reproducible, large; City layers and report PDFs are not in git). `osm/east-bay-roads.json` (OSM streets), `genasys/zones.json` (zone outlines), `census/` (2020 block counts) each have a retrieval note |
 | `correspondence/` | Drafts of data requests to the City |
 | `tools/` | Data pipeline (Node 18+, no npm packages) |
 | `tests/headless.mjs` | Runs every scenario × two plans in Node and prints summaries |
+| `tests/calibration.mjs`, `tests/stuck.mjs`, `tests/leftover.mjs` | Compare with the Time Study (fire off); list jammed links; list order-zone vehicles that never leave |
 
 ## Replacing datasets
 
@@ -182,12 +196,14 @@ by the game at load time. Scenario presets, severities and time-of-day values ar
 - No buildings yet, so no structures exposed or lost, and no home-hardening or
   vegetation effects.
 - No stair or path access time, and no assisted evacuation (Phase 2).
-- Employees, students, visitors and I-80 through traffic come from the Time Study's tables,
+- Employees, students, visitors and I-80 and CA-24 through traffic come from the Time Study's tables,
   but where they park is approximated by area. Signals and stop signs are not modeled one by
   one: every junction has a typical delay and a capacity by road class. Panoramic Hill matches
   the study's evacuation times; the 1923 and Fire Zones 2–3 regions run about 15 min fast at
   night and 35–80 min fast on weekdays (see `SOURCE_NOTES.md`, calibration). Tuning junction
   capacity to close that gap broke Panoramic Hill, so it is left untuned.
-- The street file covers Berkeley only, so routes into Oakland, Albany and Kensington stop
-  at the city edge.
+- Streets outside Berkeley come from OpenStreetMap with assumed widths. The game area ends at
+  the edge of the elevation grid (37.84–37.91° N, 122.33–122.21° W), about 1 km into Oakland
+  and through the middle of Kensington; north Kensington (about 1,500 people) and Oakland
+  south of that line are not modeled. Traffic that reaches the edge has left.
 - Fire spread, ember distances and spot-fire rates are illustrative game values.
