@@ -173,6 +173,32 @@ Counts: `data/field/aerial-parking-counts-2020.json` (derived; the imagery is no
 | C4 | Curb offset, vehicle width and off-pavement parking cannot be judged at 15 cm per pixel from directly above. | **context**: bad parking jobs and off-pavement shares stay photo-based placeholders. Evening street-level photos or a tape-measure survey would replace them. |
 | C5 | The County centerline is offset by up to about 5 m from the pavement on some curving hill streets (Bret Harte Rd, Poppy Ln). | **context**: matters for snapping future curb or imagery data to segments. |
 
+## OpenStreetMap barriers and traffic calming (Overpass API, 2026-11-01)
+
+Files: `data/raw/osm/berkeley-barriers.json` (mirror, data as of 2026-05-31) and `data/raw/osm/barriers-on-roads.json` (overpass-api.de, data as of 2026-11-01). Bounding box 37.835–37.91 N, 122.31–122.23 W (includes parts of Oakland, Albany, Kensington). © OpenStreetMap contributors, ODbL. Query suggested by Eric.
+
+| # | Insight | Status / use |
+|---|---|---|
+| O1 | In the box: 670 gates, 227 bollards, 107 roundabout ways (traffic circles), 466 humps, 130 bumps, 83 dips, 67 tables, 3 mapped diverters, 36 chokers/chicanes. No `mini_roundabout` nodes. Most gates and many bollards are on driveways or service roads. | **context** |
+| O2 | 61 barrier points sit on public streets (not service roads). **41 are within 15 m of a street the game treats as open**, mostly Berkeley's flats diverters (Milvia, Ellsworth, Dana, Webster, Kelsey, Etna, McKinley, Delaware, Grant …). 5 are in Fire Zones 2–3: bollards on Garber St (motor_vehicle=no) and Tanglewood Rd (motor_vehicle=no, emergency=yes), Napa Av (emergency=yes), Marin Av (bollard access=yes, probably not a closure; gate access=permissive). | **pending**: close these segments to residents' cars, open to engines only where tagged emergency=yes; check each against the City's diverter list. Matches Time Study E16 (diverters as closed links). |
+| O3 | Panoramic Way has a gate; South Park Dr (Tilden) has a gate (seasonal closure); Derby St diverter (Time Study E24) is not among the barrier points, so it may be mapped as missing road geometry or not mapped. | **pending**: check Panoramic Way gate and Derby St by hand. |
+| O4 | Traffic circles as `junction=roundabout` ways, including the small residential circles. | **pending**: Time Study E16 gives about 900 veh/h per lane; apply as node capacity. |
+| O5 | OSM parking-lane and width tags in the hills: not checked yet (Overpass servers at capacity). | **pending**: retry later; likely sparse. |
+
+## Pasted notes on egress modelling (source unknown, shared by Eric 2026-11-01)
+
+Treated as suggestions, not evidence: no citations, and some claims could not be checked.
+
+| # | Suggestion | Our assessment / use |
+|---|---|---|
+| P1 | Model bollards, gates and diverters as impassable for cars; removable bollards and mountable curbs let engines through. | **agree, pending**: matches O2 and Time Study E16. Engine passage only where OSM or the City says so. |
+| P2 | Emergency gates (e.g. to East Bay Regional Parks) take 2–5 min to open. | **plausible, unsourced**: would be a labelled game rule for engines only. |
+| P3 | Night (10 PM–6 AM) parking is fullest; apply the largest width reductions then. | **agree, pending**: our counts are daytime; tie `parking.range` to the Time Study night cases S3/S6. |
+| P4 | Use official designated evacuation routes as the base network. | **conflict**: the Time Study advises against designated routes and route signage (E18); the game keeps all streets usable. |
+| P5 | UC Berkeley ITS has published Berkeley/Oakland Hills evacuation models with Network Analyst files on eScholarship. | **unverified**: worth a search; no specific publication named. |
+| P6 | Parknav or City Residential Permit Parking data for curb occupancy. | **context**: Parknav is commercial; RPP zones govern permits, not physical space, and mostly cover the flats. |
+| P7 | "28 ft streets reduced to under 14 ft" by parked cars. | **consistent**: 28 ft − 2 × 8 ft = 12 ft in our model; median hill pavement is 24 ft. |
+
 ---
 
 ## Change log: insights applied to the game
