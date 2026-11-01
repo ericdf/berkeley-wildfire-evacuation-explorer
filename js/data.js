@@ -6,7 +6,9 @@ export async function loadData(load = browserLoad) {
     load('data/model/network.json', 'json'), load('data/model/layers.json', 'json'),
     load('data/terrain/dem.json', 'json'), load('data/terrain/dem.i16', 'buffer'), load('data/assumptions.json', 'json'),
   ]);
-  return prepare({ net, layers, dem, Z: new Int16Array(demBuf), A });
+  // Optional: access-constrained areas (tools/access-constraints.mjs), used by the R0 plan setting.
+  const access = await Promise.resolve().then(() => load('data/model/access-constraints.json', 'json')).catch(() => null);
+  return prepare({ net, layers, dem, Z: new Int16Array(demBuf), A, access });
 }
 
 async function browserLoad(path, kind) {

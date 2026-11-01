@@ -38,11 +38,12 @@ export function sampleCurve(curve, u) {
 const CLASS_RANK = { Local: 0, 'Major Collector': 1, 'Principal Arterial': 2, Ramp: 3, Interstate: 3 };
 const INTERSECTION_KEY = ['localVph', 'collectorVph', 'arterialVph', 'freewayVph'];
 
-export const DEFAULT_PLAN = { name: 'Baseline', alertKm: 0, orderDelayMin: 10, hillsOrderMin: null, earlyShare: 0, earlyZones: 'lez', hillsParking: 'both' };
+export const DEFAULT_PLAN = { name: 'Baseline', alertKm: 0, orderDelayMin: 10, hillsOrderMin: null, earlyShare: 0, earlyZones: 'lez', hillsParking: 'both', r0: 'none' };
 
 export class Evacuation {
-  constructor(data, grid, fire, scenario, sevKey, plan, seed, tod) {
-    Object.assign(this, { data, grid, fire, scenario, sevKey, plan, seed, tod });
+  // world: settings shared by both plans, such as future growth ({ growth: 'none' | 'middle' | 'moderate' | 'max' }).
+  constructor(data, grid, fire, scenario, sevKey, plan, seed, tod, world = {}) {
+    Object.assign(this, { data, grid, fire, scenario, sevKey, plan, seed, tod, world });
     const A = data.A, net = data.net;
     this.rand = mulberry32(seed * 104729 + 3);
     this.t = 0; this.dt = 5; this.end = scenario.durationMin * 60;
@@ -191,16 +192,10 @@ export class Evacuation {
   buildHouseholds() {
     const { data, plan, tod } = this, A = data.A, D = A.demand, net = data.net, zones = data.layers.evacZones;
     const rand = this.rand;
-    const byZone = new Map();
-    for (const e of net.edges) {
-      if (e.mode !== 'vehicle' || e.disconnected || e.barrier?.closed || e.evacZone == null || CLASS_RANK[e.cls] === 3) continue;
-      const w = e.len * (e.cls === 'Principal Arterial' ? 0.7 : 1);
-      if (!byZone.has(e.evacZone)) byZone.set(e.evacZone, []);
-      byZone.get(e.evacZone).push([e.id, w]);
-    }
+    const byZone = residentialStreets(data);
     // vehicles taken by households that drive (Time Study Fig. D-11, renormalized over 1-4+)
     const vs = D.vehiclesTakenShares, vTot = Object.values(vs).reduce((a, b) => a + b, 0);
-    const drawVehicles = () => { let u = rand() * vTot; for (const [k, p] of Object.entries(vs)) { if (u < p) return +k; u -= p; } return 1; };
+    const drawVehicles = (r = rand) => { let u = r() * vTot; for (const [k, p] of Object.entries(vs)) { if (u < p) return +k; u -= p; } return 1; };
     const zoneIdx = new Map(zones.map((z, i) => [z.id, i]));
     const lez = new Set(LEAVE_EARLY_ZONES);
     const hhEdge = [], hhZone = [], hhVeh = [], hhEarly = [];
@@ -222,6 +217,25 @@ export class Evacuation {
         }
       }
     }
+    // ---- future growth (world setting; SOURCE_NOTES E26, L1–L9) ----
+    // Added units are households like the rest, appended after today's. Where they go depends
+    // on the seed only; each unit draws from its own seeded stream, so today's households and
+    // every unit the plans agree on are identical in Plan A and Plan B. R0 drops the units in
+    // its area and moves none elsewhere.
+    const nBase = hhEdge.length, unitRand = [];
+    const units = growthUnits(data, this.world.growth, this.seed), r0 = r0Edges(data, plan.r0);
+    this.growth = { option: units.length ? this.world.growth : 'none', units: units.length, built: 0, blocked: 0, r0: plan.r0 || 'none', r0Missing: !!(plan.r0 && plan.r0 !== 'none' && !r0) };
+    for (let k = 0; k < units.length; k++) {
+      const eid = units[k];
+      if (r0 && r0.has(eid)) { this.growth.blocked++; continue; }
+      const r = mulberry32((Math.imul(this.seed + 1, 0x9E3779B1) ^ Math.imul(k + 1, 0x85EBCA6B)) >>> 0);
+      const zid = net.edges[eid].evacZone;
+      const eligible = plan.earlyZones === 'fz23' ? net.edges[eid].fireZone >= 2 : lez.has(zid);
+      hhEdge.push(eid); hhZone.push(zoneIdx.get(zid));
+      hhVeh.push(r() < D.householdsWithoutVehicleShare ? 0 : drawVehicles(r));
+      const u = r(); hhEarly.push(eligible && plan.earlyShare > 0 && u < plan.earlyShare ? 1 : 0);
+      unitRand.push(r); this.growth.built++;
+    }
     const nH = hhEdge.length;
     const hh = this.hh = { n: nH, edge: Int32Array.from(hhEdge), zone: Int16Array.from(hhZone), veh: Uint8Array.from(hhVeh), early: Uint8Array.from(hhEarly),
       kind: new Uint8Array(nH), // 0 stays, 1 ordered, 2 warned and leaving, 3 shadow (voluntary)
@@ -235,28 +249,28 @@ export class Evacuation {
     const M = D.mobilization15min, C = D.compliance;
     const vHH = [], vDep = [], vCls = [], donors = new Map();
     for (let h = 0; h < nH; h++) {
-      const z = hh.zone[h];
+      const z = hh.zone[h], R = h < nBase ? rand : unitRand[h - nBase];
       let T, kind;
       if (this.orderT[z] < Infinity) { T = this.orderT[z]; kind = 1; }
-      else if (this.warnT[z] < Infinity && rand() < C.warning) { T = this.warnT[z]; kind = 2; }
-      else if (this.firstOrderT < Infinity && rand() < C.shadow) { T = this.firstOrderT; kind = 3; }
+      else if (this.warnT[z] < Infinity && R() < C.warning) { T = this.warnT[z]; kind = 2; }
+      else if (this.firstOrderT < Infinity && R() < C.shadow) { T = this.firstOrderT; kind = 3; }
       else continue;
       hh.kind[h] = kind;
       if (hh.early[h]) continue;
       let curve;
       if (kind === 3) curve = M.C;
       else {
-        const commuter = rand() < tod.commuterShare, kids = rand() < D.childPickupShare * tod.schoolInSession;
+        const commuter = R() < tod.commuterShare, kids = R() < D.childPickupShare * tod.schoolInSession;
         curve = commuter ? (kids ? M.E : M.C) : (kids ? M.F : M.D);
         // The commuter drives home into the evacuating area before the household leaves
         // (Time Study: households awaiting a returning commuter). They leave work on the
         // employee curve (Table 5-9 A), then drive returnDriveMin to reach the area's edge.
         if (commuter && hh.veh[h] && !hh.early[h]) {
-          const entry = T + 60 * (sampleHist(M.A, rand) + D.returnDriveMin[0] + rand() * (D.returnDriveMin[1] - D.returnDriveMin[0]));
+          const entry = T + 60 * (sampleHist(M.A, R) + D.returnDriveMin[0] + R() * (D.returnDriveMin[1] - D.returnDriveMin[0]));
           if (entry < this.end) { hh.commuter[h] = 1; vHH.push(h); vDep.push(entry); vCls.push(2); }
         }
       }
-      const dep = T + 60 * sampleHist(curve, rand);
+      const dep = T + 60 * sampleHist(curve, R);
       hh.depart[h] = dep;
       if (!hh.veh[h]) continue;
       if (kind !== 3) { if (!donors.has(hh.edge[h])) donors.set(hh.edge[h], []); donors.get(hh.edge[h]).push(h); }
@@ -267,8 +281,8 @@ export class Evacuation {
     this.stranded = 0;
     for (let h = 0; h < nH; h++) {
       if (hh.veh[h] || !hh.kind[h] || hh.kind[h] === 3 || hh.early[h]) continue;
-      const d = donors.get(hh.edge[h]);
-      if (d && rand() < D.carlessRideshareShare) hh.ride[h] = d[Math.floor(rand() * d.length)];
+      const d = donors.get(hh.edge[h]), R = h < nBase ? rand : unitRand[h - nBase];
+      if (d && R() < D.carlessRideshareShare) hh.ride[h] = d[Math.floor(R() * d.length)];
     }
     // ---- non-resident vehicles: employees, students, visitors (Time Study §3.4-3.6, Table 6-5;
     // SOURCE_NOTES E32-E36). They park on streets in the study's areas, leave on the employee
@@ -619,6 +633,10 @@ export class Evacuation {
     if (early) this.log(`Early departure: ${early.toLocaleString()} households (${earlyVeh.toLocaleString()} vehicles) in ${this.plan.earlyZones === 'fz23' ? 'Fire Zones 2–3' : 'the City Leave Early Zones'} left before the fire, so they did not enter the road network during the alert.`, 'plan');
     { const ps = parkingStats;
       this.log(`Parked cars this run (seed ${this.seed}): of ${ps.hillsKnown} hill segments with a known width, ${ps.twoSides} parked on both sides and ${ps.oneSide} on one side; ${ps.pinched} segments have a bad parking job narrowing the gap. ${ps.engineBlocked} segments are too narrow for an engine; ${this.sharedLanes} two-way segments leave one lane, so oncoming drivers take turns.`, 'plan'); }
+    { const G = this.growth, pph = this.data.A.demand.personsPerHousehold, opt = this.data.A.growth?.options?.[this.world.growth];
+      if (G.units) this.log(`Future growth "${opt.label}": ${G.units.toLocaleString()} added homes on Berkeley hill streets (Fire Zones 2–3, standing in for the Hillside Overlay), spread like today's households.${G.blocked ? ` R0 in ${R0_AREAS[G.r0]} bars ${G.blocked.toLocaleString()} of them (${Math.round(G.blocked * pph).toLocaleString()} people); none move elsewhere.` : ''} Built: ${G.built.toLocaleString()} homes, about ${Math.round(G.built * pph).toLocaleString()} added residents.`, 'plan');
+      if (G.r0Missing) this.log('R0 in access-constrained areas has no effect in this build: data/model/access-constraints.json is missing.', 'warn');
+      else if (G.r0 !== 'none' && !G.units) this.log(`R0 in ${R0_AREAS[G.r0]} has no effect: Future growth is set to none.`, 'plan'); }
     if (plan.hillsParking !== 'both') this.log(`Parking plan "${PARKING_PLANS[plan.hillsParking]}": ${parkingChanged(parkingStats)}.`, 'plan');
     if (warned) this.log(`${warned.toLocaleString()} households in warning zones choose to leave (Time Study: 50% of warned households).`, 'order');
     if (shadow) this.log(`${shadow.toLocaleString()} households outside the order and warning zones leave anyway (${shadowVeh.toLocaleString()} vehicles heading out of the model area; Time Study: 20% shadow evacuation).`, 'order');
@@ -706,6 +724,7 @@ export class Evacuation {
     S.bottlenecks = [...this.nodeWaitMax.entries()].filter(([, w]) => w > 0).sort((a, b) => b[1] - a[1]).slice(0, 5)
       .map(([n, w]) => ({ node: n, name: this.nodeName(n), max: w, at: this.nodeWaitAt[n] / 60 }));
     S.unplacedPeople = this.unplacedPeople;
+    S.addedUnits = this.growth.built; S.addedResidents = this.growth.built * pph; S.growthBlocked = this.growth.blocked; S.growthOption = this.growth.option;
     S.zonesOrdered = this.orderT.filter(T => T <= t).length;
     S.zonesWarned = this.warnT.filter(T => T <= t).length;
     S.t = t / 60;
@@ -713,6 +732,68 @@ export class Evacuation {
   }
 
   runToEnd() { while (this.t < this.end) this.step(); return this.summary(); }
+}
+
+// Streets where each zone's residents live (model rule): drivable, not freeway or ramp, weighted
+// by length (Principal Arterials 0.7). Map zone id → [[edge id, weight], ...] in edge order.
+export function residentialStreets(data) {
+  if (data._resStreets) return data._resStreets;
+  const byZone = new Map();
+  for (const e of data.net.edges) {
+    if (e.mode !== 'vehicle' || e.disconnected || e.barrier?.closed || e.evacZone == null || CLASS_RANK[e.cls] === 3) continue;
+    const w = e.len * (e.cls === 'Principal Arterial' ? 0.7 : 1);
+    if (!byZone.has(e.evacZone)) byZone.set(e.evacZone, []);
+    byZone.get(e.evacZone).push([e.id, w]);
+  }
+  return (data._resStreets = byZone);
+}
+
+// Berkeley's Fire Zones 2–3 (City layer, not the elevation proxy used beyond the city line):
+// the stand-in for the Hillside Overlay, where the Time Study placed its ADU and middle-housing units.
+export const inBerkeleyHills = e => String(e.evacZone || '').startsWith('BER') && e.fireZone >= 2 && e.fireZoneSrc !== 'proxy:elevation>=90m';
+
+// Future growth (assumptions growth): the option's units spread over Berkeley hill streets in
+// proportion to today's expected households on each street (assumption growth.allocation).
+// Systematic sampling with one seeded offset gives exactly the option's unit count, each street
+// getting the floor or ceiling of its share. Returns one edge id per unit, in edge order.
+export function growthUnits(data, key, seed) {
+  const opt = data.A.growth?.options?.[key];
+  if (!opt?.units) return [];
+  const ck = `${key}|${seed}`;
+  data._growthUnits ??= new Map();
+  if (data._growthUnits.has(ck)) return data._growthUnits.get(ck);
+  const pph = data.A.demand.personsPerHousehold, zones = new Map(data.layers.evacZones.map(z => [z.id, z]));
+  const ids = [], hhs = []; let W = 0;
+  for (const [zid, list] of residentialStreets(data)) {
+    const z = zones.get(zid); if (!z) continue;
+    const H = (z.popModeled ?? z.pop) / pph, Wz = list.reduce((s, [, w]) => s + w, 0);
+    for (const [eid, w] of list) if (inBerkeleyHills(data.net.edges[eid]) && H > 0) { const x = H * w / Wz; ids.push(eid); hhs.push(x); W += x; }
+  }
+  const out = [];
+  if (W > 0) {
+    const r = mulberry32(seed * 7919 + 1013), step = W / opt.units;
+    let next = r() * step, cum = 0;
+    for (let i = 0; i < ids.length && out.length < opt.units; i++) { cum += hhs[i]; while (next < cum && out.length < opt.units) { out.push(ids[i]); next += step; } }
+  }
+  data._growthUnits.set(ck, out);
+  return out;
+}
+
+// R0 areas (plan setting): street segments where no added units are built. null if the area's
+// data is missing (access-constrained areas need data/model/access-constraints.json).
+export const R0_AREAS = { none: 'nowhere', lez: 'the City Leave Early Zones', fz23: 'Fire Zones 2–3', access: 'access-constrained areas' };
+export function r0Edges(data, key) {
+  if (!key || key === 'none') return null;
+  data._r0 ??= {};
+  if (key in data._r0) return data._r0[key];
+  const edges = data.net.edges; let set = null;
+  if (key === 'lez') { const lez = new Set(LEAVE_EARLY_ZONES); set = new Set(edges.filter(e => lez.has(e.evacZone)).map(e => e.id)); }
+  else if (key === 'fz23') set = new Set(edges.filter(inBerkeleyHills).map(e => e.id));
+  else if (key === 'access' && data.access?.areas) { // every street behind a choke point (tools/access-constraints.mjs)
+    set = new Set();
+    for (const a of data.access.areas) for (const id of a.memberEdges || a.edges || []) set.add(id);
+  }
+  return (data._r0[key] = set);
 }
 
 // Street segments where non-resident vehicles park, by the Time Study's areas (Table 3-5) plus

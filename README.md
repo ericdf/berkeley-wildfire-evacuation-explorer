@@ -31,10 +31,14 @@ Loading takes a few seconds: about 10 MB of terrain and 2 MB of street network.
 
 1. **Scenario.** Pick a preset, a severity (low / central / high) and a random seed.
    Time of day changes who is home and how much background traffic there is.
+   Future growth (Expert view) adds homes in the hills for both plans: none, the 2025
+   Evacuation Time Study's middle-housing case (870 units) or maximum ADU build-out (27,060),
+   or a moderate case (2,706, an assumption).
 2. **Operating plan.** Plan A and Plan B are edited in tabs: when zones are ordered,
    how long detection and the decision take, whether all hill zones are ordered at once,
    early departure on Red Flag days (from the City's Leave Early Zones, or all of Fire Zones 2–3),
-   and parking on hill streets.
+   parking on hill streets, and R0: no added units in the Leave Early Zones, Fire Zones 2–3
+   or access-constrained areas, shown with its legal status.
 3. **Run.** Watch the fire, embers, vehicles, queues and the fire-engine route. Drag the
    slider to jump to a time. Click a street or zone to inspect it; hover a badge (ⓘ)
    to see where each value comes from.
@@ -121,6 +125,19 @@ area. Households waiting for a commuter (Time Study) wait for that person to dri
 first, against the outbound traffic; a commuter turned back by fire leaves the household one
 car short. A vehicle stuck 3 minutes at the head of a queue squeezes forward, so the queue
 model cannot lock up for good (as it did at the Marin traffic circle).
+
+**Future growth and R0.** The growth setting (`growth` in `data/assumptions.json`) adds the
+Time Study's Hillside Overlay units (§10.5, Table 10-11) as more synthetic households, drawn
+like today's (2.37 persons; about 1.12 vehicles per unit against the study's 1.14). The study
+gives no split by street, so units go to Berkeley's Fire Zones 2–3, standing in for the
+Hillside Overlay, in proportion to each street's share of today's households (an
+assumption). Where they go depends on the seed only, and each unit draws from its own seeded
+stream, so both plans see the same added homes and today's households are unchanged. The
+plan setting R0 drops the units on streets in its area and moves none elsewhere. Fire Zones
+2–3 hold all the modeled growth, so R0 there equals no growth; the Leave Early Zones hold
+about 29% of it and access-constrained areas about 11% (areas from
+`data/model/access-constraints.json`, written by `tools/access-constraints.mjs`; the option
+stays disabled until that file exists). Parked cars do not increase with growth.
 
 **Diverters and traffic circles.** The list of record is the City's "Existing Traffic
 Calming Devices" layer (edited 2025-10-28: 75 diverters, 63 circles, 1 gate). The City gives
@@ -221,3 +238,8 @@ by the simulator at load time. Scenario presets, severities and time-of-day valu
   and through the middle of Kensington; north Kensington (about 1,500 people) and Oakland
   south of that line are not modeled. Traffic that reaches the edge has left.
 - Fire spread, ember distances and spot-fire rates are illustrative model values.
+- Future growth: with the Time Study's maximum ADU build-out the simulator's evacuation time
+  grows far less than the study's (fire off, fall weekday S4: 1923 region +30% against the
+  study's +58%; Panoramic Hill +2% against +25%; Fire Zones 2–3 +3% against +97%), because its junctions pass traffic faster
+  than the study's signals and stop signs. Read growth effects on evacuation time as a lower
+  bound (`SOURCE_NOTES.md`, "Future growth and R0").
