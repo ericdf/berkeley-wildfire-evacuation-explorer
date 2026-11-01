@@ -4,7 +4,7 @@ Browser-based educational simulator for exploring wildfire evacuation tradeoffs 
 
 ## Writing style
 
-Follow [`../berkeley-council-analysis/docs/STYLE.md`](../berkeley-council-analysis/docs/STYLE.md). It is the single source for style rules; do not copy its rules here. It applies to:
+Follow [`../berkeley-council-analysis/docs/STYLE.md`](../berkeley-council-analysis/docs/STYLE.md) (on GitHub: https://github.com/ericdf/berkeley-council-analysis/blob/main/docs/STYLE.md, a private repository Codex can read). It is the single source for style rules; do not copy its rules here. It applies to:
 
 - **Work sessions:** replies in chat, progress notes, questions, summaries, commit messages.
 - **Work products:** `README.md`, `SOURCE_NOTES.md`, `DATA_INVENTORY.md`, every string the simulator shows (results, event log, notes, Assumptions & limits, Data sources), `data/assumptions.json` notes, code comments, and anything written for other people, such as letters in `correspondence/`.

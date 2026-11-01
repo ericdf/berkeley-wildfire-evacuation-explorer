@@ -14,7 +14,7 @@ Pull requests are the shared channel, so the maintainer does not relay messages 
 
 **A round** is one Codex review plus Claude Code's response: fixes pushed, and a reply on every finding saying what changed (with the commit SHA) or why nothing changed. A request that shows no result after 15 minutes has stalled and is not a round: Claude Code says so on the PR and requests once more, then escalates.
 
-**Continuation.** The loop runs until Codex returns a clean review or an issue needs the maintainer's judgment. After five completed rounds Claude Code posts a progress report and asks whether to continue; an explicit "keep going" in a Claude Code session naming the PR authorizes further rounds. Claude Code stops and escalates if one issue is still disputed after two rounds, or if findings repeat, reverse an earlier fix or turn on wording rather than substance.
+**Continuation.** The loop runs until Codex returns a clean review or an issue needs the maintainer's judgment. Claude Code continues past five rounds without asking (maintainer, 2026-11-01) and pauses with a progress report at fifteen completed rounds; an explicit "keep going" in a Claude Code session naming the PR authorizes further rounds. Claude Code stops and escalates if one issue is still disputed after two rounds, or if findings repeat, reverse an earlier fix or turn on wording rather than substance.
 
 **Completion report.** When the loop ends, Claude Code posts on the PR:
 
@@ -40,7 +40,7 @@ Pull requests are the shared channel, so the maintainer does not relay messages 
 
 ## Review guidelines
 
-Mark every finding **blocking** or **optional** and give its location (file and line, or the screen and text). A blocking finding says what is wrong and what source or file shows it. Requirements in the style guide (`../berkeley-council-analysis/docs/STYLE.md`, summarized in `CLAUDE.md`) are firm in text users see.
+Mark every finding **blocking** or **optional** and give its location (file and line, or the screen and text). A blocking finding says what is wrong and what source or file shows it. Requirements in the style guide are firm in text users see. The guide is `docs/STYLE.md` in the private repository ericdf/berkeley-council-analysis (https://github.com/ericdf/berkeley-council-analysis/blob/main/docs/STYLE.md; locally `../berkeley-council-analysis/docs/STYLE.md`), summarized in `CLAUDE.md`.
 
 ### Blocking
 

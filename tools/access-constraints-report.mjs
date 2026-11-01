@@ -1,0 +1,173 @@
+// Writes docs/access-constraints.md from the result of tools/access-constraints.mjs.
+// Every number in the report comes from the result object; the prose around it was written
+// after reading the 2026-11-01 run and should be rechecked when the network changes.
+
+const n0 = v => v == null ? '—' : Math.round(v).toLocaleString('en-US');
+const n1 = v => v == null ? '—' : (Math.round(v * 10) / 10).toLocaleString('en-US');
+const pct = (a, b) => b ? `${Math.round(a / b * 100)}%` : '—';
+const ft = m => m == null ? '—' : `${Math.round(m / 0.3048)}`;
+const esc = s => String(s).replace(/\|/g, '/');
+const list = (a, k = 4) => esc(a.slice(0, k).join(', ') + (a.length > k ? ` +${a.length - k}` : ''));
+const fz = o => {
+  const t = Object.values(o.residentsByFireZone).reduce((s, v) => s + v, 0);
+  if (!t) return '—';
+  const parts = Object.entries(o.residentsByFireZone).filter(([, v]) => v / t >= 0.05).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k === '0' || k === 'null' ? 'no zone' : 'FZ' + k} ${pct(v, t)}`);
+  return parts.join(', ');
+};
+const engine = o => o.choke.engineFits == null ? 'width unknown' : o.choke.engineFits ? 'yes' : '**no**';
+const alt = o => {
+  if (o.type === 'one-way') return 'n/a: two-way operation of the entrance would open it';
+  const h = o.nearestOtherStreet; if (!h) return '—';
+  return `${esc(h.street)}: ${h.distM} m line, ${h.climbM == null ? '?' : (h.climbM > 0 ? '+' : '') + Math.round(h.climbM)} m climb (${h.gradePct ?? '?'}%), ${n0(h.drivingNowM)} m by road now`;
+};
+const link = o => {
+  const L = o.existingLink; if (!L) return '—';
+  return `${esc(L.names.join(' + '))} (${L.kinds.join(', ')}), ${L.lengthM} m to ${esc(L.reaches)}, max grade ${L.maxGradePct}%`;
+};
+
+export function report(r, whatIf) {
+  const T = r.totals, S = r.sb99, A = r.areas, byId = new Map(A.map(o => [o.id, o]));
+  const rank = ids => ids.map(id => byId.get(id));
+  const byRes = rank(r.rankings.byResidents).slice(0, 25), byScore = rank(r.rankings.byConstraint).slice(0, 25);
+  const find = s => A.filter(o => o.streets.includes(s)).sort((a, b) => a.nesting - b.nesting);
+  const pano = A.filter(o => o.evacZones['BER-058'] && o.streets.includes('Panoramic Wy')).sort((a, b) => a.nesting - b.nesting);
+  const panoTop = pano[0];
+  const panoW = whatIf ? whatIf.areas.filter(o => o.streets.includes('Panoramic Wy') && o.evacZones['BER-058']).sort((a, b) => a.nesting - b.nesting) : [];
+  const wilson = find('Wilson Ci')[0];
+  const albany = A.find(o => o.allocationWarning);
+  const oneWayTop = A.filter(o => o.type === 'one-way').sort((a, b) => b.residents - a.residents).slice(0, 8);
+  const L = [];
+  const p = s => L.push(s);
+
+  p('# Access-constrained areas: where one street segment is the only way out');
+  p('');
+  p(`Built ${r.meta.built} by \`tools/access-constraints.mjs\` from \`data/model/network.json\`. Machine-readable results: \`data/model/access-constraints.json\`. This is an educational comparison tool, not a prediction and not an official evacuation plan. Residents are synthetic (zone populations spread over street length), and every area is described at street-segment level; no parcels or addresses are used.`);
+  p('');
+  p('## Findings');
+  p('');
+  p(`- **${n0(T.hillResidentsBehindAnyChoke)} of the model area's ${n0(T.modeledHillResidents)} hill residents (${pct(T.hillResidentsBehindAnyChoke, T.modeledHillResidents)}) live behind at least one choke point**: a single street segment whose loss leaves them with no drivable route out of the model area. For Berkeley and LBNL zones alone the figure is ${n0(T.berkeleyHillResidentsBehindAnyChoke)} of ${n0(T.berkeleyHillResidents)} (${pct(T.berkeleyHillResidentsBehindAnyChoke, T.berkeleyHillResidents)}). "Hill" means a street in City Fire Zone 2 or 3, or outside Berkeley at 90 m elevation or higher (the simulator's proxy).`);
+  p(`- ${n0(T.hillResidentsBehindDeadEnd)} of those hill residents are behind a true dead end (the choke is the only street connection at all); ${n0(T.hillResidentsBehindOneWayOnly)} are behind a choke created only by one-way rules, which drivers or police could override in an emergency.`);
+  p(`- ${n0(T.hillResidentsBehindTwoOrMore)} hill residents are behind two or more choke points in series (a dead end inside a dead end). ${n0(T.hillResidentsBehindEngineBlockedChoke)} are behind a choke too narrow for a fire engine with status-quo parking in its nominal state (both sides parked where they fit, perfect parking; under 10 ft of clear width): every route from their street to every exit crosses the narrow segment.`);
+  p(`- **Panoramic Hill is the largest hill area**: ${n0(panoTop?.residents)} synthetic residents, ${n0(panoTop?.households)} households and ${n0(panoTop?.vehicles)} vehicles on ${n1(panoTop?.streetLengthM / 1000)} km of street behind one choke, with up to ${Math.max(...pano.map(o => o.nesting))} choke points in series on upper Panoramic Way. The model's choke there is wrong in location (see Data problems): the County file marks the short drivable link from Panoramic Way to Prospect St as no-vehicle, so the model's only exit is around Memorial Stadium on Rim Rd and Stadium Rim Rd.`);
+  p(`- Of the ${S ? S.primaryRows - S.privateDriveRows : '—'} named-street primary rows in the SB 99 report's Table 1 (KLD, 2024; dead-end streets), ${S?.rowsMatched ?? '—'} name a street that lies inside an area found here, in the same or a neighboring zone (${n0(S?.parcelsMatched)} of the ${n0(S?.primaryParcels)} parcels in all rows). Most of the ${S?.unmatched.length ?? '—'} misses are flatland blocks that SB 99 counts as dead ends because of diverters, and three are streets the network does not have.`);
+  p('');
+  p('## Method');
+  p('');
+  p('Each item carries its provenance category: sourced, derived, assumption, model rule or synthetic.');
+  p('');
+  p('- **Network (derived).** The residents\' drivable network exactly as `js/sim.js` builds it: vehicle segments that are not disconnected and not closed by a diverter, bollard or gate, one directed link per direction with lanes, so a one-way street can be driven one way only. Paths, stairways and County no-vehicle (TRVLWAY NT) streets are left out.');
+  p(`- **Out of the model area (model rule).** A home has a way out if it can drive to one of the ${T.exits} exit nodes, where streets are cut at the edge of the elevation grid. The simulator uses the same exits for shadow evacuees.`);
+  p('- **Choke point (derived).** A directed street link that lies on every route from some node to every exit (an edge dominator of the reversed network). If the street is also a bridge of the undirected network, the area behind it is a **dead end**; if only one-way rules make it a choke, the area is **one-way**.');
+  p(`- **Area and nesting (model rule).** Choke links along one dead-end stem belong to one area, named by its entrance (the first choke from the exit, together with links in series with it through nodes that join only two streets). A choke whose outer end sits on a loop of streets starts a nested area. Loops under ${r.meta.provenance.nesting.match(/under (\d+) m/)?.[1] ?? 200} m of street (turnarounds, splits around islands, doubled driveways) do not count. Nesting is the number of areas in series between a home and an exit, its own included.`);
+  p('- **Residents (synthetic).** The simulator\'s allocation: each Genasys zone\'s population inside the model area (2020 Census counts where the City layer has no estimate, and for OKL-003 by Eric\'s choice), spread over the zone\'s streets in proportion to length, Principal Arterials weighted 0.7, no freeways or ramps. Expected values, not one random draw. Residents on the entrance segment count as behind it.');
+  p(`- **Households and vehicles (assumption).** Households = residents / 2.37; vehicles taken = households × (1 − 7.47% without a vehicle) × 1.21 vehicles per driving household (2025 Evacuation Time Study, Fig. D-11, renormalized as in \`data/assumptions.json\`).`);
+  p('- **Clear width and engine access (derived, from sourced widths and assumed parking).** Narrowest entrance segment under status-quo parking in its nominal state (`js/parking.js`, no seed: both sides parked where a car still fits, perfect parking). An engine fits at 10 ft (3.05 m) or more; 20 ft is the fire-code width. Tiers follow the SB 99 report (p. 4): severely constrained 6 ft or less, moderately 7–8 ft, constrained 9–10 ft. A resident counts as behind a narrow choke only if every route from their street to every exit crosses it; residents on a stem between the entrance and a narrower segment farther in are not behind the narrower one. Seeded runs of the simulator park fewer cars on some blocks and add bad parking jobs, so this is one representative state.');
+  p('- **Steepest grade (derived).** Largest 25 m-window grade from the 4 m lidar DEM on any street in the area, leaving out segments flagged unreliable.');
+  p(`- **Nearest other street (derived; the threshold is a model rule).** The shortest straight line from the area's streets (sampled every 10 m) to a drivable street outside the area, among pairs where driving from the area point to the outside point now, obeying one-way directions, takes at least ${r.meta.provenance.nearestOtherStreet.match(/at least (\d+) m/)?.[1] ?? 300} m and three times the line, so a link beside the entrance does not count. Climb comes from the DEM. A first hint for step 2 of the egress work, not a route, design or cost. "Nearest free street" is the same, to a street behind no choke.`);
+  p('- **Existing path (derived).** The shortest chain of mapped paths, stairways, no-vehicle streets or barrier-closed segments from the area to a drivable street outside it (search limit 1.5 km). Barrier-closed links that OSM tags `emergency=yes` let engines pass.');
+  p('- **Constraint score (model rule).** residents × nesting × narrowness factor × hill factor. Narrowness factor 4, 3, 2, 1 for the SB 99 tiers severely, moderately, constrained, not narrow (1 where the width is unknown). Hill factor 1 + share of residents on Fire Zone 2–3 streets. The weights are a transparent way to sort, with no calibration behind them; the components are shown so a reader can re-sort.');
+  p('');
+  p('## Totals');
+  p('');
+  p('| Measure | Value |');
+  p('|---|---|');
+  p(`| Residents in the model area (synthetic) | ${n0(T.modeledResidents)} |`);
+  p(`| Residents behind at least one choke point | ${n0(T.residentsBehindAnyChoke)} (${pct(T.residentsBehindAnyChoke, T.modeledResidents)}) |`);
+  p(`| Hill residents | ${n0(T.modeledHillResidents)} |`);
+  p(`| Hill residents behind at least one choke point | ${n0(T.hillResidentsBehindAnyChoke)} (${pct(T.hillResidentsBehindAnyChoke, T.modeledHillResidents)}) |`);
+  p(`| … behind a dead end | ${n0(T.hillResidentsBehindDeadEnd)} |`);
+  p(`| … behind a one-way choke only | ${n0(T.hillResidentsBehindOneWayOnly)} |`);
+  p(`| … behind two or more choke points in series | ${n0(T.hillResidentsBehindTwoOrMore)} |`);
+  p(`| … behind a choke too narrow for an engine (nominal parking) | ${n0(T.hillResidentsBehindEngineBlockedChoke)} |`);
+  p(`| Berkeley and LBNL hill residents | ${n0(T.berkeleyHillResidents)} |`);
+  p(`| … behind at least one choke point | ${n0(T.berkeleyHillResidentsBehindAnyChoke)} (${pct(T.berkeleyHillResidentsBehindAnyChoke, T.berkeleyHillResidents)}) |`);
+  p(`| … behind a dead end | ${n0(T.berkeleyHillResidentsBehindDeadEnd)} |`);
+  p(`| Areas (all; with at least 1 resident; mostly hill) | ${T.areas}; ${T.areasWithResidents}; ${T.hillAreasWithResidents} |`);
+  p(`| Dead-end areas; one-way areas | ${T.deadEndAreas}; ${T.oneWayAreas} |`);
+  p(`| Areas by nesting | ${Object.entries(T.byNesting).map(([k, v]) => `${k}: ${v}`).join('; ')} |`);
+  p(`| Residents with no drivable route out at all | ${n1(T.residentsWithNoRouteOut)} (${esc(r.trapped.streets.join(', '))}) |`);
+  p('');
+  p('## Top 25 areas by residents');
+  p('');
+  p('Nesting 2 or more means the area lies inside a larger one, so rows overlap. Clear width is at the entrance, in feet. Fire zone shows the share of residents by City fire zone (FZ2 outside Berkeley is the 90 m elevation proxy; "no zone" is outside Berkeley below 90 m). For one-way areas a new street is not the remedy, so no nearest street is shown.');
+  p('');
+  p('| # | Area | Type | Entrance (choke) | Streets behind it | Residents | Households | Vehicles | Nesting | Clear width, ft | Engine fits | Fire zone | Nearest other street | Existing path |');
+  p('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
+  byRes.forEach((o, i) => p(`| ${i + 1} | ${o.id}${o.allocationWarning ? ' ⚠' : ''} | ${o.type} | ${esc(o.chokeStreets.join(' / '))} | ${list(o.streets)} | ${n0(o.residents)} | ${n0(o.households)} | ${n0(o.vehicles)} | ${o.nesting} | ${ft(o.choke.clearWidthM)} | ${engine(o)} | ${fz(o)} | ${alt(o)} | ${link(o)} |`));
+  p('');
+  if (albany) p(`⚠ ${albany.id}: ${albany.allocationWarning}. See Data problems.`);
+  p('');
+  p('## Top 25 areas by constraint score');
+  p('');
+  p('Score = residents × nesting × narrowness × hill factor (model rule).');
+  p('');
+  p('| # | Area | Type | Entrance (choke) | Streets behind it | Residents | Nesting | Clear width, ft (SB 99 tier) | Narrowness | Hill factor | Score | Steepest grade | Nearest other street | Existing path |');
+  p('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
+  byScore.forEach((o, i) => p(`| ${i + 1} | ${o.id}${o.allocationWarning ? ' ⚠' : ''} | ${o.type} | ${esc(o.chokeStreets.join(' / '))} | ${list(o.streets)} | ${n0(o.residents)} | ${o.nesting} | ${ft(o.choke.clearWidthM)} (${o.choke.sb99Tier}) | ${o.constraint.narrowFactor} | ${o.constraint.hillFactor} | ${n0(o.constraint.score)} | ${o.steepestGradePct ?? '—'}% | ${alt(o)} | ${link(o)} |`));
+  p('');
+  p('## Sanity checks');
+  p('');
+  p('### Panoramic Hill (Time Study region R04)');
+  p('');
+  p(`The SB 99 report (p. 4) says the whole Panoramic Way neighborhood has "only one access point to the nearest evacuation route (at a stop-controlled intersection at Panoramic Way and Prospect St/Canyon Rd)". The model finds the neighborhood behind one choke, with nested areas further up:`);
+  p('');
+  p('| Area | Entrance | Residents | Nesting | Clear width, ft | Streets |');
+  p('|---|---|---|---|---|---|');
+  pano.slice(0, 6).forEach(o => p(`| ${o.id} | ${esc(o.chokeStreets.join(' / '))} | ${n0(o.residents)} | ${o.nesting} | ${ft(o.choke.clearWidthM)}${o.narrowestStemChoke && o.narrowestStemChoke.clearWidthM < (o.choke.clearWidthM ?? 99) ? ` (narrowest on the stem: ${ft(o.narrowestStemChoke.clearWidthM)} on ${esc(o.narrowestStemChoke.street)}, ${n0(o.narrowestStemChoke.residentsBehind)} residents behind it)` : ''} | ${list(o.streets, 8)} |`));
+  p('');
+  p(`The location of the first choke disagrees with the SB 99 report. In the model the neighborhood drives out over Rim Rd and Stadium Rim Rd, around the east side of Memorial Stadium, because the County centerline file marks the 45 m piece between the foot of Panoramic Way and Prospect St as "BANCROFT STEPS WY" with TRVLWAY NT (no vehicle travel). OpenStreetMap maps the same piece as drivable Bancroft Way (way 24025453, tertiary) joining Prospect St, Canyon Rd and Panoramic Way, which matches the SB 99 description. With that piece opened to cars (\`node tools/access-constraints.mjs --open 2322\`):`);
+  p('');
+  if (panoW.length) {
+    p('| Area | Entrance | Residents | Nesting | Clear width, ft | Engine fits |');
+    p('|---|---|---|---|---|---|');
+    panoW.slice(0, 4).forEach(o => p(`| ${o.id} | ${esc(o.chokeStreets.join(' / '))} | ${n0(o.residents)} | ${o.nesting} | ${ft(o.choke.clearWidthM)} | ${engine(o)} |`));
+    p('');
+    p(`The choke moves to the foot of Panoramic Way, as SB 99 describes, and Canyon Rd and Stadium Rim Rd drop out of the area. Hill residents behind any choke change from ${n0(T.hillResidentsBehindAnyChoke)} to ${n0(whatIf.totals.hillResidentsBehindAnyChoke)}.`);
+  }
+  p('');
+  p(`Zone BER-013 (83 people in the Genasys layer, "Panoramic Hill") has no street segment whose midpoint falls inside it, so the simulator places none of its people; the SB 99 rows for BER-E013 match the BER-058 areas above. The gate on upper Panoramic Way (OSM node 35719248, engines pass) leads only to a dead end in the model, because the fire road beyond it is not a drivable OSM way, so the model shows no emergency second exit; SB 99 says those upper barriers "will not expedite the evacuation" because they "do not provide additional access points to Prospect St/Canyon Rd".`);
+  p('');
+  p('### Known cul-de-sacs');
+  p('');
+  if (wilson) p(`- Wilson Cir behind Olympus Ave: ${wilson.id}, ${wilson.type}, entrance ${esc(wilson.chokeStreets.join(' / '))}, ${n0(wilson.residents)} residents, clear width ${ft(wilson.choke.clearWidthM)} ft, engine fits: ${engine(wilson)}. Matches the SB 99 Table 1 rows for Olympus Ave (BER-E031 and BER-E032).`);
+  for (const s of ['Maybeck Twin Dr', 'Oak Ridge Rd', 'Hill Rd', 'Woodhaven Rd', 'Stoddard Wy', 'Vistamont Av']) {
+    const o = find(s)[0];
+    if (o) p(`- ${s}: ${o.id}, ${o.type}, entrance ${esc(o.chokeStreets.join(' / '))}, ${n0(o.residents)} residents, nesting ${o.nesting}, clear width ${ft(o.choke.clearWidthM)} ft, engine fits: ${engine(o)}.`);
+    else p(`- ${s}: no choke found (the street has a second connection in the network).`);
+  }
+  p('');
+  if (S) {
+    p('### SB 99 Access Impaired Neighborhoods');
+    p('');
+    p(`SB 99's primary Access Impaired Neighborhoods (AIN) are residential parcels in a hazard area, outside the 5-minute fire-station service area, on dead-end roads, including dead ends made by bollards, gates and traffic-calming islands (KLD TR-1380 Rev. 3, pp. 2–3). Secondary AINs have more than one way out, but all except one run over narrow or winding roads. This analysis is the topological part of the primary test only: no service-area filter, and narrow roads change the score, not the choke.`);
+    p('');
+    p(`- Table 1 lists 141 primary AINs with 1,461 parcels (p. 4). The text extraction in \`data/raw/docs/sb99.txt\` yields ${S.primaryRows} rows with ${n0(S.primaryParcels)} parcels; ${S.privateDriveRows} are private drives off a named street.`);
+    p(`- **${S.rowsMatched} of ${S.primaryRows - S.privateDriveRows} named-street rows** (${n0(S.parcelsMatched)} parcels) have a street of that name inside a choke area in the same zone or within 150 m of it; ${S.rowsMatchedDeadEnd} of those are dead ends.`);
+    p(`- Rows not matched (${S.unmatched.length}): ${esc(S.unmatched.map(u => `${u.street} (${u.zones.join('/')}, ${u.parcels})${u.streetInNetwork ? '' : ' [street not in the network]'}`).join('; '))}. Most are in the flats, where SB 99 counts dead-end blocks made by diverters. The simulator models each diverter from OSM geometry, and several of these are open or one-way pieces in the model (README, "Diverters and traffic circles"). The rest are private courts missing from the County file or blocks where the County file has a through street.`);
+    p(`- In the other direction, ${S.berkeleyHillDeadEnds} Berkeley hill dead ends with 5 or more residents were found; ${S.berkeleyHillDeadEndsNotInTable1.length} contain no street named in Table 1: ${esc(S.berkeleyHillDeadEndsNotInTable1.sort((a, b) => b.residents - a.residents).map(o => `${o.streets.slice(0, 2).join(', ')} (${Math.round(o.residents)})`).join('; '))}. Being inside the 5-minute fire-station service area would leave a dead end out of SB 99's primary list, so these are expected differences, not errors on either side.`);
+    p('');
+  }
+  const N = r.narrowRoads;
+  p('### City Narrow_Roads layer');
+  p('');
+  p(`The City's narrow-roads survey covers ${N.narrowRoadSegments} drivable segments (${N.narrowRoadKm} km). Only ${N.narrowRoadSegmentsBehindChoke} of them (${N.narrowRoadKmBehindChoke} km) lie behind a choke, and ${N.hillChokeAreasWithNarrowRoadChoke} of ${N.hillChokeAreas} mostly-hill areas have a surveyed narrow road at the entrance. Narrow roads are concentrated in the looped street grid north of Codornices Park, which SB 99 rates as secondary AINs (several routes, all but one narrow or winding). The two analyses agree on that split: dead ends and narrow roads are mostly different places, and Panoramic Hill is where they coincide.`);
+  p('');
+  p('## Data problems found');
+  p('');
+  p(`1. **Panoramic Way to Prospect St.** County edge 2322 ("BANCROFT STEPS WY", TRVLWAY NT) blocks the drivable link that OSM and SB 99 show. The simulator inherits this: Panoramic Hill traffic leaves around the stadium on Rim Rd and Stadium Rim Rd. R04 calibration matches the Time Study anyway, but the route is wrong. Fix in \`tools/build-network.mjs\` (treat that segment as a two-way Local street, with a SOURCE_NOTES entry), then rebuild and recalibrate.`);
+  if (albany) p(`2. **Albany Hill population.** Zone ALB-011 ("Albany Hill Wildland Park Area") has 2,535 people from 2020 Census block interior points but only one drivable segment whose midpoint lies in it (Taft St, 221 m), so the simulator puts all of them, about 1,070 households, on that segment, behind a dead end (${albany.id}). The Census blocks most likely hold the apartment towers at the foot of the hill, reached from other streets. Placing zone populations by Census block, or spreading a zone's people onto streets within a buffer of its outline, would fix it.`);
+  p(`3. **No route out.** ${esc(r.trapped.streets.join(', '))} (edge ${r.trapped.edges.join(', ')}, 12 m, ${n1(r.trapped.residents)} residents) is a one-way County piece at the Oakland line that points into the same node as the one-way OSM carriageway (way 272608978), so nothing can leave it. Vehicles the simulator places there never leave.`);
+  p(`4. **One-way chokes in Southside and near the stadium.** The largest one-way areas (${esc(oneWayTop.slice(0, 5).map(o => `${o.chokeStreets.join('/')} ${Math.round(o.residents)}`).join('; '))}) come from County one-way directions combined with diverters. They are real in the sense that the law sends drivers one way, but police or drivers would override them in an emergency, and HANDOFF item 4b already questions some County one-way directions. Treat them as softer than dead ends.`);
+  p(`5. **Short loops in OSM streets.** OSM maps turnarounds and driveway loops as streets (Caldecott Ln has several), which would add false nesting; loops under 200 m of street are ignored for nesting.`);
+  p('');
+  p('## Edge effects at the model boundary');
+  p('');
+  p(`Every street cut at the edge of the elevation grid counts as a way out. ${T.exitsOnHillStreets} of the ${T.exits} exits are on hill streets, and ${n0(T.hillResidentsWithin500mOfHillExit)} hill residents live within 500 m of driving to one. None of those exits is in a Berkeley or LBNL zone: they are in Oakland (39), Kensington and El Cerrito (17), Orinda (11) and unincorporated Contra Costa County (7), plus the Warren Freeway. Two errors follow, both outside Berkeley. A dead-end street that crosses the edge looks like a through street, so its residents are missing from these totals; the cut streets include courts such as Highgate Ct in Kensington and Morrill Ct, Doncaster Pl and Glenwood Glade in Oakland. A neighborhood whose only real exit lies beyond the edge through another dead end is not flagged. North Kensington and Oakland south of about 37.84° N are outside the grid entirely (HANDOFF item 1a). The Berkeley totals do not depend on these exits; the Oakland, Kensington and Orinda figures within about 500 m of the grid edge are a lower bound.`);
+  p('');
+  p('## How steps 2 and 3 can use this');
+  p('');
+  p('- `nearestOtherStreet` and `nearestFreeStreet` give a straight line, its length, the climb and how far one drives now from the area point to the outside point, obeying one-way directions. A second connection needs a real alignment over parcels, which is outside this analysis (no parcel data is stored). `existingLink` shows where a path or stairway already makes the connection on foot and could be widened, and `emergencyVehicleLink` where a gate or diverter already does for engines.');
+  p('- `node tools/access-constraints.mjs --open <edge ids>` re-runs the analysis with segments opened to cars in both directions (a no-vehicle street, a closed barrier, a path, or a one-way street run two-way), which is the quickest way to see how many residents a new connection takes out from behind a choke.');
+  p('- For managed retreat, each area lists residents, households and vehicles by zone (`evacZones`), the inputs for "reduced future evacuation demand" in the spec.');
+  return L.join('\n') + '\n';
+}

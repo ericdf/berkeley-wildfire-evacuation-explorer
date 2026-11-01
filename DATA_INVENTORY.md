@@ -88,3 +88,9 @@ California ADU and SB 9 statutes (Gov. Code §66314, §66323, §65852.21, §6630
   84,283 cells (1.6%) are open Bay with no data.
 - The FT/TF direction meaning was checked against the right-hand rule on 100 divided-street
   pairs; 97 agree.
+- Access-constrained areas (`data/model/access-constraints.json`, derived, 2026-11-01): built by
+  `tools/access-constraints.mjs` from `network.json`, `layers.json`, the DEM and `assumptions.json`,
+  at street-segment level (no parcels). Text of the SB 99 report's Table 1 is parsed from
+  `data/raw/docs/sb99.txt` for the comparison. Still missing for egress and retreat options:
+  parcel geometry without owner fields (count of parcels a new connection would cross), housing
+  units by Census block in aggregate, and cost ranges for road building, acquisition and buyouts.

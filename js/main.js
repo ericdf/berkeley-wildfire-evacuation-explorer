@@ -100,8 +100,11 @@ $('growth').onchange = () => { growthNote(); r0Note(); newRun(); };
 ['severity', 'seed', 'tod'].forEach(id => $(id).onchange = () => { todNote(); newRun(); });
 $('street-mode').onchange = e => { map.streetMode = e.target.value; map.draw(); legend(); };
 $('speed').onchange = e => state.speed = +e.target.value;
-$('run').onclick = () => { if (state.sim.t >= state.sim.end) newRun(); state.playing = !state.playing; $('run').textContent = state.playing ? '❚❚ Pause' : '▶ Play'; };
+$('run').onclick = () => { if (state.sim.t >= state.sim.end) newRun(); state.playing = !state.playing; runLabel(state.playing ? '❚❚ Pause' : '▶ Play'); update(false); };
 $('reset').onclick = () => newRun();
+$('map-run').onclick = () => $('run').click();
+$('map-reset').onclick = () => newRun();
+function runLabel(t) { $('run').textContent = t; $('map-run').textContent = t; }
 $('scrub').oninput = e => seek(+e.target.value * 60);
 $('search').onchange = e => {
   const SUF = { AVENUE: 'AV', AVE: 'AV', WAY: 'WY', STREET: 'ST', ROAD: 'RD', DRIVE: 'DR', PLACE: 'PL', COURT: 'CT', LANE: 'LN', BOULEVARD: 'BL', TERRACE: 'TE', PATH: 'PA', WALK: 'WK' };
@@ -133,11 +136,11 @@ function renderSimple() {
       <div class="watch"><b>What to look for.</b> ${esc(p.on[state.fire])}</div>
       <div class="btns"><button data-watch="A" class="${state.editing === 'A' ? 'on' : ''}">▶ Watch Plan A</button><button data-watch="B" class="${state.editing === 'B' ? 'on' : ''}">▶ Watch Plan B</button>
       <button class="primary" id="simple-compare">Compare A and B on 9 fires</button></div>
-      <div id="simple-progress" class="small" style="margin-top:4px;color:var(--accent)"></div><div id="simple-result"></div>
-      <p class="small muted">Watch starts that plan on the map; pause, restart or slow it in the playback controls below. Compare runs both plans on the same 9 fires (low, central and high severity, 3 random seeds each) and the same households, takes about half a minute, and shows the answer here. Trust a difference that shows up in every run.</p>` : '<p class="small muted">Each question compares two plans on the same fire and the same households. The Expert switch at the top right lets you set everything yourself.</p>'}`;
+<div id="simple-result"></div>
+      <p class="small muted">Watch starts that plan on the map; pause, restart or slow it with the buttons beside the clock on the map. Compare runs both plans on the same 9 fires (low, central and high severity, 3 random seeds each) and the same households, takes a few minutes, and shows the answer here. Trust a difference that shows up in every run.</p>` : '<p class="small muted">Each question compares two plans on the same fire and the same households. The Expert switch at the top right lets you set everything yourself.</p>'}`;
   $('simple').querySelectorAll('.fire-pick').forEach(b => b.onclick = () => pickFire(b.dataset.fire));
   $('simple').querySelectorAll('.preset').forEach(b => b.onclick = () => { if (!b.disabled) applyPreset(b.dataset.id); });
-  $('simple').querySelectorAll('[data-watch]').forEach(b => b.onclick = () => { state.editing = b.dataset.watch; showPlan(); if (p.tods) { $('tod').value = p.tods[state.editing]; todNote(); } newRun(); renderSimple(); state.playing = true; $('run').textContent = '❚❚ Pause'; });
+  $('simple').querySelectorAll('[data-watch]').forEach(b => b.onclick = () => { state.editing = b.dataset.watch; showPlan(); if (p.tods) { $('tod').value = p.tods[state.editing]; todNote(); } newRun(); renderSimple(); state.playing = true; runLabel('❚❚ Pause'); });
   if ($('simple-compare')) $('simple-compare').onclick = () => { $('cmp-scope').value = 'severities'; $('compare').click(); };
 }
 // The chosen fire applies to every question. Keep the current question if it holds on the new
@@ -178,7 +181,7 @@ function getFire(sc, sev, seed) {
 function newRun() {
   const sc = scenario(), sev = $('severity').value, seed = +$('seed').value || 1;
   state.sim = new Evacuation(data, grid, getFire(sc, sev, seed), sc, sev, { ...state.plans[state.editing] }, seed, TIME_OF_DAY[$('tod').value], world());
-  map.sim = state.sim; state.playing = false; $('run').textContent = '▶ Play'; $('scrub').value = 0;
+  map.sim = state.sim; state.playing = false; runLabel('▶ Play'); $('scrub').value = 0;
   $('run-plan').textContent = `Plan ${state.editing}${state.preset ? ': ' + state.plans[state.editing].name.replace(/^[AB]: /, '') : ''}`;
   update(true); map.draw();
 }
@@ -194,7 +197,7 @@ function loop(now) {
   if (state.playing && sim) {
     let steps = Math.min(400, Math.round(state.speed * dt / sim.dt));
     while (steps-- > 0 && sim.t < sim.end) sim.step();
-    if (sim.t >= sim.end) { state.playing = false; $('run').textContent = '▶ Play again'; }
+    if (sim.t >= sim.end) { state.playing = false; runLabel('▶ Play again'); update(true); map.draw(); requestAnimationFrame(loop); return; }
     $('scrub').value = Math.floor(sim.t / 60);
     map.draw();
     if (now - lastUi > 300) { update(false); lastUi = now; }
@@ -205,11 +208,14 @@ function loop(now) {
 // ---------- results panel ----------
 function update(full) {
   const sim = state.sim, S = sim.summary(), sc = sim.scenario;
-  $('clock').innerHTML = `t + ${hm(sim.t)} <span class="sub">${esc(sc.name)} · ${SEVERITY[sim.sevKey].label} severity · seed ${sim.seed} · ${esc(sim.plan.name)}</span>`;
+  const done = sim.t >= sim.end;
+  $('clock').classList.toggle('done', done);
+  $('clock').innerHTML = `${done ? '<span class="done-tag">✓ Run complete</span> ' : ''}t + ${hm(sim.t)} <span class="of">of ${hm(sim.end)}${done ? '' : state.playing ? ' · playing' : sim.t > 0 ? ' · paused' : ''}</span> <span class="sub">${esc(sc.name)} · ${SEVERITY[sim.sevKey].label} severity · seed ${sim.seed} · ${esc(sim.plan.name)}</span>`;
   const c = (k, v, cls = '', tip = '') => `<div class="card ${cls}" title="${esc(tip)}"><div class="v">${v}</div><div class="k">${k}${tip ? ' <span class="tip">ⓘ</span>' : ''}</div></div>`;
   const tr = (label, value, tip) => `<tr title="${esc(tip)}"><td>${label} <span class="tip">ⓘ</span></td><td class="num">${value}</td></tr>`;
   const exposed = S.exposedHome + S.exposedRoad + S.exposedNoVehicle + S.notOrderedExposed;
-  $('results').innerHTML = `<h2>Results so far ${badge('synthetic')}</h2>
+  if ($('run-status')) $('run-status').innerHTML = done ? `<b>✓ Run complete.</b> ${esc(sim.plan.name)} ran the full ${hm(sim.end)} (h:mm) after ignition. The results on the right are final for this run; Play again restarts it.` : '';
+  $('results').innerHTML = `<h2>${done ? 'Results at the end of the run' : 'Results so far'} ${badge('synthetic')}</h2>
     <p class="small muted">People are synthetic households placed from Genasys zone population estimates (2020 Census blocks where Genasys publishes none); the fire is an illustrative overlay. Compare plans on the same scenario and seed; do not read the numbers as predictions.</p>
     <div class="cards">
       ${c('people in ordered zones', fmt(S.orderedPeople), '', 'Residents of zones under an evacuation order so far. An order means leave now; the 2025 Evacuation Time Study assumes everyone in an order zone leaves.')}
@@ -358,9 +364,10 @@ $('compare').onclick = () => {
     : scenarios.flatMap(s => seeds.map(seed => ({ scenarioId: s.id, sev: 'central', seed, tod: s.timeOfDay })));
   const W = world(), jobs = ['A', 'B'].flatMap(p => cases.map(c => ({ ...c, tod: state.preset?.tods?.[p] ?? c.tod, planKey: p, plan: { ...state.plans[p] }, world: W })));
   const batch = ++state.batch, results = [];
-  const progress = t => { $('cmp-progress').textContent = t; if ($('simple-progress')) $('simple-progress').textContent = t; };
+  // Progress goes in a small banner above the map (Eric, 2026-11-01), visible from either panel.
+  const progress = (t, done = 0) => { $('sim-banner').hidden = !t; $('sim-banner-text').textContent = t; $('sim-banner-bar').style.width = `${Math.round(100 * done / jobs.length)}%`; };
   if ($('simple-compare')) $('simple-compare').disabled = true;
-  progress(`Running ${jobs.length} simulations (identical fires and households for both plans). This takes about half a minute…`);
+  progress(`Comparing Plan A and Plan B: running ${jobs.length} simulations on the same fires and households. This takes a few minutes…`);
   worker.onmessage = ev => {
     const m = ev.data; if (m.batch !== batch) return;
     if (m.done) {
@@ -372,7 +379,7 @@ $('compare').onclick = () => {
       }
       return;
     }
-    results.push(m); progress(`Ran ${results.length} of ${jobs.length} simulations…`);
+    results.push(m); progress(`Comparing Plan A and Plan B: ${results.length} of ${jobs.length} simulations done…`, results.length);
   };
   worker.postMessage({ batch, jobs });
 };
@@ -401,7 +408,7 @@ function renderCompare(results, scope) {
   const med = a => { const s = a.filter(x => x != null && !Number.isNaN(x)).sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : null; };
   const range = a => { const s = a.filter(x => x != null && !Number.isNaN(x)); return s.length ? `${fmt(Math.min(...s))}–${fmt(Math.max(...s))}` : '—'; };
   let html = `<h2>Plan comparison ${badge('synthetic')}</h2>
-    <p class="small">A: <b>${esc(state.plans.A.name)}</b> · B: <b>${esc(state.plans.B.name)}</b>.${results[0]?.job.world?.growth && results[0].job.world.growth !== 'none' ? ` Future growth for both: ${esc(data.A.growth.options[results[0].job.world.growth].label)}.` : ''} Both plans ran the same fires, households and random seeds (1–3). Values are the median of 3 seeds with the min–max range under it. A difference smaller than the range is not a robust result.</p>`;
+    <p class="small">Green or red means B is better or worse than A in every run, by at least 10%; gray means the change is smaller or points different ways across runs, so there is no clear difference. A: <b>${esc(state.plans.A.name)}</b> · B: <b>${esc(state.plans.B.name)}</b>.${results[0]?.job.world?.growth && results[0].job.world.growth !== 'none' ? ` Future growth for both: ${esc(data.A.growth.options[results[0].job.world.growth].label)}.` : ''} Both plans ran the same fires, households and random seeds (1–3). Values are the median of 3 seeds with the min–max range under it. A difference smaller than the range is not a robust result.</p>`;
   html += takeaway(results, scope);
   for (const g of groups) {
     const A = pick('A', g), B = pick('B', g);
@@ -410,8 +417,13 @@ function renderCompare(results, scope) {
       const a = A.map(f), b = B.map(f), ma = med(a), mb = med(b);
       let d = ma != null && mb != null && isFinite(ma) && isFinite(mb) ? mb - ma : null;
       if (d != null && Math.abs(d) < 0.5) d = 0;
-      const cls = d == null || dir === 0 || Math.abs(d) < 1e-9 ? '' : (d * dir > 0 ? 'delta-good' : 'delta-bad');
-      html += `<tr><td>${esc(label)}</td><td class="num">${fmt(ma)}<div class="small muted">${range(a)}</div></td><td class="num">${fmt(mb)}<div class="small muted">${range(b)}</div></td><td class="num ${cls}">${d == null ? '—' : (d > 0 ? '+' : '') + fmt(d)}</td></tr>`;
+      // Color a difference only when every same-seed run has a value for both plans and B moves the same way in all of them; otherwise it is noise or incomplete.
+      const pairs = a.map((x, i) => [x, b[i]]).filter(([x, y]) => x != null && y != null && isFinite(x) && isFinite(y));
+      const better = pairs.filter(([x, y]) => (y - x) * dir > 0.5 * Math.abs(dir)).length, worse = pairs.filter(([x, y]) => (y - x) * dir < -0.5 * Math.abs(dir)).length;
+      // ...and only when the median change is at least 10% of A's value: three runs can agree on a small change by chance (the parking question showed +2 to +8 people at low severity in seeds 1–3, but −6 in seed 4).
+      const steady = pairs.length && pairs.length === a.length && (better === pairs.length || worse === pairs.length) && (d != null && Math.abs(d) >= 0.10 * Math.abs(ma || 0));
+      const cls = d == null || dir === 0 || Math.abs(d) < 1e-9 ? '' : !steady ? 'delta-mixed' : (d * dir > 0 ? 'delta-good' : 'delta-bad');
+      html += `<tr><td>${esc(label)}</td><td class="num">${fmt(ma)}<div class="small muted">${range(a)}</div></td><td class="num">${fmt(mb)}<div class="small muted">${range(b)}</div></td><td class="num ${cls}"${cls === 'delta-mixed' ? ' title="Smaller than 10%, or B is better in some runs and worse in others: no clear difference"' : ''}>${d == null ? '—' : (d > 0 ? '+' : '') + fmt(d)}</td></tr>`;
     }
     html += '</table>';
   }
@@ -427,7 +439,13 @@ function takeaway(results, scope) {
   const ma = med(pairs.map(x => x[0])), mb = med(pairs.map(x => x[1]));
   const better = pairs.filter(([a, b]) => (b - a) * dir > 0).length, worse = pairs.filter(([a, b]) => (b - a) * dir < 0).length;
   const robust = better === pairs.length || worse === pairs.length;
-  return `<div class="takeaway${robust ? '' : ' mixed'}"><b>${esc(label)}:</b> about ${fmt(ma)} under Plan A and ${fmt(mb)} under Plan B (median of ${pairs.length} runs). Plan B did better in ${better} of ${pairs.length} runs and worse in ${worse}.${robust ? '' : ' The difference does not hold in every run, so treat it as uncertain.'} These are synthetic households on an illustrative fire, not a prediction.</div>`;
+  const exF = S => S.exposedHome + S.exposedRoad + S.exposedNoVehicle + S.notOrderedExposed;
+  let other = '';
+  if (f.toString() !== exF.toString() && !/embers arrived/.test(label)) {
+    const ex = results.filter(r => r.job.planKey === 'A').map(a => exF(results.find(b => b.job.planKey === 'B' && b.job.sev === a.job.sev && b.job.seed === a.job.seed).summary) - exF(a.summary));
+    if (!(ex.every(x => x < -0.5) || ex.every(x => x > 0.5))) other = ` People still there when embers arrived show no clear difference (B − A ranges from ${fmt(Math.min(...ex))} to ${fmt(Math.max(...ex))} across runs).${p.otherNote ? ' ' + esc(p.otherNote) : ''}`;
+  }
+  return `<div class="takeaway${robust ? '' : ' mixed'}"><b>${esc(label)}:</b> about ${fmt(ma)} under Plan A and ${fmt(mb)} under Plan B (median of ${pairs.length} runs). Plan B did better in ${better} of ${pairs.length} runs and worse in ${worse}.${robust ? '' : ' The difference does not hold in every run, so treat it as uncertain.'}${other} These are synthetic households on an illustrative fire, not a prediction.</div>`;
 }
 function explain(results, g, scope) {
   const r = results.find(x => x.job.planKey === 'B' && x.job.seed === 1 && (scope === 'severities' ? x.job.sev === g : x.job.scenarioId === g));
@@ -446,7 +464,7 @@ const INPUTS = [
   ['Early departure', 'Share of households in the City\'s Leave Early Zones who leave on a Red Flag day, before any fire.', 'Exposure falls; evacuation time barely changes.'],
   ['Future growth', 'Added homes in the hills, from none to the 2025 Evacuation Time Study\'s maximum ADU build-out (27,060 units). Both plans face the same growth.', 'Evacuation time and people still there when embers arrived.'],
   ['R0', 'A plan setting that bars added units in one area: Leave Early Zones, Fire Zones 2–3 or areas behind a choke point.', 'How much of the growth\'s effect R0 removes.'],
-  ['Parking on hill streets', 'How much of the street parked cars take: today\'s mix, one side only, tight to the curb, none on narrow roads, or none.', 'Fire-engine access. Evacuation flow barely changes.'],
+  ['Parking on hill streets', 'How much of the street parked cars take: today\'s mix, one side only, tight to the curb, none on narrow roads, or none.', 'Fire-engine access. Engines do not fight the fire in this simulator, so better engine access has no effect on the fire. Evacuation flow barely changes.'],
 ];
 function intro() {
   modal(`<div class="intro"><h2>Berkeley Hills Wildfire Evacuation: Scenario Explorer</h2>
@@ -510,6 +528,7 @@ $('btn-assumptions').onclick = () => {
   </ul>
   <h3>What Phase 1 does not do</h3>
   <ul class="small">
+    <li>Engines do not fight the fire. The simulator times an engine's drive from the nearest station to the fire edge, but nothing an engine does slows the fire, protects homes or helps people leave, so better engine access has no effect on the fire. Parking rules still change how much traffic hill streets carry; in the runs tested, the parking options made no consistent difference to people still there when embers arrived.</li>
     <li>No deaths or injuries. "Still there when embers arrived" counts people at home or on the road when embers first reached their street (any burning cell within the ember distance upwind); "…when the fire front arrived" counts those still there when the fire itself reached the street. Whether they would be hurt depends on house survival, sheltering, fire intensity and smoke, none of which the simulator models.</li>
     <li>No buildings yet, so no structures exposed or lost; no home hardening or vegetation effects.</li>
     <li>No stairway or steep-path access time between homes and the street, and no assistance for people who need help (Phase 2).</li>
