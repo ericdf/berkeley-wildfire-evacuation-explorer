@@ -54,6 +54,8 @@ Status as of 2026-11-01. Categories: **sourced** (published data used as-is), **
 
 The City's 2025 Evacuation Time Study (KLD), the SB 99 Access Impaired Neighborhood report, the AB 747 route analysis, and the July 2025 Evacuation StoryMaps text are in `data/raw/docs/`. The three reports were recovered from the Wayback Machine because the City's links now return 404. What each contributed, with page references, is in `SOURCE_NOTES.md`.
 
+California ADU and SB 9 statutes (Gov. Code §66314, §66323, §65852.21, §66300), HCD's ADU Handbook (March 2026) and HCD's letters to Berkeley (Oct. 17, 2022; June 16, 2026), and Berkeley Ordinance 7,983-N.S. (2025) were read online for the R0 setting; citations are in `SOURCE_NOTES.md` (L1–L9). Nothing from them is stored as data.
+
 ## Missing inputs
 
 | Need | Format | Likely source | Unlocks |
@@ -68,7 +70,8 @@ The City's 2025 Evacuation Time Study (KLD), the SB 99 Access Impaired Neighborh
 | Curb inventory: red curbs, seasonal and Red Flag restrictions, enforcement rules | GeoJSON lines | City Public Works / Transportation | Real parking state per segment; targeted-restriction costs and resident impacts |
 | Stairways and pedestrian paths with steps, length and rise; which homes they serve | GeoJSON lines + attributes | City (Berkeley Path Wanderers maps exist); field survey | Home-to-street access time; households behind stairs (Phase 2) |
 | Household distributions at block-group level: size, vehicles, mobility or assistance need | CSV by block group | ACS 5-year (B08201 vehicles, B11016 size, disability tables in aggregate) | Replacing the `householdsWithoutVehicleShare` and persons-per-household assumptions |
-| ADU counts or capacity, and residents/vehicles per unit as ranges | CSV by zone or block | City Planning permits (`New_Building_Permits` layers exist), state ADU reports | ADU housing policy with uncertain added demand |
+| ADU permits by zone or block (counts only), and residents/vehicles per unit as ranges | CSV by zone or block | Housing Element Annual Progress Report parcel lists (tally by zone, keep no addresses), City `New_Building_Permits` layers | **Partly resolved 2026-11-01**: future-growth settings use the Time Study's Hillside Overlay totals (870 middle-housing units; 27,060 maximum ADU/JADU units; Table 10-11) and citywide APR permit counts (95–123 ADUs a year, 2021–2025) for the moderate case (SOURCE_NOTES E26, L9). A hills-only permit rate would replace the moderate assumption |
+| Hillside Overlay boundary (BMC zoning overlay "H") | GeoJSON polygon | City Planning | Where the Time Study's ADU units can go. None found in the City's ArcGIS organization (`BZO_hillzone` and `HFZ_shp` are Fire Zones 1–3), so growth uses Fire Zones 2–3 |
 | Fire apparatus dimensions and access standards | Table | Berkeley Fire Dept. | Engine width is now sourced (9.25 ft, SB 99 report); still needed: turning requirements and BFD's view of passable widths |
 | Historical fire perimeters (1923 timing, 1991 Tunnel Fire) and weather | GeoJSON + timeline | City `Berkeley_Fire_History`, `East_Bay_Fire_History`; NWS/RAWS | A 1991-type reference scenario; checking fire overlay timing |
 | ~~Street network beyond Berkeley~~ | — | **Resolved 2026-11-01** with OpenStreetMap, Genasys zone outlines and 2020 Census blocks (SOURCE_NOTES X1–X11). Still missing: measured widths outside Berkeley, and anything beyond the elevation grid (north Kensington, Oakland south of about 37.84° N) | Routes across the city line; neighbors' traffic |

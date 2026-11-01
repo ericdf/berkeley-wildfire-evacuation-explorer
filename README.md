@@ -43,10 +43,14 @@ plan on the map; Compare runs both on 9 fires (3 severities × 3 seeds) and stat
 
 1. **Scenario.** Pick a preset, a severity (low / central / high) and a random seed.
    Time of day changes who is home and how much background traffic there is.
+   Future growth (Expert view) adds homes in the hills for both plans: none, the 2025
+   Evacuation Time Study's middle-housing case (870 units) or maximum ADU build-out (27,060),
+   or a moderate case (2,706, an assumption).
 2. **Operating plan.** Plan A and Plan B are edited in tabs: when zones are ordered,
    how long detection and the decision take, whether all hill zones are ordered at once,
    early departure on Red Flag days (from the City's Leave Early Zones, or all of Fire Zones 2–3),
-   and parking on hill streets.
+   parking on hill streets, and R0: no added units in the Leave Early Zones, Fire Zones 2–3
+   or access-constrained areas, shown with its legal status.
 3. **Run.** Watch the fire, embers, vehicles, queues and the fire-engine route. Drag the
    slider to jump to a time. Click a street or zone to inspect it; hover a badge (ⓘ)
    to see where each value comes from.
@@ -151,6 +155,29 @@ area. Households waiting for a commuter (Time Study) wait for that person to dri
 first, against the outbound traffic; a commuter turned back by fire leaves the household one
 car short. A vehicle stuck 3 minutes at the head of a queue squeezes forward, so the queue
 model cannot lock up for good (as it did at the Marin traffic circle).
+Plan A and Plan B see the same households for the same seed: placement, vehicles, who leaves,
+mobilization delay, commuters and rides are drawn in an order fixed by the scenario's
+orders, never by the plan, and the leave-early decision has a separate random stream. A
+household that leaves early in Plan B is the only one whose draws go unused; a carless
+household whose Plan A neighbor left early rides with another neighbor. Added units (future
+growth, below) draw in the same fixed order from streams of their own, so with growth both
+plans see the same units wherever R0 builds them in both.
+
+**Future growth and R0.** The growth setting (`growth` in `data/assumptions.json`) adds the
+Time Study's Hillside Overlay units (§10.5, Table 10-11) as more synthetic households, drawn
+like today's (2.37 persons; about 1.12 vehicles per unit against the study's 1.14). The study
+gives no split by street, so units go to Berkeley's Fire Zones 2–3, standing in for the
+Hillside Overlay, in proportion to each street's share of today's households (an
+assumption). Where they go depends on the seed only, and each unit draws from its own seeded
+stream, so both plans see the same added homes and today's households are unchanged, except
+that a carless household with no neighbor to ride with today can ride with an added one (it
+draws from a stream of its own, so the shared stream and the non-resident vehicles stay the
+same under every growth and R0 setting). The
+plan setting R0 drops the units on streets in its area and moves none elsewhere. Fire Zones
+2–3 hold all the modeled growth, so R0 there equals no growth; the Leave Early Zones hold
+about 29% of it and access-constrained areas about 11% (areas from
+`data/model/access-constraints.json`, written by `tools/access-constraints.mjs`; the option
+stays disabled until that file exists). Parked cars do not increase with growth.
 
 **Diverters and traffic circles.** The list of record is the City's "Existing Traffic
 Calming Devices" layer (edited 2025-10-28: 75 diverters, 63 circles, 1 gate). The City gives
@@ -188,9 +215,11 @@ add any parking-removal bonus.
 | `js/fire.js`, `js/sim.js`, `js/parking.js`, `js/scenarios.js`, `js/rng.js` | Models and presets |
 | `js/presets.js` | Simple view: its fires, questions, per-fire "What to look for" text and the reasons a question is withheld |
 | `js/worker.js` | Runs comparison batches off the main thread |
-| `js/data.js` | Loads the data files |
+| `js/access.js` | Access-constrained areas: inspector card, Expert-view summary, ranking table, map key |
+| `js/data.js` | Loads the data files (`access-constraints.json` is optional) |
 | `data/assumptions.json` | **Editable** assumptions and model rules, each with a category and note |
 | `data/model/network.json`, `layers.json` | Built by `tools/build-network.mjs` (do not edit by hand) |
+| `data/model/access-constraints.json` | Built by `tools/access-constraints.mjs`; the simulator runs without it |
 | `data/terrain/dem.i16`, `dem.json` | Elevation grid, built by `tools/fetch-dem.mjs` |
 | `data/field/` | Field and aerial observations (counts only), e.g. parked cars on 22 hill blocks |
 | `data/raw/` | Downloaded source data (reproducible, large; City layers and report PDFs are not in git). `osm/east-bay-roads.json` (OSM streets), `osm/lbnl-gate-roads.json` (the Lab's gate roads), `genasys/zones.json` (zone outlines), `census/` (2020 block counts) each have a retrieval note |
@@ -198,6 +227,8 @@ add any parking-removal bonus.
 | `tools/` | Data pipeline (Node 18+, no npm packages) |
 | `tests/headless.mjs` | Runs every scenario × two plans in Node and prints summaries |
 | `tests/calibration.mjs`, `tests/stuck.mjs`, `tests/leftover.mjs` | Compare with the Time Study (fire off); list jammed links; list order-zone vehicles that never leave |
+| `tests/plan-draws.mjs` | Checks that Plan A and Plan B of every Simple-view question see the same households for a seed (each fire, seeds 1–3), the same with maximum growth under each R0 area, and that growth leaves today's households and the shared random stream unchanged |
+| `tests/growth.mjs` | Future growth and R0 with the fire on, seeds 1–5 (`SOURCE_NOTES.md` R4, R5); `GROWTH=max node tests/calibration.mjs` gives R3 |
 
 ## Replacing datasets
 
@@ -209,6 +240,7 @@ node tools/fetch-city-layers.mjs   # City of Berkeley ArcGIS Online layers → d
 node tools/build-network.mjs       # rebuild data/model/*.json from everything above
 node tests/headless.mjs            # sanity-check the models (optionally: low | central | high)
 node tests/calibration.mjs         # compare evacuation times with the 2025 Evacuation Time Study (fire off)
+node tests/plan-draws.mjs          # check that Plan A and Plan B see the same households for a seed
 ```
 
 **Street network.** Replace `data/raw/street-centerlines.geojson` with a GeoJSON
@@ -252,6 +284,13 @@ by the simulator at load time. Scenario presets, severities and time-of-day valu
   and through the middle of Kensington; north Kensington (about 1,500 people) and Oakland
   south of that line are not modeled. Traffic that reaches the edge has left.
 - Fire spread, ember distances and spot-fire rates are illustrative model values.
+- Future growth: with the Time Study's maximum ADU build-out the simulator's evacuation time
+  in the large regions grows less than the study's (fire off, fall weekday S4: 1923 region +42%
+  against the study's +58%; Fire Zones 2–3 +3% against +97%), because its junctions pass traffic
+  faster than the study's signals and stop signs; read growth effects there as a lower bound.
+  Panoramic Hill grows more than the study's (+115% against +25%): with one way out, its
+  streets lock up and the gridlock rule fires hundreds of times per run, so that figure is less
+  certain (`SOURCE_NOTES.md` R3, R7).
 
 ## Access-constrained areas
 
@@ -264,3 +303,12 @@ node tools/access-constraints.mjs --open 2322  # what-if: treat segment 2322 (or
 ```
 
 Rerun it after `tools/build-network.mjs`.
+
+**On the map.** Expert view, Map section: the "Access constraints" layer (off by default) draws each area from `data/model/access-constraints.json`:
+
+- A band under each street in an area, shaded in one blue ramp by the synthetic residents behind the area's outermost choke (under 25, 25, 100, 250, 500 or more). Solid for a dead end, dashed for a one-way-only area, which is softer: running its entrance two-way would open it. The band sits under the street line, so "Color streets by" still shows.
+- The choke as a thick bar along the first 25 m or more of the entrance from its outer end: red where an engine does not fit (under 10 ft clear with both sides parked, status-quo parking in its nominal state), dark where it fits, open (white center) where the width is unknown. Zoomed in, the bar is labeled with the clear width in feet.
+- Once zoomed in past 2 m per screen pixel (and always for the selected area), the nearest other street as a dashed straight line between two dots, labeled with length and climb when zoomed in or selected (dead ends with 10 or more residents only), and any existing path or stairway out, drawn heavier in the paths style.
+- A hatched, dashed box with "⚠ population placement artifact" around areas with an `allocationWarning` (Albany Hill, AC-315: zone ALB-011's 2,535 residents all land on one 221 m segment).
+
+Clicking a street in an area, with the layer on, outlines the innermost area in yellow and puts an "Access-constrained area" card above the street card: entrance, type, streets, residents, households and vehicles (synthetic), evacuation zones, nesting with the enclosing areas, clear width and engine fit at the entrance, steepest grade, fire-zone mix, nearest other street, existing path, and the constraint score with its components, each with its provenance badge and source note. With the layer off, the street card names the area in one row. Below the layer list, a line gives hill residents behind a choke point (5,749 of 41,475; Berkeley and LBNL 3,149 of 27,840) and opens a sortable table of the union of the two top-50 rankings (68 areas), with the score and its components labeled a model rule; clicking an area zooms to it. None of this appears in Simple view.
