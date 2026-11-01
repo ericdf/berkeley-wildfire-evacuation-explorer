@@ -296,6 +296,10 @@
     "access.barrierDelayS": {
       "category": "assumption",
       "note": "Time for an engine crew to open a gate or remove an emergency bollard (3 min, middle of the 2-5 min in pasted egress notes, SOURCE_NOTES P2; unsourced)."
+    },
+    "population.overrides": {
+      "category": "assumption",
+      "note": "Eric, 2026-11-01: OKL-003 (Claremont Canyon, an R04 Panoramic Hill order zone) uses the 2020 Census count (307 people in the blocks whose interior point lies in the zone; Census TIGERweb, POP100) instead of the Genasys estimate (27). Per zone: \"census2020\" replaces the Genasys estimate with the Census count. SOURCE_NOTES X6."
     }
   },
   "sharedLane": {
@@ -379,5 +383,10 @@
       "Berkeley Marina"
     ],
     "studentParkingM": 1000
+  },
+  "population": {
+    "overrides": {
+      "OKL-003": "census2020"
+    }
   }
 }

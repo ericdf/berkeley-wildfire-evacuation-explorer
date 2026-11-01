@@ -442,70 +442,315 @@ for (const e of edges) if (e.mode === 'vehicle' && !outward.has(comp[e.a])) e.di
       if (!exitSet.has(head) && !out[head]) { e.disconnected = true; changed = true; stats.osmOneWayStubs++; }
     } } }
 
-// ---------- 5b. OpenStreetMap barriers (diverters, bollards, gates) and traffic circles ----------
-// data/raw/osm/barriers-on-roads.json: barrier nodes on public OSM streets (Overpass, 2026-11-01).
-// OSM convention: a bollard, block, planter, jersey barrier or chain closes the street to cars
-// unless tagged otherwise; a gate is passable unless tagged access/motor_vehicle = no or private.
-const nearestVehicleEdge = (x, y, maxD) => { let best = null; for (const e of edges) { if (e.mode !== 'vehicle') continue; for (let k = 1; k < e.geom.length; k++) { const d = segD(x, y, e.geom[k - 1], e.geom[k]); if (d <= maxD && (!best || d < best.d)) best = { e, d }; } } return best; };
-const barrierStats = { onStreets: 0, matched: 0, closedToCars: 0, enginesPass: 0, gatesClosed: 0 }, barrierSeen = new Set();
-// data/raw/osm/east-bay-roads.json adds barrier nodes on drivable streets across the whole model area
-// (the barrier file stops at 122.23 W). Kerbs (a curb at a crossing) do not close a street.
-for (const f of ['data/raw/osm/barriers-on-roads.json', 'data/raw/osm/east-bay-roads.json']) if (has(f)) {
-  const osm = readJSON(f).elements;
-  const ways = osm.filter(x => x.type === 'way' && x.tags?.highway !== 'service'), bn = new Map(osm.filter(x => x.type === 'node' && x.tags?.barrier).map(n => [n.id, n]));
-  for (const w of ways) for (const id of w.nodes || []) {
-    const n = bn.get(id); if (!n || barrierSeen.has(id)) continue; barrierSeen.add(id);
-    const t = n.tags || {}, kind = t.barrier;
-    if (kind === 'kerb') continue;
-    barrierStats.onStreets++;
-    const motor = t.motor_vehicle ?? t.vehicle ?? t.access;
-    const gate = /gate/.test(kind);
-    const closed = gate ? ['no', 'private'].includes(motor) : !['yes', 'permissive', 'destination'].includes(motor);
-    if (!closed) continue;
-    const [x, y] = local([n.lon, n.lat]);
-    const m = nearestVehicleEdge(x, y, 15); if (!m) continue;
-    barrierStats.matched++; barrierStats.closedToCars++;
-    const engines = t.emergency === 'yes' || gate; // emergency=yes bollards are removable; engines can open gates
-    if (engines) barrierStats.enginesPass++;
-    if (gate) barrierStats.gatesClosed++;
-    m.e.barrier = { kind, osm: id, engines, gate, street: w.tags?.name || '', tags: Object.fromEntries(Object.entries(t).filter(([k]) => /access|vehicle|emergency|bicycle|foot/.test(k))) };
+// ---------- 5b. Diverters, bollards and gates; traffic circles ----------
+// List of record: the City's "Existing Traffic Calming Devices" layer (data/raw/city/traffic_calming.geojson,
+// edited 2025-10-28): 75 diverters, 63 traffic circles and 1 gate. The layer gives only a point, so what a
+// device does to cars is read from OpenStreetMap around it. OSM draws a diverter as a gap in the street
+// bridged by a cycleway, as a one-way stub, or as a barrier node. OSM barrier nodes that close a street away
+// from any City device (bollards, the Panoramic Way gate in Oakland) are sites too.
+// At each site every street arm of the network is matched to the OSM car network (the OSM segments of the same
+// street within 15 m, about 40 m out), and the build tests which arms OSM lets a car drive between without
+// leaving the site:
+//   an arm OSM cuts off from every other arm      -> closure: the arm is detached from the junction
+//   arms OSM joins in pairs (diagonal diverter)   -> node split: one node per pair
+//   an arm OSM lets cars only leave or only enter -> one-way: a 15 m one-way piece next to the junction
+// A site in mid-block splits the street at the barrier, so both halves of the block stay reachable; where one
+// side is a dead-end street (upper Panoramic Way beyond its gate), that side is closed to its end instead, and
+// a barrier within 20 m of a dead end is skipped (it would cut the last few meters off).
+// A detached arm or pair is joined back by a short connector edge marked barrier.closed: residents' cars never
+// use it; engines pass it after access.barrierDelayS where OSM tags the crossing emergency=yes or it is a gate.
+// A change that would cut streets off from the rest of the network is undone. Turns banned inside an open
+// junction (OSM restriction relations) are not modeled.
+const ORDINAL = { FIRST: '1ST', SECOND: '2ND', THIRD: '3RD', FOURTH: '4TH', FIFTH: '5TH', SIXTH: '6TH', SEVENTH: '7TH', EIGHTH: '8TH', NINTH: '9TH', TENTH: '10TH' };
+const nameKey = s => norm(String(s || '').toUpperCase().replace(/^(FIRST|SECOND|THIRD|FOURTH|FIFTH|SIXTH|SEVENTH|EIGHTH|NINTH|TENTH)\b/, w => ORDINAL[w]));
+const sameName = (a, b) => a === 'UNNAMED' || b === 'UNNAMED' || nameKey(a) === nameKey(b);
+const closesCars = t => { const kind = t?.barrier; if (!kind || kind === 'kerb') return false;
+  const motor = t.motor_vehicle ?? t.vehicle ?? t.access;
+  return /gate/.test(kind) ? ['no', 'private'].includes(motor) : !['yes', 'permissive', 'destination'].includes(motor); };
+const vEdge = e => e.mode === 'vehicle' && !e.disconnected;
+// OSM car graph from data/raw/osm/east-bay-roads.json (every drivable way in the model area, Berkeley included)
+const og = { pt: new Map(), adj: new Map(), blocked: new Set(), grid: new Map() };
+const OG = 50;
+if (has('data/raw/osm/east-bay-roads.json')) {
+  const el = readJSON('data/raw/osm/east-bay-roads.json').elements;
+  for (const n of el) if (n.type === 'node') { og.pt.set(n.id, local([n.lon, n.lat])); if (closesCars(n.tags)) og.blocked.add(n.id); }
+  for (const w of el) {
+    if (w.type !== 'way' || !OSM_CLASS[w.tags?.highway]) continue;
+    const t = w.tags; if ((t.motor_vehicle ?? t.vehicle ?? t.access) === 'no') continue;
+    const ow = t.oneway, dir = ow === '-1' ? -1 : (ow === 'yes' || ow === 'true' || ow === '1' || t.junction === 'roundabout' || (t.highway === 'motorway' && ow !== 'no')) ? 1 : 0;
+    const name = osmName(t);
+    for (let i = 1; i < w.nodes.length; i++) {
+      const u = w.nodes[i - 1], v = w.nodes[i], a = og.pt.get(u), b = og.pt.get(v), L = dist(a, b);
+      for (const x of [u, v]) if (!og.adj.has(x)) og.adj.set(x, []);
+      if (dir >= 0) og.adj.get(u).push([v, L]); if (dir <= 0) og.adj.get(v).push([u, L]);
+      const s = { u, v, a, b, L, fwd: dir >= 0, bwd: dir <= 0, name }, seen = new Set();
+      for (let f = 0; f <= 1.001; f += Math.min(1, 25 / (L || 1))) { const k = `${Math.floor((a[0] + (b[0] - a[0]) * f) / OG)},${Math.floor((a[1] + (b[1] - a[1]) * f) / OG)}`;
+        if (seen.has(k)) continue; seen.add(k); if (!og.grid.has(k)) og.grid.set(k, []); og.grid.get(k).push(s); }
+    }
   }
 }
-// Traffic circles: OSM junction=roundabout rings in data/raw/osm/berkeley-barriers.json; every
-// network node inside a ring (plus 12 m) gets the Time Study's circle capacity (E16).
-const circleNodes = new Set();
+const osmSegsNear = p => { const out = new Set(), cx = Math.floor(p[0] / OG), cy = Math.floor(p[1] / OG);
+  for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (const s of og.grid.get(`${cx + dx},${cy + dy}`) || []) out.add(s); return [...out]; };
+// Can a car drive from one probe (the OSM segments across an arm) to another within `cap` meters, without passing
+// more than R from the site? Barrier nodes block. Reaching a target segment at either end counts.
+function osmDrive(from, to, cap, c, R) {
+  const d = new Map(), open = [];
+  const push = (x, dd) => { if (dd > cap || og.blocked.has(x) || dd >= (d.get(x) ?? Infinity)) return; d.set(x, dd); open.push([dd, x]); };
+  for (const { s, t } of from.segs) { if (s.fwd) push(s.v, (1 - t) * s.L); if (s.bwd) push(s.u, t * s.L); }
+  while (open.length) { open.sort((x, y) => y[0] - x[0]); const [du, u] = open.pop(); if (du > d.get(u)) continue;
+    if (to.segs.some(({ s }) => (s.u === u && s.fwd) || (s.v === u && s.bwd))) return true;
+    if (dist(og.pt.get(u), c) > R) continue;
+    for (const [v, L] of og.adj.get(u) || []) push(v, du + L); }
+  return false;
+}
+// projection of p on a polyline: distance along it and offset from it
+function project(pts, p) { let best = { along: 0, off: Infinity }, acc = 0;
+  for (let i = 1; i < pts.length; i++) { const [ax, ay] = pts[i - 1], [bx, by] = pts[i], dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy, L = Math.sqrt(L2);
+    const u = L2 ? Math.max(0, Math.min(1, ((p[0] - ax) * dx + (p[1] - ay) * dy) / L2)) : 0, off = Math.hypot(p[0] - ax - u * dx, p[1] - ay - u * dy);
+    if (off < best.off) best = { along: acc + u * L, off }; acc += L; }
+  return best; }
+function cutAt(pts, d) { let acc = 0;
+  for (let i = 1; i < pts.length; i++) { const L = dist(pts[i - 1], pts[i]);
+    if (acc + L >= d) { const u = L ? (d - acc) / L : 0, p = [r1(pts[i - 1][0] + u * (pts[i][0] - pts[i - 1][0])), r1(pts[i - 1][1] + u * (pts[i][1] - pts[i - 1][1]))];
+      return [[...pts.slice(0, i), p], [p, ...pts.slice(i)]]; } acc += L; }
+  return [pts, [pts.at(-1), pts.at(-1)]]; }
+// Match one arm (geometry oriented away from the site) to the OSM street: at a point about 40 m out, every OSM
+// segment of the same name that runs alongside within 15 m (both carriageways of a divided street).
+function osmProbe(armPts, name) {
+  const L = polyLen(armPts);
+  const tries = L < 24 ? [L / 2] : [40, 30, 55, 20, 70, 15, 12].filter(d => d <= L - 5);
+  for (const d of tries) {
+    const p = pointAt(armPts, d / L), q = pointAt(armPts, Math.min(L, d + 5) / L), r = pointAt(armPts, Math.max(0, d - 5) / L);
+    const ax = q[0] - r[0], ay = q[1] - r[1], al = Math.hypot(ax, ay) || 1, segs = [];
+    for (const s of osmSegsNear(p)) {
+      if (!sameName(s.name, name) || !s.L) continue;
+      const dx = s.b[0] - s.a[0], dy = s.b[1] - s.a[1], t = ((p[0] - s.a[0]) * dx + (p[1] - s.a[1]) * dy) / (s.L * s.L);
+      if (t < -0.02 || t > 1.02) continue; // the segment must run past the probe point, not end short of it (at a gap)
+      if (Math.hypot(p[0] - s.a[0] - t * dx, p[1] - s.a[1] - t * dy) > 15 || Math.abs((dx * ax + dy * ay) / (s.L * al)) < 0.8) continue;
+      segs.push({ s, t: Math.max(0, Math.min(1, t)) });
+    }
+    if (segs.length) return { segs, along: d };
+  }
+  return null; }
+const compass = pts => { const L = polyLen(pts), p = pointAt(pts, L ? Math.min(20, L) / L : 0), a = Math.atan2(p[1] - pts[0][1], p[0] - pts[0][0]) * 180 / Math.PI;
+  return ['east', 'northeast', 'north', 'northwest', 'west', 'southwest', 'south', 'southeast'][Math.round(((a + 360) % 360) / 45) % 8]; };
+
+// network bookkeeping: vehicle edges at each node, dead ends, reachability from the main component and the exits
+const exitSet = new Set(exitIds), mainNode = nodes.findIndex((_, i) => comp[i] === main);
+let inc; const rebuildInc = () => { inc = nodes.map(() => []); for (const e of edges) if (vEdge(e)) { inc[e.a].push(e); if (e.b !== e.a) inc[e.b].push(e); } };
+const deadEnd = n => inc[n].length === 1 && !exitSet.has(n);
+const isClosed = e => e.barrier?.closed;
+const unreached = (skip = null) => { const seen = new Uint8Array(nodes.length), st = []; for (const s of [mainNode, ...exitIds]) if (!seen[s]) { seen[s] = 1; st.push(s); }
+  const adj2 = nodes.map(() => []); for (const e of edges) if (vEdge(e) && !isClosed(e) && e !== skip) { adj2[e.a].push(e.b); adj2[e.b].push(e.a); }
+  while (st.length) { const u = st.pop(); for (const w of adj2[u]) if (!seen[w]) { seen[w] = 1; st.push(w); } }
+  return { seen, count: edges.filter(e => vEdge(e) && !isClosed(e) && e !== skip && (!seen[e.a] || !seen[e.b])).length }; };
+const RANK = { Local: 0, 'Major Collector': 1, 'Principal Arterial': 2, Ramp: 3, Interstate: 3 };
+function splitEdge(e, d) { // e becomes a -> X and a copy X -> b is added; returns [e, copy, X]
+  const [g1, g2] = cutAt(e.geom, d), L1 = polyLen(g1), L2 = polyLen(g2), X = nodes.length; nodes.push({ pt: g1.at(-1) });
+  const zX = elev(...g1.at(-1)), e2 = { ...structuredClone(e), id: edges.length, a: X, geom: g2, len: r1(e.len * L2 / (L1 + L2)), z: [zX == null ? null : r1(zX), e.z[1]] };
+  Object.assign(e, { b: X, geom: g1, len: r1(e.len * L1 / (L1 + L2)), z: [e.z[0], e2.z[0]] });
+  edges.push(e2); rebuildInc(); return [e, e2, X]; }
+function connector(from, to, like, barrier) { // short edge from a detached arm back to the junction, closed to residents' cars
+  const g = [[r1(nodes[from].pt[0]), r1(nodes[from].pt[1])], [r1(nodes[to].pt[0]), r1(nodes[to].pt[1])]];
+  const e = { ...structuredClone(like), id: edges.length, a: from, b: to, geom: g, len: r1(Math.max(1, dist(g[0], g[1]))), trav: 'B',
+    lanes: [1, 1], grade: 0, z: [elev(...g[0]), elev(...g[1])].map(v => v == null ? null : r1(v)), barrier: { ...barrier, closed: true } };
+  delete e.steep; edges.push(e); rebuildInc(); return e; }
+const wasDir = new Map(); // one-way pieces: direction and lanes before, in case the change is undone
+function oneWayPiece(e, ft) { wasDir.set(e, { trav: e.trav, lanes: e.lanes }); const l = Math.max(...e.lanes); e.trav = ft; e.lanes = ft === 'FT' ? [l, 0] : [0, l]; }
+const barrierOf = (site, extra) => ({ kind: site.kind, cityId: site.cityId, osm: site.osm, engines: site.engines, gate: site.gate, street: site.street, ...extra });
+const sites = [];
+// An arm's geometry away from the site, carried on through the far node along the same street while shorter than
+// 60 m, so a probe can reach past a gap that covers a short block end (Russell St east of Piedmont Av).
+function extend(pts, far, not, name) {
+  for (let hop = 0; hop < 2 && polyLen(pts) < 60; hop++) {
+    const next = inc[far].filter(g => g !== not && g.a !== g.b && g.name === name); if (next.length !== 1) break;
+    const g = next[0], gp = g.a === far ? g.geom : [...g.geom].reverse(); pts = [...pts, ...gp.slice(1)]; not = g; far = g.a === far ? g.b : g.a; }
+  return pts; }
+
+// Analyse one site and change the network. c: device point; n: junction node, or null for mid-block on `onEdge` at `along` m.
+// dry: only report whether the site would change the network ('restricted') or why not.
+function applySite(site, c, n, onEdge, along, dry = false) {
+  rebuildInc();
+  if (n == null) {
+    const [h0, h1] = cutAt(onEdge.geom, along), ends = [onEdge.a, onEdge.b];
+    for (const [k, h] of [[0, h0], [1, h1]]) if (deadEnd(ends[k]) && polyLen(h) < 20) { site.action = 'nextToDeadEnd'; site.note = `${Math.round(polyLen(h))} m from a dead end`; return; }
+    const arms = [{ pts: extend([...h0].reverse(), onEdge.a, onEdge, onEdge.name) }, { pts: extend(h1, onEdge.b, onEdge, onEdge.name) }];
+    const pr = arms.map(a => osmProbe(a.pts, onEdge.name));
+    // an OSM barrier node is itself the evidence: if OSM has no street on one side to test, it closes the street
+    if (pr.some(p => !p) && site.src !== 'osm') { site.action = 'noOsmMatch'; return; }
+    const R = pr.every(Boolean) && Math.max(pr[0].along, pr[1].along) + 25, cap = R && pr[0].along + pr[1].along + 40;
+    const fwd = R && osmDrive(pr[0], pr[1], cap, c, R), back = R && osmDrive(pr[1], pr[0], cap, c, R); // fwd: toward e.b
+    const needF = onEdge.trav !== 'TF', needB = onEdge.trav !== 'FT';
+    if ((fwd || !needF) && (back || !needB)) { site.action = 'openInOsm'; return; }
+    if (dry) return 'restricted';
+    if (fwd || back) { // one direction only: a 15 m one-way piece at the device
+      const [, e2] = splitEdge(onEdge, along), [piece] = splitEdge(e2, Math.min(15, e2.len / 2));
+      oneWayPiece(piece, fwd ? 'FT' : 'TF');
+      piece.barrier = barrierOf(site, { action: fwd ? 'one-way (drawn direction)' : 'one-way (against drawn direction)', closed: false });
+      site.action = 'oneWay'; site.edges = [piece.id]; return; }
+    // closed both ways: split the block at the device
+    const r0 = unreached(onEdge), deadSide = [onEdge.a, onEdge.b].map(x => !r0.seen[x]);
+    if (deadSide[0] && deadSide[1]) { site.action = 'keptOpenCut'; site.note = 'neither side connects elsewhere'; return; }
+    if (deadSide[0] || deadSide[1]) { // one side has no other way out: close that piece to its end (upper Panoramic Way beyond the gate)
+      const far = deadSide[1] ? onEdge.b : onEdge.a;
+      if (!deadEnd(far)) { site.action = 'keptOpenCut'; site.note = 'closing it would cut streets off from the rest of the network'; return; }
+      const [e1, e2] = splitEdge(onEdge, along), piece = deadSide[1] ? e2 : e1;
+      piece.barrier = barrierOf(site, { action: 'closes the dead-end side', closed: true });
+      site.action = 'closure'; site.edges = [piece.id]; return; }
+    const [, e2] = splitEdge(onEdge, along), [cn] = splitEdge(e2, Math.min(3, e2.len / 2));
+    cn.barrier = barrierOf(site, { action: 'closure', closed: true }); cn.trav = 'B'; cn.lanes = [1, 1];
+    site.action = 'closure'; site.edges = [cn.id]; return;
+  }
+  // junction site
+  const arms = inc[n].filter(e => e.a !== e.b).map(e => { const out = e.a === n ? 'FT' : 'TF', inn = e.a === n ? 'TF' : 'FT';
+    return { e, jn: n, pts: extend(e.a === n ? e.geom : [...e.geom].reverse(), e.a === n ? e.b : e.a, e, e.name), name: e.name, inOK: e.trav === 'B' || e.trav === inn, outOK: e.trav === 'B' || e.trav === out }; });
+  const pr = arms.map(a => osmProbe(a.pts, a.name)), k = arms.length;
+  if (pr.filter(Boolean).length < 2) { site.action = 'noOsmMatch'; return; }
+  const R = Math.max(...pr.filter(Boolean).map(p => p.along)) + 25;
+  const net = (i, j) => arms[i].inOK && arms[j].outOK;
+  const osm = Array.from({ length: k }, (_, i) => Array.from({ length: k }, (_, j) => i !== j && pr[i] && pr[j] && net(i, j) && osmDrive(pr[i], pr[j], pr[i].along + pr[j].along + 40, c, R)));
+  // groups: arms OSM connects in either direction; arms with no OSM match stay together
+  const grp = arms.map((_, i) => i), find = i => grp[i] === i ? i : (grp[i] = find(grp[i])), join = (i, j) => { grp[find(i)] = find(j); };
+  for (let i = 0; i < k; i++) for (let j = 0; j < k; j++) if (i !== j && (pr[i] && pr[j] ? osm[i][j] || osm[j][i] : !pr[i] && !pr[j])) join(i, j);
+  const groups = new Map(); arms.forEach((_, i) => { const r = find(i); if (!groups.has(r)) groups.set(r, []); groups.get(r).push(i); });
+  const G = [...groups.values()];
+  // one-way arms: the network lets cars enter (or leave) the junction from this arm, OSM does not
+  const oneWay = [];
+  for (const g of G) if (g.length > 1) for (const i of g) { if (!pr[i] || arms[i].e.trav !== 'B') continue;
+    const mates = g.filter(j => j !== i && pr[j]); if (!mates.length) continue;
+    const inBlocked = !mates.some(j => osm[i][j]), outBlocked = !mates.some(j => osm[j][i]);
+    if (inBlocked !== outBlocked) oneWay.push({ i, toward: outBlocked }); }
+  // OSM bans some movements the network allows but leaves every arm connected both ways: turn bans, not modeled
+  if (G.length === 1 && !oneWay.length) { site.action = osm.some((row, i) => row.some((v, j) => i !== j && pr[i] && pr[j] && net(i, j) && !v)) ? 'turnsNotModeled' : 'openInOsm'; return; }
+  if (dry) return 'restricted';
+  const made = [];
+  if (G.length > 1) {
+    // the group with unmatched arms, else the highest-class or largest group, stays on the junction node
+    const score = g => (g.some(i => !pr[i]) ? 100 : 0) + Math.max(...g.map(i => RANK[arms[i].e.cls] ?? 0)) * 10 + g.length;
+    const anchor = G.reduce((b, g) => score(g) > score(b) ? g : b);
+    for (const g of G) { if (g === anchor) continue;
+      // new node 3 m from the junction toward the group's arms
+      const dirs = g.map(i => { const L = polyLen(arms[i].pts), p = pointAt(arms[i].pts, Math.min(3, L / 2) / L); return [p[0] - nodes[n].pt[0], p[1] - nodes[n].pt[1]]; });
+      const m = dirs.reduce((s, d) => [s[0] + d[0], s[1] + d[1]], [0, 0]), ml = Math.hypot(...m) || 1;
+      const Y = nodes.length; nodes.push({ pt: [r1(nodes[n].pt[0] + m[0] / ml * 3), r1(nodes[n].pt[1] + m[1] / ml * 3)] });
+      for (const i of g) { const e = arms[i].e; arms[i].jn = Y; if (e.a === n) { e.a = Y; e.geom[0] = nodes[Y].pt; } else { e.b = Y; e.geom[e.geom.length - 1] = nodes[Y].pt; } }
+      const like = arms[g.reduce((b, i) => (RANK[arms[i].e.cls] ?? 0) > (RANK[arms[b].e.cls] ?? 0) ? i : b, g[0])].e;
+      made.push(connector(Y, n, like, barrierOf(site, { street: g.map(i => `${titleName(arms[i].name)} ${compass(arms[i].pts)}`).join(' + '), action: g.length === 1 ? 'closure' : 'node split' }))); }
+    site.action = G.filter(g => g.length > 1).length > 1 ? 'nodeSplit' : 'closure'; // two or more pairs: a diagonal or similar split
+    site.groups = G.map(g => g.map(i => `${titleName(arms[i].name)} ${compass(arms[i].pts)}`).join(' + '));
+  }
+  for (const { i, toward } of oneWay) { // toward: cars may only drive toward the junction (out of this street)
+    const e = arms[i].e, atA = e.a === arms[i].jn, far = atA ? e.b : e.a;
+    if (!toward && deadEnd(far)) continue; // cars on a dead-end block could never leave
+    const s = Math.min(15, e.len / 2), [e1, e2] = splitEdge(e, atA ? s : e.len - s), piece = atA ? e1 : e2;
+    oneWayPiece(piece, atA === toward ? 'TF' : 'FT');
+    piece.barrier = barrierOf(site, { street: titleName(arms[i].name), action: toward ? 'one-way out of this street' : 'one-way into this street', closed: false });
+    made.push(piece); (site.oneWay ||= []).push(`${titleName(arms[i].name)} ${compass(arms[i].pts)}: ${toward ? 'out only' : 'in only'}`); }
+  if (!site.action) site.action = made.length ? 'oneWay' : 'openInOsm';
+  site.edges = made.map(e => e.id);
+}
+// Apply a site, then undo its closures and one-way pieces if they cut streets off from the rest of the network
+// or leave cars with no way to drive out of the model area.
+const trapped = () => { const rev = nodes.map(() => []), seen = new Uint8Array(nodes.length), st = [...exitSet];
+  for (const e of edges) if (vEdge(e) && !isClosed(e)) { if (e.trav !== 'TF') rev[e.b].push(e.a); if (e.trav !== 'FT') rev[e.a].push(e.b); }
+  for (const x of st) seen[x] = 1;
+  while (st.length) { const u = st.pop(); for (const w of rev[u]) if (!seen[w]) { seen[w] = 1; st.push(w); } }
+  return edges.filter(e => vEdge(e) && !isClosed(e) && (!seen[e.a] || !seen[e.b])).length; };
+function applyChecked(site, ...args) {
+  const cut0 = unreached().count, trap0 = trapped();
+  applySite(site, ...args);
+  if (!['closure', 'nodeSplit', 'oneWay'].includes(site.action)) return;
+  const cut = unreached().count > cut0, trap = !cut && trapped() > trap0; if (!cut && !trap) return;
+  const why = cut ? 'closing it would cut streets off from the rest of the network' : 'it would leave cars on one-way streets with no way out';
+  for (const id of site.edges || []) { const e = edges[id];
+    if (e.barrier?.closed) e.barrier.closed = false;
+    if (wasDir.has(e)) Object.assign(e, wasDir.get(e));
+    if (e.barrier) e.barrier.keptOpen = why; }
+  site.action = 'keptOpenCut'; site.note = why;
+}
+const titleName = s => String(s).toLowerCase().replace(/\b[a-z]/g, ch => ch.toUpperCase());
+function nearestVehicleEdge(p, maxD, name) { let best = null;
+  for (const e of edges) { if (!vEdge(e) || isClosed(e) || (name && !sameName(e.name, name))) continue; const d = distToPoly(p, e.geom); if (d <= maxD && (!best || d < best.d)) best = { e, d }; }
+  return best; }
+
+// engines: the device is a gate, or OSM tags the cycleway or a bollard across it emergency=yes
+// (data/raw/osm/diverter-surroundings.json: non-car ways and barrier nodes within 60 m of each City device)
+const around = has('data/raw/osm/diverter-surroundings.json') ? readJSON('data/raw/osm/diverter-surroundings.json').elements : [];
+const gapWays = around.filter(x => x.type === 'way' && /^(cycleway|path|footway|pedestrian)$/.test(x.tags?.highway) && x.geometry).map(w => ({ t: w.tags, pts: w.geometry.map(g => local([g.lon, g.lat])) }));
+const aroundBarriers = around.filter(x => x.type === 'node' && x.tags?.barrier && x.tags.barrier !== 'kerb').map(nd => ({ t: nd.tags, pt: local([nd.lon, nd.lat]) }));
+const enginesAt = c => gapWays.some(w => w.t.emergency === 'yes' && distToPoly(c, w.pts) <= 30) || aroundBarriers.some(b => dist(b.pt, c) <= 30 && (b.t.emergency === 'yes' || /gate/.test(b.t.barrier)));
+
+rebuildInc();
+const city = cityLayer('traffic_calming');
+const nearestJunction = (c, maxD) => { let n = null, bd = maxD; for (let i = 0; i < nodes.length; i++) { if (inc[i].length < 3) continue; const d = dist(nodes[i].pt, c); if (d < bd) { bd = d; n = i; } } return n; };
+const cityCenters = [];
+for (const f of city.filter(f => f.geometry?.type === 'Point' && /Diverter|Gate/.test(f.properties.Full_Type))) {
+  const c = local(f.geometry.coordinates), gate = /Gate/.test(f.properties.Full_Type);
+  const site = { src: 'city', cityId: f.properties.OBJECTID, kind: gate ? 'gate' : 'diverter', gate, pt: c.map(r1), engines: gate || enginesAt(c) };
+  if (/KLD/.test(f.properties.Notes || '')) site.cityNote = f.properties.Notes.trim();
+  sites.push(site);
+  // where: the nearest junction (3 or more streets) within 25 m, else mid-block on the nearest street within 25 m
+  // where: the City points sit at the junction or up to about 50 m along one of its streets. Try the nearest
+  // junction within 25 m, then mid-block on the nearest street within 25 m, then the nearest junction within 50 m;
+  // use the first place where OSM restricts traffic, else report the first place tried.
+  rebuildInc();
+  const tries = [], n1 = nearestJunction(c, 25), m = nearestVehicleEdge(c, 25), n2 = nearestJunction(c, 50);
+  if (n1 != null) tries.push({ n: n1 });
+  if (m) tries.push({ e: m.e, along: Math.max(1, Math.min(m.e.len - 1, project(m.e.geom, c).along)) });
+  if (n2 != null && n2 !== n1) tries.push({ n: n2 });
+  if (!tries.length) { site.action = 'notOnNetwork'; site.note = 'no street within 25 m'; continue; }
+  const pick = tries.find(t => applySite({ ...site }, c, t.n ?? null, t.e, t.along, true) === 'restricted') || tries[0];
+  const names = pick.n != null ? inc[pick.n].map(e => e.name) : [pick.e.name];
+  site.street = [...new Set(names.map(titleName))].join(' / '); site.at = pick.n != null ? 'junction' : 'mid-block';
+  cityCenters.push({ c: pick.n != null ? [...nodes[pick.n].pt] : c, names: new Set(names) });
+  applyChecked(site, c, pick.n ?? null, pick.e, pick.along);
+}
+// OSM barrier nodes that close a public street (data/raw/osm/barriers-on-roads.json, and east-bay-roads.json for the
+// whole model area). Kerbs and service roads are left out; a barrier closes only a street of the same name (a
+// bollard on Southwest Place once closed Derby St). Barriers within 45 m of a City device on the same street were
+// read with that device.
+const barrierSeen = new Set();
+for (const f of ['data/raw/osm/barriers-on-roads.json', 'data/raw/osm/east-bay-roads.json']) if (has(f)) {
+  const osm = readJSON(f).elements;
+  const ways = osm.filter(x => x.type === 'way' && x.tags?.highway !== 'service'), bn = new Map(osm.filter(x => x.type === 'node' && x.tags?.barrier).map(nd => [nd.id, nd]));
+  for (const w of ways) for (const id of w.nodes || []) {
+    const nd = bn.get(id); if (!nd || barrierSeen.has(id) || !closesCars(nd.tags)) continue; barrierSeen.add(id);
+    const t = nd.tags, gate = /gate/.test(t.barrier), c = local([nd.lon, nd.lat]), street = osmName(w.tags || {});
+    if (cityCenters.some(q => dist(q.c, c) <= 45 && [...q.names].some(nm => sameName(nm, street)))) continue;
+    const site = { src: 'osm', osm: id, kind: t.barrier, gate, pt: c.map(r1), street: titleName(street), engines: t.emergency === 'yes' || gate,
+      tags: Object.fromEntries(Object.entries(t).filter(([k]) => /access|vehicle|motorcar|emergency|bicycle|foot/.test(k))) };
+    sites.push(site);
+    rebuildInc(); const m = nearestVehicleEdge(c, 15, street);
+    if (!m) { site.action = 'notOnNetwork'; site.note = `no ${titleName(street)} in the network within 15 m`; continue; }
+    const along = project(m.e.geom, c).along, end = along < 3 ? m.e.a : along > m.e.len - 3 ? m.e.b : null;
+    if (end != null && inc[end].length >= 3) applyChecked(site, c, end);
+    else if (end != null && deadEnd(end)) { site.action = 'nextToDeadEnd'; site.note = 'at the end of the street'; }
+    else applyChecked(site, c, null, m.e, Math.max(Math.min(1, m.e.len / 2), Math.min(m.e.len - 1, along)));
+  }
+}
+rebuildInc();
+const tally = list => list.reduce((o, s) => (o[s.action] = (o[s.action] || 0) + 1, o), {});
+// Traffic circles: the City's 63 circles (nearest junction within 20 m) and OSM junction=roundabout rings in
+// data/raw/osm/berkeley-barriers.json (every node inside a ring plus 12 m) get the Time Study's circle capacity (E16).
+const circleNodes = new Set(); let cityCircles = 0;
+for (const f of city.filter(f => f.geometry?.type === 'Point' && /Circle/.test(f.properties.Full_Type))) {
+  const n = nearestJunction(local(f.geometry.coordinates), 20); if (n != null) { circleNodes.add(n); cityCircles++; } }
 if (has('data/raw/osm/berkeley-barriers.json')) {
   const osm = readJSON('data/raw/osm/berkeley-barriers.json').elements;
-  const pts = new Map(osm.filter(x => x.type === 'node').map(n => [n.id, n]));
+  const pts = new Map(osm.filter(x => x.type === 'node').map(nd => [nd.id, nd]));
   for (const w of osm.filter(x => x.type === 'way' && /roundabout|circular/.test(x.tags?.junction || ''))) {
-    const ring = (w.nodes || []).map(id => pts.get(id)).filter(Boolean).map(n => local([n.lon, n.lat]));
+    const ring = (w.nodes || []).map(id => pts.get(id)).filter(Boolean).map(nd => local([nd.lon, nd.lat]));
     if (ring.length < 3) continue;
     const cx = ring.reduce((s, p) => s + p[0], 0) / ring.length, cy = ring.reduce((s, p) => s + p[1], 0) / ring.length;
     const r = Math.max(...ring.map(p => Math.hypot(p[0] - cx, p[1] - cy))) + 12;
     nodes.forEach((nd, i) => { if (Math.hypot(nd.pt[0] - cx, nd.pt[1] - cy) <= r) circleNodes.add(i); });
   }
 }
-// A closure that would cut streets off from the rest of the network stays open: near the edge of the
-// model area a street may have an outlet beyond the network. (Before the OSM streets were added this kept
-// Tanglewood Rd open; it now connects through Oakland.)
-// Reachability from the main component and from every exit (streets beyond the model area connect them).
-const mainNode = nodes.findIndex((_, i) => comp[i] === main);
-const reach = skip => { const seen = new Uint8Array(nodes.length), st = []; for (const s of [mainNode, ...exitIds]) if (!seen[s]) { seen[s] = 1; st.push(s); }
-  const adj2 = nodes.map(() => []); for (const e of edges) if (e.mode === 'vehicle' && !e.disconnected && !skip.has(e)) { adj2[e.a].push(e.b); adj2[e.b].push(e.a); }
-  while (st.length) { const u = st.pop(); for (const w of adj2[u]) if (!seen[w]) { seen[w] = 1; st.push(w); } }
-  return seen; };
-const closedSet = new Set(edges.filter(e => e.barrier));
-for (const e of [...closedSet]) {
-  const seen = reach(closedSet);
-  const cut = edges.some(x => x.mode === 'vehicle' && !x.disconnected && !closedSet.has(x) && (!seen[x.a] || !seen[x.b]));
-  if (!cut) break;
-  // find closures whose removal isolates streets, one at a time
-  const alone = reach(new Set([e]));
-  if (edges.some(x => x.mode === 'vehicle' && !x.disconnected && x !== e && (!alone[x.a] || !alone[x.b]))) { closedSet.delete(e); e.barrier.keptOpen = 'closing it would cut streets off from the rest of the network'; barrierStats.closedToCars--; barrierStats.keptOpen = (barrierStats.keptOpen || 0) + 1; }
-}
-for (const e of edges) if (e.barrier) e.barrier.closed = closedSet.has(e);
-stats.osmBarriers = barrierStats; stats.circleNodes = circleNodes.size;
-console.log('OSM barriers', JSON.stringify(barrierStats), '| traffic-circle nodes', circleNodes.size);
+const citySites = sites.filter(s => s.src === 'city'), osmSites = sites.filter(s => s.src === 'osm');
+stats.barriers = { cityDevices: citySites.length, city: tally(citySites), osmBarrierSites: osmSites.length, osm: tally(osmSites),
+  enginesPass: sites.filter(s => s.engines && ['closure', 'nodeSplit'].includes(s.action)).length, closedEdges: edges.filter(e => e.barrier?.closed).length };
+stats.circleNodes = circleNodes.size; stats.cityCirclesMatched = cityCircles;
+console.log('Barriers: City', JSON.stringify(stats.barriers.city), '| OSM', JSON.stringify(stats.barriers.osm), '| engines pass', stats.barriers.enginesPass, '| traffic-circle nodes', circleNodes.size, `(City circles matched ${cityCircles})`);
 
 // ---------- 6. nodes out ----------
 const nodesOut = nodes.map(nd => { const z = elev(...nd.pt); return [r1(nd.pt[0]), r1(nd.pt[1]), z == null ? null : r1(z)]; });
@@ -517,6 +762,7 @@ const network = {
     terrain: { width: dem.width, height: dem.height, resolution: dem.resolution, xmax: dem.xmax - OX, ymax: dem.ymax - OY },
     stats: { ...stats, osm: osmStats, nodes: nodes.length, components: ncomp, mainComponentNodes: compSize[main] },
     circleNodes: [...circleNodes],
+    barrierSites: sites,
     exitNodes: exitIds,
     fields: {
       geom: { category: 'sourced', source: 'Berkeley: Alameda County Street Centerlines export (data.acgov.org), downloaded 2026-10-20; segment data revised 2015-09-26. Outside Berkeley (src.osmWay): OpenStreetMap drivable ways (Overpass API, 2026-11-01; © OpenStreetMap contributors, ODbL), joined to the County network at the city line.', note: 'Projected to UTM 10N, simplified to 0.75 m. OSM ends are moved onto the nearest County node (up to 60 m) where the two networks meet.' },
@@ -540,7 +786,7 @@ const network = {
       effLanes: { category: 'model rule', source: 'Moving lanes that fit in clearWidthM: 2 if >= 2 x access.movingLaneM, 1 if >= one lane, else 0. With one effective lane, opposing vehicles must wait for each other.' },
       belowFireCodeWidth: { category: 'derived', source: 'clearWidthM below access.fireCodeClearM (20 ft unobstructed width, California Fire Code 503.2.1 for new fire apparatus access roads; context only, existing streets are not required to meet it)' },
       engineBlocked: { category: 'model rule', source: 'clearWidthM below access.engineClearM: a fire engine cannot get through without parked cars being moved' },
-      barrier: { category: 'sourced', source: 'OpenStreetMap barrier node on this street (Overpass API, 2026-11-01; © OpenStreetMap contributors, ODbL), matched within 15 m. Closed to residents\' cars; engines pass where tagged emergency=yes or at gates. Diverters that block only some turns are treated as closing the whole segment (approximation).' },
+      barrier: { category: 'sourced', source: 'Diverters and gates from the City of Berkeley list of record, layer \"Existing Traffic Calming Devices\" (Berkeley_Fire_Apparatus_Route_Map_WFL1, layer 1, edited 2025-10-28; cityId = its OBJECTID); bollards, gates and blocks elsewhere from OpenStreetMap barrier nodes on a street of the same name (osm = node id). How each device channels cars is read from the OpenStreetMap street geometry around it (Overpass API, 2026-11-01; © OpenStreetMap contributors, ODbL): action says what the network does. closure and node split: a short connector edge (or, beyond a gate on a dead-end street, the rest of that street) closed to residents\' cars; engines pass after access.barrierDelayS where OSM tags the crossing emergency=yes or it is a gate. one-way: a 15 m one-way piece, open to all. Banned turns inside an open junction are not modeled. meta.barrierSites lists every device and what was done with it.' },
       speedMps: { category: 'assumption', source: 'data/assumptions.json capacity.speedMph by road class, capped by City SPEED where known, or by the OSM maxspeed tag outside Berkeley (outside the hills)' },
       capPerLaneVph: { category: 'sourced', source: 'AB 747 report capacity rules (HCM 2022): two-lane roads 45 pc/h per mph up to 1,700; multilane 1,900 per lane; freeway 2,250 per lane (capRule says which). Speed input is an assumption; steep segments reduced by a model rule.' },
     },
@@ -585,6 +831,8 @@ function zonesOut(features, tol = 3) {
     const share = all ? ins / all : 0;
     let cAll = 0, cIn = 0;
     for (const b of blocks) if (inZone(z, b.pt)) { cAll += b.pop; if (inExt(b.pt)) cIn += b.pop; }
+    // labeled per-zone override (data/assumptions.json population.overrides): use the Census count instead of Genasys
+    if (A.population?.overrides?.[z.id] === 'census2020' && z.popSrc !== 'census2020') { z.genasysPop = z.pop; z.popSrc = 'census2020'; z.popOverride = A._meta['population.overrides'].note; }
     if (z.popSrc === 'census2020') { z.pop = cAll; z.popModeled = cIn; }
     else z.popModeled = Math.round(z.pop * share);
     z.census2020 = cAll; z.areaShareModeled = Math.round(share * 1000) / 1000;

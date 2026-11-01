@@ -262,7 +262,8 @@ function inspect(sel, quiet) {
         + row('Net grade (drawn direction)', `${fmt(e.grade, 1)}%`, 'derived', F.grade.source)
         + row('Elevation at ends', `${fmt(e.z[0])} m → ${fmt(e.z[1])} m`, 'derived', F.z.source)
         + row('Speed · capacity per lane', `${fmt(e.speedMps * 2.237)} mph · ${fmt(e.capPerLaneVph)} veh/h${e.steep ? ' (steep)' : ''}`, 'model rule', F.capPerLaneVph.source)
-        + (e.barrier ? row('Barrier (OpenStreetMap)', `${esc(e.barrier.kind.replace('_', ' '))}${e.barrier.closed ? ': closed to residents\' cars' + (e.barrier.engines ? '; engines pass after ' + data.A.access.barrierDelayS / 60 + ' min' : '; engines blocked') : ': left open (' + esc(e.barrier.keptOpen || '') + ')'}`, 'sourced', F.barrier.source) : '')
+        + (e.barrier ? row(e.barrier.cityId ? `${e.barrier.gate ? 'Gate' : 'Diverter'} (City list #${e.barrier.cityId}, shape from OpenStreetMap)` : 'Barrier (OpenStreetMap)',
+          `${esc(String(e.barrier.kind).replace('_', ' '))}${e.barrier.action ? ' · ' + esc(e.barrier.action) : ''}${e.barrier.street ? ' (' + esc(e.barrier.street) + ')' : ''}${e.barrier.closed ? ': closed to residents\' cars' + (e.barrier.engines ? '; engines pass after ' + data.A.access.barrierDelayS / 60 + ' min' : '; engines blocked') : e.barrier.keptOpen ? ': left open (' + esc(e.barrier.keptOpen) + ')' : ''}`, 'sourced', F.barrier.source) : '')
         + (e.fireZoneSrc?.startsWith('proxy') ? row('Fire zone', 'hills (outside Berkeley)', 'model rule', F.fireZoneSrc.source) : row('Fire zone', e.fireZone ?? 'outside', 'sourced', F.fireZone.source))
         + row('Evacuation zone', e.evacZone ?? '—', 'sourced', F.evacZone.source)
         + (e.src.osmWay ? '' : row('City segment match', e.city?.id ?? 'none', e.city ? 'derived' : 'unknown', 'Matched by street name and distance'));
@@ -279,7 +280,7 @@ function inspect(sel, quiet) {
   } else {
     const z = data.layers.evacZones[sel.id];
     let rows = row('Zone', esc(z.id), 'sourced') + row('Described as', esc(z.knownAs || '—'), 'sourced')
-      + row('Estimated population', fmt(z.pop), 'sourced', z.popSrc === 'census2020' ? '2020 Census population of the blocks whose interior point lies in this Genasys zone (Genasys publishes no estimate for it)' : 'Genasys zone estimate in the City layer (method not documented there)')
+      + row('Estimated population', fmt(z.pop) + (z.popOverride ? ` (census2020; Genasys estimate ${fmt(z.genasysPop)})` : ''), z.popOverride ? 'assumption' : 'sourced', z.popOverride ? esc(z.popOverride) : z.popSrc === 'census2020' ? '2020 Census population of the blocks whose interior point lies in this Genasys zone (Genasys publishes no estimate for it)' : 'Genasys zone estimate in the City layer (method not documented there)')
       + row('2020 Census, same zone', fmt(z.census2020), 'sourced', 'Population of 2020 Census blocks whose interior point lies in the zone, inside the model area plus a small margin. A check on the Genasys estimate.');
     if (sim) {
       let hh = 0, left = 0, noCar = 0;
@@ -309,7 +310,7 @@ function legend() {
     + (map.layers.vehicles ? `<div><span class="dot" style="background:#1d4ed8"></span>Vehicle leaving · <span class="dot" style="background:#d97706"></span>commuter driving home · <span class="dot" style="background:#e11d48"></span>in ember area</div>` : '')
     + (map.layers.queues ? sw('rgba(200,20,40,.8)', 'Queue (width = how full)') : '')
     + (map.layers.responder ? sw('#0e7490', 'Engine route to fire edge') : '')
-    + (map.layers.streets ? '<div><b style="color:#111">✕</b> diverter or bollard, closed to cars · <b style="color:#7c3aed">✕</b> engines can pass (OpenStreetMap)</div>' : '')
+    + (map.layers.streets ? '<div><b style="color:#111">✕</b> diverter or bollard, closed to cars · <b style="color:#7c3aed">✕</b> engines can pass (City diverter list, OpenStreetMap)</div>' : '')
     + (map.layers.paths ? `<div><span class="sw" style="background:repeating-linear-gradient(90deg,#8a5a2b 0 3px,transparent 3px 6px)"></span>Paths &amp; stairways (no vehicles)</div>` : '');
   $('legend').innerHTML = `<b>${STREET_MODES[m]}</b>${L}${extra}`;
 }
@@ -474,7 +475,7 @@ $('btn-assumptions').onclick = () => {
     <li>No buildings yet, so no structures exposed or lost; no home hardening or vegetation effects.</li>
     <li>No stairway or steep-path access time between homes and the street, and no assistance for people who need help (Phase 2).</li>
     <li>Employees, students, visitors and I-80 and CA-24 through traffic use the Time Study's vehicle counts, placed by area (an approximation).</li>
-    <li>Intersection capacities are illustrative per road class; the study models each signal and stop sign. Traffic circles (900 vehicles per hour, Time Study) and diverters come from OpenStreetMap, not from a City list.</li>
+    <li>Intersection capacities are illustrative per road class; the study models each signal and stop sign. Traffic circles (900 vehicles per hour, Time Study) and diverters come from the City's list of traffic-calming devices (75 diverters, 63 circles); how each one channels traffic is read from OpenStreetMap. 13 of the 75 stay open: OpenStreetMap shows no restriction at 6 and only banned turns at 1 (turn bans are not modeled), 2 could not be placed on the network, and 4 would cut streets off or leave cars on one-way streets with no way out.</li>
     <li>Contraflow, traffic control and road closures beyond fire-blocked segments are not modeled.</li>
     <li>Streets outside Berkeley come from OpenStreetMap, with widths assumed from Berkeley's medians and lanes from OSM tags or by road class. The model area stops at the edge of the elevation grid (37.84–37.91° N, 122.33–122.21° W: about 1 km into Oakland, the middle of Kensington, the Caldecott Tunnel); traffic that reaches the edge has left, and people beyond it are not modeled (about 1,500 of Kensington's 5,428 residents in the 2020 Census).</li>
   </ul>`);

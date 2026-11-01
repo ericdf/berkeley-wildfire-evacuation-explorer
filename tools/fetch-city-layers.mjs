@@ -34,11 +34,12 @@ export const LAYERS = {
   shelters: { service: 'ShelterSites_WFL1', layer: null, why: 'Shelter sites' },
   no_parking_narrow: { service: 'Map_of_No_Parking_or_Stopping_Signs_Near_Narrow_Roads_WFL1', layer: null, why: 'No parking/stopping signs near narrow roads' },
   no_parking_fz23: { service: 'Map_of_No_Parking_Signs__Without_Tow_Away__in_FZ_2_and_3_WFL1', layer: null, why: 'No parking signs (no tow-away) in Fire Zones 2 and 3' },
+  traffic_calming: { service: 'Berkeley_Fire_Apparatus_Route_Map_WFL1', layer: 1, why: 'Existing Traffic Calming Devices: the list of record for diverters, traffic circles and gates (network builder, section 5b)' },
 };
 
 async function json(url) {
   for (let i = 0; i < 4; i++) {
-    const r = await fetch(url);
+    const r = await fetch(url, { headers: { 'User-Agent': 'berkeley-wildfire-simulator/0.1' } });
     if (r.ok) { const j = await r.json(); if (!j.error) return j; throw new Error(`${url}: ${j.error.message}`); }
     await new Promise(res => setTimeout(res, 1500 * (i + 1)));
   }

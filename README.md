@@ -122,12 +122,23 @@ first, against the outbound traffic; a commuter turned back by fire leaves the h
 car short. A vehicle stuck 3 minutes at the head of a queue squeezes forward, so the queue
 model cannot lock up for good (as it did at the Marin traffic circle).
 
-**Diverters and traffic circles.** Bollards, planters and jersey barriers that OpenStreetMap
-records on public streets close those segments to residents' cars (32 segments, 10 of them
-outside Berkeley; ✕ on the map). Engines get through gates and removable bollards after 3
-minutes. A closure that would cut streets off from the rest of the network would stay open and
-be flagged; none does now that Oakland's streets reach Tanglewood Rd. Junctions
-inside OpenStreetMap traffic circles pass at most 900 vehicles per hour (Time Study).
+**Diverters and traffic circles.** The list of record is the City's "Existing Traffic
+Calming Devices" layer (edited 2025-10-28: 75 diverters, 63 circles, 1 gate). The City gives
+only a point, so the builder reads each diverter's shape from OpenStreetMap: at each junction it
+tests which streets OSM lets a car drive between. Of the 75, 32 close one street at the junction,
+13 split the junction in two (the diagonal diverters at Piedmont Av and Derby St, where Derby west
+joins Piedmont north and Derby east joins Piedmont south, and at Piedmont Av and Parker St), 17
+make a 15 m piece one-way (Forest Av at College Av: out only), and 13 stay open (6 show no
+restriction in OSM, 1 bans only turns, which the simulator does not model, 2 could not be placed,
+4 would cut streets off or leave cars on one-way streets with no way out). A closure detaches the
+street at the barrier, so each block stays reachable from its open end. OSM bollards, gates and
+blocks away from the City's points close 9 more streets; a barrier counts only on a street of the
+same name, and one within 20 m of a dead end is skipped. Beyond the Panoramic Way gate in Oakland
+(`vehicle=no`), upper Panoramic Way is closed to residents' cars. Engines get through gates and
+crossings OSM tags `emergency=yes` after 3 minutes (✕ on the map; purple where engines pass).
+`meta.barrierSites` in `network.json` lists every device and what the network does there.
+Junctions at the City's 63 circles and inside OSM roundabouts pass at most 900 vehicles per hour
+(Time Study).
 
 **Parking and the 2025 study.** On a two-way street, removing parking opens the oncoming
 lane. It does not create a second evacuating lane. Evacuation traffic runs mostly one way, so

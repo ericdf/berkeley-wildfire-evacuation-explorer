@@ -181,7 +181,7 @@ export class MapView {
       ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); this.path(e.geom); ctx.stroke();
       if (this.streetMode === 'oneway' && (e.trav === 'FT' || e.trav === 'TF') && this.scale > 0.5) this.arrow(e);
     }
-    // Diverters and bollards from OpenStreetMap that close a street to residents' cars
+    // Diverters (City list, shape from OpenStreetMap), bollards and gates that close a street to residents' cars
     for (const e of data.net.edges) {
       if (!e.barrier?.closed) continue;
       const [mx, my] = data.edgeMid[e.id], x = this.sx(mx), y = this.sy(my), r = Math.max(3, Math.min(6, this.scale * 4));
