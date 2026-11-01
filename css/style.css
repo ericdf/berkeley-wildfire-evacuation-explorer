@@ -104,3 +104,5 @@ header nav #btn-intro:hover { background: #fcd34d; filter: none; }
 #legend .key-toggle { display: block; margin: 0 0 4px auto; font-size: 11px; padding: 1px 6px; }
 #legend:has(> div) .key-toggle { float: right; margin: 0 0 4px 8px; }
 #run-plan { display: block; text-transform: none; letter-spacing: 0; font-size: 12.5px; color: var(--accent); margin-top: 2px; }
+.tip { color: var(--muted); cursor: help; font-size: 11px; }
+.card[title]:not([title=""]), tr[title]:not([title=""]) { cursor: help; }

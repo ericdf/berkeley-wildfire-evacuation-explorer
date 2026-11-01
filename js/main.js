@@ -190,33 +190,34 @@ function loop(now) {
 function update(full) {
   const sim = state.sim, S = sim.summary(), sc = sim.scenario;
   $('clock').innerHTML = `t + ${hm(sim.t)} <span class="sub">${esc(sc.name)} · ${SEVERITY[sim.sevKey].label} severity · seed ${sim.seed} · ${esc(sim.plan.name)}</span>`;
-  const c = (k, v, cls = '', tip = '') => `<div class="card ${cls}" title="${esc(tip)}"><div class="v">${v}</div><div class="k">${k}</div></div>`;
+  const c = (k, v, cls = '', tip = '') => `<div class="card ${cls}" title="${esc(tip)}"><div class="v">${v}</div><div class="k">${k}${tip ? ' <span class="tip">ⓘ</span>' : ''}</div></div>`;
+  const tr = (label, value, tip) => `<tr title="${esc(tip)}"><td>${label} <span class="tip">ⓘ</span></td><td class="num">${value}</td></tr>`;
   const exposed = S.exposedHome + S.exposedRoad + S.exposedNoVehicle + S.notOrderedExposed;
   $('results').innerHTML = `<h2>Results so far ${badge('synthetic')}</h2>
     <p class="small muted">People are synthetic households placed from Genasys zone population estimates (2020 Census blocks where Genasys publishes none); the fire is an illustrative overlay. Compare plans on the same scenario and seed; do not read the numbers as predictions.</p>
     <div class="cards">
-      ${c('people in ordered zones', fmt(S.orderedPeople), '', 'Modeled residents in zones ordered so far (Time Study: 100% leave)')}
-      ${c('warned and leaving', fmt(S.warnedLeaving), '', 'Time Study: 50% of households in warning zones leave')}
+      ${c('people in ordered zones', fmt(S.orderedPeople), '', 'Residents of zones under an evacuation order so far. An order means leave now; the 2025 Evacuation Time Study assumes everyone in an order zone leaves.')}
+      ${c('warned and leaving', fmt(S.warnedLeaving), '', 'Residents of zones under an evacuation warning (get ready, and leave now if you need extra time) who leave anyway. The Time Study assumes half of warned households leave.')}
       ${c('reached safety', fmt(S.reachedSafety), 'good', `Ordered or warned people whose household's vehicles left the order/warning area and ember zone. Includes ${fmt(S.riders)} people riding with a neighbor.`)}
-      ${c('shadow evacuees on the move', fmt(S.shadowLeaving), '', `People outside the order/warning zones who leave anyway (Time Study: 20%), driving out of the modeled area. ${fmt(S.shadowVehicles)} vehicles.`)}
-      ${c('left early (before ignition)', fmt(S.leftEarly), S.leftEarly ? 'good' : '')}
-      ${c('on the road now', fmt(S.onRoad))}
-      ${c('ordered, not yet left', fmt(S.notLeft), S.notLeft ? 'bad' : '')}
+      ${c('shadow evacuees on the move', fmt(S.shadowLeaving), '', `"Shadow evacuees" are people outside every order and warning zone who leave anyway, out of caution. The Time Study assumes 20% of them leave. They drive out of the modeled area and add ${fmt(S.shadowVehicles)} cars to the roads, but they are not counted in evacuation time.`)}
+      ${c('left early (before ignition)', fmt(S.leftEarly), S.leftEarly ? 'good' : '', 'People who left on the Red Flag warning, before the fire started (plan setting: early departure). They are never in the evacuation traffic.')}
+      ${c('on the road now', fmt(S.onRoad), '', 'Ordered or warned people whose car has left home but has not yet reached safety.')}
+      ${c('ordered, not yet left', fmt(S.notLeft), S.notLeft ? 'bad' : '', 'People in ordered or warned zones still at home: getting ready (departure times from the Time Study survey), waiting for a commuter to drive home, or picking up children.')}
       ${c('no vehicle and no ride', fmt(S.noVehicle), S.noVehicle ? 'bad' : '', 'Carless households that found no neighbor to ride with (Time Study: 86.9% rideshare). Phase 2 adds buses, paratransit and check-ins.')}
       ${c('still there when embers arrived', fmt(exposed), exposed ? 'bad' : '', `People still at home or on the road when embers first reached their street. Not a count of deaths or injuries: many would shelter or come through unharmed. At home ${fmt(S.exposedHome)}; on roads ${fmt(S.exposedRoad)}; without a vehicle ${fmt(S.exposedNoVehicle)}; in zones with no order ${fmt(S.notOrderedExposed)}`)}
       ${c('still there when the fire front arrived', fmt(S.fireFrontHome + S.fireFrontRoad), S.fireFrontHome + S.fireFrontRoad ? 'bad' : '', `People still at home or on the road when the fire itself reached their street, a harsher measure than embers. Still not a count of deaths or injuries. At home ${fmt(S.fireFrontHome)}; on roads ${fmt(S.fireFrontRoad)}`)}
       ${c('vehicles cut off by fire', fmt(S.vehiclesNoRoute), S.vehiclesNoRoute ? 'bad' : '', 'Cars with no road out: the fire had closed every route from their street, almost always before they set off. Parking rules do not change this number; leaving earlier does.')}
     </div>
     <table class="kv" style="margin-top:8px">
-      <tr><td>Evacuation time after the first order (Time Study ETE): 50% / 90% / all vehicles out</td><td class="num">${mins(S.clearP50)} / ${mins(S.clearP90)} / ${S.clearP100 == null ? 'not yet' : mins(S.clearP100)}</td></tr>
+      ${tr('Evacuation time after the first order (Time Study ETE): 50% / 90% / all vehicles out', `${mins(S.clearP50)} / ${mins(S.clearP90)} / ${S.clearP100 == null ? 'not yet' : mins(S.clearP100)}`, 'Minutes from the first evacuation order until half, 90% and all of the cars that started in ordered zones have left the order and warning area. This is how the 2025 Evacuation Time Study measures its evacuation time estimate (ETE).')}
       ${studyRow(sc)}
-      <tr><td>Last household with a car out (after the first order)</td><td class="num">${S.lastHousehold == null ? 'not yet' : mins(S.lastHousehold)}</td></tr>
-      <tr><td>Vehicles on roads now · peak queued</td><td class="num">${fmt(S.vehiclesOnRoad)} · ${fmt(S.peakQueued)}</td></tr>
-      <tr><td>Fire-engine travel to the fire edge: at ignition → now (City standard: ${data.A.access.engineServiceMin} min)</td><td class="num">${S.responderFree === Infinity ? '<b style="color:#b91c1c">blocked by parked cars</b>' : mins(S.responderFree)} → ${S.responderBlocked ? '<b style="color:#b91c1c">blocked</b>' : mins(S.responderEta)}</td></tr>
-      <tr><td>Street segments too narrow for an engine (this plan and seed)</td><td class="num">${fmt(S.engineBlockedSegments)}</td></tr>
-      <tr><td>Two-way segments where oncoming drivers take turns</td><td class="num">${fmt(S.sharedLanes)}</td></tr>
-      <tr><td>Commuters driving home into the area: home · turned back by fire</td><td class="num">${fmt(S.commutersHome)} of ${fmt(S.commutersInbound)} · ${fmt(S.commutersTurnedBack)}</td></tr>
-      <tr><td>Zones ordered · warned</td><td class="num">${fmt(S.zonesOrdered)} · ${fmt(S.zonesWarned)}</td></tr>
+      ${tr('Last household with a car out (after the first order)', S.lastHousehold == null ? 'not yet' : mins(S.lastHousehold), 'Minutes from the first order until the last ordered or warned household with a car reached safety.')}
+      ${tr('Vehicles on roads now · peak queued', `${fmt(S.vehiclesOnRoad)} · ${fmt(S.peakQueued)}`, 'Cars on the road at this moment, and the most cars waiting in queues at any one moment so far.')}
+      ${tr(`Fire-engine travel to the fire edge: at ignition → now (City standard: ${data.A.access.engineServiceMin} min)`, `${S.responderFree === Infinity ? '<b style="color:#b91c1c">blocked by parked cars</b>' : mins(S.responderFree)} → ${S.responderBlocked ? '<b style="color:#b91c1c">blocked</b>' : mins(S.responderEta)}`, 'Minutes for a fire engine to drive from the nearest station to the nearest point of the fire edge it can reach: at ignition, and now, with evacuation traffic in the way. "Blocked" means parked cars leave less than an engine\'s width on every route. The City\'s standard is 5 minutes.')}
+      ${tr('Street segments too narrow for an engine (this plan and seed)', fmt(S.engineBlockedSegments), 'Street segments where parked cars leave less than 10 ft, an engine\'s width, under this plan\'s parking rules and this seed\'s parked cars.')}
+      ${tr('Two-way segments where oncoming drivers take turns', fmt(S.sharedLanes), 'Two-way street segments where parked cars leave room for only one moving car, so drivers meeting from opposite directions take turns at gaps such as driveways.')}
+      ${tr('Commuters driving home into the area: home · turned back by fire', `${fmt(S.commutersHome)} of ${fmt(S.commutersInbound)} · ${fmt(S.commutersTurnedBack)}`, 'On weekdays some households wait for a family member to drive home before leaving (Time Study: 13% of households midweek). How many of those commuters got home, out of all driving in, and how many the fire turned back.')}
+      ${tr('Zones ordered · warned', `${fmt(S.zonesOrdered)} · ${fmt(S.zonesWarned)}`, 'Evacuation zones under an order (leave now) and under a warning (get ready) so far.')}
     </table>
     <canvas class="spark" id="spark" width="330" height="60"></canvas>
     <div class="small muted"><span style="color:#b91c1c">■</span> vehicles queued &nbsp; <span style="color:#1d4ed8">■</span> on roads &nbsp; <span style="color:#0e7490">■</span> engine ETA (scaled)</div>
