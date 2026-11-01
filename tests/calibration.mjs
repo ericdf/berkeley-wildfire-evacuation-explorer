@@ -2,6 +2,7 @@
 // The study models traffic only, so these runs switch the fire off (no blocked roads,
 // no embers) and use only the study's order/warning zones.
 //   node tests/calibration.mjs [seeds=3] [intersection scale]
+//   GROWTH=max node tests/calibration.mjs   (Future growth: middle, moderate or max; SOURCE_NOTES R3)
 import fs from 'node:fs';
 import { loadData } from '../js/data.js';
 import { buildFireGrid } from '../js/fire.js';
@@ -14,6 +15,8 @@ const noFire = { arrival: new Float64Array(grid.W * grid.H).fill(Infinity), embe
 const seeds = +(process.argv[2] || 3);
 if (process.argv[3]) data.A.intersections.scale = +process.argv[3]; // optional: try another intersection-capacity scale
 console.log(`intersection capacity scale ${data.A.intersections.scale}`);
+const world = { growth: process.env.GROWTH || 'none' };
+if (world.growth !== 'none') console.log(`future growth ${world.growth}`);
 const hm = m => { if (m == null) return '  —  '; const r = Math.round(m); return `${Math.floor(r / 60)}:${String(r % 60).padStart(2, '0')}`; };
 const plan = { ...DEFAULT_PLAN, alertKm: 0, orderDelayMin: 0 };
 for (const sc of makeScenarios(data).filter(s => ETE_TARGETS[s.id])) {
@@ -23,7 +26,7 @@ for (const sc of makeScenarios(data).filter(s => ETE_TARGETS[s.id])) {
   for (const tk of Object.keys(TIME_OF_DAY)) {
     const runs = [];
     for (let seed = 1; seed <= seeds; seed++) {
-      const sim = new Evacuation(data, grid, noFire, { ...sc, durationMin: 360 }, 'central', plan, seed, TIME_OF_DAY[tk]);
+      const sim = new Evacuation(data, grid, noFire, { ...sc, durationMin: 360 }, 'central', plan, seed, TIME_OF_DAY[tk], world);
       runs.push(sim.runToEnd());
     }
     const col = f => { const v = runs.map(f).filter(x => x != null).sort((a, b) => a - b); return v.length ? `${hm(v[Math.floor(v.length / 2)])} [${hm(v[0])}–${hm(v.at(-1))}]` : '—'; };
