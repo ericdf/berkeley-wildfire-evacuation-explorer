@@ -1,0 +1,718 @@
+                            City of Berkeley, California
+                      Access Impaired Neighborhood Analysis
+                            Senate Bill 99 Requirement
+
+
+
+
+                    Work performed for the City of Berkeley, by:
+
+                                  KLD Engineering, P.C.
+                       1061 Veterans Memorial Highway, Ste 340
+                                   Islandia, NY 11749
+                           email: rcohen@kldcompanies.com
+
+
+
+
+February 19, 2024                Final Report, Rev. 3              KLD TR – 1380
+Introduction
+
+Number five (5) of item G of Section 1 of Section 65302 of Senate Bill 99 stipulates that a safety
+element for the protection of the community “shall be reviewed and updated to identify
+residential developments in any hazard area identified in the safety element that do not have at
+least two emergency evacuation routes.”
+The City of Berkeley, California has contracted KLD Engineering, P.C. to help identify residential
+developments, or neighborhoods, that are in a hazard area with limited means of egress. These
+neighborhoods may experience more challenges evacuating and should be given special
+consideration when planning for emergencies that require evacuation. This memo describes the
+data, assumptions, analysis and results of these Access Impaired Neighborhoods (AIN) within the
+City of Berkeley.
+
+Data Sources
+
+        The latest parcel data from the city Open Data portal1 was used as the base data for the
+         AIN analysis.
+        Fire Hazard Severity Zones (FHSZ) data obtained from the City of Berkeley. FHSZ are
+         scored based on factors that influence fire likelihood and fire behavior. Fire Zones 2 and
+         3 were considered at-risk in this study.
+        Federal Emergency Management Agency’s (FEMA) 500-year flood zones2. This data
+         identifies areas that have a 0.2% chance of flooding in any given year.
+        California Department of Conservation tsunami zones3. This dataset includes all
+         populated areas that are at risk of tsunamis.
+        California Department of Conservation3 earthquake zones and the United States
+         Geological Survey (USGS) Hayward Fault Scenario4. This dataset includes areas that are at
+         risk for seismic hazards which includes:
+             o deep-seated landslide susceptibility based on estimates of rock strength and
+                  steepness of slopes,
+             o liquefaction,
+             o surface fault rupture,
+             o and ground shaking.
+        The street centerline data was provided by the city and was used to identify dead ends,
+         narrow roads, and winding roads. In addition, the dead-end data provided by the city and
+         those obtained from the road survey were also considered in this analysis.
+
+
+
+
+1
+  https://data.cityofberkeley.info/City-Government/Parcels/bhxd-e6up
+2
+  https://hazards-fema.maps.arcgis.com/apps/webappviewer/index.html?id=8b0adb51996444d4879338b5529aa9cd
+3
+  https://maps.conservation.ca.gov/cgs/#datalist
+4
+  https://earthquake.usgs.gov/education/shakingsimulations/hayward/M7.0.php#
+
+
+City of Berkeley                                          1                                     KLD Engineering, P.C.
+Access Impaired Analysis                                                                                      Rev. 3
+Assumptions
+
+An additional consideration of risk is the distance of a neighborhood from safety resources, like
+fire stations. To analyze this risk, the following assumptions must be made:
+           A threshold of 5 minutes for urban and suburban areas is assumed to be the maximum
+            drive time from a fire station5. A 5-minute service area for each fire station was generated
+            using ArcGIS Network Analyst extension. The service area for this analysis represents an
+            area that can be driven by a fire truck from the fire station within a defined period of
+            travel time.
+           The maximum dimensions for fire trucks within the city are 11.25 feet high, 60 feet long
+            and 9.25 feet wide6.
+For the analysis on pavement width (narrow roadways), the following assumptions were made:
+           Parking stalls are 8 feet wide. Using the city’s curb data for parking information, pavement
+            width was reduced by 8 feet to account for roadways with street parking (or 16 feet if
+            parking is permitted on both sides of the road).
+           A minimum of 10 feet is necessary for large vehicles (delivery trucks, buses, etc.) to
+            evacuate.
+
+Analysis
+
+To identify the hazardous areas within the city that meet the SB 99 criteria, the residential parcel
+layer was overlaid, in ArcGIS, with the hazard area layers for wildfire, flooding, earthquake,
+tsunami, liquefaction, and landslide. Figure 1. Hazards affecting the City of Berkeley shows all
+the different hazard areas that can affect the city that were considered in this study.
+In addition, residential parcels outside of the service areas of fire stations are considered
+vulnerable in this analysis. As such, an additional analysis was performed to assess the
+serviceability of the neighborhoods within the city based on their distances from fire stations.
+Figure 2. Fire Station Service Area shows an overview of the service areas of all the fire stations
+within the city. Although this analysis is not designed to address responder ingress, it is presumed
+that if responders cannot quickly access an area, then that area is at a higher risk in an emergency.
+It should be noted that the entire city falls within at least one hazard area. For this reason, the
+entire city was considered at-risk and was included in this analysis. Although every hazard is not
+included in this analysis, inclusion of additional hazards would not affect the outcome as the
+entire city was analyzed for one way in/out to meet the SB 99 requirement.
+Next, ESRI’s ArcGIS was used to identify all the dead-end roadways within the street network.
+These dead-end roadways were supplemented with the dead-end roadways provided by the city
+and those identified during the road survey. The dead ends in this analysis include natural dead
+ends (e.g., cul-de-sacs, etc.) and man-made barriers (e.g., bollards, gates, traffic calming islands,
+etc.). Each dead end was verified using aerial imagery. Residential parcels that are within any
+5
+    Based on the city’s recent Standards of Coverage assessment.
+6
+    This represents the largest truck (ladder truck) that the city owns. The height does not include antenna.
+
+
+City of Berkeley                                                     2                                          KLD Engineering, P.C.
+Access Impaired Analysis                                                                                                      Rev. 3
+hazard area, as well as are located outside of the fire station 5-minute service area and are
+located along dead-end roadways are considered as the AIN. Those areas are shown in Figure 3.
+Primary Access Impaired Neighborhoods. Since all of these neighborhoods are within a hazard
+zone and have only one evacuation route available, these are Berkeley's AIN as defined using
+SB99 criteria.
+Once the primary AIN were identified, they were inspected for man-made barriers (e.g., bollards,
+gates, traffic calming islands, etc.) that could be lifted in an emergency to provide additional
+evacuation routes out of the neighborhood. These AIN were flagged as having emergency exits
+since they could have multiple ways out in an emergency if the man-made barrier was removed
+(or vehicles with high clearance could traverse the barrier in the case of the traffic calming
+bollards). Figure 4. Primary Access Impaired Neighborhoods with Removeable/Traversable
+Barriers highlights the primary AIN that have more than one way in/out if a barrier was removed,
+or a vehicle is high enough to clear a low-profile bollard. These AIN are flagged in Table 1. Access
+Impaired Neighborhoods as having a “potential emergency exit”.
+In addition to the risk factors considered above, narrow and/or winding roadways were also
+considered. These roadways pose their own risks and can significantly impede evacuation. For
+this reason, a second level of analysis was completed for those neighborhoods that have more
+than one evacuation route, but one or more of those routes is narrow and/or winding leaving
+one viable evacuation route. These secondary neighborhoods are not considered single lane
+egress AIN but are within a hazard risk area and only have one viable way out. As such, they are
+identified as Secondary AIN. These are additional neighborhoods to those that meet the SB99
+criteria.
+The city centerline dataset was utilized to determine which roadways were narrow (with a travel
+lane of less than 10 feet wide7). Those roadways which meet or exceed 10 feet wide8 were not
+considered in the analysis. To identify the winding roads, the curvature of the roadway was
+calculated based on its geometry. Each roadway segment within the city’s centerline data is made
+up of vertices defined by longitude and latitude. Three sequential vertices along a roadway
+segment were utilized to create a triangle. The distances of the sides of the triangle (x, y, and z)
+were computed based on the longitude and latitude of the three sequential vertices. The radius
+of the circumscribed circle9, or circumcircle radius, was then computed using Equation 1. This
+circumcircle radius corresponds to the curvature of the roadway at the middle of the three
+sequential vertices and is assigned to that vertex, or point. A larger radius corresponds to a
+straighter segment; a smaller radius corresponds to a more curved segment. This process is
+repeated for every three sequential vertices along the roadway centerline. The curvature of the
+roadway segment between vertices is computed as the average of the circumcircle radii of the
+
+7
+  Based on discussions with staff from the City’s Public Works and Fire Departments, a viable evacuation travel lane width of 10 feet
+was chosen to account for larger vehicles (8 feet wide) and sideview mirrors. It is assumed that even larger vehicles (10 feet wide)
+are operated by professional drivers with a higher degree of skill to reduce or eliminate driver error.
+8
+  Pavement width was utilized (with modifications made for side street parking). Eight feet of parking was removed from the pavement
+width for single side street parking and 16 feet was removed for street parking on both sides of the road. Eight feet was used since
+the typical width for a standard parking space is 8 feet. Although a width of 7.5 feet has been used to provide a balance among users,
+eight feet was used as vehicles are not always parked well, may not be parked in contact with the face of the curb or vegetation, and
+throughout the day, large vehicles may be parked on the side of the street. Overhanging vegetation was not accounted for.
+9
+  Circle that passes through all three vertices of a triangle.
+
+
+City of Berkeley                                                  3                                          KLD Engineering, P.C.
+Access Impaired Analysis                                                                                                   Rev. 3
+two vertices that it connects. This methodology is illustrated in Figure 5. Curvature Radius
+Example.
+
+                                                         Equation 1
+                                                                  xyz
+                            rൌ
+                                   ඥሺx ൅ y ൅ zሻሺy ൅ z െ xሻሺz ൅ x െ yሻሺx ൅ y െ zሻ
+
+Using a minimum radius of 81 feet10, roadway segments with tight turns (radii less than 81 feet)
+are flagged for review. Figure 6. Narrow and Winding Roads displays all of the roadways that
+were considered narrow and/or winding. The narrow roadways are color coded by tiers. Red
+roadways are considered severely constrained (6 feet or less wide), yellow roadways are
+considered moderately constrained (7 to 8 feet wide) and green roadways are considered
+constrained (9 to 10 feet wide).
+A secondary analysis was then conducted on the residential parcels that have more than one way
+out but have exit paths along narrow and/or winding roadways (that are shown in Figure 6.
+Narrow and Winding Roads). If a residential parcel has access to multiple exits, but only one
+viable exit, it was flagged as a Secondary AIN. Since all parts of the city are considered to be within
+a hazard area, all the neighborhoods that were flagged were included as Secondary AINs. Figure
+7. Secondary Access Impaired Neighborhoods shows the Secondary AINs. The primary and
+secondary AIN are shown together in Figure 8. Primary and Secondary Access Impaired
+Neighborhoods and are also listed in Table 1. Access Impaired Neighborhoods by priority,
+evacuation zone (Zonehaven), and street name. Table 1. Access Impaired Neighborhoods also
+provides the number of parcels that are within each AIN.
+
+Results and Recommendations
+
+In total, there are 141 primary AIN (1,461 residential parcels) and 195 secondary AIN (3,687
+residential parcels) within the City of Berkeley.
+Evacuation Zones E013 and E058 (Panoramic Way neighborhood) have the most AIN parcels. This
+entire neighborhood has only one access point to the nearest evacuation route (at a stop-
+controlled intersection at Panoramic Way and Prospect St/Canyon Rd). There are some
+removable or traversable barriers, but these additional exits will not expedite the evacuation of
+these neighborhoods since they are located so far up the mountain and do not provide additional
+access points to Prospect St/Canyon Rd. This neighborhood is within Fire Zones 2 and 3 and is at
+risk of landslides. The neighborhood also is at risk of violent ground shaking. Most of this
+neighborhood is also outside of a 5-minute drive from the nearest fire station. Many of the
+roadways within this area are less than 10 feet across and do not have side street parking.
+
+
+
+10
+  Table 3-7 of the 2018 AASHTO Policy on Geometric Design of Highways and Streets indicates the minimum radii for a curve with
+a design speed of 20mph is 81 feet. Based on the data collected during the road survey, the speed travelled on these curves was
+20mph or less.
+
+
+City of Berkeley                                              4                                        KLD Engineering, P.C.
+Access Impaired Analysis                                                                                             Rev. 3
+The vast majority of secondary AIN are in Berkeley Hills and Thousand Oaks due to the narrow
+and winding roadways in this area, as shown in Figure 7. Secondary Access Impaired
+Neighborhoods. Berkeley Hills and this part of Thousand Oaks are at risk of violent ground
+shaking. They are within Fire Zone 2 but are within a 5-minute drive of the nearest fire station.
+Parts of these areas are also at risk of landslides.
+Depending on the hazard, these neighborhoods may require early notification to have sufficient
+time to evacuate before their safety is at risk. It is recommended that plans be put into place to
+ensure 100% notification of these areas and to notify these areas of an emergency even before
+they may be at risk.
+
+
+
+
+City of Berkeley                                5                              KLD Engineering, P.C.
+Access Impaired Analysis                                                                     Rev. 3
+                              Table 1. Access Impaired Neighborhoods
+                Evacuation                                                               Number
+                                  Neighborhood             Potential Emergency Exit?
+  Priority         Zone                                                                 of Parcels
+                 ALB-E006              Acton St                        No                   29
+                 ALB-E006              Tevlin St                       No                   14
+                 BER-E002           Vincente Ave                       No                    2
+                 BER-E003          San Mateo Rd                        No                    1
+                 BER-E004            Florida Ave                       No                    6
+                 BER-E005           Vermont Ave                        No                   11
+                                       My Way                          No                    8
+                                   Rochdale Way                        No                    5
+                 BER-E007
+                                   Vistamont Ave                       No                   20
+                                   Woodmont Ct                         No                    5
+                 BER-E010          San Mateo Rd                        No                   26
+                                      Station Pl                       No                    5
+                 BER-E011
+                                    Vincente Ave                       No                   12
+                                      Dwight Pl                        No                   11
+                                    Dwight Way                         No                   27
+                                  Panoramic Place                      No                    2
+                 BER-E013
+                                  Panoramic Place                      Yes                   2
+                                  Panoramic Way                        No                   21
+                                  Panoramic Way                        Yes                   5
+     Primary     BER-E014            Carleton St                       No                    2
+                                     Martin Ave                        No                    4
+                                   Middlefield Rd                      No                    6
+                                    Overlook Rd                        No                   10
+                 BER-E016
+                                      The Spiral                       No                    8
+                                   Woodhaven Rd                        No                   11
+                                  Woodmont Ave                         No                    1
+                 BER-E017          Stoddard Way                        No                    6
+                 BER-E018    Private Dr Off of Keith Ave               No                    3
+                                      Corona Ct                        No                   17
+                                    Crystal Way                        No                    7
+                 BER-E019               High Ct                        No                   27
+                                       Laurel St                       No                    6
+                                        Oak St                         No                    1
+                 BER-E021             Napa Ave                         Yes                  26
+                 BER-E025          Northside Ave                       No                   13
+                                    Berryman St                        No                    3
+                                     Buena Ave                         No                    6
+                 BER-E026
+                                       Grant St                        No                    4
+                                   Miramonte Ct                        No                    9
+
+
+City of Berkeley                                 6                              KLD Engineering, P.C.
+Access Impaired Analysis                                                                      Rev. 3
+                Evacuation                                                                 Number
+                                   Neighborhood              Potential Emergency Exit?
+  Priority         Zone                                                                   of Parcels
+                                         North St                       No                     7
+                 BER-E027               Eunice St                       No                     1
+                              Private Drive Off of Arch St              No                     4
+                 BER-E028
+                                       Spring Way                       No                    10
+                                     Codornices Rd                      No                     8
+                                       El Portal Ct                     No                     5
+                 BER-E029
+                                     Northgate Ave                      No                    14
+                                          Ross St                       No                     3
+                                      Columbia Cir                      No                     8
+                 BER-E030
+                             Private Dr Off of Fairlawn Dr              No                     5
+                                          Ajax Pl                       No                    11
+                                   Grizzly Peak Blvd                    No                     3
+                                          Hill Rd                       No                    16
+                 BER-E031             Olympus Ave                       No                     6
+                                Private Driveway Off of
+                                                                        No                     4
+                                       Summit Rd
+                                       Summit Rd                       No                     21
+                                   Buena Vista Way                     No                     25
+                                       Campus Dr                       No                     22
+                                         Cedar St                      No                      1
+                 BER-E032              Harvard Cir                     No                      5
+                                   Maybeck Twin Dr                     No                     19
+                                      Olympus Ave                      No                      8
+                                      Parnassus Ct                     No                     12
+                                Greenwood Commons                      No                      4
+                 BER-E033                 Hill Ct                      No                     10
+                                          Ross St                      No                      2
+                                      Francisco St                     No                     14
+                                        Lincoln St                     No                     15
+                 BER-E036                Short St                      No                     24
+                                    Virginia Gardens                   No                     13
+                                         West St                       No                      2
+                                     Berkeley Way                      Yes                    17
+                                      California St                    No                      5
+                                      Delaware St                      No                      9
+                 BER-E037
+                                         Grant St                      No                      8
+                                         Grant St                      Yes                    10
+                                      Mc Gee Ave                       No                      5
+                 BER-E038              Bonita Ave                      Yes                     5
+                                         Cedar St                      No                      2
+                 BER-E040
+                                       Higard Ave                      No                      9
+
+
+City of Berkeley                                  7                               KLD Engineering, P.C.
+Access Impaired Analysis                                                                        Rev. 3
+                Evacuation                                                         Number
+                                Neighborhood         Potential Emergency Exit?
+  Priority         Zone                                                           of Parcels
+                                 La Vereda Rd                  No                      7
+                                 Le Conte Ave                  No                      6
+                                   Leroy Ave                   No                      4
+                                   Virginia St                 No                      3
+                                  Acroft Court                 No                     11
+                                  Action Circle                No                     20
+                 BER-E046
+                                 Noth Valley St                No                     14
+                                     West St                   No                      4
+                 BER-E047             8Th St                   No                     10
+                                      Poe St                   No                      5
+                 BER-E051
+                                    Valley St                  No                     30
+                 BER-E053           Milvia St                  Yes                     5
+                                    Arden Rd                   No                     14
+                                   Canyon Rd                   No                      8
+                                  Dwight Way                   No                      2
+                                  Fernwald Rd                  No                      6
+                                   Hillside Ct                 No                      7
+                 BER-E058        Mosswood Ln                   No                      3
+                                 Mosswood Rd                   No                     14
+                               Panoramic Place                 No                      3
+                                Panoramic Way                  No                     63
+                              Private Drive Off of
+                                                                No                     4
+                                Panoramic Way
+                                   Burnett St                  Yes                    36
+                 BER-E062           Russell St                 No                     10
+                             Sojourner Truth Way               No                      3
+                                     Grant St                  No                      2
+                 BER-E063
+                                    Russell St                 Yes                    10
+                                    Deakin St                  Yes                    15
+                 BER-E064         Ellsworth St                 Yes                     6
+                                    Fulton St                  Yes                    16
+                 BER-E065           Russell St                 No                      6
+                                    Garber St                  No                      4
+                 BER-E066
+                                Tanglewood Rd                  Yes                     5
+                                  Bateman St                   No                     16
+                                     Colby St                  No                      3
+                 BER-E067            Dana St                   Yes                     5
+                                    Regent St                  No                     10
+                                   Webster St                  No                      6
+                 BER-E068          Woolsey St                  Yes                    11
+                 BER-E069          Fairview St                 No                     21
+
+
+City of Berkeley                              8                           KLD Engineering, P.C.
+Access Impaired Analysis                                                                Rev. 3
+                      Evacuation                                                              Number
+                                         Neighborhood           Potential Emergency Exit?
+  Priority               Zone                                                                of Parcels
+                                               63Rd St                    Yes                    24
+                       BER-E070
+                                             Harmon St                    Yes                    19
+                                            Elmwood Ct                    No                     10
+                       BER-E072            Lewiston Ave                   Yes                    27
+                                            Webster St                    No                      6
+                                            Avalon Ave                    No                     12
+                                         Claremont Blvd                   Yes                    10
+                                              Garber St                   No                     28
+                       BER-E073
+                                              Kelsey St                   Yes                    14
+                                               Palm Ct                    No                      6
+                                              Stuart St                   Yes                     8
+                                          El Camino Real                  No                     15
+                                            Hillcrest Rd                  No                      6
+                       BER-E078            Oak Ridge Rd                   No                     31
+                                     Private Drive Off of The
+                                                                           No                     7
+                                              Uplands
+                       OKL-E004          Tanglewood Rd                     Yes                    7
+                                               Eton Ct                     No                     6
+                       OKL-E017
+                                              Mystic Ct                    No                     6
+                                          Brookside Ave                    No                    15
+                       OKL-E018              Hillcrest Ct                  No                     8
+                                              Roslyn Ct                    No                     7
+                        OKL-E019              Roble Ct                     No                     7
+                 Total Primary AIN               141            Total Primary AIN Parcels       1,461
+                                          Capistrano Ave                                         42
+                                             Colusa Ave                                           2
+                                           Vincente Ave                                          22
+                                         San Lorenzo Ave                                         25
+                       BER-E001
+                                            Tacoma Ave                                           34
+                                          Ensenada Ave                                           15
+                                           Miramar Ave                                            1
+
+
+     Secondary
+                                            Solano Ave                                            1
+                                           Arlington Ave                  N/A                     5
+                                          Capistrano Ave                                          6
+                                        Contra Costa Ave                                         70
+                                         Mendocino Ave                                           35
+                       BER-E002          San Antonio Ave                                         29
+                                        San Fernando Ave                                         16
+                                           San Juan Ave                                          22
+                                         San Ramon Ave                                           31
+                                         Santa Clara Ave                                         24
+
+
+City of Berkeley                                        9                            KLD Engineering, P.C.
+Access Impaired Analysis                                                                           Rev. 3
+                Evacuation                                                       Number
+                               Neighborhood        Potential Emergency Exit?
+  Priority         Zone                                                         of Parcels
+                                 The Alameda                                        45
+                             Thousand Oaks Blvd                                     31
+                                   Vallejo St                                        7
+                                 Yosemite Rd                                        60
+                                Arlington Ave                                        3
+                                    Avis Rd                                         10
+                               San Antonio Ave                                      22
+                 BER-E003        San Diego Rd                                       10
+                                  San Luis Rd                                       21
+                                  Somerset Pl                                        1
+                              Southampton Ave                                       29
+                                Arlington Ave                                        2
+                                 Boynton Ave                                        54
+                                  Florida Ave                                        8
+                                 Montrose Rd                                         5
+                              Northampton Ave                                       27
+                 BER-E004
+                                  San Luis Rd                                       32
+                              Santa Barbara Rd                                      73
+                              Southampton Ave                                        7
+                                   Spruce St                                         5
+                                Vermont Ave                                          1
+                                Colorado Ave                                         9
+                                Kentucky Ave                                        40
+                                Maryland Ave                                        15
+                                Michigan Ave                                        42
+                 BER-E005
+                                   Spruce St                                         2
+                                  Vassar Ave                                        23
+                                Vermont Ave                                         40
+                                   Rugby Ave                                         3
+                                  Acacia Ave                                         3
+                                    Alta Rd                                          7
+                                Cragmont Ave                                        36
+                                  Creston Rd                                         1
+                 BER-E006          Euclid Ave                                        1
+                               Grizzly Peak Blvd                                     1
+                                Rosemont Ave                                         1
+                                   Spruce St                                         2
+                                  Vassar Ave                                        25
+                                Rochdale Way                                         1
+                 BER-E007       Rosemont Ave                                         6
+                                   Sunset Ln                                         3
+
+City of Berkeley                            10                          KLD Engineering, P.C.
+Access Impaired Analysis                                                              Rev. 3
+                Evacuation                                                      Number
+                               Neighborhood       Potential Emergency Exit?
+  Priority         Zone                                                        of Parcels
+                                Vistamont Ave                                      21
+                               Woodmont Ave                                        51
+                                   Bonnie Ln                                       22
+                                  Creston Rd                                       52
+                              Grizzly Peak Blvd                                     3
+                                  Hilldale Ave                                     58
+                 BER-E008         Keeler Ave                                       46
+                                   Marin Ave                                        6
+                                    Poplar St                                      10
+                                Rosemont Ave                                        1
+                                   Sunset Ln                                        1
+                                  Acacia Ave                                        7
+                                  Alamo Ave                                        24
+                                Cragmont Ave                                       79
+                                   Euclid Ave                                       1
+                                   Halkin Ln                                        6
+                 BER-E009
+                                   Marin Ave                                        1
+                                    Poplar St                                      10
+                                    Regal Rd                                       18
+                                     Rock Ln                                       25
+                                   Spruce St                                        4
+                               Indian Rock Ave                                      4
+                                   Marin Ave                                       17
+                                 Montrose Rd                                        8
+                                   Oxford St                                       32
+                                 San Diego Rd                                      16
+                 BER-E010
+                                  San Luis Rd                                      27
+                                 San Mateo Rd                                       1
+                              Santa Barbara Rd                                     37
+                                 Shattuck Ave                                      17
+                                   Spruce St                                        1
+                                Capistrano Ave                                     31
+                                  Colusa Ave                                        3
+                                    Menlo Pl                                       26
+                               San Miguel Ave                                      12
+                                Santa Rosa Ave                                     47
+                 BER-E011
+                                 The Alameda                                       45
+                             Thousand Oaks Blvd                                    19
+                                 Vincente Ave                                      67
+                                  Visalia Ave                                      18
+                              San Lorenzo Ave                                      25
+
+City of Berkeley                           11                          KLD Engineering, P.C.
+Access Impaired Analysis                                                             Rev. 3
+                Evacuation                                                        Number
+                               Neighborhood         Potential Emergency Exit?
+  Priority         Zone                                                          of Parcels
+                               San Pedro Ave                                         30
+                                 Tacoma Ave                                          32
+                                  Creston Rd                                         58
+                                   Forest Ln                                         29
+                              Grizzly Peak Blvd                                       5
+                                 Hilldale Ave                                        36
+                                  Keeler Ave                                         37
+                 BER-E015         Latham Ln                                           2
+                                  Marin Ave                                           7
+                                  Miller Ave                                         30
+                                   Poppy Ln                                          15
+                                   Regal Rd                                          26
+                                   Sunset Ln                                          2
+                                  Hillview Rd                                        19
+                                  Latham Ln                                           2
+                               Middlefield Rd                                        25
+                                  Muir Way                                            1
+                                 Overlook Rd                                         31
+                                  Park Gate                                           1
+                                 Park Hills Rd                                       53
+                 BER-E016         Shasta Rd                                           4
+                                   Sunset Ln                                          3
+                                The Crescent                                         18
+                               The Crossways                                          2
+                                The Shortcut                                          1
+                             Wildcat Canyon Rd                                        4
+                               Woodhaven Rd                                          19
+                                Woodside Rd                                          27
+                                  Creston Rd                                         21
+                              Grizzly Peak Blvd                                       7
+                                  Keeler Ave                                         32
+                                  Latham Ln                                           5
+                                  Miller Ave                                         47
+                                  Muir Way                                            3
+                 BER-E017    Private Drive Off of
+                                                                                      3
+                                Whitaker Ave
+                                  Shasta Rd                                          11
+                                 Sterline Ave                                        52
+                                 Sterling Ave                                         3
+                               Stevenson Ave                                          8
+                                  Twain Ave                                           5
+
+
+City of Berkeley                             12                          KLD Engineering, P.C.
+Access Impaired Analysis                                                               Rev. 3
+                Evacuation                                                    Number
+                              Neighborhood      Potential Emergency Exit?
+  Priority         Zone                                                      of Parcels
+                               Whitaker Ave                                       7
+                               Bret Harte Rd                                     19
+                              Cragmont Ave                                       70
+                                 Euclid Ave                                      22
+                 BER-E018       Keeler Ave                                       21
+                                 Keith Ave                                       64
+                                 Shasta Rd                                        8
+                               Tamalpais Rd                                       2
+                              Cragmont Ave                                       56
+                                 Euclid Ave                                      37
+                                 Keith Ave                                       47
+                 BER-E019        Marin Ave                                        6
+                                  Regal Rd                                       15
+                             Santa Barbara Rd                                    14
+                                 Spruce St                                        3
+                                Del Norte St                                     17
+                                 Marin Ave                                        8
+                                 Oxford St                                       44
+                 BER-E020     San Benito Rd                                      23
+                             Santa Barbara Rd                                     2
+                               Shattuck Ave                                      30
+                                 Spruce St                                        3
+                                Campus Dr                                         6
+                                 Euclid Ave                                      10
+                                Le Roy Ave                                        6
+                 BER-E029     Northgate Ave                                      14
+                                  Rose St                                         2
+                                 Shasta Rd                                       53
+                               Tamalpais Rd                                      43
+                                Campus Dr                                        27
+                 BER-E030       Queens Rd                                        21
+                                 Shasta Rd                                        7
+                                Avenida Dr                                       17
+                 BER-E031
+                                   Hill Rd                                        1
+                             Buena Vista Way                                     39
+                                Campus Dr                                         1
+                                  Cedar St                                        1
+                 BER-E032      Del Mar Ave                                       14
+                               La Vereda Rd                                      12
+                               Olympus Ave                                       26
+                               Parnassus Rd                                      19
+
+City of Berkeley                          13                         KLD Engineering, P.C.
+Access Impaired Analysis                                                           Rev. 3
+                Evacuation                                                       Number
+                                Neighborhood      Potential Emergency Exit?
+  Priority         Zone                                                         of Parcels
+                                  Queens Rd                                          1
+                               Buena Vista Way                                      14
+                 BER-E033     Greenwood Terrace                                      3
+                                  Le Roy Ave                                        24
+                                  Hilgard Ave                                        2
+                                 La Vereda Rd                                       10
+                 BER-E040
+                                 Le Loma Ave                                         2
+                                   Virginia St                                       4
+                 BER-E058         Hillside Ave                                       3
+                 BER-E067         Bateman St                                         3
+                 OKL-E008         Alvarado Rd                                       14
+                 OKL-E009         Alvarado Rd                                        5
+                 OKL-E010         Vicente Rd                                        22
+                 OKL-E015         Vicente Rd                                         3
+                 OKL-E018         Hillcrest Rd                                      31
+        Total Secondary AIN            195        Total Secondary AIN Parcels     3,687
+
+
+
+
+City of Berkeley                           14                           KLD Engineering, P.C.
+Access Impaired Analysis                                                              Rev. 3
+                           Figure 1. Hazards affecting the City of Berkeley
+
+
+City of Berkeley                                 15                           KLD Engineering, P.C.
+Access Impaired Analysis                                                                    Rev. 3
+                           Figure 2. Fire Station Service Area
+
+
+
+City of Berkeley                           16                    KLD Engineering, P.C.
+Access Impaired Analysis                                                       Rev. 3
+                           Figure 3. Primary Access Impaired Neighborhoods
+
+
+
+City of Berkeley                                 17                          KLD Engineering, P.C.
+Access Impaired Analysis                                                                   Rev. 3
+                           Figure 4. Primary Access Impaired Neighborhoods with Removeable/Traversable Barriers
+
+
+
+City of Berkeley                                                   18                                             KLD Engineering, P.C.
+Access Impaired Analysis                                                                                                        Rev. 3
+                           Figure 5. Curvature Radius Example
+
+
+
+
+City of Berkeley                          19                    KLD Engineering, P.C.
+Access Impaired Analysis                                                      Rev. 3
+                           Figure 6. Narrow and Winding Roads
+
+
+
+City of Berkeley                          20                    KLD Engineering, P.C.
+Access Impaired Analysis                                                      Rev. 3
+                           Figure 7. Secondary Access Impaired Neighborhoods
+
+
+
+City of Berkeley                                  21                           KLD Engineering, P.C.
+Access Impaired Analysis                                                                     Rev. 3
+                           Figure 8. Primary and Secondary Access Impaired Neighborhoods
+
+
+
+City of Berkeley                                        22                                 KLD Engineering, P.C.
+Access Impaired Analysis                                                                                 Rev. 3
+

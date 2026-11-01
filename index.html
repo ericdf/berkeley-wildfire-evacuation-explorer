@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Berkeley Hills Wildfire Evacuation: Scenario Explorer (prototype)</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:,">
+</head>
+<body>
+<header>
+  <div class="title">
+    <h1>Berkeley Hills Wildfire Evacuation <span class="phase">Phase 1 prototype</span></h1>
+    <div class="disclaimer">Educational scenario explorer. Simplified, partly synthetic model. <strong>Not a forecast and not evacuation advice.</strong></div>
+  </div>
+  <nav>
+    <button id="btn-assumptions">Assumptions &amp; limits</button>
+    <button id="btn-sources">Data sources</button>
+    <a class="official" href="https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation" target="_blank" rel="noopener">Official City fire weather &amp; evacuation info ↗</a>
+  </nav>
+</header>
+
+<main>
+  <aside id="left">
+    <section>
+      <h2>1 · Scenario</h2>
+      <label>Preset <select id="scenario"></select></label>
+      <p id="scenario-blurb" class="blurb"></p>
+      <div class="row">
+        <label>Severity
+          <select id="severity"><option value="low">Low</option><option value="central" selected>Central</option><option value="high">High</option></select>
+        </label>
+        <label>Random seed <input id="seed" type="number" min="1" max="999" value="1"></label>
+      </div>
+      <label>Time of day and season (Evacuation Time Study cases) <select id="tod"></select></label>
+      <p id="tod-note" class="small muted"></p>
+      <details class="small"><summary>Scenario sources</summary><ul id="scenario-sources"></ul></details>
+    </section>
+
+    <section>
+      <h2>2 · Operating plan</h2>
+      <div class="tabs" id="plan-tabs"><button data-plan="A" class="on">Plan A</button><button data-plan="B">Plan B</button></div>
+      <label>Name <input id="p-name" type="text"></label>
+      <label>Zones ordered
+        <select id="p-alertKm"><option value="0">The City's pre-defined zones for this scenario</option><option value="1">…plus any zone within 1 km of the fire</option><option value="2">…plus any zone within 2 km of the fire</option><option value="3">…plus any zone within 3 km of the fire</option></select></label>
+      <label>Detection + decision delay before the first order
+        <select id="p-orderDelayMin"><option value="5">5 min</option><option value="10">10 min</option><option value="20">20 min</option></select></label>
+      <label>Order all hill zones (Fire Zones 2–3)
+        <select id="p-hillsOrderMin"><option value="">only by distance</option><option value="10">at ignition + 10 min</option><option value="30">at ignition + 30 min</option></select></label>
+      <label>Early departure before ignition (Red Flag day), share of hill households
+        <select id="p-earlyShare"><option value="0">none</option><option value="0.1">10%</option><option value="0.5">50%</option><option value="0.75">75%</option></select></label>
+      <label>Parking on hill streets
+        <select id="p-hillsParking">
+          <option value="both">Status quo: both sides where it fits</option>
+          <option value="narrow">Targeted: no parking on City “narrow roads”</option>
+          <option value="none">Broad: no parking anywhere in Fire Zones 2–3</option>
+        </select></label>
+      <p id="parking-note" class="note"></p>
+      <p class="small muted">Phase 2 adds funded interventions (vegetation, home hardening, secondary egress, buyouts, ADUs, transport assistance) with costs and a budget.</p>
+    </section>
+
+    <section>
+      <h2>3 · Run</h2>
+      <div class="row">
+        <button id="run" class="primary">▶ Run</button>
+        <button id="reset">Reset</button>
+        <label class="inline">Speed <select id="speed"><option value="60">1 min/s</option><option value="300" selected>5 min/s</option><option value="900">15 min/s</option></select></label>
+      </div>
+      <input id="scrub" type="range" min="0" max="240" step="1" value="0">
+      <h3>Compare Plan A and Plan B</h3>
+      <div class="row">
+        <select id="cmp-scope">
+          <option value="severities">This scenario · low / central / high · seeds 1–3</option>
+          <option value="scenarios">All 4 scenarios · central · seeds 1–3</option>
+        </select>
+        <button id="compare">Compare</button>
+      </div>
+      <div id="cmp-progress" class="small muted"></div>
+    </section>
+
+    <section>
+      <h2>Map</h2>
+      <label>Color streets by <select id="street-mode"></select></label>
+      <div id="layers" class="layers"></div>
+      <label>Find a street <input id="search" list="street-names" placeholder="e.g. Panoramic Way"></label>
+      <datalist id="street-names"></datalist>
+      <label>Neighborhood <select id="nbhd"><option value="">—</option></select></label>
+    </section>
+  </aside>
+
+  <div id="mapwrap">
+    <canvas id="map"></canvas>
+    <div id="clock">Ready</div>
+    <div id="legend"></div>
+    <div id="status"></div>
+    <div id="loading">Loading street network, terrain and City layers…</div>
+  </div>
+
+  <aside id="right">
+    <section id="inspector"><h2>Inspector</h2><p class="muted small">Click a street or an evacuation zone (turn on the Evacuation zones layer) to see its attributes. Hover a badge (ⓘ) for where each value comes from.</p></section>
+    <section id="results"></section>
+    <section id="compare-out"></section>
+    <section id="log"><h2>Event log</h2><ol id="events"></ol></section>
+  </aside>
+</main>
+
+<dialog id="modal"><form method="dialog"><button class="close">✕</button></form><div id="modal-body"></div></dialog>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

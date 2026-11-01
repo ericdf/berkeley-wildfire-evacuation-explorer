@@ -1,0 +1,61 @@
+{
+  "crs": "EPSG:32610 (WGS 84 / UTM zone 10N)",
+  "units": "metres",
+  "verticalDatum": "NAVD88 (per 3DEP 1 m DEM specification)",
+  "encoding": "int16 little-endian; value = elevation in decimetres; -32768 = no data (open water or no coverage); rows run north to south",
+  "width": 2654,
+  "height": 1963,
+  "resolution": 4,
+  "xmin": 558896,
+  "ymin": 4188272,
+  "xmax": 569512,
+  "ymax": 4196124,
+  "min": -0.006096011959016323,
+  "max": 581.0164184570312,
+  "nodataCells": 84283,
+  "provenance": {
+    "category": "derived",
+    "sources": [
+      "USGS 3DEP 1 m DEM, CA_AlamedaCounty_2021_B21 (lidar 2021, published 2022-08-10)",
+      "USGS 3DEP 1 m DEM, CA_NoCAL_Wildfires_B5b_2018 (lidar 2018, published 2020-03-18)"
+    ],
+    "tilesUsed": [
+      {
+        "file": "USGS_1M_10_x55y419_CA_AlamedaCounty_2021_B21.tif",
+        "cells": 69986
+      },
+      {
+        "file": "USGS_1M_10_x55y420_CA_AlamedaCounty_2021_B21.tif",
+        "cells": 415260
+      },
+      {
+        "file": "USGS_1M_10_x56y419_CA_AlamedaCounty_2021_B21.tif",
+        "cells": 983646
+      },
+      {
+        "file": "USGS_1M_10_x56y420_CA_AlamedaCounty_2021_B21.tif",
+        "cells": 2592646
+      },
+      {
+        "file": "USGS_1m_x55y419_CA_NoCAL_Wildfires_B5b_2018.tif",
+        "cells": 2108
+      },
+      {
+        "file": "USGS_1m_x55y420_CA_NoCAL_Wildfires_B5b_2018.tif",
+        "cells": 84005
+      },
+      {
+        "file": "USGS_1m_x56y419_CA_NoCAL_Wildfires_B5b_2018.tif",
+        "cells": 12705
+      },
+      {
+        "file": "USGS_1m_x56y420_CA_NoCAL_Wildfires_B5b_2018.tif",
+        "cells": 965163
+      }
+    ],
+    "method": "Read overview level 2 (4 m) of each 1 m Cloud Optimized GeoTIFF via HTTP range requests; nearest overview pixel to each 4 m cell centre; Alameda 2021 has priority, NoCAL 2018 fills cells it does not cover. Overviews are averages computed by USGS/GDAL from the 1 m data.",
+    "retrieved": "2026-11-01",
+    "license": "US public domain (USGS)",
+    "limits": "Bare-earth terrain. It does not show buildings, stairs, retaining walls, or whether a route is passable, and it does not determine fire behaviour."
+  }
+}

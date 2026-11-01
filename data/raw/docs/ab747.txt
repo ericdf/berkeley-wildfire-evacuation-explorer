@@ -1,0 +1,1587 @@
+                           City of Berkeley, California
+            Evacuation Route Safety, Capacity, and Viability Analysis
+                         Assembly Bill 747 Requirement
+
+
+
+
+                  Work performed for the City of Berkeley, by:
+
+                                 KLD Engineering, P.C.
+                      1061 Veterans Memorial Highway, Ste 340
+                                  Islandia, NY 11749
+                          email: rcohen@kldcompanies.com
+
+
+
+
+March 7, 2024                   Final Report, Rev. 3                KLD TR – 1381
+Introduction
+
+Section 65302.15 of Assembly Bill (AB) 747, dated October 9, 2019, states that the safety
+element, as described in subdivision (g) of Section 65302, shall “identify evacuation routes and
+their capacity, safety, and viability under a range of emergency scenarios”.
+The City of Berkeley has contracted KLD Engineering, P.C. to analyze the capacity, safety, and
+viability of the evacuation routes within the city limits. The results of the analysis will help the
+City of Berkeley identify which evacuation routes are safest, have the largest capacity, and are
+the most viable under a variety of circumstances, as well as identify which evacuation routes may
+underserve the evacuating population. This report describes the data, assumptions, analysis, and
+results of the safety, capacity, and viability of the roadways within the City of Berkeley.
+
+Data Sources
+
+        The city street centerline dataset was provided by the city and is used as the basis for this
+         analysis.
+        The following datasets were utilized to analyze the safety of each evacuation route:
+            o Crash data from the City of Berkeley Vision Zero high collision corridors within the
+                 city.
+            o The street centerline data was provided by the city and was used to identify dead
+                 ends, narrow roads, and winding roads. In addition, the dead-end data provided
+                 by the city and those obtained from the road survey were also considered in this
+                 analysis.
+            o The Pavement Conditions Index (PCI) was utilized to determine pavement quality
+                 on the roadways within the city. This data was provided by the city. Roadways
+                 with missing PCI data were supplemented with aerial imagery using data from
+                 neighboring roadways with similar characteristics/pavement conditions.
+            o The International Roughness Index1 (IRI) data from the Federal Highway
+                 Administration2 (FHWA) was used to determine pavement quality on I-80.
+            o National bridge and tunnel inventory from the Bureau of Transportation Statistics
+                 (BTS). The inventory includes information on bridge/ tunnel location, structure
+                 condition, year of construction, average daily traffic, etc.
+            o Federal Emergency Management Agency’s (FEMA) 100-year and 500-year flood
+                 zones3. The 100-year and 500-year flood zones identify areas that have a 1% and
+                 0.2% chance of flooding, respectively, in any given year.
+
+
+
+
+1
+ https://www.fhwa.dot.gov/policyinformation/pubs/hf/pl11028/chapter7.cfm#:~:text=The%20International%20Roughness%20Index%
+20(IRI,or%20very%20good%20ride%20quality
+2
+  https://geodata.bts.gov/datasets/highway-performance-monitoring-system-hpms-2020/about
+3
+  https://www.fema.gov/flood-maps
+
+
+City of Berkeley                                            1                                      KLD Engineering, P.C.
+AB 747 Requirement                                                                                               Rev. 3
+              o California Department of Conservation4 earthquake zones and the United States
+                  Geological Survey (USGS) HayWired Scenario5. This dataset includes areas that are
+                  at risk for seismic hazards which include the following risks:
+                       deep-seated landslide susceptibility based on estimates of rock strength
+                           and steepness of slopes,
+                       liquefaction,
+                       surface fault rupture,
+                       and ground shaking.
+              o California Department of Conservation tsunami zones4. This dataset includes all
+                  populated areas that are at risk of tsunamis.
+              o Fire Hazard Severity Zones (FHSZ) data obtained from the City of Berkeley. FHSZ
+                  are scored based on factors that influence fire likelihood and fire behavior. Fire
+                  Zones 2 and 3 were considered at-risk in this study.
+         The following datasets were utilized to analyze the viability of each evacuation route:
+              o Number and location of electric charging stations were obtained via PlugShare as
+                  referenced on the City’s Electric Mobility website6.
+              o Google Places was utilized to determine the number and location of gas stations
+                  throughout the city.
+              o Freeway ramps only exist within the city along I-80. The ramp locations are
+                  included in the street centerline data provided by the city.
+         The following datasets were utilized to estimate the demand that would utilize each
+          evacuation route:
+              o The latest census tract data from the U.S. Census Bureau.
+              o The permanent resident population is based on the 2020 U.S. Census population
+                  from the Census Bureau website extrapolated to April 2023 using annual growth
+                  rates that are computed from the 2022 Census population estimates.
+              o Data from the U.S. Census Longitudinal Employer-Household Dynamics (LEHD)
+                  from the OnTheMap Census analysis tool is used to estimate the number of
+                  employees commuting into the city.
+              o Data for Almeda County from the Highway Performance Monitoring System7
+                  (HMPS) 2020 was utilized to estimate the volumes on I-80 within the city limits.
+              o Total enrollment at UC Berkeley from 2019 to 20208 was utilized to estimate the
+                  number of student vehicles that would evacuate from the campus.
+         The following datasets were utilized to analyze the demographics9 of the neighborhoods
+          surrounding each evacuation route:
+
+4
+  https://maps.conservation.ca.gov/cgs/#datalist
+5
+  https://earthquake.usgs.gov/education/shakingsimulations/hayward/M7.0.php#
+6
+  https://berkeleyca.gov/city-services/getting-around/electric-mobility
+7
+  https://geodata.bts.gov/datasets/highway-performance-monitoring-system-hpms-2020/about
+8
+  https://opa.berkeley.edu/campus-data/common-data-set
+9
+  The population demographics along each evacuation route can predict additional risks to people living along the route. For example,
+people living along evacuation routes in areas with higher rates of poverty may be at a higher risk than people living along evacuation
+routes in areas with lower rates of poverty due to the resources that are available to higher income people.
+
+
+City of Berkeley                                                  2                                           KLD Engineering, P.C.
+AB 747 Requirement                                                                                                          Rev. 3
+               o ESRI’s ACS poverty status variables by census tract10. This dataset estimates the
+                 percentage of population with income lower than the federal poverty level at
+                 census tract level. The data is provided by the U.S. Census Bureau's ACS 2017-2021
+                 5-year estimates.
+               o ESRI’s American Community Survey (ACS) vehicle availability variables by census
+                 tract11. This dataset shows the percentage of households without vehicles at
+                 census tract level. The data is provided by the U.S. Census Bureau's ACS 2017 –
+                 2021 5-year estimates of household size by number of vehicles available.
+               o California Department of Transportation housing and transportation affordability
+                 index12. This dataset measures the percentage of income devoted to housing and
+                 transportation for the regional typical household at the census tract level.
+               o ESRI’s ACS disability by type variables by census tract13. This dataset shows the
+                 percentage of the population with a disability at census tract level. The data is
+                 provided by the U.S. Census Bureau's ACS 2017-2021 5-year estimates of six
+                 different types of disability14.
+Assumptions
+
+         Jenks Method of Natural Breaks15 is used to develop the scaling factors, where applicable.
+
+         Link centroids (midpoint) are used when applying factors of safety, demographics, and
+          viability.
+         For the analysis on pavement width (narrow roadways), the following assumptions were
+          made:
+              o Parking stalls are 8 feet wide. Using the city’s curb data for parking information,
+                   pavement width was reduced by 8 feet to account for roadways with street
+                   parking (or 16 feet if parking is permitted on both sides of the road).
+              o A minimum of 10 feet is necessary for large vehicles (delivery trucks, buses, etc.)
+                   to evacuate.
+         For the viability analysis, the connectivity score is based on the following assumptions:
+               o The centroid (geometric center) of each Census block group was utilized as the
+                 representative trip origin.
+               o Shortest path chosen from each centroid to each exit leaving the city along a major
+                 evacuation route. (Some examples of exits leaving the city along a major
+
+
+
+
+10
+   https://www.arcgis.com/home/item.html?id=0e468b75bca545ee8dc4b039cbb5aff6
+11
+   https://www.arcgis.com/home/item.html?id=9a9e43ec1603446880c50d4ed1df2207
+12
+   https://caltrans-gis.dot.ca.gov/arcgis/rest/services/CHhqcore/Economic_Opportunity/FeatureServer/0
+13
+   https://livingatlas-dcdev.opendata.arcgis.com/maps/esri::acs-disability-by-type-variables-boundaries/about
+14
+   The following disabilities are included: hearing, vision, cognitive, ambulatory, self-care, and independent living difficulties.
+15
+   The Natural Breaks (Jenks) identify class breaks as groups with similar values and maximize differences between classes.
+https://pro.arcgis.com/en/pro-app/latest/help/mapping/layer-properties/data-classification-methods.htm
+
+
+City of Berkeley                                                3                                         KLD Engineering, P.C.
+AB 747 Requirement                                                                                                      Rev. 3
+               evacuation route are I-80 eastbound at exit 13A/Buchanan Street and I-80
+               westbound at the junction with SR 13/Ashby Avenue.)
+        For the viability analysis, the following assumptions were utilized to estimate the
+         vehicular demand on a link:
+            o The 2020 Census data, extrapolated to 2023, and 2020 employee estimates from
+                OnTheMap, as well as 5-year ACS aggregate number of vehicles by block group,
+                are used to determine the number of vehicles that are likely to use a given
+                roadway segment.
+            o Tourist vehicles are not included.
+            o Employee and commuting student vehicle occupancies are assumed to be 1
+              employee per vehicle.
+            o Public transit was not considered.
+            o It was assumed that on campus students are included in the census data.
+            o It was conservatively assumed that off campus students live within the City of
+              Berkeley.
+            o No reduction in commuters is considered for remote work and learning.
+
+Analysis
+
+Safety
+
+There are several considerations when determining how safe a roadway is. For example, crash
+history can be a good indication of how well a roadway was designed. If an intersection is prone
+to side-impact collisions, it could be an indication of poor sight distance and, therefore, an unsafe
+roadway. Narrow and/or winding roadways were also considered a safety risk. These roadways
+can significantly impede evacuation since drivers often need to slow down to safely traverse
+these sections of roadway.
+The safety factors were utilized to determine the overall safety of the evacuation routes within
+the city. Table 1 shows the safety factors, their associated scaling system (using Jenk’s Law of
+Natural Breaks where appropriate), the weight applied (if any), and the description of each factor
+that was utilized in this study. Scales that ranged beyond 1 were normalized to fall between 0
+and 1. The higher the safety rating, the more unsafe a roadway segment is. An overall safety
+rating was computed by summing each safety factor (multiplied by its weight, if applicable).
+Figure 1 through Figure 6 show the various factors that were applied for the safety analysis and
+the results that were obtained.
+
+
+
+
+City of Berkeley                                 4                                KLD Engineering, P.C.
+AB 747 Requirement                                                                              Rev. 3
+Hazards
+In addition to the roadway characteristics, roadways can be more or less unsafe than other
+roadways under different circumstances. For example, in rainy weather, a roadway that is in an
+area with a high landslide probability is likely to be more unsafe than a roadway in an area with
+low landslide probability. It should be noted that even if a route is exposed to one or more
+hazards, it may still need to be used to evacuate areas of the city. As such, the hazard factors are
+presented separately from the safety factors and were excluded in the overall safety rating.
+Table 1 also presents the hazard factors, their associated scaling system (using Jenk’s Law of
+Natural Breaks where appropriate), the weight applied (if any), and the description of each factor
+that was utilized in this study. Figure 7 through Figure 11 show the various factors that were
+applied for the hazard analysis and the results that were obtained.
+
+Capacity
+
+The ability of the road network to service vehicle demand is a major factor in determining how
+rapidly an evacuation can be completed. The capacity of a road is defined as the maximum hourly
+rate at which persons or vehicles can reasonably be expected to traverse a point or uniform
+section of a lane of roadway during a given time period under prevailing roadway, traffic and
+control conditions, as stated in the 2022 Highway Capacity Manual (HCM). This section discusses
+how the capacity of the roadway network was estimated.
+
+For the purposes of this analysis, capacity is estimated along sections of roadway, rather than at
+intersections or ramp junctions. The capacity of roadway sections16 is a function of roadway
+geometrics (e.g. number of lanes, grade, etc.), traffic composition (e.g., percent heavy trucks and
+buses in the traffic stream) and, of course, motorist behavior. The source material for the capacity
+estimates presented herein is contained in:
+            2022 Highway Capacity Manual (HCM)
+            Transportation Research Board
+            National Research Council
+            Washington, D.C.
+The evacuation route system in the city consists primarily of three categories of roads:
+           Two-Lane roads: Local, State
+           Multilane Highways/Roadways (at-grade)
+           Freeways
+Each of these classifications will be discussed. The roadway classifications, and resulting
+estimated capacities, are based on field observations, including number of lanes, collected during
+the road survey which was conducted in May 2023.
+
+
+
+
+16
+     This analysis is based on computed capacity alone and does not consider the time-varying demand impact on actual capacity.
+
+
+City of Berkeley                                                  5                                        KLD Engineering, P.C.
+AB 747 Requirement                                                                                                       Rev. 3
+Two-Lane Roads
+
+Ref: HCM Chapter 15
+Two lane roads (one lane in each direction) comprise the majority of roadways within the city.
+The per-lane capacity of a two-lane roadway is based on its speed. The speeds17 and
+corresponding estimated roadway capacities for two lane roads are provided in Table 2. These
+estimates are essentially independent of the directional distribution of traffic volume. The HCM
+procedures then estimate LOS and Average Travel Speed.
+Based on the field survey, aerial imagery, and on expected traffic operations associated with
+evacuation scenarios:
+         Most sections of two-lane roads within the study area are classified as “Class I”, with
+          "level terrain"; some are “rolling terrain”.
+         “Class II” highways/roadways are mostly those within urban and suburban centers.
+
+Multilane Roadways
+
+Ref: HCM Chapter 12
+Exhibit 12-8 of the HCM presents a set of curves that indicate a per-lane capacity ranging from
+approximately 1,900 to 2,300 pc/h, for free-speeds of 45 to 70 mph, respectively. Based on
+observation and estimation, the multilane roadways within the city service traffic with free-
+speeds in this range. Once again, for purposes of this analysis on multilane roadways, the actual
+time-varying speeds, the demand and capacity relationship, and the impact of control at
+intersections are ignored due to their dynamic nature. A conservative estimate of per-lane
+capacity of 1,900 pc/h is adopted for this study for multilane roadways within the city.
+
+Freeways
+
+Ref: HCM Chapters 10, 12, 13, 14
+Chapter 12 of the HCM presents procedures for estimating capacity and LOS for “Basic Freeway
+Segments". Exhibit 12-37 of the HCM presents capacity vs. free speed estimates, which are
+provided below.
+
+
+                   Free Speed (mph):                                 55         60            65         70+
+                   Per-Lane Capacity (pc/h):                     2,250        2,300         2,350       2,400
+
+
+The inputs to the estimation of capacity are roadway geometrics and free-speeds. A conservative
+estimate of per-lane capacity of 2,250 pc/h is adopted for this study for freeways.
+
+
+17
+   Free flow speeds and number of lanes, as driven during the road survey in May 2023, were utilized to compute capacity. The impact
+of traffic control devices on free flow speeds is considered for two lane roadways within the City.
+
+
+City of Berkeley                                                 6                                         KLD Engineering, P.C.
+AB 747 Requirement                                                                                                       Rev. 3
+Chapter 13 of the HCM presents procedures for estimating capacity, speed, density and LOS for
+freeway weaving sections. Chapter 14 of the HCM presents procedures for estimating capacities
+of ramps and of "merge" areas. There are three significant factors to the determination of
+capacity of a ramp-freeway junction: The capacity of the freeway immediately downstream of
+an on-ramp or immediately upstream of an off-ramp; the capacity of the ramp roadway; and the
+maximum flow rate entering the ramp influence area. In most cases, the freeway capacity is the
+controlling factor. Values of this merge area capacity are presented in Exhibit 14-10 of the HCM
+and depend on the number of freeway lanes and on the freeway free speed. Ramp capacity is
+presented in Exhibit 14-12 and is a function of the ramp’s free flow speed. Concepts in these
+chapters are utilized to estimate the capacity of freeway ramps within the city.
+
+Viability
+
+Viability is defined as the ability to function adequately. It is also defined as the ability to succeed
+or be sustained. As such, the viability of an evacuation route can be defined in several different
+ways. The following scores have been developed for this study to assess the viability of the
+roadways within the city. Table 3 presents each of the viability scores, their scales, and their
+descriptions.
+Connectivity score: How well does a roadway connect you to an area of refuge or nearby city?
+Roadways that directly connect evacuees to places of safety are more connected and are
+considered more viable than roadways that do not. To determine how well connected each
+roadway is, ArcGIS’s network analyst was utilized to find the shortest path from each trip origin
+(Census block centroid) to each trip destination (city exit along a major evacuation route). Once
+each route was computed from each origin (O) to each destination (D), the routes were spatially
+joined with each roadway link to determine the total number of origin-destination paths that
+traversed each segment. Roadway segments with more paths are more connected, and more
+viable, than roadway segments with less paths.
+Accessibility score: How accessible is a roadway to evacuees? A freeway usually has a very high
+capacity and great connectivity, but if the ramps that give access to the freeway are 10 miles
+apart, it may not be the most viable evacuation route. For this reason, the number of
+connections, or intersections/ramp junctions, was considered in the accessibility score. To
+determine the number of connections or intersections for each route, the number of other links
+(roadway segments) that are connected to each link was computed. Nodes were created at the
+intersections of links. A spatial join was done to count the number of links that connect each
+node. Finally, a spatial join was conducted to assign the total number of connected links from
+connected nodes to their corresponding links. In addition, aerial imagery was used to verify the
+link and node connection. For ramps, if a roadway is a ramp or has a ramp connection, it was
+assigned a value of 5 for appropriate weight in the accessibility score. The accessibility score is
+the sum of the number of ramps and the number of connected links. The more
+intersections/connections/ramps a roadway has, the higher the accessibility score and the more
+viable the roadway is considered.
+
+
+
+City of Berkeley                                   7                                KLD Engineering, P.C.
+AB 747 Requirement                                                                                Rev. 3
+Service score: Does the roadway have the necessary commodities or services to sustain
+evacuees, like gas stations and/or electric charging stations? Roadways that have these types of
+commodities facilitate evacuation and, therefore, are more viable evacuation routes than
+roadways that do not have these types of commodities.
+ArcGIS’s network analyst was utilized to determine how far a roadway was from a service (gas or
+charging) station. For example, a roadway with a gas station score of 2 and a charging station
+score of 4 is a 2 minute drive from the nearest gas station and a 4 minute drive from the nearest
+charging station. The service rating is the sum of these two values.
+Congestion score: A good way to measure the viability of an evacuation route is to determine if
+the population demand (residents, employees, students, and pass through traffic) that is
+expected to utilize the route will exceed the estimated capacity. For example, can the route
+service the demand in an evacuation, or will it operate below capacity and have bottlenecks and
+operational constraints?
+The best way to answer these questions is with a traffic simulation model that uses algorithms
+to simulate real traffic behavior under a variety of circumstances. Currently, the City of Berkeley
+is conducting an evacuation time estimate (ETE) study to compute how long it would take to
+evacuate the city under different temporal and spatial conditions. This study utilizes a traffic
+simulation model. As part of this work effort, the congestion during evacuation conditions along
+each evacuation route can be assessed. This project is still ongoing, and as a result, the results
+of the project cannot be utilized to assess the congestion score, or viability, of the evacuation
+routes within the city at this time.
+In the meantime, the evacuating vehicular demand can be estimated based on trip origins and
+this demand can be compared to the capacity18 of the roadway segments within the vicinity of
+each origin.
+The evacuating vehicular demand for each route was computed from Census data (population
+data extrapolated to 2023 and employment data from LEHD) in the proximity of the route.
+Resident and employee datapoints (converted to vehicles using assumed occupancies) within a
+quarter mile buffer of the roadway segment were assigned to each roadway segment as the
+vehicular demand to be serviced. In addition, pass through traffic along I-80 was estimated from
+annual average daily traffic counts collected by the US Department of Transportation along I-80.
+This demand can fluctuate depending on the time of year, day of week, and time of day. For this
+reason, a minimum and maximum demand was estimated using scenario percentages for varying
+temporal conditions. For example, employees within the city peak between 9am and 5pm on
+weekdays and only about 10% of employees may be present on weekends and in the evening. It
+should be noted that the minimum demand represents when UC Berkeley is not in session; the
+maximum demand represents when UC Berkeley is in session.
+
+
+
+
+18
+     As computed in the Capacity section of this report.
+
+
+City of Berkeley                                           8                    KLD Engineering, P.C.
+AB 747 Requirement                                                                            Rev. 3
+Since vehicles will load onto the roadway network over time, rather than all at once, the
+mobilization distribution19 was computed from an online demographic survey of residents and
+employees/commuting students within the City of Berkeley. Figure 12 shows the mobilization
+curve that was utilized. The maximum demand (volume) was computed for each roadway
+segment based on the highest hourly mobilization percentage (57% for residents [between 45
+minutes and 1 hour and 45 minutes after the order to evacuate] and 100% for employees and
+commuting students [in the first hour]).
+The volume was then divided by the total roadway capacity to compute the volume-to-capacity
+(v/c) ratio for each roadway segment. The v/c ratio was utilized as the congestion score for the
+maximum and minimum demand, the higher the congestion score, the lower the viability.
+
+Vulnerability
+
+Although not specifically a roadway safety, capacity or viability consideration, the demographics
+of the neighborhoods that surround the roadway could be indicative of areas that are more
+vulnerable and may face challenges when evacuating. For example, areas with less vehicle
+availability are likely to require public transit and may face more challenges than those areas with
+enough vehicles to sufficiently evacuate the household in a personal vehicle. These factors were
+considered separately from the safety, capacity or viability factors but were included in this
+analysis for a complete picture. The vulnerability factors and their scaling system (using Jenk’s
+Law of Natural Breaks where appropriate), the weight applied (if any), and their description are
+included in Table 4. The higher the vulnerability rating, the greater vulnerability of the
+population living along a roadway segment. An overall vulnerability rating was computed by
+summing each factor (multiplied by its weight, if applicable).
+ through show the various factors that were applied for the vulnerability analysis and the results
+that were obtained.
+
+Results
+
+Appendix A provides a summary (sorted by street name20) of the average21 overall safety rating,
+capacity, viability score and vulnerability rating by roadway name. Each of the various
+components and factors that were utilized to compute the safety, capacity, and viability of each
+roadway segment, as well as the overall safety, capacity, and viability scores of each roadway
+segment, were provided to the City in electronic format.
+While the safety, capacity, viability, and vulnerability varies somewhat within individual street
+segments on a particular roadway, the following evacuation routes have the highest capacity, are
+relatively safe, and are the most viable across the entire length of the roadway, see Figure 17:
+         University Ave
+
+19
+   The notification distribution was assumed over a 30-minute period due to the presence of wireless emergency alerts within the city
+and based on survey responses.
+20
+   The City’s naming conventions within the centerline dataset were adopted with minimal changes.
+21
+   Each value shown is the average of all roadway segments that share that street name.
+
+
+
+City of Berkeley                                                 9                                          KLD Engineering, P.C.
+AB 747 Requirement                                                                                                        Rev. 3
+        Adeline St
+        Ashby Ave (SR13)
+        Cedar St
+        Interstate 80 (I-80)
+        San Pablo Ave (SR 123)
+        Sacramento St
+        Claremont Ave
+        Marin Ave
+
+Safety
+
+Each of the safety risk scores were summed (with specified weights, if necessary) to obtain an
+overall safety rating for each roadway segment. Those roadway segments that have the highest
+overall score are the most unsafe roadway segments. Those with lower scores are safer. Figure
+18 shows the overall evacuation safety ratings for each of the roadway segments within the city.
+Jenk’s Law of Natural Breaks was used to develop the 4 thresholds of overall safety. Those
+roadways with the highest safety score (2.3 - 3.7) are shown in red and represent the roadways
+with the highest exposure to traffic fatalities, narrowest width, tightest turns, steepest slopes,
+poorest pavement condition and/or are located above or below a bridge or tunnel. The least safe
+roadways are within the hills and along Panoramic Way. These roadways are extremely narrow,
+winding, and steep. Many of the roadways within the flats, including San Pablo Ave, have poor
+or very poor pavement conditions, giving them a higher unsafe rating. The safest roadways are
+Frontage Rd, University Ave, and Adeline St.
+
+Hazards
+Each of the hazard risk scores were summed (with specified weights, if necessary) to obtain an
+overall hazard rating for each roadway segment. Those roadway segments that have the highest
+overall score have the highest exposure to flooding, landslides, earthquakes, tsunamis, wildfires.
+Those with lower scores are less exposed. Figure 19 shows the overall hazard ratings for each of
+the roadway segments within the city. The safest roadways are in central Berkeley between San
+Pablo Ave and the foothills of the mountains, including Hopkins St, Shattuck Ave, Adeline St, as
+well as parts of Cedar St, University Ave, and Ashby Ave. Roadways west of San Pablo Ave are
+exposed to water related hazards like flooding and tsunamis. Roadways in the mountains are
+exposed to fires, landslides, and more severe ground shaking.
+
+Capacity
+
+Figure 20 shows the capacity of each roadway segment within the City of Berkeley based on the
+field observations collected in May 2023, including the number of moving lanes on each roadway.
+I-80 has the highest capacity, followed by multilane major arterials like San Pablo Ave, University
+Ave, Shattuck Ave/Adeline St, Sacramento St, Telegraph Ave, and Claremont Ave. The vast
+majority of roadways within the city are single-lane collectors with a free flow speed of 45mph
+or less and a capacity of approximately 1,700 passenger cars per hour or less. In the hills, free
+flow speeds are 20 mph or less and capacities are 900 passenger cars per hour or less.
+
+City of Berkeley                                10                              KLD Engineering, P.C.
+AB 747 Requirement                                                                            Rev. 3
+Viability
+
+Figure 21 displays the connectivity score for the roadways within the city. In the figure, thicker
+roadways provide more origin-destination connections than thinner roadways and are,
+therefore, more connected. The most connected roadways are Sacramento St, Ashby Ave (SR
+13), Martin Luther King Jr Way, Monterey Ave, Piedmont Ave (in Oakland), and Marin Ave.
+University Ave, Dwight Way and Cedar St are very connected as well.
+Figure 22 displays the results of the accessibility score. Most of the roadways between I-80 and
+San Pablo Ave, South Berkeley, parts of central and north Berkeley, and I-80 are very accessible.
+Berkeley Hills and the eastern part of the city are not very accessible since they have limited
+connections to major roadways and very limited connections to the east of the city due to the
+mountainous terrain. Some of the most accessible roadways are I-80, Marin Ave, Shattuck
+Ave/Adeline St, and University Ave.
+Figure 23 displays the results of the service score. Roadways west of San Pablo Ave, in the vicinity
+of University Ave, and in the vicinity of Shattuck Ave and Adeline St have the highest scores due
+to the density of gas and electric charging stations along these roadways.
+Figure 24 and Figure 25 display the congestion scores22 (v/c) for the maximum and minimum
+estimated effective demand during an evacuation event (respectively) converted to Level-of-
+Service (LOS), which is a term used to describe the operating conditions of a roadway. The LOS
+shown in these figures is based on the Highway Capacity Manual (HCM) rounded to the nearest
+tenth. As shown in these figures, during an evacuation, many of the roadways within the city will
+operate at LOS F and experience significant congestion. In both cases, the major arterials, like
+San Pablo Ave (SR 123), Sacramento St, University Ave, Adeline St, Ashby Ave (SR13), and
+Claremont Ave can better service the evacuating demand than the smaller, local streets within
+the heart of the city. As such, these roadways are more viable evacuation routes. During the case
+with minimal demand, and less pass-through traffic on I-80 (at night, for example), I-80 becomes
+one of the most viable evacuation routes as shown in Figure 25.
+
+Vulnerability
+
+Each of the vulnerability risk scores were summed (with specified weights, if necessary) to obtain
+an overall vulnerability rating for each roadway segment. Those roadway segments that have the
+highest overall score are the areas that could potentially have the most difficulty and/or
+challenges evacuating. Those with lower scores are less likely to have difficulty and/or challenges
+evacuating. Figure 26 shows the overall vulnerability ratings for each of the roadway segments
+within the city. Jenk’s Law of Natural Breaks was used to develop the 4 thresholds of overall
+vulnerability. Those roadways with the highest vulnerability score (2.8 – 3.8) are shown in red
+and represent the roadways that are within areas with the most poverty, the least amount of
+income spent on transportation, the lowest vehicle availability and the highest population with
+disabilities.
+
+22
+   It should be noted that this methodology treats the evacuation of the city in a vacuum ignoring possible, simultaneous evacuation
+in areas adjacent to the city.
+
+
+City of Berkeley                                                11                                         KLD Engineering, P.C.
+AB 747 Requirement                                                                                                       Rev. 3
+                                                                        Table 1. Safety and Hazard Factors
+             Factor                             Scale                                                           Description
+                                                                                  Safety Factors
+                                                                        The City of Berkeley Vision Zero collisions data was utilized to determine corridors with
+                                               0 - No                   high collision rates. This data was spatially joined with the roadway segments to identify
+                                                                        which roadways had the most, or any, collisions. Roadways with more collisions may be
+     Collisions
+                                                                        indicative of poor roadway design. Those roadways with high collision rates were
+                                               1 - Yes                  assigned a value of 1; those corridors that did not have high collision rates were assigned
+                                                                        a value of 0. See Figure 1.
+                                                                        The city centerline dataset was utilized to determine which roadways were
+                                      0 – Not Constrained
+                                                                        narrow/constrained (with a travel lane of less than 10 feet wide23). Roadways that were
+     Pavement Width                                                     considered not constrained (less than 10 feet wide) were assigned a value of 0. Those
+                                         1 – Constrained                roadways which are considered constrained (meet or exceed 10 feet wide24) were
+                                                                        assigned a value of 1. See Figure 2.
+                                  0 – greater than or equaled           The curvature of the roadway was calculated based on its geometry. The radius of the
+                                           to 81 feet                   circumscribed circle of three sequential points was computed and assigned to the
+     Curvature                                                          midpoint of those three points. The roadway segment between two points was assigned
+                                      1 – less than 81 feet             the average of the two radii of the points in which it connects. A threshold of 81 feet25
+                                                                        was selected as the minimum radius. See Figure 3.
+                                             0.0 – 2.3                  The slope of the roadway was also considered. Slopes are represented as a percentage
+                                             2.4 – 7.0                  (rise/run x 100). Roadways with steep slopes can be more dangerous than roadways
+     Slope                                                              with shallow slopes. As such, larger slopes were assigned a higher value than smaller
+                                             7.1 – 15.2
+                                                                        slopes. A weight of 0.33 is applied to this factor to normalize the results between 0 and
+                                            15.3 – 37.1                 1. See Figure 4.
+
+
+
+
+23
+   Based on discussions with staff from the City’s Public Works and Fire Departments, a viable evacuation travel lane width of 10 feet was chosen to account for larger vehicles (8 feet
+wide) and sideview mirrors. It is assumed that even larger vehicles (10 feet wide) are operated by professional drivers with a higher degree of skill to reduce or eliminate driver error.
+24
+   Pavement width was utilized (with modifications made for side street parking). Eight feet of parking was removed from the pavement width for single side street parking and 16 feet
+was removed for street parking on both sides of the road. Eight feet was used since the typical width for a standard parking space is 8 feet. Although a width of 7.5 feet has been used
+to provide a balance among users, eight feet was used as vehicles are not always parked well, may not be parked in contact with the face of the curb or vegetation, and throughout the
+day, large vehicles may be parked on the side of the street. Overhanging vegetation was not accounted for.
+25
+   Table 3-7 of the 2018 AASHTO Policy on Geometric Design of Highways and Streets indicates the minimum radii for a curve with a design speed of 20mph is 81 feet. Based on the
+data collected during the road survey, the speed travelled on these curves was 20mph or less.
+
+
+City of Berkeley                                                                           12                                                                    KLD Engineering, P.C.
+AB 747 Requirement                                                                                                                                                             Rev. 3
+        Factor                      Scale                                                        Description
+                                0 – Very Good           Roadways with poor pavement quality can be more unsafe than roadways with good
+                                                        pavement quality. As such, the quality of the pavement was also considered in the safety
+                                    1 - Good            analysis. Pavement quality was rated as unpaved, poor, fair/acceptable, and good.
+ Pavement Quality
+                                    2 - Poor            Unpaved and poorly rated roadways were rated higher than fair and good rated
+                                                        roadways. A weight of 0.33 is applied to this factor to normalize the results between 0
+                                 3 – Very Poor          and 1. See Figure 5.
+                                                        Bridges and tunnels are at risk of collapsing, making the roadways that traverse under
+                                     0 - No             or over them unsafe. The roadway segments that contained a bridge or tunnel were
+ Bridges and Tunnels                                    given a factor one 1. The remaining roadway segments were assigned a value of 0. Since
+                                     1 - Yes            all bridges (5) and tunnels (1) within the city are currently rated as ‘fair’, this factor was
+                                                        given a weight of 0.5. See Figure 6.
+                                               Hazard Factors (excluded from overall safety rating)
+                         0 - not within a flood zone The data depicts the FEMA 100-year and 500-year flood risk zones for Alameda County.
+                                                        The 100-year flood plain is the area with a 1% chance of flooding in any given year, while
+ FEMA 100-Year and
+                          0.2 - 500-year flood zone     the 500-year flood plain is the area with a 0.2% chance of flooding in any given year.
+ 500-Year Flood Hazard
+                                                        Roadways within a 100-year flood plain are at a higher risk, and are more unsafe, than
+ Areas
+                           1 - 100-year flood zone      roadways within a 500-year flood plain. It should be noted that none of the roadways
+                                                        within the city are within the 100-year flood zone. See Figure 7.
+                                                        The statewide landslide inventory shows many of the landslides mapped by CGS and
+                         0 – 0.04 – Very low or none others over the past 50 years. The database focuses on deep-seated landslides. Rock
+                                                        strength and slope are combined to create classes of landslide susceptibility. These
+                               0.05 – 0.12 - Low        classes express the generalization that on very low slopes, landslide susceptibility is low
+ Landslide Hazard
+                                                        even in weak materials, and that landslide susceptibility increases with slope and in
+ Areas
+                            0.13 – 0.22 - Medium        weaker rocks. Higher rates of landslide susceptibility include very steep slopes in hard
+                                                        rocks, and moderate to very steep slopes in weak rocks. Roadways with medium or high
+                              0.23 – 0.34 - High        landslide susceptibility are less safe than roadways with low or very low (or no) landslide
+                                                        susceptibility. See Figure 8.
+
+
+
+
+City of Berkeley                                                        13                                                        KLD Engineering, P.C.
+AB 747 Requirement                                                                                                                              Rev. 3
+             Factor                          Scale                                                        Description
+                                                                           26
+                                                                  HAZUS results of an earthquake scenario on the Hayward Fault. These results include
+                                        0.67 - Severe             impacts due to ground shaking, landslide, and liquefaction. The results are measured in
+     Earthquake Hazard                                            Modified Mercalli Intensity (MMI) which is composed of twelve levels that increase from
+     Risk                                                         imperceptible shaking to catastrophic destruction. The MMI rating is divided by 12 to
+                                        0.75 - Violent            scale the results from 0 to 1. The entire city falls either in severe (8) or violent (9) ground
+                                                                  shaking. See Figure 9.
+                                                                  The Tsunami hazard areas are developed for all populated areas at risk to tsunamis in
+                                            0 - No
+                                                                  California and represent a combination of the maximum considered tsunamis for each
+     Tsunami Hazard Areas
+                                                                  area. “No” indicates the roadway is not within a tsunami hazard area. “Yes” indicates
+                                            1 - Yes
+                                                                  the roadway is within a tsunami hazard area. See Figure 10.
+                                          0 – Zone 1              FHSZ are scored based on factors that influence fire likelihood and fire behavior. Fire
+     Fire Hazard Severity                                         Zones 2 and 3 were considered at-risk in this study. Roadways that were not within
+                                         0.5 – Zone 2
+     Zone                                                         Zones 2 or 3 are assigned a value of 0. Roadways within Zone 2 are assigned a value of
+                                          1 – Zone 3              0.5 and those roadways within Zone 3 are assigned a value of 1. See Figure 11.
+
+                                                                Table 2. Capacity for Two Lane Roads
+                                                                 Speed (mph)            Capacity (pc/h)
+                                                                       5                     225
+                                                                       10                    450
+                                                                       15                    675
+                                                                       20                    900
+                                                                       25                   1,125
+                                                                       30                   1,350
+                                                                       35                   1,575
+                                                                      40+                   1,700
+
+
+
+
+26
+     Hazards US software developed by the Federal Emergency Management Agency (FEMA).
+
+
+City of Berkeley                                                                  14                                                         KLD Engineering, P.C.
+AB 747 Requirement                                                                                                                                         Rev. 3
+                                                            Table 3. Viability Scores
+      Score              Scale                                                          Description
+                        1 - 187
+                                    Roadways that directly connect evacuees to places of safety are more connected and are considered
+                      188 – 519
+ Connectivity                       more viable than roadways that do not. The scale of this score is based on the number of origin-
+                     520 – 1,023
+                                    destination connections that are made.
+                        1,024+
+                          0-3
+                          4-5       The more intersections/connections/ramps a roadway has, the higher the accessibility score and the more
+ Accessibility
+                          6-7       viable the roadway is considered. Ramps were assigned a value of 5 for weighting purposes.
+                         8 - 11
+                          2-4       Roadways that have gas stations and/or charging stations readily accessible help evacuees maintain their
+                          5-8       evacuation and, therefore, are more viable evacuation routes than roadways that do not have these types
+ Service
+                         9 - 12     of commodities. The scores represent the sum of the driving time to the nearest gas station and charging
+                        13 - 17     station. Roadways that are furthest from a gas or charging station have a higher score and are less viable.
+                         LOS A
+                       (0 – 0.1)
+                         LOS B
+                      (0.1 – 0.2)
+                                    The congestion score compares the demand (volume) against the capacity to see how the roadways will
+                         LOS C
+                                    operate under evacuation conditions. This metric is called the v/c ratio. The Highway Capacity Manual
+                      (0.2 – 0.4)
+ Congestion                         provides an equivalent Level-of-Service (LOS) that ranges from A (free flow conditions) to F (bumper to
+                         LOS D
+                                    bumper traffic) based on the characteristics of the roadway. This concept was used to develop general
+                      (0.4 – 0.6)
+                                    thresholds for the congestion score, rather than Jenk’s Law of Natural Breaks.
+                         LOS E
+                     (0.6 – 0.95)
+                         LOS F
+                        (0.95+)
+
+
+
+
+City of Berkeley                                                       15                                                    KLD Engineering, P.C.
+AB 747 Requirement                                                                                                                         Rev. 3
+                                                      Table 4. Vulnerability Factors
+           Factor                Scale                                                     Description
+                           Low (0.6% - 7.9%)        The poverty data estimates the percentage of population with income lower than the
+                         Medium (8.0% - 15.3%)      federal poverty level at the census tract level. The data is provided by the U.S. Census
+ Poverty                                            Bureau's American Community Survey (ACS) 2017-2021 5-year estimates. Areas with
+                          High (15.4% - 26.9%)      high percentages of poverty are more likely to have evacuation challenges and,
+                        Very High (27.0% - 64.3%)   therefore, have a higher vulnerability rating. See Figure 13.
+
+                               Low (0.0%)           The H+T income indicator measures the percentage of income devoted to housing plus
+                                                    (+) transportation for the regional typical household at the census tract level. The latest
+ Housing and             Medium (0.1% - 45.0%)      data (as of 2017) for this indicator were collected directly from the Housing and
+ Transportation                                     Transportation Costs (H+T) Index webpage. Areas with higher H+T have dedicated a
+ Income                   High (45.1% - 58.0%)      higher percent of their income to housing and transportation and are not likely to have
+                                                    evacuation difficulties. As such, areas with low H+T percentages have a higher
+                        Very High (58.1% - 76.0%)   vulnerability rating. See Figure 14.
+
+                           Low (0.0% - 5.1%)        The data shows the percentage of households with no vehicles at the census tract level.
+                                                    The data is provided by the U.S. Census Bureau's ACS 2017-2021 5-year estimates of
+                         Medium (5.2% - 14.0%)      household size by number of vehicles available. These individuals are more likely to
+ Vehicle Availability                               depend on public transit or need transportation assistance in an evacuation. As such,
+                          High (14.1% - 25.5%)      areas with high percentages of households with no vehicles are assigned a higher
+                        Very High (25.6% - 71.0%)   vulnerability rating than those with lower percentages. See Figure 15.
+
+                           Low (3.8% - 7.8%)        The data shows the percentage of population with a disability at the census tract level.
+                                                    The data is provided by the U.S. Census Bureau's ACS 2017-2021 5-year estimates of six
+                         Medium (7.9% - 9.6%)       different types of disability (hearing, vision, cognitive, ambulatory, self-care, and
+ Population with                                    independent living difficulties). Individuals with disabilities are more likely to have
+ Disabilities              High (9.7% - 14.6%)      difficulty evacuating. Areas with higher populations with disabilities are given a higher
+                                                    vulnerability rating. Since this factor has such low scaling, a weight of 2 was applied to
+                        Very High (14.7% - 18.7%)   this factor. See Figure 16.
+
+
+
+
+City of Berkeley                                                   16                                                       KLD Engineering, P.C.
+AB 747 Requirement                                                                                                                        Rev. 3
+                     Figure 1. Collision Factor
+
+
+
+City of Berkeley                17                KLD Engineering, P.C.
+AB 747 Requirement                                              Rev. 3
+                     Figure 2. Navigable Pavement Width
+
+
+
+City of Berkeley                    18                    KLD Engineering, P.C.
+AB 747 Requirement                                                      Rev. 3
+                     Figure 3. Roadway Curvature
+
+
+
+City of Berkeley                 19                KLD Engineering, P.C.
+AB 747 Requirement                                               Rev. 3
+                     Figure 4. Roadway Slope
+
+
+
+City of Berkeley               20              KLD Engineering, P.C.
+AB 747 Requirement                                           Rev. 3
+                     Figure 5. Pavement Condition Index
+
+
+
+City of Berkeley                    21                    KLD Engineering, P.C.
+AB 747 Requirement                                                      Rev. 3
+                     Figure 6. Bridges and Tunnels
+
+
+
+City of Berkeley                  22                 KLD Engineering, P.C.
+AB 747 Requirement                                                 Rev. 3
+                     Figure 7. Flood Hazard Areas
+
+
+
+City of Berkeley                 23                 KLD Engineering, P.C.
+AB 747 Requirement                                                Rev. 3
+                     Figure 8. Landslide Hazard Areas
+
+
+
+City of Berkeley                   24                   KLD Engineering, P.C.
+AB 747 Requirement                                                    Rev. 3
+                     Figure 9. Earthquake ShakeMap
+
+
+
+City of Berkeley                  25                 KLD Engineering, P.C.
+AB 747 Requirement                                                 Rev. 3
+                     Figure 10. Tsunami Hazard Zone
+
+
+
+City of Berkeley                  26                  KLD Engineering, P.C.
+AB 747 Requirement                                                  Rev. 3
+                     Figure 11. Fire Hazard Severity Zones
+
+
+
+City of Berkeley                      27                     KLD Engineering, P.C.
+AB 747 Requirement                                                         Rev. 3
+                                                                      Trip Generation Distributions
+                                                                           Employees/Tourists         Residents
+
+                                                       100
+
+
+
+
+     Percent of Population Beginning Evacuation Trip
+                                                        80
+
+
+
+
+                                                        60
+
+
+
+
+                                                        40
+
+
+
+
+                                                        20
+
+
+
+
+                                                        0
+                                                             0   60                           120                    180              240
+                                                                          Elapsed Time from Evacuation Order (min)
+
+
+                                                                            Figure 12. Mobilization Times
+
+
+
+
+City of Berkeley                                                                         28                                KLD Engineering, P.C.
+AB 747 Requirement                                                                                                                       Rev. 3
+                     Figure 13. Poverty
+
+
+
+City of Berkeley            29            KLD Engineering, P.C.
+AB 747 Requirement                                      Rev. 3
+                     Figure 14. H+T Household Indicator
+
+
+
+City of Berkeley                    30                    KLD Engineering, P.C.
+AB 747 Requirement                                                      Rev. 3
+                     Figure 15. Vehicle Availability
+
+
+
+City of Berkeley                   31                  KLD Engineering, P.C.
+AB 747 Requirement                                                   Rev. 3
+                     Figure 16. Population with Disabilities
+
+
+
+City of Berkeley                       32                      KLD Engineering, P.C.
+AB 747 Requirement                                                           Rev. 3
+                     Figure 17. Overview of Capacity, Safety, and Viability
+
+
+
+City of Berkeley                              33                              KLD Engineering, P.C.
+AB 747 Requirement                                                                          Rev. 3
+                     Figure 18. Overall Evacuation Safety Rating
+
+
+
+City of Berkeley                         34                        KLD Engineering, P.C.
+AB 747 Requirement                                                               Rev. 3
+                     Figure 19. Hazard Rating
+
+
+
+City of Berkeley               35               KLD Engineering, P.C.
+AB 747 Requirement                                            Rev. 3
+                     Figure 20. Capacity
+
+
+
+City of Berkeley             36            KLD Engineering, P.C.
+AB 747 Requirement                                       Rev. 3
+                     Figure 21. Connectivity
+
+
+
+City of Berkeley               37              KLD Engineering, P.C.
+AB 747 Requirement                                           Rev. 3
+                     Figure 22. Accessibility Score
+
+
+
+City of Berkeley                  38                  KLD Engineering, P.C.
+AB 747 Requirement                                                  Rev. 3
+                     Figure 23. Service Score
+
+
+
+City of Berkeley               39               KLD Engineering, P.C.
+AB 747 Requirement                                            Rev. 3
+                     Figure 24. Maximum Demand During an Evacuation Event
+
+
+
+City of Berkeley                             40                             KLD Engineering, P.C.
+AB 747 Requirement                                                                        Rev. 3
+                     Figure 25. Minimum Demand During an Evacuation Event
+
+
+
+City of Berkeley                             41                             KLD Engineering, P.C.
+AB 747 Requirement                                                                        Rev. 3
+                     Figure 26. Demographic Vulnerability Rating
+
+
+
+City of Berkeley                         42                        KLD Engineering, P.C.
+AB 747 Requirement                                                               Rev. 3
+Appendix A
+                                  Table A-1. Summary of Safety, Capacity, Viability, and Vulnerability Scores
+
+                                                                                      Average21 of
+                        Total
+                                                                                                 Congestion     Congestion
+         Street Name   Capacity   Safety Score    Hazard Score    Connectivity   Accessibility                                Service Score   Vulnerability Score
+                                                                                                 Score (Max)    Score (Min)
+                        (vph)
+
+
+10TH ST                  986          0.46            1.57            5.95           5.95            2.24          1.07           2.62               2.11
+2ND ST                   994          0.64            3.10            5.33           5.33            1.91          0.38           3.75               2.11
+4TH ST                  1,024         0.18            2.51            5.50           5.50            1.95          0.55           3.40               2.11
+5TH ST                   936          0.67            2.31            5.37           5.37            2.39          0.72           3.05               2.11
+62ND ST                 1,163         0.89            1.67            5.17           5.17            0.96          0.56           6.83               2.23
+63RD ST                 1,215         0.80            1.67            5.00           5.00            1.11          0.69           5.80               2.18
+65TH ST                 1,125         0.67            1.67            4.00           4.00            0.71          0.56           7.00               2.12
+66TH ST                 1,050         0.33            1.33            4.17           4.17            1.19          0.99           6.67               2.12
+67TH ST                  750          0.00            1.33            5.33           5.33            2.11          1.79           6.00               2.12
+6TH ST                  1,167         0.90            1.73            5.63           5.63            1.84          0.69           3.31               2.13
+7TH ST                  1,058         0.52            1.63            5.67           5.67            2.25          0.73           2.85               2.11
+8TH ST                   879          0.68            1.62            5.62           5.62            2.85          1.08           3.00               2.11
+9TH ST                   881          0.14            1.67            5.50           5.50            2.68          1.09           2.58               2.11
+ACACIA AVE               900          2.00            1.25            4.00           4.00            0.92          0.84          15.00               0.89
+ACROFT CT               1,125         0.33            0.67            2.00           2.00            1.33          0.92           5.00               3.26
+ACTON CIR               1,125         0.78            0.87            2.67           2.67            1.53          1.05           5.00               3.26
+ACTON ST                 955          0.67            0.98            5.00           5.00            1.61          1.28           5.11               2.08
+ADA ST                   990          0.40            0.67            5.20           5.20            1.32          0.95           6.20               1.34
+ADDISON ST               892          0.86            1.23            5.52           5.52            4.78          1.62           3.03               2.48
+ADELINE ST              5,454         1.17            1.14            5.51           5.51            0.32          0.18           3.94               2.10
+ALAMO AVE                675          2.00            1.25            4.00           4.00            1.35          1.25          13.00               0.89
+ALCATRAZ AVE            1,073         0.51            1.66            5.23           5.23            1.16          0.78           5.92               1.95
+ALLSTON WAY              852          0.51            1.25            5.57           5.57            4.04          1.67           3.86               2.53
+ALTA RD                  675          1.67            1.25            4.00           4.00            0.82          0.77          14.00               0.89
+ALVARADO RD             1,125         0.81            1.25            3.86           3.86            0.27          0.24           6.71               1.20
+AMADOR AVE               788          0.67            1.25            4.00           4.00            1.41          1.13           8.00               1.27
+ANTHONY ST               563          0.83            1.67            5.00           5.00            4.14          0.78           2.00               2.11
+ARCADE AVE               900          1.00            1.25            4.00           4.00            0.60          0.56          13.00               1.24
+ARCH ST                  859          0.97            1.25            4.27           4.27            1.95          1.59           8.00               1.40
+                                                                                    Average21 of
+                        Total
+                                                                                               Congestion    Congestion
+         Street Name   Capacity   Safety Score   Hazard Score   Connectivity   Accessibility                               Service Score   Vulnerability Score
+                                                                                               Score (Max)   Score (Min)
+                        (vph)
+
+
+ARDEN RD                 788         1.50            1.75          2.00            2.00            0.55         0.52          11.00               2.82
+ARLINGTON AVE           1,133        1.65            1.25          4.36            4.36            0.70         0.63          11.25               1.02
+ASHBY AVE               2,477        1.78            0.99          5.11            5.21            1.48         0.67           3.15               1.82
+ASHBY PL                1,125        0.33            0.75          4.00            4.00            1.59         1.10           4.00               1.20
+ATHERTON ST             1,125        1.00            0.75          4.00            4.00            2.56         1.43           4.00               3.39
+ATLAS PL                 450         1.00            1.25          4.00            4.00            0.98         0.93          14.00               1.24
+AVALON AVE               990         1.20            0.75          3.00            3.00            1.07         0.77           4.60               1.74
+AVENIDA DR               750         0.89            1.25          4.67            4.67            0.67         0.65          13.83               1.24
+AVIS RD                  900         1.33            1.25          4.00            4.00            0.86         0.77          12.00               1.06
+BAKER ST                1,013        0.33            1.67          5.25            5.25            1.06         0.87           7.25               2.12
+BANCROFT PL              450         1.67            1.75          2.00            2.00            0.25         0.22          17.00               1.14
+BANCROFT STEPS WAY       675         1.00            1.25          4.00            4.00            1.30         0.86           7.00               2.82
+BANCROFT WAY            1,872        0.78            1.30          5.02            5.02            1.66         0.87           4.44               2.70
+BARROWS LN              1,125        0.33            0.75          4.00            4.00            0.95         0.27           5.00               3.30
+BATAAN AVE              1,125        1.00            1.67          4.00            4.00            1.60         0.79           3.00               1.98
+BATEMAN ST               675         1.00            0.75          4.00            4.00            5.34         1.63           4.00               1.68
+BAY ST                  1,125        0.50            3.67          3.00            8.00            0.84         0.10           2.00               2.11
+BAYTREE LN               450         2.00            1.25          1.00            1.00            0.68         0.63          13.00               1.24
+BAYVIEW PL               675         0.67            1.25          4.00            4.00            1.68         1.41          10.00               1.24
+BELROSE AVE             1,125        0.00            1.25          5.00            5.00            0.64         0.46           4.00               1.74
+BELVEDERE AVE           1,013        0.50            0.67          5.00            5.00            1.60         1.14           4.00               1.37
+BENVENUE AVE             956         0.67            0.75          5.50            5.50            3.50         1.66           4.38               2.02
+BERKELEY SQ             3,800        0.67            0.67          6.00            6.00            1.58         0.38           3.00               3.31
+BERKELEY WAY             916         0.60            0.67          5.36            5.36            6.89         2.09           3.50               1.82
+BERRYMAN PATH            900         0.67            1.17          5.00            5.00            1.90         1.29           8.00               2.14
+BERRYMAN ST              996         0.48            0.81          5.57            5.57            1.57         1.07           8.43               1.91
+BEVERLY PL              1,200        0.56            1.00          5.33            5.33            0.75         0.61           6.67               1.20
+BLAKE ST                 970         0.85            1.07          5.63            5.63            2.29         1.56           4.25               2.38
+BOISE ST                1,125        0.33            1.67          4.00            4.00            1.10         0.92           7.00               2.12
+BOLIVAR DR               788         1.00            3.67          2.50            2.50            1.98         0.46           5.50               2.11
+BONAR ST                1,050        0.00            1.53          5.67            5.67            1.41         0.99           4.00               3.26
+                                                                                     Average21 of
+                         Total
+                                                                                                Congestion    Congestion
+          Street Name   Capacity   Safety Score   Hazard Score   Connectivity   Accessibility                               Service Score   Vulnerability Score
+                                                                                                Score (Max)   Score (Min)
+                         (vph)
+
+
+BONITA AVE                950         0.33            0.72          5.00            5.00            6.00         1.99           5.89               2.16
+BONNIE LN                 675         1.67            1.25          4.00            4.00            1.57         1.41          12.00               0.89
+BOWDITCH ST               844         1.00            0.75          5.50            5.50            2.92         1.64           5.00               3.39
+BOYNTON AVE               863         1.83            1.25          4.00            4.00            0.61         0.57          14.50               1.06
+BREAKWATER DR            1,125        1.00            2.67          2.00            2.00            0.00         0.00           9.00               2.11
+BRET HARTE PATH          1,125        3.00            1.25          4.00            4.00            0.67         0.59          14.00               1.10
+BRET HARTE RD             788         2.50            1.25          4.00            4.00            1.12         1.01          13.00               1.10
+BRIDGE RD                1,125        0.67            1.25          4.00            4.00            0.34         0.29           6.00               1.20
+BROOKSIDE AVE             675         0.00            1.45          2.00            2.00            1.41         1.02           6.00               1.20
+BROOKSIDE CT             1,125        0.00            0.75          2.00            2.00            1.03         0.77           6.00               1.20
+BROOKSIDE DR             1,013        0.00            1.35          4.00            4.00            1.08         0.81           6.00               1.20
+BROWNING ST              1,125        0.00            1.67          5.75            5.75            1.46         0.93           4.00               3.26
+BUCHANAN ST              1,350        0.33            2.87          2.00            2.00            0.02         0.00           6.00               2.11
+BUENA AVE                 731         0.33            0.67          4.75            4.75            1.84         1.35           6.75               1.33
+BUENA VISTA WAY           731         2.00            1.25          4.50            4.50            1.07         1.00           9.13               1.24
+BURNETT ST                900         0.50            1.17          4.75            4.75            1.96         1.41           3.75               2.32
+BYRON ST                 1,069        0.25            1.17          4.50            4.50            1.99         1.08           3.50               3.26
+CAL SAILING LOOP         1,125        0.67            2.67          4.00            4.00            0.11         0.04           5.00               2.11
+CALIFORNIA ST             956         0.38            1.00          5.72            5.72            1.79         1.49           5.61               1.94
+CAMELIA ST                953         0.65            1.64          5.76            5.76            1.97         0.76           3.00               1.89
+CAMPUS DR                 900         0.70            1.25          4.18            4.18            0.70         0.66          12.00               1.24
+CANYON RD                1,125        2.00            2.75          2.00            2.00            0.61         0.37           8.00               3.30
+CAPISTRANO AVE            900         1.72            1.04          5.00            5.00            1.24         0.88           8.17               1.18
+CARLETON ST               956         0.75            1.19          5.60            5.60            2.15         1.22           3.85               2.30
+CARLOTTA AVE             1,125        0.50            2.17          4.00            4.00            1.16         0.87           8.00               1.27
+CARRISON ST               900         0.00            1.00          5.00            5.00            1.88         1.53           4.67               2.12
+CATALINA AVE             1,125        0.17            1.25          4.00            4.00            1.04         0.69           8.00               1.20
+CATHERINE DR             1,125        1.33            0.67          4.00            4.00            0.94         0.69           6.00               1.35
+CEDAR ST                 1,082        1.20            1.14          5.23            5.23            1.51         1.05           4.98               1.59
+CEDARWOOD LN             1,125        0.67            2.87          4.00            4.00            0.88         0.11           4.00               2.11
+CENTENNIAL DR            1,200        0.59            1.36          3.78            3.78            0.08         0.06          11.11               1.86
+                                                                                    Average21 of
+                        Total
+                                                                                               Congestion    Congestion
+         Street Name   Capacity   Safety Score   Hazard Score   Connectivity   Accessibility                               Service Score   Vulnerability Score
+                                                                                               Score (Max)   Score (Min)
+                        (vph)
+
+
+CENTER ST                844         0.08            0.67          5.75            5.75            9.26         1.99           3.25               3.31
+CHABOLYN TER             675         0.00            1.25          3.00            3.00            0.55         0.48           9.00               1.20
+CHANNING WAY             940         0.72            1.29          5.54            5.54            2.35         1.43           4.67               2.68
+CHAUCER ST               900         1.00            1.67          4.00            4.00            1.41         1.10           4.00               3.26
+CHERRY ST                675         0.33            0.75          4.00            4.00            2.63         1.98           4.00               1.74
+CHESTNUT ST              928         0.96            0.67          5.50            5.50            1.74         1.23           3.50               1.39
+CHILTON WAY              900         1.00            0.75          4.00            4.00            2.43         1.62           4.00               2.68
+CLAREMONT AVE           3,429        1.59            1.15          4.33            4.33            0.25         0.18           4.89               1.28
+CLAREMONT BLVD           964         0.71            0.82          4.86            4.86            0.76         0.55           4.86               1.74
+CLAREMONT CRES           675         0.00            0.75          4.00            4.00            1.18         0.92           3.00               1.20
+CODORNICES RD           1,125        1.67            1.25          2.00            2.00            0.84         0.78           9.00               1.10
+COLBY ST                 731         0.08            0.75          4.50            4.50            5.88         1.65           2.75               1.68
+COLLEGE AVE             1,057        1.49            1.10          4.78            4.78            2.16         1.36           5.22               1.93
+COLORADO AVE             675         2.17            1.25          4.00            4.00            1.14         1.06          15.00               1.06
+COLUMBIA CIR            1,125        0.00            1.25          2.00            2.00            0.50         0.47          14.00               1.24
+COLUSA AVE              1,054        0.54            1.01          5.00            5.00            0.95         0.70           7.32               1.19
+COMSTOCK CT             1,350        0.00            0.67          4.00            4.00            0.91         0.76           7.00               1.33
+CONTRA COSTA AVE         700         1.04            1.25          4.56            4.56            1.26         1.05           8.67               1.06
+CORNELL AVE             1,029        0.00            0.95          5.86            5.86            1.51         1.02           2.57               1.35
+CORONA CT                675         1.33            1.25          2.00            2.00            1.36         1.19          10.00               1.10
+COURT ST                1,125        0.00            0.75          2.00            2.00            0.82         0.70           7.00               1.74
+COWPER ST                900         0.00            0.67          4.00            4.00            2.50         1.25           4.00               3.26
+CRAGMONT AVE             783         1.30            1.25          4.07            4.07            1.05         0.95          12.59               1.00
+CRESCENT DR              900         0.00            0.75          4.50            4.50            2.43         0.79           3.50               3.30
+CRESCENT RD              788         0.00            0.75          4.00            4.00            1.86         0.49           4.00               3.30
+CRESTON RD               900         1.52            1.25          4.44            4.44            0.80         0.75          13.67               1.01
+CROSS CAMPUS RD         1,125        0.00            1.75          4.00            4.00            1.70         0.47           4.00               3.30
+CRYSTAL WAY             1,125        2.33            1.25          2.00            2.00            0.61         0.54          10.00               1.10
+CURTIS ST                830         0.56            1.10          5.56            5.56            2.42         1.49           3.19               2.08
+CUTTER WAY              1,125        0.00            1.67          4.00            4.00            1.90         0.52           4.00               2.11
+CYCLOTRON RD            1,125        0.48            1.25          4.00            4.00            0.15         0.14           9.29               3.30
+                                                                                   Average21 of
+                       Total
+                                                                                              Congestion    Congestion
+        Street Name   Capacity   Safety Score   Hazard Score   Connectivity   Accessibility                               Service Score   Vulnerability Score
+                                                                                              Score (Max)   Score (Min)
+                       (vph)
+
+
+CYPRESS ST              900         0.00            0.67          3.00            3.00            1.47         1.13           7.00               1.33
+DANA ST                1,648        0.48            0.89          5.29            5.29            3.32         1.26           3.71               2.47
+DEAKIN ST               990         0.00            0.75          5.20            5.20            2.22         1.01           2.80               1.73
+DEL MAR AVE             675         2.00            1.25          4.00            4.00            0.90         0.85          11.00               1.24
+DEL NORTE ST            975         0.78            1.25          4.00            4.00            0.96         0.84           8.00               1.27
+DELAWARE ST            1,017        0.46            0.75          5.13            5.13            3.31         1.50           3.91               1.73
+DELMAR AVE              900         2.11            1.25          4.00            4.00            0.67         0.64          11.67               1.24
+DERBY ST                870         0.82            0.93          5.10            5.10            2.32         1.63           4.73               1.99
+DOHR ST                1,013        0.75            0.92          4.50            4.50            1.77         1.51           6.00               2.27
+DOMINGO AVE             900         0.19            1.18          4.29            4.29            0.72         0.57           4.29               1.27
+DOVER ST               1,125        1.00            1.67          4.00            4.00            0.89         0.42           5.00               2.05
+DOWLING PL              900         0.33            0.75          4.00            4.00            4.87         1.34           2.00               1.68
+DURANT AVE             4,573        1.43            0.88          5.50            5.50            1.08         0.45           3.70               3.12
+DWIGHT CIR             1,125        1.00            1.67          6.00            6.00            1.90         0.58           3.00               2.31
+DWIGHT PL               450         1.33            1.75          2.00            2.00            0.50         0.47          15.00               1.14
+DWIGHT WAY             1,724        1.04            1.36          4.55            4.55            1.24         0.84           5.13               2.19
+EAST GATE DR            563         0.00            1.25          4.00            4.00            0.62         0.46           6.00               3.30
+EASTSHORE HWY          1,254        0.62            2.98          4.14            4.14            0.89         0.14           3.86               2.11
+EASTWAY DR             1,125        0.17            0.75          4.00            4.00            0.46         0.37           6.00               1.74
+EDITH ST               1,125        0.60            0.67          4.80            4.80            2.13         1.18           6.60               1.46
+EDWARDS ST             1,013        0.33            1.67          5.00            5.00            1.58         1.25           5.00               3.26
+EL DORADO AVE           900         1.17            1.21          5.00            5.00            1.13         1.00           8.00               1.27
+EL PORTAL CT           1,125        2.00            1.25          2.00            2.00            0.52         0.48          10.00               1.24
+ELLIS ST                825         0.11            0.83          5.67            5.67            2.56         1.66           5.17               2.27
+ELLSWORTH ST           1,664        0.02            0.82          5.71            5.71            2.70         1.39           3.86               2.56
+ELMWOOD AVE            1,125        1.00            0.75          4.00            4.00            1.46         1.02           4.00               1.20
+ELMWOOD CT              450         0.33            0.75          2.00            2.00            2.23         1.61           3.00               1.20
+EMERSON ST             1,050        0.44            0.75          4.67            4.67            2.15         1.11           3.00               2.05
+ENCINA PL               675         0.33            1.45          4.00            4.00            1.33         1.04           5.00               1.20
+ENSENADA AVE            868         1.05            0.68          5.71            5.71            1.43         0.98           7.57               1.20
+EOLA ST                 675         1.00            0.67          4.00            4.00            1.53         1.40           6.00               1.65
+                                                                                    Average21 of
+                        Total
+                                                                                               Congestion    Congestion
+         Street Name   Capacity   Safety Score   Hazard Score   Connectivity   Accessibility                               Service Score   Vulnerability Score
+                                                                                               Score (Max)   Score (Min)
+                        (vph)
+
+
+ESHLEMAN DR             1,125        0.33            0.75          2.50            2.50            0.63         0.15           6.00               3.30
+ESPLANADE DR             900         0.00            0.75          4.00            4.00            0.41         0.15           7.00               3.30
+ESSEX ST                 975         0.44            0.75          5.33            5.33            2.13         1.10           3.00               2.05
+ETNA ST                 1,125        1.00            1.00          5.00            5.00            1.96         1.61           7.50               1.74
+ETON AVE                1,125        0.00            1.45          5.00            5.00            1.13         0.82           5.00               1.20
+ETON CT                 1,125        1.00            1.45          3.00            3.00            0.78         0.55           6.00               1.20
+EUCALYPTUS RD           1,013        1.17            1.25          4.00            4.00            0.35         0.31           8.00               1.25
+EUCLID AVE               961         1.46            1.44          4.68            4.68            1.05         0.94          10.03               1.17
+EUCLID ST                900         1.33            2.25          4.00            4.00            1.09         0.95           9.00               1.10
+EUNICE ST                825         1.30            1.18          5.33            5.33            1.41         1.11           8.56               1.19
+EVELYN AVE               900         0.00            1.67          5.50            5.50            1.08         0.91           3.00               1.35
+FAIRLAWN DR              716         0.36            1.25          4.00            4.00            0.86         0.81          13.45               1.24
+FAIRVIEW ST              868         0.90            0.82          5.71            5.71            2.37         1.54           5.86               2.22
+FERNWALD RD             1,125        2.00            1.25          2.00            2.00            0.62         0.54           8.00               2.82
+FLORENCE ST              900         1.00            0.75          4.00            4.00            5.11         1.53           2.00               1.93
+FLORIDA AVE              900         1.83            1.25          3.00            3.00            0.90         0.82          15.00               1.06
+FOLGER AVE              1,125        0.11            2.00          2.67            2.67            1.40         0.31           2.33               2.11
+FOREST AVE               900         1.00            0.75          5.00            5.00            2.13         1.73           6.00               1.74
+FOREST LN                675         2.33            1.25          4.00            4.00            0.97         0.92          13.00               1.10
+FOUNTAIN WALK           1,125        1.67            1.25          7.00            7.00            0.82         0.71           8.00               1.27
+FRANCISCO ST            1,050        1.17            0.67          5.50            5.50            2.75         1.34           4.83               1.63
+FRANKLIN ST             1,181        0.00            0.67          5.50            5.50            1.02         0.83           4.25               1.39
+FRESNO AVE              1,275        0.89            0.67          4.67            4.67            0.98         0.75           6.33               1.20
+FRONTAGE RD             1,350        0.33            2.67          1.50            1.50            0.51         0.05           4.00               2.11
+FULTON ST               1,918        0.07            0.88          5.60            5.60            2.40         1.46           3.33               2.62
+GARBER ST                900         1.11            0.92          4.67            4.67            1.54         1.15           5.00               1.74
+GAYLEY RD                900         0.33            1.75          4.50            4.50            0.46         0.22           5.83               3.30
+GILMAN AVE              1,013        1.67            1.67          6.00            6.00            1.39         0.51           2.00               2.11
+GILMAN ST               1,823        1.59            1.85          5.39            6.19            0.86         0.43           3.19               1.77
+GLASER RD               1,125        0.00            1.25          3.00            3.00            0.05         0.05          11.00               3.30
+GLEN AVE                 788         1.33            1.25          4.33            4.33            1.32         1.08           9.00               1.22
+                                                                                    Average21 of
+                        Total
+                                                                                               Congestion    Congestion
+         Street Name   Capacity   Safety Score   Hazard Score   Connectivity   Accessibility                               Service Score   Vulnerability Score
+                                                                                               Score (Max)   Score (Min)
+                        (vph)
+
+
+GLENDALE AVE             975         1.33            1.25          4.00            4.00            0.70         0.66          10.67               1.24
+GOLDEN GATE AVE         1,125        0.67            2.25          0.00            0.00            0.26         0.23           8.00               1.20
+GRANT ST                 832         0.48            0.71          5.57            5.57            4.96         2.14           4.96               1.83
+GRAYSON ST               945         0.33            1.67          5.20            5.20            2.57         0.62           2.80               2.11
+GREENWOOD TER            600         1.33            1.25          4.00            4.00            1.13         1.04           9.33               1.24
+GRIZZLY PEAK BLVD       1,085        1.29            1.25          4.00            4.00            0.57         0.53          13.56               1.11
+HALCYON CT               900         0.00            0.75          4.00            4.00            4.73         1.39           2.00               1.68
+HALKIN LN                675         2.33            1.25          4.00            4.00            1.25         1.17          12.50               0.89
+HARDING CIR              450         2.33            1.25          2.00            2.00            0.81         0.78          14.00               1.24
+HARMON ST                900         0.63            1.04          5.50            5.50            1.98         1.36           6.38               2.18
+HAROLD WAY              1,125        0.67            1.67          4.00            4.00            6.90         1.64           3.00               3.31
+HARPER ST                788         0.25            0.67          5.00            5.00            2.64         1.64           4.25               2.27
+HARRISON ST              917         0.15            2.05          5.23            5.23            1.32         0.27           3.15               2.00
+HARVARD CIR              675         1.67            1.25          3.00            3.00            0.76         0.73          14.00               1.24
+HASKELL ST               900         0.00            1.33          4.67            4.67            1.55         1.28           5.33               2.12
+HASTE ST                3,800        1.77            0.83          5.40            5.40            0.81         0.48           4.20               3.17
+HAVILAND RD              900         0.00            0.75          3.00            3.00            0.92         0.67           5.00               3.30
+HAWTHORNE TER            900         0.53            1.25          3.80            3.80            1.41         1.28           8.20               1.24
+HAZEL RD                 900         0.00            1.45          4.00            4.00            1.13         0.85           5.00               1.20
+HEARST AVE              1,398        1.02            1.17          5.05            5.05            2.92         1.20           3.54               2.17
+HEARST MINING CIR        675         0.00            0.75          4.00            4.00            0.57         0.41           7.00               3.30
+HEINZ AVE                945         0.27            1.67          4.00            4.00            2.62         0.65           2.60               2.11
+HENRY ST                2,463        1.00            0.83          5.33            5.33            1.73         0.92           6.83               2.15
+HIGH CT                  563         1.33            1.25          4.00            4.00            1.54         1.40          10.50               1.10
+HIGHLAND PL             1,125        1.17            1.25          4.00            4.00            0.44         0.42           6.00               1.79
+HILGARD AVE             1,093        0.71            1.25          4.57            4.57            1.13         0.99           7.43               1.79
+HILGARD WAY             1,125        0.00            0.75          1.00            1.00            1.18         0.54           5.00               3.30
+HILL CT                  900         0.00            1.25          2.00            2.00            1.47         1.36           7.00               1.24
+HILL RD                  720         1.60            1.25          3.00            3.00            0.75         0.71          13.80               1.24
+HILLCREST CT             450         2.00            1.25          2.00            2.00            1.72         1.40           6.00               1.20
+HILLCREST RD             850         1.41            1.27          3.56            3.56            0.68         0.55           7.56               1.20
+                                                                                              Average21 of
+                                  Total
+                                                                                                         Congestion    Congestion
+         Street Name             Capacity   Safety Score   Hazard Score   Connectivity   Accessibility                               Service Score   Vulnerability Score
+                                                                                                         Score (Max)   Score (Min)
+                                  (vph)
+
+
+HILLDALE AVE                      816          2.25            1.25          4.25            4.25            1.07         0.99          12.88               1.00
+HILLEGASS AVE                     872          0.21            0.75          5.38            5.38            4.27         1.75           3.63               2.03
+HILLSIDE AVE                     1,125         0.00            1.25          3.33            3.33            0.86         0.73           7.00               2.82
+HILLSIDE CT                      1,125         1.67            1.25          2.00            2.00            0.90         0.74           6.00               2.82
+HILLVIEW RD                       900          1.00            1.25          4.00            4.00            0.40         0.38          14.50               1.10
+HOLLY ST                          675          0.17            0.67          5.00            5.00            2.08         1.58           5.50               1.33
+HOPKINS ST                       1,001         1.25            0.86          4.52            4.52            1.28         0.91           5.66               1.29
+HOWE ST                           900          1.00            0.75          4.00            4.00            5.28         1.63           2.00               1.93
+I80 EAST (OFF RAMP) GILMAN HWY   3,400         0.33            2.87          4.00            9.00            0.25         0.04           4.00               2.11
+I80 EAST (ON RAMP) ASHBY HWY     1,700         0.33            2.67          2.33            7.33            0.01         0.00           4.67               2.11
+I80 EAST (ON RAMP) GILMAN HWY    3,400         0.33            2.87          4.00            9.00            0.15         0.02           4.00               2.11
+I80 EAST HWY                     11,250        0.65            2.67          4.00            5.25            0.74         0.08           4.13               2.11
+I80 W FRONTAGE RD                1,294         0.42            2.69          5.00            5.00            0.58         0.12           4.00               2.11
+I80 WEST (OFF RAMP) ASHBY HWY    3,000         0.38            2.67          3.25            8.25            0.00         0.00           4.00               2.07
+I80 WEST (OFF RAMP) GILMAN HWY   3,400         0.33            2.67          4.00            9.00            0.12         0.02           4.00               2.11
+I80 WEST (ON RAMP) ASHBY HWY     2,700         0.71            2.67          3.00            8.00            0.01         0.00           4.50               2.11
+I80 WEST (ON RAMP) GILMAN HWY    3,400         0.33            2.67          4.00            9.00            0.19         0.03           4.00               2.11
+I80 WEST HWY                     11,925        0.63            2.67          4.00            5.00            0.68         0.07           4.10               2.11
+IDAHO ST                          900          0.75            1.67          4.50            4.50            0.94         0.75           6.25               2.12
+INDIAN ROCK AVE                   825          1.33            1.25          4.00            4.00            1.07         0.96           9.83               1.06
+JAYNES ST                        1,125         0.17            0.67          4.50            4.50            1.03         0.90           6.50               1.33
+JEFFERSON AVE                    1,170         0.53            1.27          5.60            5.60            1.76         1.49           4.80               1.70
+JONES ST                         1,029         0.19            2.01          5.71            5.71            1.54         0.70           3.14               1.95
+JOSEPHINE ST                     1,061         0.33            0.74          5.14            5.14            1.95         1.21           7.14               1.34
+JUANITA WAY                       675          1.17            0.67          4.00            4.00            1.68         1.34           5.00               1.35
+JULIA ST                         1,125         0.00            0.67          5.00            5.00            1.80         1.43           5.50               2.26
+KAINS AVE                         932          0.05            0.81          5.71            5.71            1.70         0.95           2.14               1.35
+KEELER AVE                        816          1.54            1.25          4.31            4.31            0.90         0.82          13.81               1.09
+KEITH AVE                         720          0.57            1.25          4.20            4.20            1.08         0.97          12.20               1.10
+KELSEY ST                        1,125         0.33            0.75          4.00            4.00            1.25         0.94           5.00               1.74
+KENTUCKY AVE                      750          1.89            1.25          3.33            3.33            0.88         0.81          15.67               1.06
+                                                                                         Average21 of
+                             Total
+                                                                                                    Congestion    Congestion
+         Street Name        Capacity   Safety Score   Hazard Score   Connectivity   Accessibility                               Service Score   Vulnerability Score
+                                                                                                    Score (Max)   Score (Min)
+                             (vph)
+
+
+KEONCREST DR                  900         1.25            0.67          3.50            3.50            1.18         0.91           5.00               1.35
+KING ST                       859         0.00            1.03          5.45            5.45            2.32         1.59           5.45               2.27
+KITTREDGE ST                  900         0.89            0.67          4.67            4.67            7.43         2.08           2.33               3.31
+LA LOMA AVE                   881         0.94            1.25          4.58            4.58            0.92         0.86           7.50               1.61
+LA VEREDA RD                 1,125        1.67            1.25          4.00            4.00            0.64         0.60           8.50               1.65
+LASSEN ST                     900         0.67            1.25          4.00            4.00            0.95         0.78           8.00               1.27
+LATHAM LN                     675         2.00            1.25          4.00            4.00            0.92         0.85          13.00               1.10
+LAUREL LN                     788         1.83            1.25          5.00            5.00            1.52         1.12           9.00               1.20
+LAUREL ST                    1,125        1.33            1.25          4.00            4.00            0.72         0.66          10.00               1.10
+LE CONTE AVE                  900         0.48            1.25          4.89            4.89            1.16         1.00           5.89               1.79
+LE ROY AVE                   1,125        0.67            1.25          3.00            3.00            0.78         0.71           8.00               1.24
+LEROY AVE                     750         0.85            1.25          4.56            4.56            1.37         1.24           7.11               1.55
+LEWISTON AVE                 1,125        0.00            0.75          4.00            4.00            1.06         0.74           6.00               1.20
+LINCOLN ST                   1,069        0.50            0.67          4.75            4.75            1.35         1.09           5.50               1.62
+LINDEN AVE                    900         0.67            0.75          4.00            4.00            1.65         1.19           3.00               1.20
+LORINA ST                     450         0.33            0.75          4.00            4.00            5.14         2.76           3.00               2.10
+LOS ANGELES AVE              1,097        0.63            1.25          3.88            3.88            0.95         0.82           8.00               1.19
+MABEL ST                      813         0.51            1.44          5.38            5.38            1.66         1.32           4.54               2.26
+MADERA ST                    1,050        0.89            0.67          4.00            4.00            0.77         0.52           6.33               1.20
+MAGNOLIA ST                   675         0.67            0.75          4.00            4.00            1.91         1.40           3.00               1.20
+MARIN AVE                    2,033        2.01            1.10          4.88            4.88            0.74         0.66           9.04               1.09
+MARINA BLVD                  1,238        0.00            2.77          2.25            2.25            0.03         0.02           5.75               2.11
+MARIPOSA AVE                 1,125        0.17            1.25          4.00            4.00            0.98         0.84           9.00               1.27
+MARTIN LUTHER KING JR WAY    3,059        1.17            0.91          5.32            5.32            1.94         0.70           4.43               2.33
+MARYLAND AVE                  675         2.50            1.25          4.00            4.00            0.85         0.78          16.50               1.06
+MATHEWS ST                    996         0.57            1.67          5.71            5.71            1.68         0.96           4.00               2.32
+MAYBECK TWIN DR               450         3.00            1.25          2.00            2.00            1.55         1.44           8.00               1.24
+MC GEE AVE                   1,021        0.72            0.71          5.46            5.46            2.90         1.56           5.62               1.77
+MC KINLEY AVE                1,069        0.67            0.92          5.50            5.50            5.46         1.82           4.25               1.70
+MCMILLIAN RD                 1,141        0.67            1.25          4.00            4.00            0.05         0.04          10.07               2.69
+MENDOCINO AVE                 788         2.50            1.25          3.00            3.00            1.35         1.09           9.00               1.06
+                                                                                   Average21 of
+                       Total
+                                                                                              Congestion    Congestion
+        Street Name   Capacity   Safety Score   Hazard Score   Connectivity   Accessibility                               Service Score   Vulnerability Score
+                                                                                              Score (Max)   Score (Min)
+                       (vph)
+
+
+MENLO PL                788         1.42            1.25          4.00            4.00            0.99         0.90          11.25               1.20
+MERCED ST              1,125        1.00            0.67          5.00            5.00            0.88         0.66           7.00               1.20
+MICHIGAN AVE            900         1.58            1.25          4.00            4.00            0.96         0.89          15.25               1.06
+MIDDLEFIELD RD          844         1.42            1.25          3.25            3.25            0.56         0.52          15.25               1.10
+MILLER AVE              798         2.09            1.25          4.36            4.36            0.98         0.89          13.64               1.10
+MILLER RD               675         1.67            1.25          4.00            4.00            0.91         0.84          13.00               1.10
+MILVIA ST               885         0.80            0.75          5.48            5.48            5.94         2.03           4.77               2.30
+MINING CIR              600         0.00            0.75          4.00            4.00            0.56         0.41           6.33               3.30
+MIRAMAR AVE             675         0.67            0.67          4.00            4.00            1.40         0.92           7.00               1.20
+MIRAMONTE CT           1,125        0.67            0.67          2.00            2.00            0.98         0.71           6.00               1.33
+MODOC ST               1,125        0.00            0.67          4.00            4.00            1.07         0.66           6.00               1.20
+MONTEREY AVE           1,041        0.29            1.17          5.50            5.50            0.85         0.72           6.88               1.21
+MONTROSE RD             788         3.00            1.25          5.00            5.00            1.20         1.06          12.00               1.06
+MOSSWOOD RD             990         1.60            1.75          2.00            2.00            0.57         0.37           7.80               2.92
+MUIR WAY                900         1.67            1.25          4.00            4.00            0.56         0.51          13.00               1.10
+MURRAY ST               900         0.00            1.67          4.00            4.00            2.04         0.65           2.50               2.11
+MY WAY                  450         1.67            1.25          2.00            2.00            0.92         0.84          17.00               0.89
+MYSTIC ST              1,125        0.00            1.45          2.00            2.00            0.63         0.44           6.00               1.20
+NAPA AVE               1,125        1.00            1.17          4.00            4.00            1.04         0.88           9.00               1.27
+NEILSON ST              844         0.75            0.81          5.13            5.13            1.06         0.90           6.38               1.27
+NEWBURY ST              675         0.33            0.75          4.00            4.00            3.28         1.71           3.00               2.10
+NOGALES ST             1,125        0.00            1.25          4.00            4.00            0.56         0.45           6.00               1.20
+NOGALES ST PATH        1,125        1.00            1.25          4.00            4.00            0.48         0.38           6.00               1.20
+NORTH ST               1,125        0.00            0.96          2.00            2.00            0.94         0.86           7.00               1.54
+NORTH VALLEY ST        1,125        0.00            1.87          2.00            2.00            1.31         0.85           5.00               3.26
+NORTHAMPTON AVE         900         2.67            1.25          4.00            4.00            1.15         1.06          13.00               1.06
+NORTHGATE AVE           788         1.00            1.25          3.00            3.00            0.85         0.77          12.00               1.24
+NORTHSIDE AVE          1,125        0.78            0.67          3.33            3.33            1.05         0.92           4.67               1.35
+OAK KNOLL TER          1,013        1.00            0.75          3.50            3.50            0.75         0.54           6.00               1.74
+OAK ST                  525         1.78            1.25          4.00            4.00            1.54         1.36          10.33               1.10
+OAKRIDGE RD             675         0.33            1.25          2.00            2.00            0.81         0.62           4.67               1.20
+                                                                                   Average21 of
+                       Total
+                                                                                              Congestion    Congestion
+        Street Name   Capacity   Safety Score   Hazard Score   Connectivity   Accessibility                               Service Score   Vulnerability Score
+                                                                                              Score (Max)   Score (Min)
+                       (vph)
+
+
+OAKVALE AVE             788         0.00            1.20          4.00            4.00            1.71         1.34           5.00               1.20
+OLYMPUS AVE             675         2.00            1.25          3.60            3.60            0.64         0.62          14.40               1.41
+ORDWAY ST              1,013        0.67            1.17          5.25            5.25            1.26         0.98           5.00               1.35
+OREGON ST               853         0.74            0.90          5.53            5.53            2.66         1.57           4.16               2.20
+OTIS ST                 675         0.67            0.67          4.00            4.00            3.28         1.74           3.00               2.10
+OVERLOOK RD             975         1.56            1.25          3.33            3.33            0.57         0.53          13.67               1.10
+OXFORD ST              2,957        0.91            1.01          5.42            5.42            1.33         0.90           5.58               2.44
+PAGE ST                1,035        0.38            1.92          5.93            5.93            1.68         0.67           3.20               1.91
+PALM CT                1,125        0.67            0.75          2.00            2.00            1.03         0.82           5.00               1.74
+PANORAMIC PL           1,125        1.67            1.75          2.00            2.00            0.20         0.19          15.00               2.80
+PANORAMIC WAY           888         1.16            1.80          3.68            3.68            0.55         0.39          10.58               2.47
+PARDEE ST               788         1.00            1.67          5.50            5.50            2.69         0.69           2.50               2.11
+PARK HILLS RD           855         1.30            1.25          4.20            4.20            0.63         0.60          14.20               1.10
+PARK ST                 750         1.00            1.00          4.00            4.00            2.03         1.70           5.33               2.32
+PARK WAY               1,125        0.67            2.87          3.00            3.00            0.97         0.12           3.00               2.11
+PARKER ST               931         0.44            1.12          5.59            5.59            2.34         1.50           4.34               2.30
+PARKSIDE DR             996         0.05            1.25          3.57            3.57            0.65         0.55           6.71               1.20
+PARNASSUS CT            900         0.17            1.25          2.00            2.00            0.50         0.48          12.50               1.24
+PARNASSUS RD            750         1.11            1.25          4.00            4.00            0.68         0.66          13.00               1.24
+PERALTA AVE             765         0.27            0.89          5.00            5.00            1.35         1.00           7.20               1.23
+PIEDMONT AVE            900         0.96            1.09          4.16            4.16            1.47         1.05           5.60               2.50
+PIEDMONT CIR           1,013        1.00            1.25          4.00            4.00            1.61         1.34           5.50               2.28
+PINE AVE               1,013        0.83            0.75          5.00            5.00            1.17         0.89           3.00               1.47
+POE ST                 1,125        0.00            1.67          2.00            2.00            0.94         0.62           5.00               3.26
+POPLAR ST               750         2.67            1.25          4.00            4.00            1.26         1.11          12.67               0.89
+POPPY LN                675         1.78            1.25          4.67            4.67            1.08         0.99          12.67               1.10
+PORTLAND AVE           1,013        0.58            0.85          6.25            6.25            0.95         0.73           8.00               1.20
+POSEN AVE              1,013        1.08            0.67          4.75            4.75            0.80         0.61           6.25               1.16
+POTTER ST              1,181        0.00            2.67          3.50            4.75            1.40         0.22           3.25               2.11
+PRINCE ST               817         0.44            0.73          4.95            4.95            3.08         1.51           4.47               1.95
+PROSPECT ST            1,050        0.44            1.25          4.00            4.00            1.15         0.88           7.00               2.82
+                                                                                    Average21 of
+                        Total
+                                                                                               Congestion    Congestion
+         Street Name   Capacity   Safety Score   Hazard Score   Connectivity   Accessibility                               Service Score   Vulnerability Score
+                                                                                               Score (Max)   Score (Min)
+                        (vph)
+
+
+QUAIL AVE                788         1.00            1.25          5.00            5.00            0.91         0.83          12.00               1.24
+QUEENS RD                638         1.00            1.25          3.83            3.83            1.05         1.00          12.67               1.24
+REGAL RD                 900         2.00            1.25          5.00            5.00            1.07         0.97          11.25               1.00
+REGENT ST                923         0.70            0.75          5.00            5.00            4.15         1.51           3.60               1.99
+RIDGE RD                1,013        0.42            1.25          6.00            6.00            1.11         0.93           5.00               1.79
+RIMWAY RD                825         0.00            2.42          4.67            4.67            0.52         0.25           6.33               3.30
+ROANOKE RD               900         1.17            1.25          5.00            5.00            0.46         0.42           8.00               1.20
+ROBLE CT                1,125        1.67            1.25          2.00            2.00            0.22         0.19          10.00               1.20
+ROBLE RD                 788         0.33            1.25          3.00            3.00            0.25         0.20           7.50               1.20
+ROCHDALE WAY             900         3.00            1.25          2.00            2.00            0.33         0.32          17.00               0.89
+ROCK LN                  600         2.33            1.25          4.00            4.00            1.54         1.38          12.33               0.89
+ROOSEVELT AVE            956         0.75            0.92          5.50            5.50            6.58         2.56           5.50               1.70
+ROSE ST                  999         1.48            0.85          4.74            4.74            1.55         1.12           6.88               1.48
+ROSEMONT AVE             675         2.00            1.25          5.00            5.00            0.76         0.69          16.50               0.89
+ROSLYN CT                675         0.00            1.25          2.00            2.00            0.56         0.49           9.00               1.20
+RUGBY AVE                900         1.00            1.25          4.00            4.00            0.44         0.39          17.00               1.06
+RUSSELL ST               846         0.58            0.78          4.59            4.59            2.85         1.55           3.96               2.08
+SACRAMENTO ST           3,595        1.09            0.94          5.32            5.32            0.44         0.36           5.16               1.94
+SAN ANTONIO AVE         1,050        2.00            1.25          4.67            4.67            0.78         0.70          13.00               1.06
+SAN BENITO RD            675         1.67            1.25          4.00            4.00            1.84         1.63          10.00               1.27
+SAN DIEGO RD             855         1.80            1.25          3.60            3.60            0.97         0.87          12.40               1.06
+SAN FERNANDO AVE         675         1.50            1.25          4.50            4.50            1.35         1.23          11.50               1.06
+SAN JUAN AVE            1,125        1.33            1.25          4.00            4.00            0.85         0.79          12.00               1.06
+SAN LORENZO AVE          771         1.29            0.90          5.29            5.29            1.35         0.97           8.29               1.20
+SAN LUIS RD              825         1.63            1.25          4.00            4.00            0.91         0.83          13.11               1.06
+SAN MATEO RD             750         2.00            1.25          2.00            2.00            1.18         1.02          10.00               1.06
+SAN MIGUEL AVE           675         1.33            1.25          4.00            4.00            1.21         1.12          10.00               1.20
+SAN PABLO AVE           3,800        1.95            1.60          5.02            5.02            0.44         0.23           2.70               2.15
+SAN PEDRO AVE            788         1.33            1.25          4.00            4.00            1.47         1.00           8.00               1.20
+SAN RAMON AVE            750         1.56            1.25          4.00            4.00            1.00         0.91          13.67               1.06
+SAN ROSA AVE            1,125        1.00            1.25          2.00            2.00            0.76         0.70          10.00               1.20
+                                                                                    Average21 of
+                        Total
+                                                                                               Congestion    Congestion
+         Street Name   Capacity   Safety Score   Hazard Score   Connectivity   Accessibility                               Service Score   Vulnerability Score
+                                                                                               Score (Max)   Score (Min)
+                        (vph)
+
+
+SANTA BARBARA RD         802         1.50            1.25          4.69            4.69            1.07         0.96          12.38               1.08
+SANTA CLARA AVE          900         1.33            1.25          4.00            4.00            0.85         0.77          11.00               1.06
+SANTA FE AVE             900         0.33            1.00          5.50            5.50            1.27         1.05           3.17               1.35
+SANTA ROSA AVE           900         1.25            1.25          4.50            4.50            1.04         0.95           9.50               1.20
+SCENIC AVE               788         1.04            1.25          5.25            5.25            1.98         1.70           7.50               1.51
+SEAWALL DR               844         1.00            2.67          2.63            2.63            0.08         0.03           6.63               2.11
+SENIOR AVE               900         1.67            1.25          5.00            5.00            0.57         0.55          14.00               1.24
+SHASTA RD                844         0.83            1.25          4.06            4.06            0.74         0.68          13.00               1.17
+SHATTUCK AVE            3,060        1.47            0.82          5.71            5.71            1.17         0.63           4.12               2.26
+SHATTUCK PL             3,800        1.47            0.97          5.40            5.40            0.55         0.36           7.00               2.14
+SHATTUCK SQ             3,800        0.00            0.67          5.00            5.00            1.22         0.34           3.00               3.31
+SHORT ST                 788         0.50            0.67          4.00            4.00            1.42         1.17           4.00               1.39
+SIERRA ST                900         0.67            0.67          4.00            4.00            1.15         0.82           7.00               1.20
+SMYTH RD                1,125        2.00            1.25          2.00            2.00            0.39         0.35           9.00               2.82
+SOJOURNER TRUTH WAY     1,125        0.33            0.67          2.00            2.00            1.25         1.07           6.00               2.32
+SOLANO AVE               935         0.28            0.81          5.08            5.08            1.16         0.73           6.54               1.18
+SOMERSET PL             1,013        1.00            1.25          2.75            2.75            0.75         0.69          11.25               1.06
+SONOMA AVE               868         0.10            0.81          4.71            4.71            1.05         0.93           7.00               1.20
+SOULE RD                1,125        0.00            0.75          2.50            2.50            0.75         0.49           5.50               3.30
+SOUTH DR                 675         0.00            1.25          4.00            4.00            0.90         0.33           6.50               3.30
+SOUTH HALL RD            675         0.00            0.75          3.50            3.50            0.70         0.23           6.50               3.30
+SOUTH ST                 450         0.00            0.75          4.00            4.00            1.72         1.44           6.00               1.74
+SOUTHAMPTON AVE          868         1.95            1.25          3.86            3.86            0.81         0.74          12.29               1.06
+SOUTHWEST ST             675         0.00            0.75          4.00            4.00            1.68         1.38           6.00               1.74
+SPAULDING AVE           1,181        0.67            1.67          5.50            5.50            1.51         1.26           4.50               1.70
+SPINNAKER WAY           1,125        0.00            2.67          3.25            3.25            0.00         0.00           8.25               2.11
+SPORTS LN                675         0.00            1.00          4.00            4.00            1.09         0.94           7.50               1.74
+SPRING WAY               675         0.33            1.25          2.00            2.00            1.74         1.55          10.00               1.24
+SPRUCE ST               1,118        0.83            1.31          4.19            4.19            1.01         0.83          10.63               1.09
+STANFORD AVE            3,800        0.33            1.67          4.67            4.67            0.23         0.12           7.00               2.23
+STANNAGE AVE            1,125        0.05            0.67          5.43            5.43            1.46         0.89           2.43               1.35
+                                                                                    Average21 of
+                        Total
+                                                                                               Congestion    Congestion
+         Street Name   Capacity   Safety Score   Hazard Score   Connectivity   Accessibility                               Service Score   Vulnerability Score
+                                                                                               Score (Max)   Score (Min)
+                        (vph)
+
+
+STANTON ST              1,050        0.33            0.67          4.00            4.00            1.90         1.65           6.00               2.25
+STATION PL              1,125        0.67            1.25          2.00            2.00            0.91         0.61           7.00               1.20
+STERLING AVE             725         2.30            1.25          4.00            4.00            1.05         0.94          13.67               1.10
+STEVENSON AVE            788         2.83            1.25          4.00            4.00            0.75         0.67          13.00               1.10
+STODDARD WAY            1,125        2.67            1.25          2.00            2.00            0.56         0.51          14.00               1.10
+STUART ST                875         0.69            0.84          5.33            5.33            2.34         1.49           4.00               2.00
+SUMMER ST                675         1.33            1.25          4.00            4.00            1.71         1.41           9.00               1.24
+SUMMIT RD                816         1.33            1.25          3.13            3.13            0.48         0.45          13.50               1.19
+SUNSET LN                731         1.67            1.25          4.00            4.00            0.71         0.66          13.50               0.97
+SUNSET TRAIL            1,125        0.67            1.25          2.00            2.00            0.19         0.16           7.00               1.01
+SUTTER ST               1,200        1.78            1.19          5.00            5.00            1.00         0.79           8.00               1.27
+SW PL                    900         0.00            0.75          4.00            4.00            0.91         0.76           6.00               1.74
+TACOMA AVE               900         1.67            1.08          5.50            5.50            1.35         0.92           7.50               1.20
+TALBOT AVE               900         0.00            1.33          6.00            6.00            1.61         1.26           3.00               1.35
+TAMALPAIS PATH          1,125        2.00            1.25          2.00            2.00            0.52         0.47          15.00               1.10
+TAMALPAIS RD             619         2.00            1.25          4.00            4.00            1.10         1.01          12.00               1.14
+TANGLEWOOD RD           1,125        0.75            1.25          3.50            3.50            0.48         0.35           5.25               1.74
+TELEGRAPH AVE           3,800        1.65            1.10          5.35            5.35            0.83         0.32           2.85               2.30
+TERMINAL PL             1,125        1.00            0.67          2.00            2.00            3.39         0.79           3.00               3.31
+TEVLIN ST               1,125        1.11            1.00          3.00            3.00            0.79         0.71           4.33               1.35
+THE PLAZA DR             731         0.08            1.30          4.00            4.00            0.97         0.82           6.50               1.20
+THE UPLANDS PATH        1,125        1.00            1.25          4.00            4.00            0.44         0.40           6.00               1.20
+THOUSAND OAKS BLVD       839         1.55            1.11          5.27            5.27            0.88         0.83           9.55               1.16
+TOMLEE DR                675         1.33            0.67          4.00            4.00            1.72         1.39           6.00               1.35
+TREMONT ST               956         1.00            0.75          5.00            5.00            1.72         0.93           4.25               2.05
+TULARE AVE              1,125        0.33            0.67          4.00            4.00            0.80         0.50           6.75               1.20
+TUNNEL RD               1,414        2.05            1.25          4.29            4.29            0.29         0.24           5.43               1.20
+TWAIN AVE                675         3.67            1.25          4.00            4.00            1.21         1.09          14.00               1.10
+TYLER ST                1,125        1.00            0.67          5.00            5.00            2.01         1.61           5.50               2.27
+UNIVERSITY AVE          2,814        0.98            1.61          5.08            5.15            1.14         0.39           3.27               2.19
+UNIVERSITY DR            844         0.00            0.75          4.00            4.00            0.28         0.15           6.50               3.30
+                                                                                        Average21 of
+                            Total
+                                                                                                   Congestion    Congestion
+         Street Name       Capacity   Safety Score   Hazard Score   Connectivity   Accessibility                               Service Score   Vulnerability Score
+                                                                                                   Score (Max)   Score (Min)
+                            (vph)
+
+
+UNNAMED UC BERKELEY PATH     844         0.00            0.75          2.75            2.75            1.19         0.56           5.25               3.30
+VALLEJO ST                   900         2.67            1.25          4.00            4.00            0.71         0.64          12.00               1.06
+VALLEY ST                   1,013        0.67            1.67          4.00            4.00            1.31         1.02           5.00               3.26
+VASSAR AVE                   750         1.44            1.25          3.33            3.33            0.78         0.72          15.67               1.06
+VERMONT AVE                  765         1.60            1.25          3.20            3.20            0.66         0.60          16.40               1.06
+VICENTE RD                  1,125        1.67            1.25          2.00            2.00            0.15         0.13           7.00               1.20
+VINCENTE AVE                 750         1.22            1.14          4.67            4.67            1.26         1.02           9.17               1.17
+VINE ST                      948         0.93            0.87          5.86            5.86            2.10         1.51           7.21               1.72
+VIRGINIA GDNS                675         0.00            0.67          2.00            2.00            1.55         1.39           5.00               1.39
+VIRGINIA ST                  905         0.46            1.10          5.09            5.09            2.35         1.29           4.76               1.77
+VISALIA AVE                  900         1.67            1.08          4.00            4.00            0.51         0.49          10.00               1.15
+VISTAMONT AVE                619         1.83            1.25          3.00            3.00            0.80         0.74          16.50               0.89
+WALKER ST                   1,125        0.67            0.75          4.00            4.00            1.69         0.92           3.00               2.10
+WALLACE ST                  1,125        1.00            1.67          4.00            4.00            1.53         0.89           4.00               2.32
+WALNUT ST                    968         0.83            0.93          5.10            5.10            2.37         1.53           6.70               1.98
+WARD ST                      979         0.70            1.09          5.05            5.05            1.79         1.19           4.00               2.21
+WARRING ST                  1,029        1.00            1.04          4.14            4.14            1.58         1.31           6.00               2.05
+WEBSTER ST                   840         0.42            0.76          4.20            4.20            4.46         1.58           3.07               1.52
+WEST CIR                     720         0.00            0.75          4.00            4.00            1.31         0.35           5.00               3.30
+WEST CRESCENT DR             900         0.00            1.75          5.00            5.00            2.41         0.64           3.00               3.30
+WEST ST                      950         0.37            1.16          4.89            4.89            1.58         1.18           3.78               2.22
+WHEELER ST                   765         0.20            0.75          4.80            4.80            2.74         1.46           3.00               2.06
+WHITAKER AVE                 563         3.50            1.25          4.00            4.00            1.14         1.03          14.00               1.10
+WHITNEY ST                   675         0.00            0.75          4.00            4.00            1.70         1.00           3.00               2.05
+WICKSON RD                   750         0.00            1.08          4.00            4.00            0.77         0.27           6.00               3.30
+WILDCAT CANYON RD           1,125        0.30            1.25          4.00            4.00            0.31         0.30          15.67               1.01
+WILLOW WALK                 1,125        0.67            1.25          2.00            2.00            0.22         0.20           7.00               1.20
+WILSON CIR                   225         1.67            1.25          2.00            2.00            1.29         1.25          15.00               1.24
+WOODHAVEN RD                 675         1.33            1.25          4.00            4.00            0.54         0.52          15.00               1.10
+WOODHAVEN ST                 450         1.33            1.25          2.00            2.00            0.51         0.50          16.00               1.10
+WOODMONT AVE                 872         1.46            1.31          3.75            3.75            0.60         0.55          15.38               0.87
+                                                                                        Average21 of
+                            Total
+                                                                                                   Congestion    Congestion
+          Street Name      Capacity   Safety Score   Hazard Score   Connectivity   Accessibility                               Service Score   Vulnerability Score
+                                                                                                   Score (Max)   Score (Min)
+                            (vph)
+
+
+WOODMONT CT                1,125         2.00            1.25          2.00            2.00            0.46         0.41          17.00               0.89
+WOODSIDE RD                 825          1.78            1.25          4.67            4.67            0.52         0.49          14.00               1.10
+WOOLSEY ST                  779          0.41            1.06          4.88            4.88            3.12         1.38           4.58               1.83
+YOLO AVE                   1,050         0.33            1.17          4.00            4.00            1.12         0.90           8.00               1.27
+YOSEMITE RD                 844          2.08            1.25          4.00            4.00            1.12         1.03          10.25               1.06
+I80 EAST (OFF RAMP) UNIV   1,433         0.33            2.80          3.00            7.44            1.34         0.34           3.89               2.11
+UNIVERSITY AVE OVERPASS    3,393         1.56            2.65          4.48            4.91            0.66         0.18           3.26               2.11
+I80 WEST (OFF RAMP) UNIV   1,438         0.08            2.67          2.50            7.50            1.05         0.20           3.50               2.11
+RAMP                       1,700         0.33            2.67          2.50            7.50            0.55         0.15           4.00               2.11
+NORTHBRAE TUNNEL            750          0.33            1.25          7.00            7.00            1.27         1.13           8.00               1.13
+I80 EAST (ON RAMP) UNIV    1,700         0.33            2.87          2.00            7.00            1.33         0.33           4.00               2.11
+UNNAMED ALLEY               825          1.00            2.00          4.44            4.44            2.78         0.97           3.11               2.07
+THE UPLANDS                 875          0.85            1.27          4.33            4.33            0.76         0.64           6.11               1.20
+EL CAMINO REAL              675          0.67            1.25          3.83            3.83            0.66         0.56           6.50               1.20
+SPINNAKER CIRCLE            563          0.00            2.67          3.00            3.00            0.00         0.00          10.00               2.11
+I80 WEST (ON RAMP) UNIV    1,350         0.00            2.67          3.33            8.33            1.01         0.19           4.00               2.11
+UNNAMED LBL ROAD           1,125         0.33            1.25          4.00            4.00            0.31         0.29           8.00               3.30
+EASTSHORE                  1,125         0.67            2.87          4.00            4.00            2.08         0.44           3.00               2.11
+THE CIRCLE                  611          1.48            1.25          4.00            4.00            1.28         1.18           8.00               1.17
+THE ALAMEDA                1,712         0.52            1.30          4.56            4.56            0.77         0.65           8.56               1.12
+UNNAMED                    1,044         0.28            1.21          2.72            2.72            0.57         0.29           8.20               2.92
+REGAL                       675          1.67            1.25          4.00            4.00            1.18         1.06          12.50               1.10
+ROANE                       450          1.67            1.25          4.00            4.00            1.57         1.36          12.00               1.10
+UNNAMED UC BERKELEY         788          0.06            1.08          3.17            3.17            0.60         0.23           6.50               3.30
+I80 EAST                   12,375        0.58            2.67          4.00            4.00            0.63         0.06           4.00               2.11
+PARK GATE                   788          0.67            1.25          4.50            4.50            0.59         0.54          14.00               1.10
+GREENWOOD COMMONS           675          1.00            1.25          2.00            2.00            1.06         0.97           9.00               1.24
+THE CRESCENT                788          1.17            1.25          4.50            4.50            0.51         0.49          15.50               1.10
+THE SHORT CUT               675          2.00            1.25          4.00            4.00            0.69         0.64          15.00               1.10
+THE CROSSWAYS               675          2.33            1.25          4.00            4.00            0.68         0.63          14.00               1.10
+THE SPIRAL                 1,125         2.00            1.25          2.00            2.00            0.27         0.26          16.00               1.10
+                                                                                     Average21 of
+                         Total
+                                                                                                Congestion    Congestion
+          Street Name   Capacity   Safety Score   Hazard Score   Connectivity   Accessibility                               Service Score   Vulnerability Score
+                                                                                                Score (Max)   Score (Min)
+                         (vph)
+
+
+EASTWAY                  1,125        0.00            0.75          4.00            4.00            0.44         0.35           6.00               1.74
+CHILTON ALLEY             675         1.00            0.75          4.00            4.00            2.96         1.87           4.00               2.68
+EASTSHORE OFF I80        1,125        0.33            2.87          3.00            3.00            1.75         0.40           4.00               2.11
+MASONIC AVE               900         0.00            0.67          6.00            6.00            0.90         0.80           4.00               1.35
+ALBINA AVE               1,125        0.67            1.17          4.00            4.00            0.93         0.65           6.00               1.35
+WATKINS ST               1,125        1.00            0.67          4.00            4.00            0.79         0.71           4.00               1.35
+HOPKINS CT               1,125        1.67            0.67          4.00            4.00            0.92         0.64           6.00               1.35
+

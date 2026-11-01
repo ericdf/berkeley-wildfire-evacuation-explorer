@@ -1,0 +1,169 @@
+# Berkeley Hills Wildfire Evacuation: Scenario Explorer (Phase 1 prototype)
+
+A browser game for exploring Berkeley's wildfire evacuation tradeoffs. Choose a fire
+scenario and an operating plan, run it on Berkeley's real street network and terrain,
+and compare two plans against identical fires and synthetic households.
+
+**This is an educational comparison tool. It is not a calibrated fire or traffic model,
+not an official evacuation plan, and must not guide real evacuation decisions.**
+For official information see the City's
+[Fire Weather and Evacuation page](https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation).
+
+The design brief is `specfication.md`. What is still missing is listed in `DATA_INVENTORY.md`. Every insight taken from a document (the City's 2025 Evacuation Time Study, SB 99 and AB 747 reports, StoryMap), with page references and what we did with it, is in `SOURCE_NOTES.md`.
+
+## Run it
+
+No build step or dependencies. The game is plain ES modules and needs a local web server
+(browsers block `fetch` from `file://`):
+
+```sh
+cd berkeley-hills-evacuation-game
+python3 -m http.server 8766 --bind 127.0.0.1
+# open http://127.0.0.1:8766
+```
+
+Use `127.0.0.1` rather than `localhost`: if another server is listening on the same port
+over IPv6, `localhost` may reach that one instead.
+
+Loading takes a few seconds: about 10 MB of terrain and 2 MB of street network.
+
+## Playing
+
+1. **Scenario.** Pick a preset, a severity (low / central / high) and a random seed.
+   Time of day changes who is home and how much background traffic there is.
+2. **Operating plan.** Plan A and Plan B are edited in tabs: when zones are ordered,
+   how long detection and the decision take, whether all hill zones are ordered at once,
+   early departure on Red Flag days, and parking on hill streets.
+3. **Run.** Watch the fire, embers, vehicles, queues and the fire-engine route. Drag the
+   slider to jump to a time. Click a street or zone to inspect it; hover a badge (ⓘ)
+   to see where each value comes from.
+4. **Compare.** Runs both plans on the same fires and households, either across
+   low/central/high severity or across all four scenarios, with three seeds each. The table
+   shows the median and the min–max range. A plan that wins in one run but not across
+   the range has not been shown to be robust.
+
+### Reading the results
+
+- **People exposed to fire/embers** is split into four groups: still home with a car,
+  on the road, without a vehicle, and in zones that never got an order. A good
+  average can hide any one of them.
+- **Clearance** is reported at 50%, 90% and 100% of evacuating vehicles, plus the time
+  the last household with a car reaches safety. No single average is shown.
+- **No vehicle: not moved in Phase 1.** Households without a car stay put and are
+  counted as at risk. Phase 2 adds transport assistance.
+- **Fire-engine travel** is responder ingress, which is modelled separately from resident
+  egress. "Blocked by parked cars" means no route to the fire edge has an engine's width
+  of clear road under that plan's parking rules.
+- **Event log** explains the results, e.g. "Early departure: 2,896 households left
+  before the fire…", "Queue of 109 vehicles waiting at Shattuck Av / Bancroft Wy",
+  "Engines cannot reach the fire edge near Summit Rd: parked cars leave less than an
+  engine's width on Summit Rd."
+
+## How the simulation works
+
+Every number is visible in **Assumptions & limits** in the app and in `data/assumptions.json`.
+
+**Street network** (`tools/build-network.mjs`). The County street centerlines are projected
+to UTM 10N metres. Segment endpoints are snapped into intersections (1 m tolerance).
+Paths, walks and steps become a separate pedestrian layer. Each segment is matched by
+name and distance to the City's own centerline and narrow-roads layers, which supply
+pavement width (84% of vehicle segments) and lane counts. Grade is sampled from the DEM
+every 4 m. Lanes, parking, speeds and capacities that the data does not give come from
+`data/assumptions.json`.
+
+**Clear width and lanes.** Clear width is pavement width minus 8 ft per parked side (the
+value KLD used for the City's SB 99 and AB 747 analyses). Hill streets (Fire Zones 2–3)
+default to parking on both sides where a 10 ft lane still remains. The City's Narrow_Roads
+survey gives the width with parking directly. A clear width of 20 ft fits two moving lanes;
+10 ft fits one, so oncoming cars must take turns. Under 10 ft, a fire engine cannot get
+through (the City's largest truck is 9.25 ft wide). In the hills the median pavement width is
+7.3 m (24 ft).
+
+**Fire and embers** (`js/fire.js`). An illustrative overlay on 30 m cells. A shortest-time
+search spreads fire from the ignition, using wind (an elliptical shape), slope, and a
+proxy fuel factor taken from the City fire zones. Random spot fires mean different seeds
+give different footprints. A cell is ember-exposed once anything burns within the ember
+distance upwind of it. This is not a fire-behaviour model; it exists to create plausible,
+comparable pressure on the evacuation.
+
+**Evacuation** (`js/sim.js`). Synthetic households are placed on streets from the City's
+Genasys zone population estimates. Household size, vehicle ownership, ridesharing, compliance
+(100% of Order zones, 50% of Warning zones, 20% shadow) and departure times come from the
+2025 Evacuation Time Study. Orders and warnings use the study's zone lists. Evacuation time is
+measured as the study's ETE, from the first order. Directed links have a capacity and
+storage, and every intersection has its own capacity. The 2025 study named intersections
+as the main constraint. Vehicles may use every street and re-route every minute around
+queues, fire and embers toward the nearest node outside every ordered zone and the ember
+area.
+
+**Parking and the 2025 study.** On a two-way street, removing parking opens the oncoming
+lane. It does not create a second evacuating lane. In this model, parking restrictions
+therefore change engine access far more than evacuation flow. That matches the City's 2025
+finding that broad restrictions are unlikely to improve evacuation flow. The game does not
+add any parking-removal bonus.
+
+## Files
+
+| Path | What it is |
+|---|---|
+| `index.html`, `css/style.css` | Page and styles |
+| `js/main.js` | UI: controls, results, inspector, comparison, modals |
+| `js/map.js`, `js/terrain.js` | Canvas map, hillshade and contours |
+| `js/fire.js`, `js/sim.js`, `js/scenarios.js`, `js/rng.js` | Models and presets |
+| `js/worker.js` | Runs comparison batches off the main thread |
+| `js/data.js` | Loads the data files |
+| `data/assumptions.json` | **Editable** assumptions and game rules, each with a category and note |
+| `data/game/network.json`, `layers.json` | Built by `tools/build-network.mjs` (do not edit by hand) |
+| `data/terrain/dem.i16`, `dem.json` | Elevation grid, built by `tools/fetch-dem.mjs` |
+| `data/raw/` | Downloaded source data (reproducible, large) |
+| `tools/` | Data pipeline (Node 18+, no npm packages) |
+| `tests/headless.mjs` | Runs every scenario × two plans in Node and prints summaries |
+
+## Replacing datasets
+
+Every tool is plain Node (18+) with no dependencies.
+
+```sh
+node tools/fetch-dem.mjs           # elevation: USGS 3DEP 1 m lidar DEM (4 m overview), ~1 minute
+node tools/fetch-city-layers.mjs   # City of Berkeley ArcGIS Online layers → data/raw/city/
+node tools/build-network.mjs       # rebuild data/game/*.json from everything above
+node tests/headless.mjs            # sanity-check the models (optionally: low | central | high)
+node tests/calibration.mjs         # compare evacuation times with the 2025 Evacuation Time Study (fire off)
+```
+
+**Street network.** Replace `data/raw/street-centerlines.geojson` with a GeoJSON
+FeatureCollection of LineStrings in EPSG:4326. It needs the County fields `STREET`,
+`CLASS`, `SFEATYP` and `TRVLWAY` (B / FT / TF / NT); if your file names them
+differently, map them near the top of `build-network.mjs`. Then rebuild.
+
+**Replacing the elevation raster.** `fetch-dem.mjs` writes `data/terrain/dem.i16`, which
+is int16 little-endian in decimetres, north row first, -32768 = no data. Alongside it is
+`dem.json`, which holds `width`, `height`, `resolution`, `xmin`, `ymin`, `xmax`, `ymax` in
+EPSG:32610 plus provenance. To use another DEM, convert it to that format and that grid
+(e.g. `gdalwarp -t_srs EPSG:32610 -tr 4 4 -te <xmin ymin xmax ymax>`, then write the
+values ×10 as int16). Alternatively, edit `SOURCES` in `fetch-dem.mjs` to point at other
+3DEP COG tiles. Then rebuild the network so grades are resampled.
+
+**City layers.** Edit `LAYERS` in `fetch-city-layers.mjs`. Each entry is an ArcGIS
+FeatureServer name and layer id. Parcel layers carrying addresses are skipped on purpose.
+
+## Editing assumptions
+
+Edit `data/assumptions.json`. Each value has an entry in `_meta` with its category
+(`assumption`, `game rule`, `sourced`) and a note, which the app shows in Assumptions &
+limits. Lane, parking and capacity values are applied when the network is built, so run
+`node tools/build-network.mjs` after changing them. Demand and access values are read
+by the game at load time. Scenario presets, severities and time-of-day values are in
+`js/scenarios.js`.
+
+## Limits of Phase 1
+
+- No buildings yet, so no structures exposed or lost, and no home-hardening or
+  vegetation effects.
+- No stair or path access time, and no assisted evacuation (Phase 2).
+- Employees, students, visitors and through traffic are not yet on the network, so weekday
+  daytime evacuations run faster than the Time Study (see `SOURCE_NOTES.md`, calibration check).
+  Intersection capacities are still illustrative.
+- The street file covers Berkeley only, so routes into Oakland, Albany and Kensington stop
+  at the city edge.
+- Fire spread, ember distances and spot-fire rates are illustrative game values.

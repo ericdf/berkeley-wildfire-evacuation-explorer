@@ -1,0 +1,229 @@
+{
+  "lanes": {
+    "hillsLocal": 2,
+    "byClass": {
+      "Local": 2,
+      "Major Collector": 2,
+      "Principal Arterial": 4,
+      "Interstate": 8,
+      "Ramp": 1,
+      "default": 2
+    }
+  },
+  "parking": {
+    "hills": "both",
+    "flats": "both",
+    "parkedCarWidthM": 2.44
+  },
+  "capacity": {
+    "speedMph": {
+      "hillsLocal": 20,
+      "Local": 25,
+      "Major Collector": 25,
+      "Principal Arterial": 30,
+      "Ramp": 35,
+      "Interstate": 55
+    },
+    "twoLanePcphPerMph": 45,
+    "twoLaneMaxPcph": 1700,
+    "multilanePcphPerLane": 1900,
+    "freewayPcphPerLane": 2250,
+    "rampPcphPerLane": 1200,
+    "steepGradePct": 12,
+    "steepFactor": 0.85,
+    "vehicleSpacingM": 7.5
+  },
+  "access": {
+    "movingLaneM": 3.05,
+    "engineClearM": 3.05,
+    "fireCodeClearM": 6.1,
+    "engineServiceMin": 5
+  },
+  "intersections": {
+    "localVph": 900,
+    "collectorVph": 1200,
+    "arterialVph": 1600,
+    "freewayVph": 3800
+  },
+  "demand": {
+    "personsPerHousehold": 2.37,
+    "householdsWithoutVehicleShare": 0.0747,
+    "vehiclesTakenShares": {
+      "1": 0.736,
+      "2": 0.146,
+      "3": 0.013,
+      "4": 0.005
+    },
+    "carlessRideshareShare": 0.869,
+    "compliance": {
+      "order": 1.0,
+      "warning": 0.5,
+      "shadow": 0.2
+    },
+    "childPickupShare": 0.2,
+    "mobilization15min": {
+      "A": [
+        22,
+        38,
+        33,
+        7
+      ],
+      "C": [
+        0,
+        0,
+        3,
+        7,
+        13,
+        17,
+        19,
+        17,
+        12,
+        7,
+        3,
+        1,
+        1,
+        0
+      ],
+      "D": [
+        4,
+        12,
+        18,
+        22,
+        20,
+        14,
+        7,
+        2,
+        1,
+        0
+      ],
+      "E": [
+        0,
+        0,
+        0,
+        2,
+        6,
+        10,
+        16,
+        17,
+        17,
+        14,
+        9,
+        5,
+        3,
+        1
+      ],
+      "F": [
+        0,
+        3,
+        9,
+        16,
+        20,
+        20,
+        15,
+        10,
+        5,
+        1,
+        1,
+        0
+      ]
+    }
+  },
+  "_meta": {
+    "lanes.hillsLocal": {
+      "category": "assumption",
+      "note": "Eric, 2026-10-31: almost every hill street is two lanes, one each direction. Applied to Local streets in City Fire Zones 2 and 3."
+    },
+    "lanes.byClass": {
+      "category": "assumption",
+      "note": "Total lanes by County CLASS where the City pavement-management lane count is missing."
+    },
+    "parking.hills": {
+      "category": "assumption",
+      "note": "Eric, 2026-10-31: parking on both sides in the hills, applied only where a 10 ft lane remains. The City's curb data (used by KLD) would replace this; SB 99 report notes many Panoramic Hill roads have no street parking (SOURCE_NOTES A7)."
+    },
+    "parking.flats": {
+      "category": "assumption",
+      "note": "Placeholder: parking on both sides. Replace with the City's curb data."
+    },
+    "parking.parkedCarWidthM": {
+      "category": "sourced",
+      "note": "8 ft per parked side, as used by KLD in the SB 99 and AB 747 analyses (SOURCE_NOTES A1)."
+    },
+    "capacity.speedMph": {
+      "category": "assumption",
+      "note": "Free-flow speed by road class (hills 20 mph matches AB 747: hills free flow 20 mph or less). Capped by the City network SPEED where known. Replace with KLD's surveyed speeds."
+    },
+    "capacity.twoLanePcphPerMph": {
+      "category": "sourced",
+      "note": "AB 747 Table 2 (HCM 2022): two-lane road capacity = 45 pc/h per mph of free-flow speed, max 1,700 (SOURCE_NOTES B2). Applied per direction."
+    },
+    "capacity.multilanePcphPerLane": {
+      "category": "sourced",
+      "note": "AB 747: 1,900 pc/h per lane for multilane roadways (SOURCE_NOTES B3)."
+    },
+    "capacity.freewayPcphPerLane": {
+      "category": "sourced",
+      "note": "AB 747: 2,250 pc/h per lane for freeways at 55 mph (SOURCE_NOTES B3)."
+    },
+    "capacity.rampPcphPerLane": {
+      "category": "assumption",
+      "note": "Ramp capacity placeholder; AB 747 uses HCM Exhibit 14-12 by ramp speed."
+    },
+    "capacity.steepFactor": {
+      "category": "game rule",
+      "note": "Flow multiplier on segments whose steep grade (90th percentile of 25 m windows) exceeds steepGradePct. KLD's surveyed speeds would already include grade."
+    },
+    "capacity.vehicleSpacingM": {
+      "category": "game rule",
+      "note": "Road length one queued vehicle occupies (storage)."
+    },
+    "access.movingLaneM": {
+      "category": "sourced",
+      "note": "10 ft minimum viable evacuation travel lane, chosen by KLD with City Public Works and Fire staff (SOURCE_NOTES A2)."
+    },
+    "access.engineClearM": {
+      "category": "derived",
+      "note": "Largest City fire truck is 9.25 ft wide (SB 99 report, SOURCE_NOTES A3); with mirrors it needs the same 10 ft lane."
+    },
+    "access.fireCodeClearM": {
+      "category": "sourced",
+      "note": "20 ft unobstructed width for fire apparatus access roads, California Fire Code section 503.2.1. Context only: it governs new access roads, not existing streets."
+    },
+    "access.engineServiceMin": {
+      "category": "sourced",
+      "note": "5-minute fire-station drive-time standard from the City's Standards of Coverage, as used in the SB 99 analysis (SOURCE_NOTES A6)."
+    },
+    "intersections": {
+      "category": "game rule",
+      "note": "Total vehicles per hour a node can pass, by the highest road class meeting there. Illustrative. The 2025 study names intersections as the main constraint."
+    },
+    "demand.personsPerHousehold": {
+      "category": "sourced",
+      "note": "2.37 persons per household (ACS), Evacuation Time Study 2-1, 3-3 (SOURCE_NOTES E5). Converts Genasys zone population estimates to households."
+    },
+    "demand.householdsWithoutVehicleShare": {
+      "category": "sourced",
+      "note": "7.47% of households have no vehicle (ACS), Time Study Table 3-10 (SOURCE_NOTES E7). Citywide value; AB 747 has it by census tract."
+    },
+    "demand.vehiclesTakenShares": {
+      "category": "sourced",
+      "note": "Of households that drive: 1 vehicle 73.6%, 2 vehicles 14.6%, 3 vehicles 1.3%, 4+ 0.5% (Time Study survey, Fig. D-11), renormalized (SOURCE_NOTES E6)."
+    },
+    "demand.carlessRideshareShare": {
+      "category": "sourced",
+      "note": "86.9% of people without a vehicle ride with someone else (Time Study 3-9). In the game they ride with an evacuating household on the same street; the rest are stranded (SOURCE_NOTES E7)."
+    },
+    "demand.compliance": {
+      "category": "sourced",
+      "note": "Share of households that leave: 100% in Order zones, 50% in Warning zones, 20% shadow/voluntary elsewhere (Time Study 2-3, 7-1, from NUREG/CR-7002) (SOURCE_NOTES E8). Shadow evacuees drive to the city edge."
+    },
+    "demand.childPickupShare": {
+      "category": "assumption",
+      "note": "Share of households that pick up children when school is in session (switches to Time Study distributions E/F). Placeholder; ACS households with children would replace it."
+    },
+    "demand.mobilization15min": {
+      "category": "sourced",
+      "note": "Percent of trips starting in each 15-minute period after the order, Time Study Table 5-9 (p. 5-14) (SOURCE_NOTES E9). A employees/visitors; C residents awaiting a returning commuter (also used for shadow evacuees); D residents not awaiting one; E/F = C/D with child pickup."
+    }
+  }
+}
