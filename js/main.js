@@ -312,7 +312,9 @@ function legend() {
     + (map.layers.responder ? sw('#0e7490', 'Engine route to fire edge') : '')
     + (map.layers.streets ? '<div><b style="color:#111">✕</b> diverter or bollard, closed to cars · <b style="color:#7c3aed">✕</b> engines can pass (City diverter list, OpenStreetMap)</div>' : '')
     + (map.layers.paths ? `<div><span class="sw" style="background:repeating-linear-gradient(90deg,#8a5a2b 0 3px,transparent 3px 6px)"></span>Paths &amp; stairways (no vehicles)</div>` : '');
-  $('legend').innerHTML = `<b>${STREET_MODES[m]}</b>${L}${extra}`;
+  const open = localStorage.getItem('bhe-key') !== 'hidden';
+  $('legend').innerHTML = `<button class="key-toggle" title="${open ? 'Hide' : 'Show'} the map key">${open ? 'Hide key ▾' : 'Show key ▸'}</button>${open ? `<div><b>${STREET_MODES[m]}</b>${L}${extra}</div>` : ''}`;
+  $('legend').querySelector('.key-toggle').onclick = () => { localStorage.setItem('bhe-key', open ? 'hidden' : 'shown'); legend(); };
 }
 
 // ---------- comparison ----------
