@@ -72,11 +72,17 @@ export const PRESETS = [
     tod: 'S6',
     A: plan('A: parking as it is today'),
     B: plan('B: parking on one side only in Fire Zones 2–3', { hillsParking: 'oneside' }),
-    otherNote: 'In this simulator engines only drive to the fire edge; they do not fight the fire or protect homes, so better engine access has no effect on the fire. Parking still changes traffic on hill streets a little, but in the runs tested it made no consistent difference to who was still there. The engine\'s route to the fire edge runs on streets that stay passable, so engine travel time is the same under both plans.',
-    on: Object.fromEntries(['eastWind', 'ref1923', 'panoramic'].map(id => [id, 'Color streets by "fire-engine access" (Expert view, Map) to see the red streets, where parked cars leave less than an engine\'s width. One-side parking cuts them from about 283 segments to 143; the count covers hill streets citywide, so it is the same on every fire. '
+    otherNote: 'In this simulator engines only drive; they do not fight the fire or protect homes, so better engine access has no effect on the fire. Parking still changes traffic on hill streets a little, but in the runs tested it made no consistent difference to who was still there. The engine\'s route to the fire edge runs on streets that stay passable, so engine travel time to the fire is the same under both plans.',
+    // Headline and numbers: SOURCE_NOTES ER2 (225 runs, central medians). Reach at ignition depends on the seed's
+    // parked cars, not the fire, so it is the same on every fire; the end-of-run share (traffic and fire) differs.
+    on: Object.fromEntries([['eastWind', '83%', '86%', 4], ['ref1923', '67%', '71%', 6], ['panoramic', '80%', '83%', 4]].map(([id, la, lb, hours]) => [id,
+      'Count the hill residents a fire engine cannot reach from a station within the City\'s 5-minute standard, before traffic and fire: about 1,500 of Berkeley\'s 27,850 Fire Zones 2–3 residents with today\'s parking, about 1,000 with parking on one side (central case; fewer in every run). '
+      + 'Most of those left are on Panoramic Hill: its lowest block of Panoramic Way is 17 ft wide, and in 4 of the 5 test seeds a car parked there leaves less than an engine\'s width under either plan, cutting off about 950 people. '
+      + `By the end of the ${hours}-hour run, with evacuation traffic and burned streets, an engine can reach ${la} of hill residents within 5 minutes under Plan A and ${lb} under Plan B. `
+      + 'Color streets by "Engine drive time" (Expert view, Map) to see where. One-side parking also cuts street segments too narrow for an engine from about 283 to 143. '
       + (id === 'panoramic' ? 'Evacuation time cannot be compared here, because in most runs not all ordered cars get out within the 4 hours simulated.'
         : 'Evacuation time does not change: on a two-way street, removing parking opens the oncoming lane, not a second lane out. People still there when embers arrive show no consistent change either: engines do not fight the fire in this simulator, and parking changes traffic on hill streets only a little.')])),
     off: {},
-    headline: { label: 'Street segments too narrow for an engine', f: S => S.engineBlockedSegments, dir: -1 },
+    headline: { label: 'Hill residents an engine cannot reach within 5 minutes', f: S => S.engineReachBeyond5People, dir: -1 },
   },
 ];

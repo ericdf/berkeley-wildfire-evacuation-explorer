@@ -627,33 +627,73 @@ export class Evacuation {
     return best;
   }
 
+  // Shortest engine travel time from every staffed station (data.stationNodes) to every node.
+  // Streets are driven both ways (an engine may run against a one-way street); a segment is
+  // skipped where parked cars leave less than an engine's width (engineOK, unless ignoreParking),
+  // where a fixed barrier closes it, or, with fire on, once the fire has reached it. A gate or
+  // removable bollard costs the crew barrierDelayS to open. withTraffic: oncoming evacuees slow
+  // the engine. Stops early once `target` is settled (target -1: every node).
+  engineTimes({ withTraffic = false, ignoreParking = false, fire = true, target = -1 } = {}) {
+    const { data, links, t } = this, net = data.net, edges = net.edges, A_ACC = data.A.access;
+    const nN = net.nodes.length, dist = new Float64Array(nN).fill(Infinity), prev = new Int32Array(nN).fill(-1), heap = new MinHeap();
+    for (const s of data.stationNodes) { dist[s] = 0; heap.push(0, s); }
+    while (heap.size) {
+      const [d, n] = heap.pop(); if (d > dist[n]) continue; if (n === target) break;
+      for (const eid of data.nodeEdges[n]) {
+        const e = edges[eid];
+        if (e.mode !== 'vehicle' || e.disconnected) continue;
+        if (fire && t >= this.tFire[eid]) continue;
+        if (e.barrier?.closed && !e.barrier.engines) continue; // fixed bollards or barriers
+        if (!this.engineOK[eid] && !ignoreParking) continue;
+        let c = e.len / (e.speedMps * 1.15) + (e.barrier?.closed ? A_ACC.barrierDelayS : 0); // removable bollard or gate: crew opens it
+        if (withTraffic) {
+          let onEdge = 0; for (const l of this.edgeLinks.get(eid) || []) onEdge += links[l].q.length;
+          c += this.eff[eid] >= 2 || this.eff[eid] < 0 ? onEdge * 0.5 : onEdge * 6; // oncoming cars must pull over to let the engine by
+        }
+        const m = e.a === n ? e.b : e.a; const nd = d + c;
+        if (nd < dist[m]) { dist[m] = nd; prev[m] = eid; heap.push(nd, m); }
+      }
+    }
+    return { dist, prev };
+  }
+
+  // Engine reach (City standard: a station within engineServiceMin minutes' drive; SOURCE_NOTES A6, ER1).
+  // Model rule: an engine reaches a home when it gets to the nearer end of the home's street
+  // segment by a route on which every segment passes under this plan's and seed's parked cars;
+  // the home's own segment need not pass. Per segment: seconds, or Infinity where no engine route
+  // reaches either end. At ignition: no fire, no traffic. Now: current fire and traffic, and a
+  // segment the fire has reached counts as not reached. No random draws.
+  engineReachTimes(now) {
+    const { dist } = this.engineTimes(now ? { withTraffic: true } : { fire: false });
+    const edges = this.data.net.edges, out = new Float64Array(edges.length).fill(Infinity);
+    for (const e of edges) if (!(now && this.t >= this.tFire[e.id])) out[e.id] = Math.min(dist[e.a], dist[e.b]);
+    return out;
+  }
+  // Shares and people reached within the standard, among households in Berkeley's evacuation zones
+  // (the station layer holds Berkeley's 7 stations only): hill (Fire Zones 2–3) and all.
+  engineReachStats(times) {
+    const { hh, data } = this, pph = data.A.demand.personsPerHousehold, lim = data.A.access.engineServiceMin * 60;
+    const zones = data.layers.evacZones, edges = data.net.edges;
+    const z = { hill: [0, 0, 0], all: [0, 0, 0] }; // households: total, within the standard, no route
+    for (let h = 0; h < hh.n; h++) {
+      if (!String(zones[hh.zone[h]]?.id).startsWith('BER')) continue;
+      const tt = times[hh.edge[h]], g = edges[hh.edge[h]].fireZone >= 2 ? [z.hill, z.all] : [z.all];
+      for (const c of g) { c[0]++; if (tt <= lim) c[1]++; if (tt === Infinity) c[2]++; }
+    }
+    const f = ([n, ok, none]) => ({ share: n ? ok / n : null, people: ok * pph, unreachable: none * pph, total: n * pph });
+    return { hill: f(z.hill), all: f(z.all) };
+  }
+
   computeResponder(initial) {
-    const { data, links, t } = this, net = data.net, edges = net.edges;
-    const A_ACC = data.A.access;
+    const { data } = this, net = data.net, edges = net.edges;
     const stations = data.stationNodes;
+    if (initial) { this.engineReach0 = this.engineReachTimes(false); this.engineReach = this.engineReachStats(this.engineReach0); }
+    this.engineReachNow = this.engineReachStats(this.engineReachTimes(true));
     if (!stations.length) return;
     let target = -1;
     // withTraffic: current fire and queues; ignoreParking: pretend every parked car is gone (to find the pinch points)
     const run = (withTraffic, ignoreParking) => {
-      const nN = net.nodes.length, dist = new Float64Array(nN).fill(Infinity), prev = new Int32Array(nN).fill(-1), heap = new MinHeap();
-      for (const s of stations) { dist[s] = 0; heap.push(0, s); }
-      while (heap.size) {
-        const [d, n] = heap.pop(); if (d > dist[n]) continue; if (n === target) break;
-        for (const eid of data.nodeEdges[n]) {
-          const e = edges[eid];
-          if (e.mode !== 'vehicle' || e.disconnected) continue;
-          if (t >= this.tFire[eid]) continue;
-          if (e.barrier?.closed && !e.barrier.engines) continue; // fixed bollards or barriers
-          if (!this.engineOK[eid] && !ignoreParking) continue;
-          let c = e.len / (e.speedMps * 1.15) + (e.barrier?.closed ? A_ACC.barrierDelayS : 0); // removable bollard or gate: crew opens it
-          if (withTraffic) {
-            let onEdge = 0; for (const l of this.edgeLinks.get(eid) || []) onEdge += links[l].q.length;
-            c += this.eff[eid] >= 2 || this.eff[eid] < 0 ? onEdge * 0.5 : onEdge * 6; // oncoming cars must pull over to let the engine by
-          }
-          const m = e.a === n ? e.b : e.a; const nd = d + c;
-          if (nd < dist[m]) { dist[m] = nd; prev[m] = eid; heap.push(nd, m); }
-        }
-      }
+      const { dist, prev } = this.engineTimes({ withTraffic, ignoreParking, target });
       const route = []; for (let n = target; prev[n] >= 0;) { const e = edges[prev[n]]; route.push(prev[n]); n = e.a === n ? e.b : e.a; if (route.length > 5000) break; }
       return { eta: target >= 0 ? dist[target] : Infinity, route, dist };
     };
@@ -785,6 +825,11 @@ export class Evacuation {
     { let last = 0, all = true; for (let h = 0; h < hh.n; h++) if ((hh.kind[h] === 1 || hh.kind[h] === 2) && hh.veh[h] && !hh.early[h]) { if (hh.arrived[h] === Infinity) all = false; else last = Math.max(last, hh.arrived[h]); } S.lastHousehold = all ? (last - this.firstOrderT) / 60 : null; }
     S.responderFree = this.responder.free / 60; S.responderEta = this.responder.eta / 60; S.responderBlocked = this.responder.blocked;
     S.engineBlockedSegments = this.parkingStats.engineBlocked;
+    // Engine reach within the City's 5-minute standard, at ignition (no fire, no traffic) and now.
+    { const R = this.engineReach, N = this.engineReachNow;
+      S.engineReach5Share = R.hill.share; S.engineReach5People = R.hill.people; S.engineReachUnreachablePeople = R.hill.unreachable; S.engineReachHillPeople = R.hill.total; S.engineReachBeyond5People = R.hill.total - R.hill.people;
+      S.engineReach5ShareAll = R.all.share; S.engineReach5PeopleAll = R.all.people; S.engineReachUnreachablePeopleAll = R.all.unreachable; S.engineReachAllPeople = R.all.total;
+      S.engineReach5ShareNow = N.hill.share; S.engineReach5PeopleNow = N.hill.people; }
     S.peakQueued = Math.max(0, ...this.series.queued);
     S.bottlenecks = [...this.nodeWaitMax.entries()].filter(([, w]) => w > 0).sort((a, b) => b[1] - a[1]).slice(0, 5)
       .map(([n, w]) => ({ node: n, name: this.nodeName(n), max: w, at: this.nodeWaitAt[n] / 60 }));
