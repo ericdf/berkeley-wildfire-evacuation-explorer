@@ -82,7 +82,7 @@ export function makeScenarios(data) {
       blurb: 'Fire starts in the hills above Panoramic Hill, a neighborhood reached by essentially one road (Panoramic Way). Use it to test early departure; a secondary route is a Phase 2 intervention.',
       ignition: L(-122.2410, 37.8728), ignitionLabel: 'Hillside north-east of and above Panoramic Hill (illustrative)',
       windFrom: 45, windMph: 30, durationMin: 240, timeOfDay: 'S4', orders: R04,
-      sources: ['Orders and warnings: Evacuation Time Study region R04 zone lists (p. 6-7). The Oakland zones have no streets in our network, so their residents are not modeled',
+      sources: ['Orders and warnings: Evacuation Time Study region R04 zone lists (p. 6-7). The study\'s OAK-E003 to E005 are read as Genasys OKL-003 to OKL-005; their streets come from OpenStreetMap and their residents drive out through Berkeley or down Claremont Av',
         'Single exit at the stop-controlled intersection of Panoramic Way and Prospect St/Canyon Rd (SB 99 report p. 4)', 'Ignition point and wind are illustrative'],
     },
     {

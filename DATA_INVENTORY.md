@@ -1,6 +1,6 @@
 # Data inventory
 
-Status as of 2026-10-31. Categories: **sourced** (published data used as-is), **derived**
+Status as of 2026-11-01. Categories: **sourced** (published data used as-is), **derived**
 (computed from sourced data), **assumption** (placeholder, editable), **synthetic**
 (generated).
 
@@ -20,6 +20,9 @@ Status as of 2026-10-31. Categories: **sourced** (published data used as-is), **
 | Fire stations (7), shelters (13) | City `Fire_Stations`, `ShelterSites_WFL1` | GeoJSON | Responder origins; map | sourced |
 | No-parking signs (fire zones and narrow roads) | City sign layers | GeoJSON points | Map layer only (not yet used to set parking) | sourced |
 | City orthophotos 2020 and 2017, 3 in (7.6 cm) pixels; also 2014 4 in and 2020 1 m (used for parking counts on 22 hill blocks) | City of Berkeley GIS `gis.cityofberkeley.info/arcgis3/rest/services/Imagery/ORTHOPHOTO_2020_3in/ImageServer` (public REST, `exportImage`); flown by Pictometry for the City | Image service, EPSG:2227 | Counted parked cars, sides parked and gaps on 22 hill blocks (derived counts in `data/field/`). More blocks possible | sourced (public City service; imagery flown by Pictometry; only counts kept in the project, to keep it small) |
+| OpenStreetMap drivable streets in the game area (5,822 ways; 3,365 segments used outside Berkeley) | Overpass API (overpass-api.de), 2026-11-01; © OpenStreetMap contributors, ODbL | JSON, EPSG:4326 → UTM 10N | Streets outside Berkeley: geometry, name, class, one-way, lanes, maxspeed; barriers and circles | sourced; widths outside Berkeley are an assumption |
+| Genasys Protect evacuation zones in the game area (188 zones) | WFS behind protect.genasys.com (`zonehavenv2:evacuation_zone`), 2026-11-01 | GeoJSON | Outlines of zones outside Berkeley (the City layer has only slivers of them). No population | sourced |
+| 2020 Census blocks (2,794; population and housing units at interior points) and the Kensington CDP (5,428 people) | Census TIGERweb, 2026-11-01 | JSON | Population of zones without a Genasys estimate (59 zones); check on the Genasys estimates | sourced |
 | FHSZ 2025, ember threat zones | City `CAL_FIRE_and_Berkeley_FHSZ_2025`, `Ember_Threat_Zones` | GeoJSON (100+ MB each) | Downloaded, not yet used | sourced |
 
 ## Where width, grade and lane counts come from
@@ -65,7 +68,7 @@ The City's 2025 Evacuation Time Study (KLD), the SB 99 Access Impaired Neighborh
 | ADU counts or capacity, and residents/vehicles per unit as ranges | CSV by zone or block | City Planning permits (`New_Building_Permits` layers exist), state ADU reports | ADU housing policy with uncertain added demand |
 | Fire apparatus dimensions and access standards | Table | Berkeley Fire Dept. | Engine width is now sourced (9.25 ft, SB 99 report); still needed: turning requirements and BFD's view of passable widths |
 | Historical fire perimeters (1923 timing, 1991 Tunnel Fire) and weather | GeoJSON + timeline | City `Berkeley_Fire_History`, `East_Bay_Fire_History`; NWS/RAWS | A 1991-type reference scenario; checking fire overlay timing |
-| Street network beyond Berkeley (Oakland, Albany, Kensington) | GeoJSON | OpenStreetMap or county data | Routes that leave the city; zone population outside Berkeley (now dropped); which hill dead ends at the city line continue (now a hand list) |
+| ~~Street network beyond Berkeley~~ | — | **Resolved 2026-11-01** with OpenStreetMap, Genasys zone outlines and 2020 Census blocks (SOURCE_NOTES X1–X11). Still missing: measured widths outside Berkeley, and anything beyond the elevation grid (north Kensington, Oakland south of about 37.84° N) | Routes across the city line; neighbors' traffic |
 | Fire Department staffing: on-duty crews per shift, callback policy, where off-duty members live (aggregate), mutual-aid arrival times | Tables | BFD Standards of Coverage, BFD | Shorthanded-department scenarios (Eric, 2026-11-01) |
 | Traffic counts, signal timing, intersection control | Tables | City Transportation, KLD inputs | Intersection capacities (now one value per road class) |
 | Costs: road widening, secondary egress, buyouts, vegetation, enforcement | Tables with ranges | City CIP, Fire Dept., comparable projects | Phase 2 budget and intervention costs |

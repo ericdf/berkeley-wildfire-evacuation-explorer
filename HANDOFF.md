@@ -13,16 +13,17 @@ Checks after any model change:
 - `node tests/headless.mjs` runs every scenario with two plans.
 - `node tests/calibration.mjs [seeds] [intersection scale]` compares 90th and 100th percentile evacuation times with the 2025 Evacuation Time Study, fire off.
 - `node tests/stuck.mjs <scenario> <S1..S6> <minutes>` lists jammed links. Use it whenever the calibration's "relief" column climbs or a 100th percentile shows "—".
+- `node tests/leftover.mjs <scenario> <S1..S6> [seed]` lists order-zone vehicles that never leave the order area, by start street and last link. A "—" with no jam usually means a car is placed on a dead-end piece of network.
 - A browser smoke test needs puppeteer-core, which lives outside the repo; any headless Chrome check of `http://127.0.0.1:8766` for console errors will do.
 
 Git: all work is committed on `main` (no remote). City layers and report PDFs are git-ignored and can be re-fetched (`tools/fetch-city-layers.mjs`; PDF URLs in `SOURCE_NOTES.md`).
 
 ## What the model does now
 
-- **Network:** County street centerlines (Berkeley only) with City pavement widths, the City narrow-roads survey, 4 m lidar grades, OpenStreetMap diverters (18 segments closed to residents' cars) and traffic circles (900 veh/h).
+- **Network:** County street centerlines in Berkeley with City pavement widths, the City narrow-roads survey, 4 m lidar grades; OpenStreetMap streets beyond the city line (Oakland, Emeryville, Albany, Kensington, El Cerrito, Richmond) up to the edge of the elevation grid, widths assumed from Berkeley medians; OpenStreetMap diverters and gates (32 segments closed to residents' cars) and traffic circles (900 veh/h). Exits are where streets leave the grid.
 - **Parking** (`js/parking.js`): varies by block and seed (none, one side or both sides; partly off the pavement; occasional bad parking jobs), from Eric's street photos and counts of parked cars on 22 hill blocks in the City's 2020 aerial photos. Fuller at night (an assumption). Plan options: status quo, one side only, enforce tight-to-curb, no parking on narrow roads, no parking in the hills.
 - **Traffic** (`js/sim.js`): 5 s steps; link and junction capacities; take-turns lanes where parked cars leave one lane; junction delay by road class; reroutes every minute. Gridlock relief lets one car squeeze forward after 3 min if the link ahead has not moved.
-- **Demand:** synthetic households from Genasys zone populations, the Time Study's compliance, departure-time tables, rideshare and returning commuters; plus employees, students, visitors and I-80 through traffic from the study's tables, placed by area.
+- **Demand:** synthetic households from Genasys zone populations (2020 Census blocks for zones the City layer lacks; about 74,700 people outside Berkeley), the Time Study's compliance, departure-time tables, rideshare and returning commuters; plus employees, students, visitors and I-80 and CA-24 through traffic from the study's tables, placed by area.
 - **Evacuation time** is measured as the study does: vehicles starting in Order zones, until they leave the order area (Table 7-1 notes).
 - **Leave Early Zones:** the City's 10 zones (BER-006, 007, 008, 015, 016, 017, 030, 031, 057, 058).
 
@@ -30,11 +31,11 @@ Git: all work is committed on `main` (no remote). City layers and report PDFs ar
 
 | Region | Study, nights/weekends | Game | Study, weekdays (S1/S4) | Game |
 |---|---|---|---|---|
-| R04 Panoramic Hill | 1:35–1:40 | 1:30–1:32 | 1:40 / 1:45 | 1:39 / 1:45 |
-| R02 1923 repeat | 1:45–1:50 | 1:29–1:32 | 2:25 / 2:55 | 1:33 / 1:35 |
+| R04 Panoramic Hill | 1:35–1:40 | 1:29–1:30 | 1:40 / 1:45 | 1:38 / 1:42 |
+| R02 1923 repeat | 1:45–1:50 | 1:29–1:31 | 2:25 / 2:55 | 1:33 / 1:34 |
 | R05 Fire Zones 2–3 | 1:45–1:55 | 1:31–1:32 | 2:05 / 2:20 | 1:40 / 1:45 |
 
-Panoramic Hill matches. The larger regions are about 15 min fast at night and 35–80 min fast on weekdays. A single intersection-capacity setting tuned on R02 broke Panoramic Hill on the held-out check, so capacity is left untuned (scale 1). The likely causes are real signal timing and where non-residents actually park and drive. Details are in `SOURCE_NOTES.md` under "Calibration check".
+After the network was extended beyond Berkeley (2026-11-01) these moved by at most 3 min. Panoramic Hill matches. The larger regions are about 15 min fast at night and 35–80 min fast on weekdays. A single intersection-capacity setting tuned on R02 broke Panoramic Hill on the held-out check, so capacity is left untuned (scale 1). The likely causes are real signal timing and where non-residents actually park and drive. Details are in `SOURCE_NOTES.md` under "Calibration check".
 
 ## Decisions Eric has made
 
@@ -53,7 +54,7 @@ Do right after the Oakland/Kensington branch merges, in one pass: retire the wor
 
 In rough priority order. Items marked **Eric** need him.
 
-1. **Extend the network beyond Berkeley.** The Oakland Hills and Kensington have the same constraints, and a fire will not stop at the city line. Today the network stops at the city limits, hill streets that continue out are a hand list (`data/assumptions.json` `network.hillStreetsContinuingOutOfCity`), and Oakland and Kensington residents are dropped. Plan: pull an OpenStreetMap drivable network for the Oakland and Kensington hills (Overpass; the main server is often busy, so use mirrors such as overpass.kumi.systems), merge it at the city line, assume widths and lanes where OSM has none (labeled), add Oakland and Albany population from the Genasys zones already in `layers.json`, and find Kensington population (Contra Costa). This also resolves the Tanglewood Rd and dead-end exit approximations, and lets the 1923 and east-wind fires meet traffic across the line.
+1. **Network beyond Berkeley: done 2026-11-01** (SOURCE_NOTES X1–X11). Left over: (a) north Kensington (about 1,500 people) and Oakland south of about 37.84° N are outside the elevation grid; refetching the DEM farther north and south (`tools/fetch-dem.mjs`, `AREA_LONLAT` in `tools/utm.mjs`) would bring them in, extending north keeps `ymin` and every local coordinate, extending south moves the origin, so rebuild everything after; (b) OKL-003, an R04 order zone, has 27 people by Genasys and 307 by the 2020 Census (X6), **Eric** to decide which to use; (c) widths outside Berkeley are Berkeley medians; Oakland's or Contra Costa's pavement data would replace them; (d) 38 County dead ends near the city line stay dead ends (checked: courts and stubs).
 2. **Close the weekday calibration gap without over-fitting.** Candidates: signal timing (ask the City, or OSM `highway=traffic_signals` for locations), employee and student parking locations (Time Study Figure C-12 shows major employers; UC parking structures), through-traffic routes beyond I-80. Re-check on held-out regions each time. New public inputs (SOURCE_NOTES G4, G6): the City `Signals` layer gives pre-timed vs actuated for 146 signals (no timings), and the City's apparatus-route map lists 331 traffic-calming devices, including the Derby St diverter. Use both after the Oakland/Kensington merge, since they touch the network builder. Test the City centerline `PARKING` codes 1 and 2 against the aerial counts (G3).
 3. **Informal question to Berkeley Fire: sent 2026-11-01** (`correspondence/2026-11-01-berkeley-fire-question.html`): which hill streets engines struggle on. Proceed as if no reply is coming (Eric). Formal City requests are dropped (Eric, 2026-11-01: a CPRA request takes months). Signal timing, curb parking and the City's diverter list are disclosed as information gaps instead; reopen them only if the City offers data. The letter lists 24 streets that `tools/engine-trouble-streets.mjs` ranks as most often too narrow for an engine with status-quo parking (60 seeds, day and night), leaving out UC, Lab and park roads (Cyclotron Rd, Campus Dr, Wildcat Canyon Rd). Berkeley Fire's answers are a direct check on the parking model; a "fine" for a street the model blocks often (Arlington Ave: 29% of runs by day, 42% at night) would mean the model over-blocks.
 4. **Fix the diverters (after the Oakland/Kensington merge).** Checked 2026-11-01 (SOURCE_NOTES O2a–O8, G6): our Derby St closure (edge 1887) is wrong and sits on the Panoramic Hill exit route; the real diverter at Piedmont Ave/Derby St, and about 30 others, are missing. Use the City's traffic-calming layer as the list of record, split diagonal diverters into two nodes, skip closures next to dead ends, then rerun calibration.
@@ -70,7 +71,8 @@ In rough priority order. Items marked **Eric** need him.
 
 - `data/game/*.json` is generated by `tools/build-network.mjs`; rebuild after changing the builder or the lane, parking or capacity assumptions it reads.
 - Genasys zone IDs: key on `zone_id` (labels like BER-006). The layer's `zonenum` repeats across cities.
-- The County file classes Tunnel Rd and the south end of MLK as Local; exits at the city line are special-cased (see item 1).
+- Outside Berkeley the hill rules apply to streets at 90 m elevation or higher (`proxy:elevation>=90m` in `fireZoneSrc`); `fireZone` 2 there is that proxy, not a City fire zone. The CAL FIRE layer in the City's FHSZ service was rejected (it rates Hiller Highlands "Moderate").
+- `tools/build-network.mjs` step 3b joins OSM to the County network. If you change it, rerun the dead-end check described in SOURCE_NOTES X2 and look for one-way pieces that dead-end (the I-80 ends at Ashby Av and Gilman St were the hard cases).
 - Comparing plans relies on the parking draws and household draws depending on the seed, not the plan; keep it that way.
 - The error bounds in Assumptions & limits and the results panel (`studyRow` in `js/main.js`) are typed in from the calibration table. Update them whenever calibration changes.
 - zsh does not split unquoted variables; use `${=var}` in shell loops.

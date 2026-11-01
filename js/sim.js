@@ -67,11 +67,11 @@ export class Evacuation {
     const zones = data.layers.evacZones;
     this.orderT = new Float64Array(zones.length).fill(Infinity);
     this.warnT = new Float64Array(zones.length).fill(Infinity);
-    const zoneCells = new Int32Array(zones.length), zoneCity = new Int32Array(zones.length), zoneHill = new Int32Array(zones.length);
+    const zoneCells = new Int32Array(zones.length), zoneHill = new Int32Array(zones.length);
     const near = plan.alertKm > 0 ? minFilter(fire.arrival, grid.W, grid.H, plan.alertKm * 1000) : null;
     for (let i = 0; i < grid.zone.length; i++) {
       const z = grid.zone[i]; if (z < 0) continue;
-      zoneCells[z]++; zoneCity[z] += grid.inCity[i];
+      zoneCells[z]++;
       if (grid.fuelClass[i] >= 2) zoneHill[z]++;
       if (near) { const tt = near[i] * 60 + plan.orderDelayMin * 60; if (tt < this.orderT[z]) this.orderT[z] = tt; }
     }
@@ -102,7 +102,8 @@ export class Evacuation {
       if (this.orderT[z] < Infinity || this.warnT[z] > this.end) this.warnT[z] = Infinity;
     }
     this.firstOrderT = Math.min(...this.orderT, ...this.warnT);
-    this.zoneCityShare = Array.from(zones, (_, z) => zoneCells[z] ? zoneCity[z] / zoneCells[z] : 0);
+    // Share of each zone's population inside the modeled area (the DEM extent), from the network builder.
+    this.zoneModeledShare = Array.from(zones, z => z.pop ? (z.popModeled ?? z.pop) / z.pop : 0);
 
     // ---- links ----
     const spacing = A.capacity.vehicleSpacingM, SL = A.sharedLane;
@@ -155,11 +156,11 @@ export class Evacuation {
 
     // ---- destinations ----
     // Evacuees (class 0) are safe at any node outside every ordered or warned zone and never
-    // under embers. Shadow evacuees (class 1) drive to the city edge (Time Study destinations
-    // are exits leaving the city).
+    // under embers. Shadow evacuees (class 1) drive out of the modeled area (the Time Study's
+    // network covers its Shadow Region and its destinations lie beyond it).
     this.safe = [new Uint8Array(nN), new Uint8Array(nN)];
     this.nodeZone = new Int16Array(nN).fill(-1); this.nodeOrdered = new Uint8Array(nN);
-    const exits = data.exitNodes || (data.exitNodes = cityExitNodes(data));
+    const exits = data.exitNodes || (data.exitNodes = new Set(net.meta.exitNodes || []));
     for (let n = 0; n < nN; n++) {
       if (!this.outL[n].length && !this.inL[n].length) continue;
       const [x, y] = net.nodes[n]; const c = cellOf(grid, x, y);
@@ -167,7 +168,7 @@ export class Evacuation {
       this.nodeOrdered[n] = z >= 0 && this.orderT[z] < Infinity ? 1 : 0;
       const told = z >= 0 && (this.orderT[z] < Infinity || this.warnT[z] < Infinity);
       const embers = c >= 0 && fire.ember[c] < Infinity;
-      this.safe[0][n] = (!told || exits.has(n)) && !embers ? 1 : 0; // outside the order/warning area, or out of the city
+      this.safe[0][n] = (!told || exits.has(n)) && !embers ? 1 : 0; // outside the order/warning area, or out of the modeled area
       this.safe[1][n] = exits.has(n) && !embers ? 1 : 0;
     }
 
@@ -206,7 +207,7 @@ export class Evacuation {
     let unplaced = 0;
     for (let zi = 0; zi < zones.length; zi++) {
       const z = zones[zi];
-      const pop = z.pop * this.zoneCityShare[zi];
+      const pop = z.popModeled ?? z.pop;
       const list = byZone.get(z.id);
       if (!list) { unplaced += pop; continue; }
       const W = list.reduce((s, [, w]) => s + w, 0);
@@ -230,7 +231,7 @@ export class Evacuation {
       commuterHome: new Float64Array(nH).fill(Infinity) };
     this.unplacedPeople = unplaced;
     // Who leaves and when (Time Study: 100% of Order zones, 50% of Warning zones, 20% shadow
-    // elsewhere in the city; mobilization histograms by household type; SOURCE_NOTES E8, E9).
+    // elsewhere in the city and its Shadow Region, here the whole game area; mobilization histograms by household type; SOURCE_NOTES E8, E9).
     const M = D.mobilization15min, C = D.compliance;
     const vHH = [], vDep = [], vCls = [], donors = new Map();
     for (let h = 0; h < nH; h++) {
@@ -620,7 +621,7 @@ export class Evacuation {
       this.log(`Parked cars this run (seed ${this.seed}): of ${ps.hillsKnown} hill segments with a known width, ${ps.twoSides} parked on both sides and ${ps.oneSide} on one side; ${ps.pinched} segments have a bad parking job narrowing the gap. ${ps.engineBlocked} segments are too narrow for an engine; ${this.sharedLanes} two-way segments leave one lane, so oncoming drivers take turns.`, 'plan'); }
     if (plan.hillsParking !== 'both') this.log(`Parking plan "${PARKING_PLANS[plan.hillsParking]}": ${parkingChanged(parkingStats)}.`, 'plan');
     if (warned) this.log(`${warned.toLocaleString()} households in warning zones choose to leave (Time Study: 50% of warned households).`, 'order');
-    if (shadow) this.log(`${shadow.toLocaleString()} households outside the order and warning zones leave anyway (${shadowVeh.toLocaleString()} vehicles heading out of the city; Time Study: 20% shadow evacuation).`, 'order');
+    if (shadow) this.log(`${shadow.toLocaleString()} households outside the order and warning zones leave anyway (${shadowVeh.toLocaleString()} vehicles heading out of the game area; Time Study: 20% shadow evacuation).`, 'order');
     if (riders) this.log(`${riders.toLocaleString()} households without a vehicle ride with a neighbor.`, 'order');
     if (stranded) this.log(`${stranded.toLocaleString()} households without a vehicle found no ride. Phase 1 gives them no transport: they stay where they are and are counted as at risk.`, 'warn');
   }
@@ -743,34 +744,6 @@ function nonResidentAreas(data) {
     if (isTilden(m)) add('tilden', e.id, w);
   }
   return (data._nrAreas = out);
-}
-
-// Vehicle nodes within 100 m of the city limits on through roads: where shadow evacuees leave the modeled city.
-function cityExitNodes(data) {
-  const out = new Set(), rings = data.layers.cityBoundary.flatMap(p => p.rings);
-  // Only roads that carry traffic out of the city (arterials, collectors, freeways and ramps):
-  // a local hill street that touches the city line (e.g. Panoramic Hill on the Oakland border)
-  // does not lead anywhere in this network, and drawing evacuees up it creates false jams.
-  const nN = data.net.nodes.length, vehicle = new Uint8Array(nN), deg = new Uint8Array(nN), cont = new Uint8Array(nN);
-  const hillOut = new Set(data.A.network.hillStreetsContinuingOutOfCity);
-  for (const e of data.net.edges) if (e.mode === 'vehicle' && !e.disconnected) {
-    deg[e.a]++; deg[e.b]++;
-    if (e.cls !== 'Local') { vehicle[e.a] = 1; vehicle[e.b] = 1; }
-    // Streets cut off where the County file stops continue in reality: in the flats any street,
-    // in the hills only the listed ones (assumptions network.hillStreetsContinuingOutOfCity).
-    if (!(e.fireZone >= 2) || hillOut.has(e.name)) { cont[e.a] = 1; cont[e.b] = 1; }
-  }
-  data.net.nodes.forEach(([x, y], n) => {
-    const deadEnd = deg[n] === 1 && cont[n];
-    if (!vehicle[n] && !deadEnd) return;
-    for (const r of rings) for (let i = 1; i < r.length; i++) {
-      const [ax, ay] = r[i - 1], [bx, by] = r[i], dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy;
-      const u = L2 ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / L2)) : 0;
-      const d = Math.hypot(x - ax - u * dx, y - ay - u * dy);
-      if (d < 100 && (vehicle[n] || deadEnd)) { out.add(n); return; }
-    }
-  });
-  return out;
 }
 
 const parkingChanged = s => `${s.parkingChanged} hill segments lose parked cars on at least one side; ${s.engineFixed} segments that were too narrow for an engine become passable`;
