@@ -261,7 +261,9 @@ function inspect(sel, quiet) {
   if (sel.kind === 'edge') {
     const e = data.net.edges[sel.id];
     const travel = { B: 'two-way', FT: 'one-way (drawn direction)', TF: 'one-way (against drawn direction)', NT: 'no vehicle travel' }[e.trav] || e.trav;
-    let rows = row('Street', esc(titleCase(e.name)), 'sourced') + row('Class', esc(e.cls), 'sourced') + row('Direction', travel, 'sourced', F.trav.source)
+    const fix = e.correction, fixNote = fix ? (data.A._meta['network.segmentCorrections']?.note || F.correction?.source || '') : '';
+    let rows = row('Street', esc(titleCase(e.name)), 'sourced', fix ? fixNote : undefined) + row('Class', esc(e.cls), 'sourced') + row('Direction', travel, 'sourced', fix ? fixNote : F.trav.source)
+      + (fix ? row('Corrected County record', `County file: ${esc(titleCase(fix.county.STREET || e.name))}, ${{ B: 'two-way', FT: 'one-way', TF: 'one-way', NT: 'no vehicle travel' }[fix.county.TRVLWAY] || esc(fix.county.TRVLWAY)}. Corrected from OpenStreetMap way <a href="https://www.openstreetmap.org/way/${fix.osmWay}" target="_blank" rel="noopener">${fix.osmWay}</a>, the City street layers and the SB 99 report`, 'sourced', fixNote) : '')
       + row('Use', e.mode, 'derived', F.mode.source) + row('Length', `${fmt(e.len)} m`, 'derived', 'Measured in UTM 10N meters');
     if (e.mode === 'vehicle') {
       rows += row('Lanes [forward, back]', `${e.lanes.join(', ')}`, srcCat(e.lanesSrc), e.lanesSrc)
@@ -450,7 +452,9 @@ $('btn-intro').onclick = intro;
 $('modal').addEventListener('close', () => localStorage.setItem('bhe-intro-seen', '1'));
 $('btn-assumptions').onclick = () => {
   const A = data.A, F = data.net.meta.fields;
-  const val = path => { const v = path.split('.').reduce((o, k) => o?.[k], A); return typeof v === 'object' ? JSON.stringify(v).replace(/[{}"]/g, '').replace(/,/g, ', ') : v; };
+  const val = path => { const v = path.split('.').reduce((o, k) => o?.[k], A);
+    if (path === 'network.segmentCorrections') return v.map(c => `County SEGID ${c.SEGID}: ${c.county.STREET} ${c.county.TRVLWAY} → ${c.set.STREET} ${c.set.TRVLWAY}`).join('; ');
+    return typeof v === 'object' ? JSON.stringify(v).replace(/[{}"]/g, '').replace(/,/g, ', ') : v; };
   modal(`<h2>Assumptions &amp; limits</h2>
   <p class="note">This is an educational comparison tool. It is not a calibrated fire-behavior or traffic model, not an official evacuation plan, and it must not guide real evacuation decisions. Follow official instructions: <a href="https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation" target="_blank" rel="noopener">City of Berkeley fire weather &amp; evacuation</a>.</p>
   <p>Labels used throughout: ${badge('sourced')} published data used as-is · ${badge('derived')} computed from sourced data · ${badge('assumption')} a placeholder you can change in <code>data/assumptions.json</code> · ${badge('model rule')} a simplification that makes the simulator work · ${badge('synthetic')} generated people or vehicles.</p>
