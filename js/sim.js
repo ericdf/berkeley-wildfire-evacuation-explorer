@@ -300,7 +300,7 @@ export class Evacuation {
     const order = vHH.map((_, i) => i).sort((a, b) => vDep[a] - vDep[b]);
     const nV = order.length;
     this.v = { n: nV, hh: Int32Array.from(order, i => vHH[i]), depart: Float64Array.from(order, i => vDep[i]), cls: Uint8Array.from(order, i => vCls[i]),
-      link: new Int32Array(nV).fill(-1), enter: new Float64Array(nV), state: new Uint8Array(nV), arrive: new Float64Array(nV).fill(Infinity), exposed: new Uint8Array(nV),
+      link: new Int32Array(nV).fill(-1), enter: new Float64Array(nV), state: new Uint8Array(nV), arrive: new Float64Array(nV).fill(Infinity), exposed: new Uint8Array(nV), fireFront: new Uint8Array(nV),
       dest: new Int32Array(nV).fill(-1), pidx: new Int32Array(nV), edge: Int32Array.from(order, i => vEdge(i)),
       exit: new Float64Array(nV).fill(Infinity), fromOrder: new Uint8Array(nV) };
     // Time Study ETE counts vehicles starting in Order zones until they reach a zone under Warning
@@ -509,7 +509,7 @@ export class Evacuation {
 
   checkExposure() {
     const t = this.t;
-    for (const lid of this.active) { const L = this.links[lid]; if (t >= this.tEmber[L.e]) for (const i of L.q) this.v.exposed[i] = 1; }
+    for (const lid of this.active) { const L = this.links[lid]; if (t >= this.tEmber[L.e]) for (const i of L.q) this.v.exposed[i] = 1; if (t >= this.tFire[L.e]) for (const i of L.q) this.v.fireFront[i] = 1; }
   }
 
   record() {
@@ -653,7 +653,7 @@ export class Evacuation {
   summary() {
     const { hh, v, t, data } = this, pph = data.A.demand.personsPerHousehold;
     const S = { orderedPeople: 0, warnedLeaving: 0, shadowLeaving: 0, leftEarly: 0, reachedSafety: 0, onRoad: 0, notLeft: 0, noVehicle: 0, riders: 0,
-      notOrderedExposed: 0, exposedHome: 0, exposedRoad: 0, exposedNoVehicle: 0, waitingToEnter: this.waiting.length };
+      notOrderedExposed: 0, exposedHome: 0, exposedRoad: 0, exposedNoVehicle: 0, fireFrontHome: 0, fireFrontRoad: 0, waitingToEnter: this.waiting.length };
     let drivingHH = 0, drivingVeh = 0;
     for (let h = 0; h < hh.n; h++) {
       if (hh.veh[h]) { drivingHH++; drivingVeh += hh.veh[h]; }
@@ -662,6 +662,9 @@ export class Evacuation {
       const e = hh.ride[h] >= 0 ? hh.ride[h] : h; // riders share their neighbor's trip
       const te = this.tEmber[hh.edge[h]];
       const exposedAtHome = te <= t && hh.leftHome[e] > te && !hh.early[h];
+      // harsher measure: still home when the fire front itself reached the street
+      const tf = this.tFire[hh.edge[h]];
+      if (tf <= t && hh.leftHome[e] > tf && !hh.early[h]) S.fireFrontHome += pph;
       if (k === 3 && hh.leftHome[h] <= t) S.shadowLeaving += pph;
       if (!told) { if (exposedAtHome) S.notOrderedExposed += pph; continue; }
       if (k === 1) S.orderedPeople += pph; else S.warnedLeaving += pph;
@@ -675,14 +678,16 @@ export class Evacuation {
     }
     // ETE as the Time Study measures it: minutes from the first order until 50/90/100% of
     // evacuating (non-shadow) vehicles have left the order and warning area.
-    let exposedVeh = 0, n0 = 0, nEvac = 0; const arr = [];
+    let exposedVeh = 0, fireVeh = 0, n0 = 0, nEvac = 0; const arr = [];
     for (let i = 0; i < v.n; i++) {
       if (v.exposed[i]) exposedVeh++;
+      if (v.fireFront[i]) fireVeh++;
       if (v.cls[i] || v.state[i] === 4) continue; nEvac++;
       if (!v.fromOrder[i]) continue; n0++;
       const x = Math.min(v.exit[i], v.arrive[i]); if (x < Infinity) arr.push(x - this.firstOrderT);
     }
     S.exposedRoad = exposedVeh * pph / Math.max(1, drivingVeh / Math.max(1, drivingHH));
+    S.fireFrontRoad = fireVeh * pph / Math.max(1, drivingVeh / Math.max(1, drivingHH));
     S.vehicles = nEvac; S.orderVehicles = n0; S.nonResidentVehicles = this.nonResident; S.shadowVehicles = [...v.cls].filter(c => c === 1).length; S.vehiclesArrived = arr.length; S.vehiclesExposed = exposedVeh;
     S.vehiclesOnRoad = 0; S.vehiclesNoRoute = 0;
     let inbound = 0, inboundHome = 0;

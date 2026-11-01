@@ -28,7 +28,7 @@ for (const sc of scen) {
     const S = sim.runToEnd();
     const r = x => x == null ? '—' : Math.round(x).toLocaleString();
     console.log(`  [${plan.name}] ${(performance.now() - t0).toFixed(0)} ms; zones ordered ${S.zonesOrdered}; people ordered ${r(S.orderedPeople)}: safe ${r(S.reachedSafety)}, early ${r(S.leftEarly)}, onRoad ${r(S.onRoad)}, notLeft ${r(S.notLeft)}, noVeh ${r(S.noVehicle)}`);
-    console.log(`     exposed home ${r(S.exposedHome)}, road ${r(S.exposedRoad)}, noVeh ${r(S.exposedNoVehicle)}, unordered ${r(S.notOrderedExposed)}; vehicles ${S.vehicles} clear p50/p90/p100 ${r(S.clearP50)}/${r(S.clearP90)}/${r(S.clearP100)} min; peak queue ${S.peakQueued}; on road at end ${S.vehiclesOnRoad} (no route ${S.vehiclesNoRoute})`);
+    console.log(`     exposed home ${r(S.exposedHome)}, road ${r(S.exposedRoad)}, noVeh ${r(S.exposedNoVehicle)}, unordered ${r(S.notOrderedExposed)}; fire front home ${r(S.fireFrontHome)}, road ${r(S.fireFrontRoad)}; vehicles ${S.vehicles} clear p50/p90/p100 ${r(S.clearP50)}/${r(S.clearP90)}/${r(S.clearP100)} min; peak queue ${S.peakQueued}; on road at end ${S.vehiclesOnRoad} (no route ${S.vehiclesNoRoute})`);
     console.log(`     responder free ${S.responderFree.toFixed(1)} min, at end ${S.responderEta.toFixed(1)} min${S.responderBlocked ? ' BLOCKED' : ''}; engine-blocked segs ${S.engineBlockedSegments}; bottlenecks: ${S.bottlenecks.slice(0, 3).map(b => `${b.name} (${b.max})`).join('; ')}`);
     for (const e of sim.events.slice(0, process.env.EV ? 99 : 4)) console.log(`     t+${(e.t / 60).toFixed(0)} ${e.text}`);
   }

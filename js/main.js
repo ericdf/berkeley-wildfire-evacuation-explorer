@@ -3,6 +3,7 @@ import { buildFireGrid, runFire, cellOf, demAt, FUEL, LB_MAX, CELL } from './fir
 import { makeScenarios, SEVERITY, SEVERITY_NOTE, TIME_OF_DAY, TIME_NOTE, ETE_TARGETS } from './scenarios.js';
 import { Evacuation, DEFAULT_PLAN, titleCase } from './sim.js';
 import { PARKING_PLANS } from './parking.js';
+import { PRESETS } from './presets.js';
 import { MapView, STREET_MODES } from './map.js';
 import { fromUTM } from '../tools/utm.mjs';
 
@@ -18,7 +19,7 @@ const srcCat = src => !src ? 'unknown' : src.startsWith('city:') ? 'sourced' : s
 const A_NOTE = k => data.A._meta[k]?.note || '';
 const state = {
   plans: { A: { ...DEFAULT_PLAN, name: 'Plan A: baseline' }, B: { ...DEFAULT_PLAN, name: 'Plan B: leave early + targeted parking', earlyShare: 0.5, hillsParking: 'narrow' } },
-  editing: 'A', playing: false, speed: 300, sim: null, fires: new Map(), batch: 0,
+  editing: 'A', preset: null, playing: false, speed: 300, sim: null, fires: new Map(), batch: 0,
 };
 
 const data = await loadData();
@@ -97,10 +98,45 @@ $('search').onchange = e => {
   map.selected = { kind: 'edge', id: es[Math.floor(es.length / 2)].id }; map.zoomTo(cx, cy, 1500); inspect(map.selected);
 };
 $('nbhd').onchange = e => {
-  const n = data.layers.neighborhoods.find(x => x.name === e.target.value); if (!n) return;
+  const n = data.layers.neighborhoods.find(x => x.name === e.target.value);
+  if (!n) { map.fit(); map.draw(); return; } // "All of Berkeley": back to the full view
   const r = n.rings[0]; const xs = r.map(p => p[0]), ys = r.map(p => p[1]);
   map.fit([Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]); map.draw();
 };
+
+// ---------- simple view ----------
+// Presets fix the scenario, time of day and both plans; the expert controls are hidden but
+// stay in sync, so switching to Expert shows exactly what the preset set.
+function renderSimple() {
+  const p = state.preset;
+  $('simple').innerHTML = `<h2>Pick a question</h2>
+    <div class="presets">${PRESETS.map(q => `<button class="preset${p?.id === q.id ? ' on' : ''}" data-id="${q.id}"><b>${esc(q.title)}</b><span>${esc(q.question)}</span></button>`).join('')}</div>
+    ${p ? `<div class="plans-ab"><div><b>Plan A</b> ${esc(p.A.name.replace(/^A: /, ''))}</div><div><b>Plan B</b> ${esc(p.B.name.replace(/^B: /, ''))}</div>
+      <div class="small muted">${esc(scenario().name)} · ${esc(TIME_OF_DAY[p.tod].label)} · central severity</div></div>
+      <div class="watch"><b>What to look for.</b> ${esc(p.watch)}</div>
+      <div class="btns"><button data-watch="A" class="${state.editing === 'A' ? 'on' : ''}">▶ Watch Plan A</button><button data-watch="B" class="${state.editing === 'B' ? 'on' : ''}">▶ Watch Plan B</button>
+      <button class="primary" id="simple-compare">Compare A and B on 9 fires</button></div>
+      <p class="small muted">Compare runs both plans on the same 9 fires (low, central and high severity, 3 random seeds each) and the same households. Trust a difference that shows up in every run.</p>` : '<p class="small muted">Each question compares two plans on the same fire and the same households. Expert view (top right) lets you set everything yourself.</p>'}`;
+  $('simple').querySelectorAll('.preset').forEach(b => b.onclick = () => applyPreset(b.dataset.id));
+  $('simple').querySelectorAll('[data-watch]').forEach(b => b.onclick = () => { state.editing = b.dataset.watch; showPlan(); newRun(); renderSimple(); state.playing = true; $('run').textContent = '❚❚ Pause'; });
+  if ($('simple-compare')) $('simple-compare').onclick = () => { $('cmp-scope').value = 'severities'; $('compare').click(); };
+}
+function applyPreset(id) {
+  const p = state.preset = PRESETS.find(q => q.id === id);
+  $('scenario').value = p.scenarioId; showScenario();
+  $('tod').value = p.tod; todNote(); $('severity').value = 'central'; $('seed').value = 1;
+  state.plans.A = { ...p.A }; state.plans.B = { ...p.B }; state.editing = 'A'; showPlan();
+  $('compare-out').innerHTML = ''; newRun(); renderSimple();
+}
+function setMode(m) {
+  document.body.classList.toggle('simple', m === 'simple'); document.body.classList.toggle('expert', m === 'expert');
+  document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
+  localStorage.setItem('bhe-mode', m);
+  if (m === 'simple') { if (!state.preset) applyPreset(PRESETS[0].id); else renderSimple(); }
+}
+document.querySelectorAll('#modes button').forEach(b => b.onclick = () => setMode(b.dataset.mode));
+// Changing any expert control leaves the preset; the simple view then shows no plan detail.
+document.querySelectorAll('#left .expert-only select, #left .expert-only input').forEach(el => el.addEventListener('change', () => { if (state.preset) { state.preset = null; renderSimple(); } }));
 
 // ---------- runs ----------
 function getFire(sc, sev, seed) {
@@ -151,8 +187,9 @@ function update(full) {
       ${c('on the road now', fmt(S.onRoad))}
       ${c('ordered, not yet left', fmt(S.notLeft), S.notLeft ? 'bad' : '')}
       ${c('no vehicle and no ride', fmt(S.noVehicle), S.noVehicle ? 'bad' : '', 'Carless households that found no neighbor to ride with (Time Study: 86.9% rideshare). Phase 2 adds buses, paratransit and check-ins.')}
-      ${c('people exposed to fire/embers', fmt(exposed), exposed ? 'bad' : '', `At home ${fmt(S.exposedHome)}; on roads ${fmt(S.exposedRoad)}; without a vehicle ${fmt(S.exposedNoVehicle)}; in zones with no order ${fmt(S.notOrderedExposed)}`)}
-      ${c('vehicles trapped (no open route)', fmt(S.vehiclesNoRoute), S.vehiclesNoRoute ? 'bad' : '')}
+      ${c('still there when embers arrived', fmt(exposed), exposed ? 'bad' : '', `People still at home or on the road when embers first reached their street. Not a count of deaths or injuries: many would shelter or come through unharmed. At home ${fmt(S.exposedHome)}; on roads ${fmt(S.exposedRoad)}; without a vehicle ${fmt(S.exposedNoVehicle)}; in zones with no order ${fmt(S.notOrderedExposed)}`)}
+      ${c('still there when the fire front arrived', fmt(S.fireFrontHome + S.fireFrontRoad), S.fireFrontHome + S.fireFrontRoad ? 'bad' : '', `People still at home or on the road when the fire itself reached their street, a harsher measure than embers. Still not a count of deaths or injuries. At home ${fmt(S.fireFrontHome)}; on roads ${fmt(S.fireFrontRoad)}`)}
+      ${c('vehicles cut off by fire', fmt(S.vehiclesNoRoute), S.vehiclesNoRoute ? 'bad' : '', 'Cars with no road out: the fire had closed every route from their street, almost always before they set off. Parking rules do not change this number; leaving earlier does.')}
     </div>
     <table class="kv" style="margin-top:8px">
       <tr><td>Evacuation time after the first order (Time Study ETE): 50% / 90% / all vehicles out</td><td class="num">${mins(S.clearP50)} / ${mins(S.clearP90)} / ${S.clearP100 == null ? 'not yet' : mins(S.clearP100)}</td></tr>
@@ -289,17 +326,18 @@ $('compare').onclick = () => {
   worker.postMessage({ batch, jobs });
 };
 const METRICS = [
-  ['People exposed to fire/embers', S => S.exposedHome + S.exposedRoad + S.exposedNoVehicle + S.notOrderedExposed, -1],
+  ['People still there when embers arrived', S => S.exposedHome + S.exposedRoad + S.exposedNoVehicle + S.notOrderedExposed, -1],
   ['  …at home with a car, not yet left', S => S.exposedHome, -1],
   ['  …on roads', S => S.exposedRoad, -1],
   ['  …without a vehicle', S => S.exposedNoVehicle, -1],
+  ['People still there when the fire front arrived', S => S.fireFrontHome + S.fireFrontRoad, -1],
   ['People in ordered zones', S => S.orderedPeople, 0],
   ['People with no vehicle and no ride', S => S.noVehicle, -1],
   ['Left early', S => S.leftEarly, 0],
   ['Vehicles evacuating', S => S.vehicles, 0],
   ['90% of vehicles out, min after order (ETE)', S => S.clearP90, -1],
   ['Peak vehicles queued', S => S.peakQueued, -1],
-  ['Vehicles trapped (no open route)', S => S.vehiclesNoRoute, -1],
+  ['Vehicles cut off by fire (no road out)', S => S.vehiclesNoRoute, -1],
   ['Engine travel time at ignition (min; ∞ = blocked by parked cars)', S => S.responderFree, -1],
   ['Segments too narrow for an engine', S => S.engineBlockedSegments, -1],
   ['Commuters turned back by fire', S => S.commutersTurnedBack, -1],
@@ -312,6 +350,7 @@ function renderCompare(results, scope) {
   const range = a => { const s = a.filter(x => x != null && !Number.isNaN(x)); return s.length ? `${fmt(Math.min(...s))}–${fmt(Math.max(...s))}` : '—'; };
   let html = `<h2>Plan comparison ${badge('synthetic')}</h2>
     <p class="small">A: <b>${esc(state.plans.A.name)}</b> · B: <b>${esc(state.plans.B.name)}</b>. Both plans ran the same fires, households and random seeds (1–3). Values are the median of 3 seeds with the min–max range under it. A difference smaller than the range is not a robust result.</p>`;
+  html += takeaway(results, scope);
   for (const g of groups) {
     const A = pick('A', g), B = pick('B', g);
     html += `<h3>${esc(gname(g))}</h3><table><tr><th></th><th class="num">A</th><th class="num">B</th><th class="num">B − A</th></tr>`;
@@ -327,13 +366,54 @@ function renderCompare(results, scope) {
   html += `<h3>Why the results differ (Plan B, first seed)</h3><ul class="small">${explain(results, groups[Math.floor(groups.length / 2)], scope)}</ul>`;
   $('compare-out').innerHTML = html;
 }
+// One plain sentence on the preset's headline metric: medians and in how many runs B beat A.
+function takeaway(results, scope) {
+  const p = state.preset; if (!p || scope !== 'severities') return '';
+  const { label, f, dir } = p.headline;
+  const pairs = results.filter(r => r.job.planKey === 'A').map(a => [f(a.summary), f(results.find(b => b.job.planKey === 'B' && b.job.sev === a.job.sev && b.job.seed === a.job.seed).summary)]);
+  const med = a => { const v = [...a].sort((x, y) => x - y); return v[Math.floor(v.length / 2)]; };
+  const ma = med(pairs.map(x => x[0])), mb = med(pairs.map(x => x[1]));
+  const better = pairs.filter(([a, b]) => (b - a) * dir > 0).length, worse = pairs.filter(([a, b]) => (b - a) * dir < 0).length;
+  const robust = better === pairs.length || worse === pairs.length;
+  return `<div class="takeaway${robust ? '' : ' mixed'}"><b>${esc(label)}:</b> about ${fmt(ma)} under Plan A and ${fmt(mb)} under Plan B (median of ${pairs.length} runs). Plan B did better in ${better} of ${pairs.length} runs and worse in ${worse}.${robust ? '' : ' The difference does not hold in every run, so treat it as uncertain.'} These are synthetic households on an illustrative fire, not a prediction.</div>`;
+}
 function explain(results, g, scope) {
   const r = results.find(x => x.job.planKey === 'B' && x.job.seed === 1 && (scope === 'severities' ? x.job.sev === g : x.job.scenarioId === g));
   return r ? r.events.filter(e => ['plan', 'responder', 'warn'].includes(e.kind)).slice(0, 6).map(e => `<li>${esc(e.text)}</li>`).join('') || '<li>No plan-specific events.</li>' : '';
 }
 
 // ---------- modals ----------
-function modal(html) { $('modal-body').innerHTML = html; $('modal').showModal(); }
+function modal(html, cls = '') { $('modal').className = cls; $('modal-body').innerHTML = html; $('modal').showModal(); }
+const INPUTS = [
+  ['Fire scenario', 'Where the fire starts and how the wind blows, and so which zones the City orders out.', 'Which neighborhoods are under order; how fast embers reach homes.'],
+  ['Time of day', 'Who is home, commuters driving home against the outbound traffic, and employees, students and visitors (Evacuation Time Study cases).', 'Evacuation time: weekdays are slower than nights.'],
+  ['Severity', 'Fire spread speed and ember distance: half or double the central case.', 'People still there when embers or the fire front arrived.'],
+  ['Random seed', 'Which households live where, where cars are parked, and random spot fires.', 'Small differences. Trust a difference that holds across seeds.'],
+  ['Decision delay', 'Minutes from ignition to the first evacuation order.', 'Households still home when embers arrive.'],
+  ['Zones ordered', 'Only the City\'s pre-defined zones, or also zones within 1–3 km of the fire, or all hill zones at once.', 'Exposure falls; more cars on the road at once.'],
+  ['Early departure', 'Share of households in the City\'s Leave Early Zones who leave on a Red Flag day, before any fire.', 'Exposure falls; evacuation time barely changes.'],
+  ['Parking on hill streets', 'How much of the street parked cars take: today\'s mix, one side only, tight to the curb, none on narrow roads, or none.', 'Fire-engine access. Evacuation flow barely changes.'],
+];
+function intro() {
+  modal(`<div class="intro"><h2>Berkeley Hills Wildfire Evacuation: Scenario Explorer</h2>
+  <p>Run a wildfire on Berkeley's real streets and watch residents' cars, parked cars and fire engines compete for the same narrow roads. Compare two ways of running an evacuation on the same fire and the same households.</p>
+  <p class="note">This is a teaching tool, not a prediction and not an official evacuation plan. The households are synthetic and the fire is illustrative. For real instructions see the <a href="https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation" target="_blank" rel="noopener">City's fire weather and evacuation page</a>.</p>
+  <div class="steps"><div><b>1 · Pick a question</b>Each one sets a fire and two plans, A and B, that differ in one choice.</div><div><b>2 · Watch</b>Run Plan A, then Plan B. Fire is orange, embers amber, cars blue, queues red.</div><div><b>3 · Compare</b>Run both plans on 9 fires. A difference that shows up in every run is worth discussing.</div></div>
+  <h3>The inputs and what they change</h3>
+  <table><tr><th>Input</th><th>What it sets</th><th>What to watch</th></tr>${INPUTS.map(r => `<tr><td><b>${r[0]}</b></td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`).join('')}</table>
+  <h3>Reading the results</h3>
+  <ul class="small">
+    <li><b>People still there when embers arrived</b>: still at home or on the road when embers first reached their street, split into those with a car, on the road, without a car, and in zones with no order. <b>…when the fire front arrived</b> is the harsher version. Neither is a count of deaths or injuries: the game does not model whether a house survives, whether people can shelter, or smoke. Use them to compare plans.</li>
+    <li><b>Evacuation time</b>: minutes after the first order until 90% of cars have left the order area, with the 2025 Evacuation Time Study's figure next to it for scale. The game lacks the City's signal timing, so on weekdays its times run 35–80 min short of the study's.</li>
+    <li><b>Fire-engine travel</b> from the nearest station to the fire edge, and streets where parked cars leave less than an engine's width.</li>
+  </ul>
+  <p class="small muted">Simple view offers a few questions with clear answers. Expert view (top right) opens every control: scenario, severity, seed, time of day and both plans. Every number shows whether it is sourced, derived, an assumption, a game rule or synthetic; see Assumptions &amp; limits and Data sources. Oakland and Kensington streets are not in the model yet.</p>
+  <div class="start"><button id="intro-expert">Open expert view</button><button class="primary" id="intro-simple">Start with a question</button></div></div>`, 'intro');
+  const go = m => { localStorage.setItem('bhe-intro-seen', '1'); $('modal').close(); setMode(m); };
+  $('intro-simple').onclick = () => go('simple'); $('intro-expert').onclick = () => go('expert');
+}
+$('btn-intro').onclick = intro;
+$('modal').addEventListener('close', () => localStorage.setItem('bhe-intro-seen', '1'));
 $('btn-assumptions').onclick = () => {
   const A = data.A, F = data.net.meta.fields;
   const val = path => { const v = path.split('.').reduce((o, k) => o?.[k], A); return typeof v === 'object' ? JSON.stringify(v).replace(/[{}"]/g, '').replace(/,/g, ', ') : v; };
@@ -375,6 +455,7 @@ $('btn-assumptions').onclick = () => {
   </ul>
   <h3>What Phase 1 does not do</h3>
   <ul class="small">
+    <li>No deaths or injuries. "Still there when embers arrived" counts people at home or on the road when embers first reached their street (any burning cell within the ember distance upwind); "…when the fire front arrived" counts those still there when the fire itself reached the street. Whether they would be hurt depends on house survival, sheltering, fire intensity and smoke, none of which the game models.</li>
     <li>No buildings yet, so no structures exposed or lost; no home hardening or vegetation effects.</li>
     <li>No stairway or steep-path access time between homes and the street, and no assistance for people who need help (Phase 2).</li>
     <li>Employees, students, visitors and I-80 through traffic use the Time Study's vehicle counts, placed by area (an approximation).</li>
@@ -391,4 +472,6 @@ $('btn-sources').onclick = () => {
 
 // ---------- start ----------
 showScenario(); showPlan(); legend(); newRun();
+setMode(localStorage.getItem('bhe-mode') || 'simple');
+if (!localStorage.getItem('bhe-intro-seen')) intro();
 requestAnimationFrame(loop);

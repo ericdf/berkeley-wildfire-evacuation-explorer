@@ -14,6 +14,8 @@
     <div class="disclaimer">Educational scenario explorer. Simplified, partly synthetic model. <strong>Not a forecast and not evacuation advice.</strong></div>
   </div>
   <nav>
+    <div class="modes" id="modes"><button data-mode="simple">Simple</button><button data-mode="expert">Expert</button></div>
+    <button id="btn-intro">How to use</button>
     <button id="btn-assumptions">Assumptions &amp; limits</button>
     <button id="btn-sources">Data sources</button>
     <a class="official" href="https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation" target="_blank" rel="noopener">Official City fire weather &amp; evacuation info ↗</a>
@@ -22,7 +24,9 @@
 
 <main>
   <aside id="left">
-    <section>
+    <section id="simple" class="simple-only"></section>
+
+    <section class="expert-only">
       <h2>1 · Scenario</h2>
       <label>Preset <select id="scenario"></select></label>
       <p id="scenario-blurb" class="blurb"></p>
@@ -37,7 +41,7 @@
       <details class="small"><summary>Scenario sources</summary><ul id="scenario-sources"></ul></details>
     </section>
 
-    <section>
+    <section class="expert-only">
       <h2>2 · Operating plan</h2>
       <div class="tabs" id="plan-tabs"><button data-plan="A" class="on">Plan A</button><button data-plan="B">Plan B</button></div>
       <label>Name <input id="p-name" type="text"></label>
@@ -59,15 +63,15 @@
     </section>
 
     <section>
-      <h2>3 · Run</h2>
+      <h2><span class="expert-only">3 · </span>Run</h2>
       <div class="row">
         <button id="run" class="primary">▶ Run</button>
         <button id="reset">Reset</button>
         <label class="inline">Speed <select id="speed"><option value="60">1 min/s</option><option value="300" selected>5 min/s</option><option value="900">15 min/s</option></select></label>
       </div>
       <input id="scrub" type="range" min="0" max="240" step="1" value="0">
-      <h3>Compare Plan A and Plan B</h3>
-      <div class="row">
+      <h3 class="expert-only">Compare Plan A and Plan B</h3>
+      <div class="row expert-only">
         <select id="cmp-scope">
           <option value="severities">This scenario · low / central / high · seeds 1–3</option>
           <option value="scenarios">All 4 scenarios · central · seeds 1–3</option>
@@ -77,13 +81,13 @@
       <div id="cmp-progress" class="small muted"></div>
     </section>
 
-    <section>
+    <section class="expert-only">
       <h2>Map</h2>
       <label>Color streets by <select id="street-mode"></select></label>
       <div id="layers" class="layers"></div>
       <label>Find a street <input id="search" list="street-names" placeholder="e.g. Panoramic Way"></label>
       <datalist id="street-names"></datalist>
-      <label>Neighborhood <select id="nbhd"><option value="">—</option></select></label>
+      <label>Neighborhood <select id="nbhd"><option value="">All of Berkeley</option></select></label>
     </section>
   </aside>
 
@@ -96,7 +100,7 @@
   </div>
 
   <aside id="right">
-    <section id="inspector"><h2>Inspector</h2><p class="muted small">Click a street or an evacuation zone (turn on the Evacuation zones layer) to see its attributes. Hover a badge (ⓘ) for where each value comes from.</p></section>
+    <section id="inspector" class="expert-only"><h2>Inspector</h2><p class="muted small">Click a street or an evacuation zone (turn on the Evacuation zones layer) to see its attributes. Hover a badge (ⓘ) for where each value comes from.</p></section>
     <section id="results"></section>
     <section id="compare-out"></section>
     <section id="log"><h2>Event log</h2><ol id="events"></ol></section>

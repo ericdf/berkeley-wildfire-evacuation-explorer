@@ -45,9 +45,12 @@ Loading takes a few seconds: about 10 MB of terrain and 2 MB of street network.
 
 ### Reading the results
 
-- **People exposed to fire/embers** is split into four groups: still home with a car,
-  on the road, without a vehicle, and in zones that never got an order. A good
-  average can hide any one of them.
+- **People still there when embers arrived** counts people at home or on the road when
+  embers first reached their street, split into four groups: still home with a car, on the
+  road, without a vehicle, and in zones that never got an order. A good average can hide
+  any one of them. **…when the fire front arrived** counts those still there when the fire
+  itself reached the street. Neither is a count of deaths or injuries: the game does not
+  model house survival, sheltering, fire intensity or smoke.
 - **Clearance** is reported at 50%, 90% and 100% of evacuating vehicles, plus the time
   the last household with a car reaches safety. No single average is shown.
 - **No vehicle: not moved in Phase 1.** Households without a car stay put and are

@@ -68,3 +68,26 @@ dialog .close { position: sticky; float: right; top: 0; border: none; background
 dialog h2 { text-transform: none; font-size: 16px; letter-spacing: 0; }
 dialog h3 { font-size: 13px; margin-top: 16px; }
 details summary { cursor: pointer; color: #555; }
+/* simple / expert views */
+body.simple .expert-only, body.expert .simple-only { display: none !important; }
+.modes { display: flex; border: 1px solid #6b5640; border-radius: 4px; overflow: hidden; }
+header nav .modes button { border: none; border-radius: 0; background: #3a2c1f; }
+header nav .modes button.on { background: #f5efe6; color: #2b2118; font-weight: 600; }
+.presets { display: grid; gap: 6px; }
+.preset { text-align: left; padding: 7px 9px; border-radius: 6px; background: #fbfaf7; border: 1px solid var(--line); }
+.preset b { display: block; font-size: 12.5px; color: #4b3a2a; }
+.preset span { font-size: 11.5px; color: #555; }
+.preset.on { border-color: var(--accent); background: #fff7ed; box-shadow: inset 3px 0 0 var(--accent); }
+.plans-ab { margin: 8px 0; font-size: 12px; }
+.plans-ab div { margin: 3px 0; }
+.watch { font-size: 12px; background: #f0f7ff; border-left: 3px solid #60a5fa; padding: 5px 7px; margin: 6px 0; }
+.btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.btns button.on { outline: 2px solid var(--accent); }
+.takeaway { font-size: 13px; background: #f0fdf4; border-left: 3px solid #16a34a; padding: 6px 8px; margin: 6px 0; }
+.takeaway.mixed { background: #fefce8; border-color: #ca8a04; }
+#modal.intro { max-width: 760px; }
+.intro h2 { text-transform: none; letter-spacing: 0; font-size: 18px; }
+.intro .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 8px 0; }
+.intro .steps div { background: #fbfaf7; border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-size: 12px; }
+.intro .steps b { display: block; color: var(--accent); }
+.intro .start { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
