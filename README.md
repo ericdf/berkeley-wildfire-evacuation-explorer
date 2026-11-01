@@ -325,3 +325,14 @@ Rerun it after `tools/build-network.mjs`.
 - A hatched, dashed box with "⚠ population placement artifact" around areas with an `allocationWarning` (Albany Hill, AC-315: zone ALB-011's 2,535 residents all land on one 221 m segment).
 
 Clicking a street in an area, with the layer on, outlines the innermost area in yellow and puts an "Access-constrained area" card above the street card: entrance, type, streets, residents, households and vehicles (synthetic), evacuation zones, nesting with the enclosing areas, clear width and engine fit at the entrance, steepest grade, fire-zone mix, nearest other street, existing path, and the constraint score with its components, each with its provenance badge and source note. With the layer off, the street card names the area in one row. Below the layer list, a line gives hill residents behind a choke point (5,749 of 41,475; Berkeley and LBNL 3,149 of 27,840) and opens a sortable table of the union of the two top-50 rankings (68 areas), with the score and its components labeled a model rule; clicking an area zooms to it. None of this appears in Simple view.
+
+## Widening streets or banning parking at pinch points
+
+`tools/widening.mjs` ranks the hill segments where width binds (under 10 ft clear for an engine or 20 ft for two-way traffic with today's parking) by the people who depend on them, and for the top 30 screens what widening would take: added width to each standard, parcels the new strip enters and buildings it reaches (County parcels and OpenStreetMap footprints, counted in memory, never saved), side slope and retaining wall from the DEM, and cost ranges labeled as assumptions. `tools/widening-sim.mjs` runs the simulator with each of the top 10 widened or with parking banned on just that segment, applied in memory, same seed with and without. On the lowest block of Panoramic Way (17 ft), a red curb passes an engine just as widening does: in the simulator, the synthetic residents behind it beyond 5-minute engine reach fall from about 950 to 9 (central runs), and no evacuation measure changed in every same-seed pair. Method, tables, costs and limits are in `docs/widening.md`; a screening estimate, not engineering or legal analysis.
+
+```sh
+node tools/widening-all.mjs        # ranking and screening (web requests), simulator runs (about 30 min on 8 cores), report
+node tools/widening.mjs --no-fetch # ranking only, no web requests, writes nothing
+```
+
+Rerun it after `tools/build-network.mjs` and `tools/access-constraints.mjs`.

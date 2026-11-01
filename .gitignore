@@ -7,3 +7,6 @@ data/raw/docs/*.pdf
 data/raw/imagery/
 # Claude Code worktrees and local settings
 .claude/
+
+# Street-widening screening: block-group ACS values (aggregates only); parcel and building geometry is never saved.
+data/raw/widening/
