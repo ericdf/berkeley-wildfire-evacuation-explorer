@@ -354,7 +354,7 @@ $('btn-assumptions').onclick = () => {
   <ul class="small">
     <li>No buildings yet, so no structures exposed or lost; no home hardening or vegetation effects.</li>
     <li>No stairway or steep-path access time between homes and the street, and no assistance for people who need help (Phase 2).</li>
-    <li>Employees, students, visitors and through traffic (about 100,000 vehicles in the Time Study's weekday case) are not yet on the network, so weekday daytime evacuations are too fast (1923 repeat, case S4: game about 1 h 50 min vs study 2 h 55 min to clear 90%).</li>
+    <li>Employees, students, visitors and I-80 through traffic use the Time Study's vehicle counts, placed by area (an approximation). Junctions have a typical delay and a capacity by road class, not real signal timing. Compared with the study (90% of order-zone vehicles out): Panoramic Hill matches; the 1923 repeat and Fire Zones 2–3 are about 15 min fast at night and 35–80 min fast on weekdays (1923 fall weekday: game 1 h 36 min vs study 2 h 55 min).</li>
     <li>Intersection capacities are illustrative per road class; the study models each signal and stop sign. Traffic circles and diverters are missing from the street file.</li>
     <li>Contraflow, traffic control and road closures beyond fire-blocked segments are not modeled.</li>
     <li>The County street file covers Berkeley only, so traffic leaving through Oakland, Albany or Kensington ends at the city edge, and zone population outside Berkeley is dropped.</li>

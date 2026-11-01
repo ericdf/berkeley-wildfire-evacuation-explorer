@@ -19,14 +19,14 @@ export const SEVERITY_NOTE = 'Central head spread rate is calibrated to the City
 // background is a game-rule stand-in for through and non-resident traffic (E12) until employees,
 // students and visitors are placed on the network.
 export const TIME_OF_DAY = {
-  S1: { label: 'S1 · Summer, midweek midday', commuterShare: 0.13, schoolInSession: 0.10, background: 0.15, note: 'Employees 96%, tourists 128%, college 10%, external traffic 100%.' },
-  S2: { label: 'S2 · Summer, weekend midday', commuterShare: 0.01, schoolInSession: 0, background: 0.10, note: 'Employees 10%, tourists 139%, college 10%, external 100%.' },
-  S3: { label: 'S3 · Summer, night', commuterShare: 0.01, schoolInSession: 0, background: 0.03, note: 'Employees 10%, tourists 56%, college 10%, external 40%.' },
-  S4: { label: 'S4 · Fall, midweek midday', commuterShare: 0.13, schoolInSession: 1, background: 0.15, note: 'Employees 100%, tourists 86%, college 100%, school buses 100%, external 100%. The Time Study\'s worst case.' },
-  S5: { label: 'S5 · Fall, weekend midday', commuterShare: 0.01, schoolInSession: 0, background: 0.10, note: 'Employees 10%, tourists 93%, college 100% on campus, external 100%.' },
-  S6: { label: 'S6 · Fall, night', commuterShare: 0.01, schoolInSession: 0, background: 0.03, note: 'Employees 10%, tourists 37%, college 100% on campus, external 40%.' },
+  S1: { groups: { employees: 0.96, tourists: 1.28, offCampus: 0.10, onCampus: 0.10, external: 1 }, label: 'S1 · Summer, midweek midday', commuterShare: 0.13, schoolInSession: 0.10, background: 0, note: 'Employees 96%, tourists 128%, college 10%, external traffic 100%.' },
+  S2: { groups: { employees: 0.10, tourists: 1.39, offCampus: 0, onCampus: 0.10, external: 1 }, label: 'S2 · Summer, weekend midday', commuterShare: 0.01, schoolInSession: 0, background: 0, note: 'Employees 10%, tourists 139%, college 10%, external 100%.' },
+  S3: { groups: { employees: 0.10, tourists: 0.56, offCampus: 0, onCampus: 0.10, external: 0.40 }, label: 'S3 · Summer, night', commuterShare: 0.01, schoolInSession: 0, background: 0, note: 'Employees 10%, tourists 56%, college 10%, external 40%.' },
+  S4: { groups: { employees: 1, tourists: 0.86, offCampus: 1, onCampus: 1, external: 1 }, label: 'S4 · Fall, midweek midday', commuterShare: 0.13, schoolInSession: 1, background: 0, note: 'Employees 100%, tourists 86%, college 100%, school buses 100%, external 100%. The Time Study\'s worst case.' },
+  S5: { groups: { employees: 0.10, tourists: 0.93, offCampus: 0, onCampus: 1, external: 1 }, label: 'S5 · Fall, weekend midday', commuterShare: 0.01, schoolInSession: 0, background: 0, note: 'Employees 10%, tourists 93%, college 100% on campus, external 100%.' },
+  S6: { groups: { employees: 0.10, tourists: 0.37, offCampus: 0, onCampus: 1, external: 0.40 }, label: 'S6 · Fall, night', commuterShare: 0.01, schoolInSession: 0, background: 0, note: 'Employees 10%, tourists 37%, college 100% on campus, external 40%.' },
 };
-export const TIME_NOTE = 'Scenario definitions follow the 2025 Evacuation Time Study (Table 6-5). What changes in the game today: the share of households waiting for a returning commuter, child pickup on school days, and a background-traffic allowance (a game rule). Employees, students, visitors and through traffic are not yet placed on the network, so daytime cases understate demand.';
+export const TIME_NOTE = 'Scenario definitions follow the 2025 Evacuation Time Study (Table 6-5). What changes by case: the share of households waiting for a returning commuter, child pickup on school days, and the share of employees, visitors, college students and I-80 through traffic present (Time Study vehicle counts, placed by area).';
 
 // Zone lists from the Time Study (SOURCE_NOTES E2, E3).
 const range = (pre, a, b) => Array.from({ length: b - a + 1 }, (_, i) => `${pre}-E${String(a + i).padStart(3, '0')}`);
@@ -42,6 +42,7 @@ const R04 = {
 export const ETE_TARGETS = {
   ref1923: { p90: { S1: 145, S2: 110, S3: 105, S4: 175, S5: 110, S6: 105 }, p100: { S1: 220, S2: 205, S3: 205, S4: 250, S5: 205, S6: 205 }, region: 'R02 1923 Fire' },
   panoramic: { p90: { S1: 100, S2: 95, S3: 100, S4: 105, S5: 95, S6: 100 }, p100: { S1: 220, S2: 205, S3: 205, S4: 220, S5: 205, S6: 205 }, region: 'R04 Panoramic Hill' },
+  eastWind: { p90: { S1: 125, S2: 115, S3: 105, S4: 140, S5: 115, S6: 105 }, p100: { S1: 220, S2: 205, S3: 205, S4: 220, S5: 205, S6: 205 }, region: 'R05 Fire Zones 2 & 3' },
 };
 
 export function makeScenarios(data) {

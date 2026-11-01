@@ -142,6 +142,18 @@ Read by a subagent on 2026-10-31; page labels are the report's own (e.g. 5-14). 
 | E23 | R02 S4 road time by departure delay after the order: 30 min → 40 min on the road, 60 → 75, 90 → 80, 150 → 80. Leaving 30 min later almost doubles total time (70 → 135 min). R04 S4: road time 5–10 min, i.e. little congestion inside Panoramic Hill. (7-6, 7-8, ES-6) | **applying**: targets. |
 | E24 | R01 S4 timeline: 54.6% of trips started at 1 h and 26.7% exited; 96.7% / 50.1% at 2 h; clear at 5:35. R02 at 1 h has LOS F on most roads, especially around UC; the last congestion is at Cedar/MLK (pre-timed signal), clear at 4:10. R04: LOS C or better inside Panoramic Hill; LOS F at the **Channing/Piedmont traffic circle**; the **Derby St diverter** pushes traffic to Claremont Ave. (F-1 to F-4) | **pending**: qualitative checks; the circle and diverter need E16. |
 
+**Non-resident demand inputs (added 2026-11-01)**
+
+| # | Insight (page) | Status / use |
+|---|---|---|
+| E32 | Employee vehicles commuting in, by area (Table 3-5, p. 3-15): Berkeley Flats 6,059; North Berkeley Hills 853; South Berkeley Hills 103; West Berkeley 2,831; UC Berkeley 3,563; LBNL 1,847; total 15,256 (incl. 88 buses). Only employers with 100+ staff; 84.4% live outside the city (LODES); 1.08 employees per vehicle; vehicles parked within a 10-minute walk of the workplace. (3-5, 3-15) | **applying**: employee vehicles placed by area, leaving the city. |
+| E33 | UC Berkeley off-campus commuter students: 12,110 vehicles (plus 1,983 on-campus student vehicles); Berkeley City College 494 off-campus + 79 on-campus; small seminaries 0–142. (Tables 3-8, 3-9, p. 3-21) | **applying**: student vehicles around campus and BCC. |
+| E34 | Visitors: 30.2 M visits/yr × 767 min dwell → 44,192 on an average day; 70% by car → 13,052 vehicles (2.37 per vehicle) parked along streets and garages anywhere in the city, plus 549 at Tilden park and golf course lots. (3-4) | **applying**: spread over streets citywide in proportion to length. |
+| E35 | External through traffic (Table 3-12): CA-24 SB 6,930; I-880 NB 6,928; I-580 NB 9,146, SB 8,610; I-80 NB 7,738, SB 8,610; total 47,962 over 2 h. | **applying**: only I-80 (and I-580 near Albany) is in our network; load those freeway links. |
+| E36 | Percent of each group present by scenario (Table 6-5, p. 6-10): employees 96/10/10/100/10/10%; tourists 128/139/56/86/93/37%; off-campus college vehicles 10/0/0/100/0/0%; on-campus 10/10/10/100/100/100%; school buses 10/0/0/100/0/0%; external through traffic 100/100/40/100/100/40% (S1–S6). | **applying**: scenario factors for the non-resident groups. |
+
+| E37 | **How ETE is measured:** "90% complete when 90% of all evacuating vehicles/people in Evacuation Order zones have arrived in Zones that are either a) under Evacuation Warning or b) not under threat" (Tables 7-1, 7-2 notes, p. 7-2). Warning-zone and voluntary evacuees load the roads but are not counted. | **applied 2026-11-01**: the game's ETE now counts only vehicles starting in Order zones and stops when they leave the order area. The old measure mixed in fast warning-zone traffic and hid a Panoramic Hill jam. |
+
 **Sensitivity studies and recommendations**
 
 | # | Insight (page) | Status / use |
@@ -238,6 +250,9 @@ Treated as suggestions, not evidence: no citations, and some claims could not be
 | 2026-11-01 | Gridlock relief (180 s) and rotating processing order, after a permanent lock-up at the Marin traffic circle | model fix |
 | 2026-11-01 | Early departure applies to the City's 10 Leave Early Zones by default (all of Fire Zones 2–3 as an option) | W1 |
 | 2026-11-01 | Zones keyed and merged by `zone_id`: fixes households assigned to same-numbered Albany/Oakland zones and five double-counted Berkeley zones | W2 |
+| 2026-11-01 | Non-resident demand: employees by area, college students, visitors, I-80 through traffic, scaled by scenario; background-traffic allowance removed | E32–E36 |
+| 2026-11-01 | ETE measured as the study does: order-zone vehicles until they leave the order area | E37 |
+| 2026-11-01 | Junction delay (5/10/20 s by road class); one-lane route choice avoids oncoming traffic; jam fixes listed in the calibration recheck; R05 added to calibration | model fixes |
 
 ### Calibration check (fire off, study order/warning zones, seed 1), 2026-10-31
 
@@ -256,5 +271,19 @@ Reading: night and weekend cases are within about 15 min at the 90th percentile;
 **Recheck 2026-11-01** after the parking, take-turns and returning-commuter changes (median of 3 seeds): R02 S2/S3/S5/S6 1:34–1:35, S1 1:45, S4 1:51; R04 S2/S3/S5/S6 1:35, S1 1:45, S4 1:51 (range up to 2:09). All vehicles now finish in every case (100th percentile R02 3:09–3:31). These changes move the 90th percentile by about 1–2 min: evacuation traffic runs mostly one way, so taking turns rarely binds, and departure timing and intersections still set the ETE. Engine access is where parking matters: hill length closed to engines is about 10–12 km under the status quo, 6–9 km with tight-to-curb parking, 3–4 km with one side only, 5–6 km with no parking on City narrow roads.
 
 **Recheck 2026-11-01 after the zone fix (W2):** R02 evacuating vehicles fell from about 25,500 to 20,300 (order zones 27,097 people → 11,390 households → 12,714 vehicles; warning zones add about 7,600). ETE barely moved: R02 S2/S3/S5/S6 1:34–1:35, S1 1:46, S4 1:52; R04 S2/S3/S5/S6 1:32, S1 1:48, S4 1:50. The Time Study cites about 27,830 evacuating vehicles for R02 (E13), which likely includes demand we don't model yet (employees, students, visitors); the earlier, closer vehicle count was partly the bug.
+
+**Recheck 2026-11-01 with non-resident demand, the study's ETE definition (E37) and the jam fixes** (median of 3 seeds, untuned):
+
+| Region · case | Study p90 | Game p90 |
+|---|---|---|
+| R04 Panoramic · S1–S6 | 1:35–1:45 | 1:32–1:44 |
+| R02 1923 · S2/S3/S5/S6 | 1:45–1:50 | 1:29–1:31 |
+| R02 1923 · S1 / S4 | 2:25 / 2:55 | 1:34 / 1:36 |
+| R05 Fire Zones 2&3 · S2/S3/S5/S6 | 1:45–1:55 | 1:31–1:32 |
+| R05 · S1 / S4 | 2:05 / 2:20 | 1:40 / 1:44 |
+
+Every vehicle now finishes; gridlock relief fires 0–26 times per run (was thousands while jams were being found). Jams fixed on the way: Lab employees and students had been placed on Panoramic Hill; voluntary evacuees drove up Panoramic Hill to reach the Oakland line; dead ends where the County file stops (Tunnel Rd, MLK) had no exit; the take-turns rule starved one direction; a fixed processing order starved junction approaches; U-turn rules trapped cars in dead-end loops and sent them back and forth around Orchard Ln / Arden Rd; capacities under one car per 5 s step were rounded down.
+
+**Tuning attempt (one setting, intersection capacity scale), tuned on R02 S3 and S4, checked on the rest:** at 0.4 the R02 tuning cases match (S3 1:38, S4 2:54) and the held-out R02 cases improve, but Panoramic Hill becomes 25–70 min too slow, R05 barely changes, and R02 S4's last vehicle leaves at 5:45 (study 4:10) with about 4,500 gridlock reliefs. Scaling only arterial and collector junctions barely moves anything (S4 1:49 at 0.2). **Conclusion:** the remaining gap is not a uniform capacity error; it most likely comes from what the game does not model (real signal timing and phasing, where employees and students actually park and which streets they use, through-traffic routes). Left untuned at 1. KLD's network files or the City's signal timing would address it.
 
 Also consistent with the study: in the 1923 repeat, 50% leave-early (Plan B) changes the 90th-percentile ETE by about 1 min. The study found −3% to −14% with normal mobilization (E13). It does cut exposure to fire and embers by about 40% in the game.

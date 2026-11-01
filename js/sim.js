@@ -15,6 +15,7 @@
 // engine's width.
 
 import { mulberry32 } from './rng.js';
+import { toUTM } from '../tools/utm.mjs';
 import { parkingState, PARKING_PLANS } from './parking.js';
 import { LEAVE_EARLY_ZONES } from './scenarios.js';
 import { minFilter, cellOf, MinHeap, inPoly, bbox, inBB, CELL } from './fire.js';
@@ -132,6 +133,9 @@ export class Evacuation {
         const id = this.links.length;
         const L = { id, e: e.id, dir: d, from: d ? e.b : e.a, to: d ? e.a : e.b, cap, storage: Math.max(2, Math.floor(e.len * el / spacing)),
           ff: Math.max(2, e.len / e.speedMps), len: e.len, q: [], budget: 1, share };
+        // External through traffic on the freeway for the first hours after the order (Time Study Table 3-12, E35)
+        const thr = A.nonResident.through[e.name];
+        if (thr && cap > 0) L.through = Math.min(0.9, thr.vehicles / A.nonResident.throughHours / 3600 * ((tod.groups || {}).external ?? 0) / cap);
         if (share) share.links.push(id);
         this.links.push(L); this.outL[L.from].push(id); this.inL[L.to].push(id);
         if (!this.edgeLinks.has(e.id)) this.edgeLinks.set(e.id, []);
@@ -140,23 +144,28 @@ export class Evacuation {
     }
     this.nodeCap = new Float64Array(nN).fill(Infinity);
     for (let n = 0; n < nN; n++) if (deg[n] >= 3 && rank[n] >= 0)
-      this.nodeCap[n] = A.intersections[INTERSECTION_KEY[rank[n]]] / 3600 * (rank[n] >= 1 && rank[n] <= 2 ? 1 - tod.background : 1);
+      this.nodeCap[n] = A.intersections[INTERSECTION_KEY[rank[n]]] * (rank[n] === 1 || rank[n] === 2 ? A.intersections.scale ?? 1 : 1) / 3600 * (rank[n] >= 1 && rank[n] <= 2 ? 1 - tod.background : 1);
     this.nodeBudget = new Float64Array(nN).fill(1);
+    // Control delay at junctions with light traffic (signals, stop signs): added to the travel
+    // time of every link entering a junction (assumptions intersections.delayS).
+    const DL = A.intersections.delayS, DK = ['local', 'collector', 'arterial', 'freeway'];
+    for (const L of this.links) if (deg[L.to] >= 3 && rank[L.to] >= 0) L.ff += DL[DK[rank[L.to]]] || 0;
 
     // ---- destinations ----
     // Evacuees (class 0) are safe at any node outside every ordered or warned zone and never
     // under embers. Shadow evacuees (class 1) drive to the city edge (Time Study destinations
     // are exits leaving the city).
     this.safe = [new Uint8Array(nN), new Uint8Array(nN)];
-    this.nodeZone = new Int16Array(nN).fill(-1);
+    this.nodeZone = new Int16Array(nN).fill(-1); this.nodeOrdered = new Uint8Array(nN);
     const exits = data.exitNodes || (data.exitNodes = cityExitNodes(data));
     for (let n = 0; n < nN; n++) {
       if (!this.outL[n].length && !this.inL[n].length) continue;
       const [x, y] = net.nodes[n]; const c = cellOf(grid, x, y);
       const z = c >= 0 ? grid.zone[c] : -1; this.nodeZone[n] = z;
+      this.nodeOrdered[n] = z >= 0 && this.orderT[z] < Infinity ? 1 : 0;
       const told = z >= 0 && (this.orderT[z] < Infinity || this.warnT[z] < Infinity);
       const embers = c >= 0 && fire.ember[c] < Infinity;
-      this.safe[0][n] = !told && !embers ? 1 : 0;
+      this.safe[0][n] = (!told || exits.has(n)) && !embers ? 1 : 0; // outside the order/warning area, or out of the city
       this.safe[1][n] = exits.has(n) && !embers ? 1 : 0;
     }
 
@@ -258,11 +267,47 @@ export class Evacuation {
       const d = donors.get(hh.edge[h]);
       if (d && rand() < D.carlessRideshareShare) hh.ride[h] = d[Math.floor(rand() * d.length)];
     }
+    // ---- non-resident vehicles: employees, students, visitors (Time Study §3.4-3.6, Table 6-5;
+    // SOURCE_NOTES E32-E36). They park on streets in the study's areas, leave on the employee
+    // curve (Table 5-9 A), and count in the ETE like residents when inside the order/warning area.
+    const nRes = vHH.length, nrEdge = [];
+    this.nonResident = {};
+    const NR = A.nonResident, G = tod.groups || {}, areas = nonResidentAreas(this.data);
+    for (const [gk, g] of Object.entries(NR.groups)) {
+      const f = G[g.factor] ?? 0;
+      for (const [ak, n] of Object.entries(g.vehicles)) {
+        const list = areas[ak]; if (!list || !list.total) continue;
+        const count = Math.round(n * f); let made = 0;
+        for (let k = 0; k < count; k++) {
+          let u = rand() * list.total, j = 0; while (j < list.cum.length - 1 && list.cum[j] < u) j++;
+          const eid = list.ids[j], zl = net.edges[eid].evacZone, z = zoneIdx.get(zl);
+          if (z == null) continue;
+          let T, cls;
+          if (this.orderT[z] < Infinity) { T = this.orderT[z]; cls = 0; }
+          else if (this.warnT[z] < Infinity && rand() < C.warning) { T = this.warnT[z]; cls = 0; }
+          else if (this.firstOrderT < Infinity && rand() < C.shadow) { T = this.firstOrderT; cls = 1; }
+          else continue;
+          const dep = T + 60 * sampleHist(M.A, rand);
+          if (dep > this.end) continue;
+          vHH.push(-1); vDep.push(dep); vCls.push(cls); nrEdge.push(eid); made++;
+        }
+        this.nonResident[gk] = (this.nonResident[gk] || 0) + made;
+      }
+    }
+    const vEdge = i => i < nRes ? hh.edge[vHH[i]] : nrEdge[i - nRes];
     const order = vHH.map((_, i) => i).sort((a, b) => vDep[a] - vDep[b]);
     const nV = order.length;
     this.v = { n: nV, hh: Int32Array.from(order, i => vHH[i]), depart: Float64Array.from(order, i => vDep[i]), cls: Uint8Array.from(order, i => vCls[i]),
       link: new Int32Array(nV).fill(-1), enter: new Float64Array(nV), state: new Uint8Array(nV), arrive: new Float64Array(nV).fill(Infinity), exposed: new Uint8Array(nV),
-      dest: new Int32Array(nV).fill(-1), pidx: new Int32Array(nV) };
+      dest: new Int32Array(nV).fill(-1), pidx: new Int32Array(nV), edge: Int32Array.from(order, i => vEdge(i)),
+      exit: new Float64Array(nV).fill(Infinity), fromOrder: new Uint8Array(nV) };
+    // Time Study ETE counts vehicles starting in Order zones until they reach a zone under Warning
+    // or not under threat (Table 7-1/7-2 notes; SOURCE_NOTES E37).
+    for (let i = 0; i < nV; i++) {
+      if (this.v.cls[i] !== 0) continue;
+      const z = zoneIdx.get(net.edges[this.v.edge[i]].evacZone);
+      this.v.fromOrder[i] = z != null && this.orderT[z] < Infinity ? 1 : 0;
+    }
     this.commutersTurnedBack = 0; this.lostCar = 0; this.skipVehicle = new Set();
     this.paths = new Map(); this.held = new Map(); // inbound paths; household vehicles waiting for their commuter
     this.nextDepart = 0; this.waiting = []; // vehicles ready to leave but whose street has no room
@@ -276,6 +321,8 @@ export class Evacuation {
     for (const L of links) {
       if (t >= this.tFire[L.e]) { cost[L.id] = Infinity; continue; }
       cost[L.id] = L.ff + L.q.length / Math.max(L.cap, 1e-3) + (t >= this.tEmber[L.e] ? 300 : 0);
+      // One lane between parked cars: drivers avoid turning into oncoming traffic (sharedLane.opposingWaitS per oncoming car)
+      if (L.share) { const O = links[L.share.links[0] === L.id ? L.share.links[1] : L.share.links[0]]; if (O) cost[L.id] += O.q.length * this.data.A.sharedLane.opposingWaitS; }
     }
     for (const k of [0, 1]) {
       const dist = this.dist[k].fill(Infinity), heap = new MinHeap(), safe = this.safe[k], next = this.next[k];
@@ -307,19 +354,20 @@ export class Evacuation {
     const { links, v, hh } = this;
     if (Math.round(t) % 60 === 0) this.route();
     // budgets
+    const A_THR = this.data.A.nonResident.throughHours;
     for (const lid of this.active) {
       const L = links[lid], S = L.share;
-      if (!S) { L.budget = Math.min(L.budget + L.cap * dt, Math.max(1, L.cap * dt)); continue; }
+      if (!S) { const c = L.through && t < this.firstOrderT + A_THR * 3600 ? L.cap * (1 - L.through) : L.cap; L.budget = Math.min(L.budget + c * dt, 1 + c * dt); continue; }
       if (S.stamp === t) continue;
       S.stamp = t;
       const both = S.links.length === 2 && links[S.links[0]].q.length > 0 && links[S.links[1]].q.length > 0;
       if (both && !S.both) S.used[0] = S.used[1] = 0;
       S.both = both;
       const rate = S.cap * (both ? S.eta : 1);
-      S.budget = Math.min(S.budget + rate * dt, Math.max(1, rate * dt));
+      S.budget = Math.min(S.budget + rate * dt, 1 + rate * dt);
     }
     const nb = this.nodeBudget, nc = this.nodeCap;
-    for (let n = 0; n < nb.length; n++) nb[n] = nc[n] === Infinity ? Infinity : Math.min(nb[n] + nc[n] * dt, Math.max(1, nc[n] * dt));
+    for (let n = 0; n < nb.length; n++) nb[n] = nc[n] === Infinity ? Infinity : Math.min(nb[n] + nc[n] * dt, 1 + nc[n] * dt); // carry the fraction: capacities under one car per step were being rounded down
     // departures
     while (this.nextDepart < v.n && v.depart[this.nextDepart] <= t) {
       const i = this.nextDepart++, h = v.hh[i];
@@ -333,9 +381,10 @@ export class Evacuation {
       this.waiting = still;
     }
     // movement
-    // Rotate the processing order every step so no link is always served last (otherwise a
-    // link can be starved of an intersection's capacity indefinitely).
-    const act = Array.from(this.active), off = act.length ? Math.floor(t / dt) % act.length : 0;
+    // Random processing order every step (seeded), so no approach to an intersection is always
+    // served last; a fixed order starved some approaches of the intersection's capacity for hours.
+    const act = Array.from(this.active), off = 0;
+    for (let a = act.length - 1; a > 0; a--) { const b = Math.floor(this.rand() * (a + 1)); [act[a], act[b]] = [act[b], act[a]]; }
     const GR = this.data.A.capacity.gridlockReliefS;
     for (let a = 0; a < act.length; a++) {
       const lid = act[(a + off) % act.length];
@@ -346,29 +395,38 @@ export class Evacuation {
         if (t < v.enter[i] + L.ff || B.budget < 1) break;
         if (L.share && L.share.both && L.share.used[L.dir] > L.share.used[1 - L.dir]) { // take turns with an oncoming car that is waiting
           const O = links[L.share.links[L.share.links[0] === lid ? 1 : 0]];
-          const ow = O.q.length ? t - v.enter[O.q[0]] - O.ff : -1;
-          if (ow >= 0 && ow < GR) break; // an oncoming car blocked downstream for longer does not hold this side up
+          if (O.q.length && t >= v.enter[O.q[0]] + O.ff && !this.headBlocked(O)) break; // an oncoming car that can go has its turn
         }
         const k = v.cls[i];
         if (k === 2) { // inbound commuter
-          if (L.to === v.dest[i]) { L.q.shift(); B.budget--; if (L.share) L.share.used[L.dir]++; this.commuterHome(i, true); continue; }
+          const path = this.paths.get(i), nl = path?.[v.pidx[i]];
+          if (L.to === v.dest[i] || L.e === hh.edge[v.hh[i]] || nl == null) { L.q.shift(); L.lastOut = t; B.budget--; if (L.share) L.share.used[L.dir]++; this.commuterHome(i, true); continue; } // reached their own street
           if (nb[L.to] < 1) break;
-          const path = this.paths.get(i), nl = path[v.pidx[i]];
-          if (this.linkCost[nl] === Infinity) { L.q.shift(); B.budget--; this.commuterHome(i, false); continue; } // fire ahead: turned back
-          const N = links[nl]; if (N.q.length >= N.storage && !this.relieve(i, L)) break;
-          L.q.shift(); B.budget--; nb[L.to]--; if (L.share) L.share.used[L.dir]++;
+          if (this.linkCost[nl] === Infinity) { L.q.shift(); L.lastOut = t; B.budget--; this.commuterHome(i, false); continue; } // fire ahead: turned back
+          const N = links[nl]; if (N.q.length >= N.storage && !this.relieve(i, L, N)) break;
+          L.q.shift(); L.lastOut = t; B.budget--; nb[L.to]--; if (L.share) L.share.used[L.dir]++;
           N.q.push(i); v.link[i] = nl; v.enter[i] = t; v.pidx[i]++; this.active.add(nl);
           continue;
         }
-        if (this.safe[k][L.to]) { L.q.shift(); B.budget--; if (L.share) L.share.used[L.dir]++; this.arrive(i); continue; }
+        if (v.exit[i] === Infinity && !this.nodeOrdered[L.to]) v.exit[i] = t;
+        if (this.safe[k][L.to]) { L.q.shift(); L.lastOut = t; B.budget--; if (L.share) L.share.used[L.dir]++; this.arrive(i); continue; }
         if (nb[L.to] < 1) break;
-        const opts = this.next[k][L.to]; if (!opts) break;
+        let opts = this.next[k][L.to]; if (!opts) break;
+        // No U-turns back down the street just driven, unless it is a dead end: take the best
+        // other street with a route instead (re-routing otherwise sends cars back and forth
+        // around hill loops such as Orchard Ln / Arden Rd).
+        if (opts.every(o => links[o].to === L.from)) {
+          const dist = this.dist[k], cost = this.linkCost;
+          const alt = this.outL[L.to].filter(o => links[o].to !== L.from && cost[o] < Infinity && dist[links[o].to] < Infinity)
+            .sort((a, b) => cost[a] + dist[links[a].to] - cost[b] - dist[links[b].to]);
+          if (alt.length) opts = alt.slice(0, 2);
+        }
         let moved = false;
         for (const nl of opts) {
           const N = links[nl];
-          if (N.to === L.from && opts.length > 1) continue; // no U-turns unless it is the only way
-          if (N.q.length >= N.storage && !this.relieve(i, L)) continue;
-          L.q.shift(); B.budget--; nb[L.to]--; if (L.share) L.share.used[L.dir]++;
+          if (N.to === L.from && opts.some(o => links[o].to !== L.from)) continue; // no U-turns unless it is the only way
+          if (N.q.length >= N.storage && !this.relieve(i, L, N)) continue;
+          L.q.shift(); L.lastOut = t; B.budget--; nb[L.to]--; if (L.share) L.share.used[L.dir]++;
           N.q.push(i); v.link[i] = nl; v.enter[i] = t; this.active.add(nl);
           moved = true; break;
         }
@@ -384,23 +442,34 @@ export class Evacuation {
   enter(i) {
     const { v, hh, links } = this;
     if (v.cls[i] === 2) return this.enterInbound(i);
-    const h = v.hh[i], eid = hh.edge[h];
+    const h = v.hh[i], eid = v.edge[i];
     const cand = (this.edgeLinks.get(eid) || []).filter(l => links[l].q.length < links[l].storage);
     if (!cand.length) return false;
     const dist = this.dist[v.cls[i]];
     cand.sort((a, b) => dist[links[a].to] - dist[links[b].to]);
     const L = links[cand[0]];
     L.q.push(i); v.link[i] = L.id; v.enter[i] = this.t - L.ff * this.rand(); v.state[i] = 1; this.active.add(L.id);
-    if (this.t < hh.leftHome[h]) hh.leftHome[h] = this.t;
+    if (h >= 0 && this.t < hh.leftHome[h]) hh.leftHome[h] = this.t;
     return true;
   }
 
   // Gridlock relief (game rule): a vehicle that has waited gridlockReliefS at the head of a
   // queue squeezes into a full downstream link, as drivers creep forward. A queue model can
   // otherwise lock up permanently in rings such as traffic circles.
-  relieve(i, L) {
-    if (this.t - this.v.enter[i] - L.ff < this.data.A.capacity.gridlockReliefS) return false;
-    this.gridlockReliefs++; return true;
+  // True if the head vehicle of link L cannot move on because every next link is full or it has no route.
+  headBlocked(L) {
+    const i = L.q[0], v = this.v, k = v.cls[i];
+    if (k !== 2 && this.safe[k][L.to]) return false;
+    if (k === 2) { const nl = this.paths.get(i)?.[v.pidx[i]]; return nl != null && L.e !== this.hh.edge[v.hh[i]] && L.to !== v.dest[i] && this.links[nl].q.length >= this.links[nl].storage; }
+    const opts = this.next[k][L.to];
+    if (!opts) return true;
+    return opts.every(nl => nl == null || this.links[nl].q.length >= this.links[nl].storage);
+  }
+
+  relieve(i, L, N) {
+    const GR = this.data.A.capacity.gridlockReliefS;
+    if (this.t - this.v.enter[i] - L.ff < GR || this.t - (N.lastOut ?? -Infinity) < GR || this.t - (N.lastRelief ?? -Infinity) < GR) return false; // only when the full link ahead has not moved either, one car at a time
+    N.lastRelief = this.t; this.gridlockReliefs++; return true;
   }
 
   // A returning commuter enters at the edge of the evacuating area nearest home (by current travel time).
@@ -432,7 +501,7 @@ export class Evacuation {
 
   arrive(i) {
     const { v, hh } = this; v.state[i] = 2; v.arrive[i] = this.t; v.link[i] = -1;
-    const h = v.hh[i]; hh.vehLeft[h]++;
+    const h = v.hh[i]; if (h < 0) return; hh.vehLeft[h]++;
     if (hh.vehLeft[h] >= hh.veh[h]) hh.arrived[h] = this.t;
   }
 
@@ -602,10 +671,15 @@ export class Evacuation {
     }
     // ETE as the Time Study measures it: minutes from the first order until 50/90/100% of
     // evacuating (non-shadow) vehicles have left the order and warning area.
-    let exposedVeh = 0, n0 = 0; const arr = [];
-    for (let i = 0; i < v.n; i++) { if (v.exposed[i]) exposedVeh++; if (v.cls[i] || v.state[i] === 4) continue; n0++; if (v.state[i] === 2) arr.push(v.arrive[i] - this.firstOrderT); }
+    let exposedVeh = 0, n0 = 0, nEvac = 0; const arr = [];
+    for (let i = 0; i < v.n; i++) {
+      if (v.exposed[i]) exposedVeh++;
+      if (v.cls[i] || v.state[i] === 4) continue; nEvac++;
+      if (!v.fromOrder[i]) continue; n0++;
+      const x = Math.min(v.exit[i], v.arrive[i]); if (x < Infinity) arr.push(x - this.firstOrderT);
+    }
     S.exposedRoad = exposedVeh * pph / Math.max(1, drivingVeh / Math.max(1, drivingHH));
-    S.vehicles = n0; S.shadowVehicles = v.n - n0; S.vehiclesArrived = arr.length; S.vehiclesExposed = exposedVeh;
+    S.vehicles = nEvac; S.orderVehicles = n0; S.nonResidentVehicles = this.nonResident; S.shadowVehicles = [...v.cls].filter(c => c === 1).length; S.vehiclesArrived = arr.length; S.vehiclesExposed = exposedVeh;
     S.vehiclesOnRoad = 0; S.vehiclesNoRoute = 0;
     let inbound = 0, inboundHome = 0;
     for (let i = 0; i < v.n; i++) if (v.cls[i] === 2) { inbound++; if (v.state[i] === 2) inboundHome++; }
@@ -631,17 +705,60 @@ export class Evacuation {
   runToEnd() { while (this.t < this.end) this.step(); return this.summary(); }
 }
 
-// Vehicle nodes within 100 m of the city limits: where shadow evacuees leave the modelled city.
+// Street segments where non-resident vehicles park, by the Time Study's areas (Table 3-5) plus
+// student and visitor areas. Approximations (game rule): areas from City neighborhoods, fire zones
+// and distance to campus, BCC, LBNL and the Tilden park entrances. Weighted by street length.
+function nonResidentAreas(data) {
+  if (data._nrAreas) return data._nrAreas;
+  const net = data.net, O = net.meta.origin, NR = data.A.nonResident;
+  const P = ([lon, lat]) => { const [x, y] = toUTM(lon, lat); return [x - O[0], y - O[1]]; };
+  const near = (pt, m) => ([x, y]) => Math.hypot(x - pt[0], y - pt[1]) <= m;
+  const hood = names => { const ps = data.layers.neighborhoods.filter(n => names.includes(n.name)).map(n => ({ rings: n.rings, bb: bbox(n.rings) })); return ([x, y]) => ps.some(q => inBB(q.bb, x, y) && inPoly(x, y, q.rings)); };
+  const P_ = Object.fromEntries(Object.entries(NR.points).map(([k, v]) => [k, P(v)]));
+  const inUC = hood(['University of California Berkeley']), inWest = hood(NR.westNeighborhoods);
+  const isBcc = near(P_.bcc, 400), nearCampus = near(P_.campus, NR.studentParkingM);
+  const isTilden = p => near(P_.tildenNorth, 400)(p) || near(P_.tildenSouth, 400)(p);
+  const out = {}; const add = (k, id, w) => { (out[k] ??= { ids: [], cum: [], total: 0 }); out[k].total += w; out[k].ids.push(id); out[k].cum.push(out[k].total); };
+  for (const e of net.edges) {
+    const zl = String(e.evacZone || '');
+    if (e.mode !== 'vehicle' || e.disconnected || CLASS_RANK[e.cls] === 3 || !(zl.startsWith('BER') || zl.startsWith('LBL'))) continue;
+    const m = data.edgeMid[e.id], w = e.len;
+    const hills = e.fireZone >= 2;
+    const area = zl.startsWith('LBL') ? 'lbnl' : inUC(m) ? 'uc' : inWest(m) ? 'west' : hills ? (m[1] > P_.campus[1] ? 'northHills' : 'southHills') : 'flats';
+    add(area, e.id, w);
+    if (area === 'lbnl') continue;
+    if (!hills) add('city', e.id, w); // visitors park in the flats and garages (hill parking is residents')
+    if (nearCampus(m) && !hills && area !== 'uc') add('ucStudents', e.id, w); // commuting students park around campus, not on hill streets
+    if (area === 'uc') add('ucOnCampus', e.id, w);
+    if (isBcc(m)) add('bcc', e.id, w);
+    if (isTilden(m)) add('tilden', e.id, w);
+  }
+  return (data._nrAreas = out);
+}
+
+// Vehicle nodes within 100 m of the city limits on through roads: where shadow evacuees leave the modelled city.
 function cityExitNodes(data) {
   const out = new Set(), rings = data.layers.cityBoundary.flatMap(p => p.rings);
-  const vehicle = new Uint8Array(data.net.nodes.length);
-  for (const e of data.net.edges) if (e.mode === 'vehicle' && !e.disconnected) { vehicle[e.a] = 1; vehicle[e.b] = 1; }
+  // Only roads that carry traffic out of the city (arterials, collectors, freeways and ramps):
+  // a local hill street that touches the city line (e.g. Panoramic Hill on the Oakland border)
+  // does not lead anywhere in this network, and drawing evacuees up it creates false jams.
+  const nN = data.net.nodes.length, vehicle = new Uint8Array(nN), deg = new Uint8Array(nN), cont = new Uint8Array(nN);
+  const hillOut = new Set(data.A.network.hillStreetsContinuingOutOfCity);
+  for (const e of data.net.edges) if (e.mode === 'vehicle' && !e.disconnected) {
+    deg[e.a]++; deg[e.b]++;
+    if (e.cls !== 'Local') { vehicle[e.a] = 1; vehicle[e.b] = 1; }
+    // Streets cut off where the County file stops continue in reality: in the flats any street,
+    // in the hills only the listed ones (assumptions network.hillStreetsContinuingOutOfCity).
+    if (!(e.fireZone >= 2) || hillOut.has(e.name)) { cont[e.a] = 1; cont[e.b] = 1; }
+  }
   data.net.nodes.forEach(([x, y], n) => {
-    if (!vehicle[n]) return;
+    const deadEnd = deg[n] === 1 && cont[n];
+    if (!vehicle[n] && !deadEnd) return;
     for (const r of rings) for (let i = 1; i < r.length; i++) {
       const [ax, ay] = r[i - 1], [bx, by] = r[i], dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy;
       const u = L2 ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / L2)) : 0;
-      if (Math.hypot(x - ax - u * dx, y - ay - u * dy) < 100) { out.add(n); return; }
+      const d = Math.hypot(x - ax - u * dx, y - ay - u * dy);
+      if (d < 100 && (vehicle[n] || deadEnd)) { out.add(n); return; }
     }
   });
   return out;

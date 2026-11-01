@@ -57,7 +57,14 @@
     "localVph": 900,
     "collectorVph": 1200,
     "arterialVph": 1600,
-    "freewayVph": 3800
+    "freewayVph": 3800,
+    "delayS": {
+      "local": 5,
+      "collector": 10,
+      "arterial": 20,
+      "freeway": 0
+    },
+    "scale": 1
   },
   "demand": {
     "personsPerHousehold": 2.37,
@@ -249,7 +256,7 @@
     },
     "sharedLane": {
       "category": "game rule",
-      "note": "Two-way streets with one moving lane between parked cars: both directions share one lane's capacity. When both directions have traffic, drivers take turns at gaps (driveways) every passingGapM; each switch loses about passingGapM / speed + 3 s against platoonS of flow. Below one 10 ft lane flow is cut by squeezeBelowLaneFactor; below crawlBelowM (7 ft) cars creep through at crawlFactor. Placeholders until gap spacing is counted from aerial photos."
+      "note": "Two-way streets with one moving lane between parked cars: both directions share one lane's capacity. When both directions have traffic, drivers take turns at gaps (driveways) every passingGapM; each switch loses about passingGapM / speed + 3 s against platoonS of flow. Below one 10 ft lane flow is cut by squeezeBelowLaneFactor; below crawlBelowM (7 ft) cars creep through at crawlFactor. Placeholders until gap spacing is counted from aerial photos. opposingWaitS: in route choice, each oncoming car on a one-lane street counts as this much delay, so drivers avoid turning into oncoming traffic (without it, re-routing around hill loops created two-way jams on Panoramic Hill)."
     },
     "demand.returnDriveMin": {
       "category": "assumption",
@@ -258,6 +265,22 @@
     "capacity.gridlockReliefS": {
       "category": "game rule",
       "note": "A vehicle that has waited this long at the head of a queue squeezes into a full downstream link, and an oncoming car stuck this long no longer holds up the other direction on a take-turns street. Prevents permanent lock-ups that a simple queue model creates in rings such as traffic circles. Each use is counted in the run summary."
+    },
+    "nonResident": {
+      "category": "sourced",
+      "note": "Vehicle counts from the 2025 Evacuation Time Study: employees by area (Table 3-5), college students (Tables 3-8, 3-9), visitors including 549 at Tilden lots (§3.5), I-80 through traffic over 2 h after the order (Table 3-12); scaled by the scenario's percent present (Table 6-5) (SOURCE_NOTES E32-E36). Placement is a game rule: the study's areas are approximated from City neighborhoods (West Berkeley = 4th St., Gilman, NW/SW Berkeley, Marina), fire zones (hills north/south of campus), LBNL employees on streets in the Lab's own zones (LBL-*), 400 m around Berkeley City College, streets within 1 km of the campus centre, outside the campus and outside Fire Zones 2-3, for commuting students; visitors on streets outside Fire Zones 2-3, 400 m around two Tilden entrances (approximate points), weighted by street length. Only the I-80 part of the study's through traffic is on our network."
+    },
+    "network.hillStreetsContinuingOutOfCity": {
+      "category": "assumption",
+      "note": "The County street file stops at the city line. A dead end within 100 m of the line is treated as a way out of the city in the flats (the grid continues into Albany, Oakland and Emeryville). In Fire Zones 2-3 only these streets count, from general knowledge of the area; streets such as Panoramic Way that end at the line are not exits. Check against a map; an OpenStreetMap network beyond the city would replace this list."
+    },
+    "intersections.delayS": {
+      "category": "assumption",
+      "note": "Average delay per junction when traffic is light, added to the travel time into each junction: about 20 s at arterial junctions (mostly signals; HCM uncongested signal delay is typically 10-35 s), 10 s on collectors, 5 s on local streets (stop signs, yielding). The street file has no signal or stop-sign data; the Time Study models each signal. Set once from typical values, not tuned."
+    },
+    "intersections.scale": {
+      "category": "game rule",
+      "note": "Multiplier on collector and arterial intersection capacities (local and freeway junctions unchanged). The one setting tuned against the Time Study (1923 repeat, night S3 and fall weekday S4); checked on cases not used for tuning. See SOURCE_NOTES calibration."
     }
   },
   "sharedLane": {
@@ -265,6 +288,98 @@
     "platoonS": 12,
     "squeezeBelowLaneFactor": 0.6,
     "crawlBelowM": 2.13,
-    "crawlFactor": 0.3
+    "crawlFactor": 0.3,
+    "opposingWaitS": 20
+  },
+  "nonResident": {
+    "groups": {
+      "employees": {
+        "factor": "employees",
+        "vehicles": {
+          "flats": 6059,
+          "northHills": 853,
+          "southHills": 103,
+          "west": 2831,
+          "uc": 3563,
+          "lbnl": 1847
+        }
+      },
+      "offCampusStudents": {
+        "factor": "offCampus",
+        "vehicles": {
+          "ucStudents": 12110,
+          "bcc": 494
+        }
+      },
+      "onCampusStudents": {
+        "factor": "onCampus",
+        "vehicles": {
+          "ucOnCampus": 1983,
+          "bcc": 79
+        }
+      },
+      "visitors": {
+        "factor": "tourists",
+        "vehicles": {
+          "city": 13052,
+          "tilden": 549
+        }
+      }
+    },
+    "through": {
+      "I80 EB": {
+        "vehicles": 7738
+      },
+      "I80 WB": {
+        "vehicles": 8610
+      }
+    },
+    "throughHours": 2,
+    "points": {
+      "campus": [
+        -122.2585,
+        37.8719
+      ],
+      "bcc": [
+        -122.2702,
+        37.8697
+      ],
+      "tildenNorth": [
+        -122.261,
+        37.8945
+      ],
+      "tildenSouth": [
+        -122.244,
+        37.8745
+      ]
+    },
+    "westNeighborhoods": [
+      "4th St.",
+      "Gilman",
+      "Northwest Berkeley",
+      "Southwest Berkeley",
+      "Berkeley Marina"
+    ],
+    "studentParkingM": 1000
+  },
+  "network": {
+    "hillStreetsContinuingOutOfCity": [
+      "TUNNEL RD",
+      "CLAREMONT AV",
+      "ALVARADO RD",
+      "VICENTE RD",
+      "GRIZZLY PEAK BL",
+      "WILDCAT CANYON RD",
+      "HILLCREST RD",
+      "ROBLE RD",
+      "EUCALYPTUS RD",
+      "BROOKSIDE AV",
+      "EL CAMINO REAL",
+      "ROANOKE RD",
+      "COLUSA AV",
+      "VASSAR AV",
+      "SUMMIT RD",
+      "CENTENNIAL DR"
+    ]
   }
 }

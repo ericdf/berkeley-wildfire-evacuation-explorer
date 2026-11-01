@@ -176,9 +176,12 @@ by the game at load time. Scenario presets, severities and time-of-day values ar
 - No buildings yet, so no structures exposed or lost, and no home-hardening or
   vegetation effects.
 - No stair or path access time, and no assisted evacuation (Phase 2).
-- Employees, students, visitors and through traffic are not yet on the network, so weekday
-  daytime evacuations run faster than the Time Study (see `SOURCE_NOTES.md`, calibration check).
-  Intersection capacities are still illustrative.
+- Employees, students, visitors and I-80 through traffic come from the Time Study's own tables,
+  but where they park is approximated by area. Signals and stop signs are not modelled one by
+  one: every junction has a typical delay and a capacity by road class. Panoramic Hill matches
+  the study's evacuation times; the 1923 and Fire Zones 2–3 regions run about 15 min fast at
+  night and 35–80 min fast on weekdays (see `SOURCE_NOTES.md`, calibration). Tuning junction
+  capacity to close that gap broke Panoramic Hill, so it is left untuned.
 - The street file covers Berkeley only, so routes into Oakland, Albany and Kensington stop
   at the city edge.
 - Fire spread, ember distances and spot-fire rates are illustrative game values.
