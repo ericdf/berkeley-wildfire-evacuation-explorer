@@ -190,9 +190,41 @@ const berkZone = id => /-(BER|LBL)-E\d+$/.test(id);
 const cityZoneProps = new Map(cityLayer('evac_zones').map(f => [f.properties.zone_id, f.properties]));
 const wfsZones = has('data/raw/genasys/zones.json') ? readJSON('data/raw/genasys/zones.json').features
   .map(f => { const id = f.properties.identifer.replace(/-(\d+)$/, '-E$1'), c = cityZoneProps.get(id);
-    return { ...f, properties: { zone_id: id, known_as: (c?.known_as || f.properties.commonly_known_as || '').trim(), est_popula: c ? c.est_popula : null, wfs: true } }; })
-  .filter(f => !berkZone(f.properties.zone_id)) : [];
-const allZoneFeatures = [...cityLayer('evac_zones').filter(f => berkZone(f.properties.zone_id)), ...wfsZones];
+    return { ...f, properties: { zone_id: id, known_as: (c?.known_as || f.properties.commonly_known_as || '').trim(), est_popula: c ? c.est_popula : null, wfs: true } }; }) : [];
+// Berkeley and Lab zones: the City layer clips some of them at the city line too, leaving a sliver that
+// carries the whole zone's population: BER-E013 "Panoramic Hill Oakland" covers 0.3 ha in the City layer and
+// 21.8 ha in Genasys, and its Oakland streets fell in no zone (SOURCE_NOTES K7, Z1-Z4). Where the Genasys
+// outline of the same zone holds at least 95% of the City outline and is more than 1% larger, the Genasys
+// outline replaces the City one (the City layer's est_popula and description are kept). A Berkeley or Lab
+// zone found only in Genasys is added if City zones cover under 5% of it (LBL-006); Genasys's renumbered
+// splits of City zones (BER-123, BER-134 and others) lie inside City zones and are left out. Areas are
+// sampled on a 5 m lattice.
+const cityBerk = cityLayer('evac_zones').filter(f => berkZone(f.properties.zone_id));
+const sampleArea = (polys, test) => { let n = 0, hit = 0;
+  for (const rings of polys) { const [x0, y0, x1, y1] = bboxOf(rings);
+    for (let x = x0 + 2.5; x < x1; x += 5) for (let y = y0 + 2.5; y < y1; y += 5) if (inPoly([x, y], rings)) { n++; if (test([x, y])) hit++; } }
+  return { n, hit }; };
+const inPolys = polys => { const bb = polys.map(bboxOf); return p => polys.some((r, i) => p[0] >= bb[i][0] && p[0] <= bb[i][2] && p[1] >= bb[i][1] && p[1] <= bb[i][3] && inPoly(p, r)); };
+const genasysOutline = new Map(); // zone_id -> { cityHa, genasysHa, uncoveredHa, added }
+const berkWfs = wfsZones.filter(f => berkZone(f.properties.zone_id));
+const inCityZones = inPolys(cityBerk.flatMap(f => polygonsOf(f.geometry)));
+for (const g of berkWfs) {
+  const id = g.properties.zone_id, gp = polygonsOf(g.geometry);
+  const cp = cityBerk.filter(f => f.properties.zone_id === id).flatMap(f => polygonsOf(f.geometry));
+  const gs = sampleArea(gp, inCityZones), ha = n => n * 25 / 1e4;
+  if (cp.length) {
+    const c = sampleArea(cp, inPolys(gp));
+    // Genasys adds at least 0.1 ha that no City zone covers
+    if (gs.n - gs.hit >= 40 && (c.n === 0 || c.hit / c.n >= 0.95)) genasysOutline.set(id, { cityHa: ha(c.n), genasysHa: ha(gs.n), uncoveredHa: ha(gs.n - gs.hit) });
+  } else if (gs.hit < 0.05 * gs.n) genasysOutline.set(id, { cityHa: 0, genasysHa: ha(gs.n), uncoveredHa: ha(gs.n - gs.hit), added: true });
+}
+const zoneFeature = f => genasysOutline.has(f.properties.zone_id)
+  ? { ...f, properties: { ...f.properties, outlineSrc: 'genasys' } } : { ...f, properties: { ...f.properties, outlineSrc: f.properties.wfs ? 'genasys' : 'city' } };
+const allZoneFeatures = [
+  ...cityBerk.filter(f => !genasysOutline.has(f.properties.zone_id)).map(zoneFeature),
+  ...berkWfs.filter(f => genasysOutline.has(f.properties.zone_id)).map(zoneFeature),
+  ...wfsZones.filter(f => !berkZone(f.properties.zone_id)).map(zoneFeature)];
+for (const [id, o] of genasysOutline) console.log(`zone ${zoneLabel(id)}: Genasys outline ${o.genasysHa.toFixed(1)} ha, ${o.uncoveredHa.toFixed(1)} ha in no City zone${o.added ? ' (not in the City layer)' : ` replaces the City layer's ${o.cityHa.toFixed(1)} ha`}`);
 const evacZoneOf = zoneIndex(allZoneFeatures, p => zoneLabel(p.zone_id));
 
 // ---------- 3b. OpenStreetMap streets beyond Berkeley ----------
@@ -797,7 +829,7 @@ const network = {
       gradeMax: { category: 'derived', source: '90th percentile of ~25 m window grades along the centerline, DEM sampled every 4 m. Can be wrong where the road sits on a cut, fill, bridge or retaining wall.' },
       gradeReliable: { category: 'derived', source: 'false for Interstate and Ramp (the bare-earth DEM is the ground under the structure) and where the steep grade exceeds 35% (a DEM artefact: cut, fill or retaining wall)' },
       fireZone: { category: 'sourced', source: 'City of Berkeley FireZones_WFL1 PLN_HILL_Z at segment midpoint' },
-      evacZone: { category: 'sourced', source: 'Genasys zone at segment midpoint, shown as e.g. BER-006 (the City layer\'s zonenum field is not unique across cities). Berkeley and LBNL zones from the City of Berkeley GenasysZonesBerkeley layer; other zones from the Genasys Protect WFS (2026-11-01).' },
+      evacZone: { category: 'sourced', source: 'Genasys zone at segment midpoint, shown as e.g. BER-006 (the City layer\'s zonenum field is not unique across cities). Berkeley and LBNL zones from the City of Berkeley GenasysZonesBerkeley layer, except where that layer clips a zone at the city line (BER-013, BER-069, BER-074, BER-075, LBL-004, LBL-005 and others; layers.json evacZones outlineSrc says which); those outlines, LBL-006 and every other zone come from the Genasys Protect WFS (2026-11-01).' },
       lanes: { category: 'mixed', source: '[forward, backward] lanes. lanesSrc says where: city:PAV_LANES = City pavement-management lanes (total); osm:lanes = OSM lanes tag (total for two-way streets, per direction for one-way); assumption:hillsLocal = Eric, 2026-10-31: hill streets are one lane each way (applied in Oakland and Kensington hills too); assumption:byClass = data/assumptions.json (one-way OSM streets: 1 lane for Local and ramps, half the class total otherwise)' },
       widthM: { category: 'mixed', source: 'widthSrc says where. city: City of Berkeley Street_Centerline PAV_WIDTH_RD (pavement-management width, feet) or Narrow_Roads PAV_WIDTH_, matched to County segments by name and distance (<= 12 m). osm:width = OSM width tag. assumption:berkeleyMedian(...) = median City width of Berkeley streets of the same class in the hills or flats (one-way streets: 60% of it, at least 3.5 m per lane), used for Oakland, Albany, Emeryville and Kensington streets with no width tag.' },
       parking: { category: 'assumption', source: 'data/assumptions.json parking.hills / parking.flats. Hills default per Eric, 2026-10-31: parking on both sides. Not yet checked against posted no-parking signs.' },
@@ -831,7 +863,7 @@ function zonesOut(features, tol = 3) {
   for (const f of features) {
     const p = f.properties, k = p.zone_id;
     const est = p.est_popula == null ? null : +p.est_popula || 0;
-    if (!by.has(k)) by.set(k, { id: zoneLabel(k), zoneId: k, pop: est, popSrc: est == null ? 'census2020' : 'genasys', knownAs: (p.known_as || '').trim(), rings: [], seen: new Set(), polys: [] });
+    if (!by.has(k)) by.set(k, { id: zoneLabel(k), zoneId: k, pop: est, popSrc: est == null ? 'census2020' : 'genasys', outlineSrc: p.outlineSrc, knownAs: (p.known_as || '').trim(), rings: [], seen: new Set(), polys: [] });
     const z = by.get(k);
     if (est != null && est !== z.pop) console.warn(`zone ${k}: features disagree on population (${z.pop} vs ${p.est_popula}); keeping the first`);
     for (const rings of polygonsOf(f.geometry)) {

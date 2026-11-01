@@ -13,7 +13,7 @@ const plan = (name, o = {}) => ({ ...DEFAULT_PLAN, name, ...o });
 export const FIRES = [
   { id: 'eastWind', title: 'East wind, Grizzly Peak', line: 'Starts near Grizzly Peak Blvd. Ordered out: all of Fire Zones 2–3, Kensington line to Claremont (about 30,000 people).' },
   { id: 'ref1923', title: '1923 fire, repeated today', line: 'Starts at the north hills\' eastern edge. Ordered out: ridge to Sacramento St, Marin Ave to campus (about 27,000 people).' },
-  { id: 'panoramic', title: 'Panoramic Hill', line: 'Starts above Panoramic Hill. Ordered out: Panoramic Hill and Claremont Canyon streets in Berkeley and Oakland (about 2,100 people).' },
+  { id: 'panoramic', title: 'Panoramic Hill', line: 'Starts above Panoramic Hill. Ordered out: Panoramic Hill and Claremont Canyon streets in Berkeley and Oakland (about 2,200 people).' },
 ];
 
 const PANORAMIC_UNORDERED = 'Most of those still there live in zones this fire never orders (about 9,000), since the order covers only Panoramic Hill\'s 7 zones.';
@@ -28,8 +28,8 @@ export const PRESETS = [
     B: plan('B: half of hill households leave on the Red Flag warning', { earlyShare: 0.5, earlyZones: 'fz23' }),
     on: {
       eastWind: 'In Plan B more than a quarter fewer people are still there when embers arrive (about 5,100 against 3,650 in the central case), and the roads clear a minute or so sooner. If only the City\'s smaller Leave Early Zones do it, the drop is about 4%: most hill residents live outside them.',
-      ref1923: 'In Plan B about a third fewer people are still there when embers arrive (about 4,750 against 3,100 in the central case), and 90% of cars are out about 2 minutes sooner (89 against 91 min).',
-      panoramic: `In Plan B about a fifth fewer people are still there when embers arrive (about 14,900 against 11,900 in the central case). ${PANORAMIC_UNORDERED} In most runs not all ordered cars get out within the 4 hours simulated, so watch the count, not the clearance time.`,
+      ref1923: 'In Plan B about a third fewer people are still there when embers arrive (about 4,900 against 3,100 in the central case), and 90% of cars are out about 2 minutes sooner (89 against 91 min).',
+      panoramic: `In Plan B about a fifth fewer people are still there when embers arrive (about 14,900 against 12,000 in the central case). ${PANORAMIC_UNORDERED} In most runs not all ordered cars get out within the 4 hours simulated, so watch the count, not the clearance time.`,
     },
     off: {},
     headline: { label: 'People still there when embers arrived', f: exposed, dir: -1 },
@@ -42,9 +42,9 @@ export const PRESETS = [
     A: plan('A: first order 20 min after ignition', { orderDelayMin: 20 }),
     B: plan('B: first order 5 min after ignition', { orderDelayMin: 5 }),
     on: {
-      ref1923: 'About a fifth fewer people are still there when embers arrive (about 6,800 against 5,450 in the central case). The time to clear the roads hardly changes: the gain is people getting out ahead of the fire, not faster traffic.',
-      eastWind: 'About 15% fewer people are still there when embers arrive (about 6,500 against 5,600 in the central case). The time to clear the roads hardly changes: the gain is people getting out ahead of the fire, not faster traffic.',
-      panoramic: `About 9% fewer people are still there when embers arrive (about 16,800 against 15,300 in the central case), a smaller gain than on the two larger fires. ${PANORAMIC_UNORDERED}`,
+      ref1923: 'About a fifth fewer people are still there when embers arrive (about 7,300 against 5,650 in the central case). The time to clear the roads hardly changes: the gain is people getting out ahead of the fire, not faster traffic.',
+      eastWind: 'About 15% fewer people are still there when embers arrive (about 6,400 against 5,500 in the central case). The time to clear the roads hardly changes: the gain is people getting out ahead of the fire, not faster traffic.',
+      panoramic: `About 8% fewer people are still there when embers arrive (about 16,900 against 15,600 in the central case), a smaller gain than on the two larger fires. ${PANORAMIC_UNORDERED}`,
     },
     off: {},
     headline: { label: 'People still there when embers arrived', f: exposed, dir: -1 },
@@ -57,10 +57,10 @@ export const PRESETS = [
     A: plan('A: fall weekday, midday'),
     B: plan('B: fall night'),
     on: {
-      eastWind: 'On a weekday about 17,200 cars evacuate instead of 15,100, some households wait for a commuter to drive home, and parents pick up children. 90% of cars get out about 13 minutes later (about 105 against 92 min). Both plans are the same; only the time of day differs.',
+      eastWind: 'On a weekday about 17,200 cars evacuate instead of 15,000, some households wait for a commuter to drive home, and parents pick up children. 90% of cars get out about 14 minutes later (about 106 against 92 min). Both plans are the same; only the time of day differs.',
     },
     off: {
-      ref1923: 'weekday and night differ by only about 4 min here (95 against 91), while the 2025 Time Study finds about 70 min for this region; the simulator misses most of that weekday slowdown.',
+      ref1923: 'weekday and night differ by about 19 min here (110 against 91), while the 2025 Time Study finds about 70 min for this region; the simulator misses most of that weekday slowdown.',
       panoramic: 'in 10 of 15 runs not all ordered cars get out within the 4 hours simulated, so there is no 90% time to compare.',
     },
     headline: { label: 'Minutes until 90% of cars are out', f: S => S.clearP90, dir: -1 },

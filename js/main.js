@@ -240,7 +240,7 @@ function studyRow(sc) {
   if (!T?.p90[tk]) return '';
   const weekday = tk === 'S1' || tk === 'S4';
   return `<tr><td>For scale: the 2025 Evacuation Time Study's 90% time for ${esc(T.region)}, ${esc(TIME_OF_DAY[tk].label)} (status quo, no fire) ${badge('sourced')}<div class="small muted">${weekday && sc.id !== 'panoramic'
-    ? 'On weekdays the simulator runs 35–80 min faster than the study here, probably because it lacks the City\'s signal timing and where commuters and students park. Treat its times as a lower bound.'
+    ? 'On weekdays the simulator runs 25–65 min faster than the study here, probably because it lacks the City\'s signal timing and where commuters and students park. Treat its times as a lower bound.'
     : sc.id === 'panoramic' ? 'The simulator runs within about 10 min of the study here.' : 'At night and on weekends the simulator runs 15–25 min faster than the study here.'} See Assumptions &amp; limits.</div></td><td class="num">${mins(T.p90[tk])}</td></tr>`;
 }
 function spark(sim) {
@@ -303,7 +303,12 @@ function inspect(sel, quiet) {
     box.innerHTML = `<h2>Street segment</h2><table class="kv">${rows}</table>`;
   } else {
     const z = data.layers.evacZones[sel.id];
+    const berk = /^(BER|LBL)-/.test(z.id);
     let rows = row('Zone', esc(z.id), 'sourced') + row('Described as', esc(z.knownAs || '—'), 'sourced')
+      + row('Outline', z.outlineSrc === 'genasys' ? 'Genasys Protect map' : 'City of Berkeley zones layer', 'sourced',
+        z.outlineSrc !== 'genasys' ? 'City of Berkeley GenasysZonesBerkeley layer'
+          : berk ? 'The City layer clips this zone at the city line (or lacks it), so the outline comes from the Genasys Protect map service (2026-11-01); population and description stay from the City layer where it has them. SOURCE_NOTES Z1–Z4.'
+          : 'Genasys Protect map service (2026-11-01); the City layer holds only a sliver of zones outside Berkeley. SOURCE_NOTES X4.')
       + row('Estimated population', fmt(z.pop) + (z.popOverride ? ` (census2020; Genasys estimate ${fmt(z.genasysPop)})` : ''), z.popOverride ? 'assumption' : 'sourced', z.popOverride ? esc(z.popOverride) : z.popSrc === 'census2020' ? '2020 Census population of the blocks whose interior point lies in this Genasys zone (Genasys publishes no estimate for it)' : 'Genasys zone estimate in the City layer (method not documented there)')
       + row('2020 Census, same zone', fmt(z.census2020), 'sourced', 'Population of 2020 Census blocks whose interior point lies in the zone, inside the model area plus a small margin. A check on the Genasys estimate.');
     if (sim) {
@@ -447,7 +452,7 @@ function intro() {
   <h3>Reading the results</h3>
   <ul class="small">
     <li><b>People still there when embers arrived</b>: still at home or on the road when embers first reached their street, split into those with a car, on the road, without a car, and in zones with no order. <b>…when the fire front arrived</b> is the harsher version. Neither is a count of deaths or injuries: the simulator does not model whether a house survives, whether people can shelter, or smoke. Use them to compare plans.</li>
-    <li><b>Evacuation time</b>: minutes after the first order until 90% of cars have left the order area, with the 2025 Evacuation Time Study's figure next to it for scale. The simulator lacks the City's signal timing, so on weekdays its times run 35–80 min short of the study's.</li>
+    <li><b>Evacuation time</b>: minutes after the first order until 90% of cars have left the order area, with the 2025 Evacuation Time Study's figure next to it for scale. The simulator lacks the City's signal timing, so on weekdays its times run 25–65 min short of the study's.</li>
     <li><b>Fire-engine travel</b> from the nearest station to the fire edge, and streets where parked cars leave less than an engine's width.</li>
   </ul>
   <p class="small muted">Simple view offers three fires and four questions; a question is offered on a fire only where Plan B did better than Plan A in every one of 15 test runs there. Expert view (the Simple / Expert switch at the top right of the page) opens every control: scenario, severity, seed, time of day and both plans. Every number shows whether it is sourced, derived, an assumption, a model rule or synthetic; see Assumptions &amp; limits and Data sources. Streets and residents beyond Berkeley (Oakland, Albany, Kensington, El Cerrito) are included up to the edge of the elevation data; north Kensington and Oakland south of about 37.84° N are not.</p>
@@ -494,9 +499,9 @@ $('btn-assumptions').onclick = () => {
       <ul>
         <li>Panoramic Hill: within about 10 min of the study at all times of day.</li>
         <li>1923 repeat and Fire Zones 2–3, nights and weekends: 15–25 min too fast (study 1 h 45 min to 1 h 55 min; simulator about 1 h 30 min).</li>
-        <li>Same regions on weekdays: 35–80 min too fast. On a fall weekday the study takes 2 h 55 min for the 1923 region; the simulator takes about 1 h 35 min.</li>
+        <li>Same regions on weekdays: 25–65 min too fast. On a fall weekday the study takes 2 h 55 min for the 1923 region; the simulator takes about 1 h 50 min.</li>
       </ul>
-      Read weekday clearance times for the large regions as a lower bound: the study's times run up to 1.8 times the simulator's. Part of the gap also comes from where employees and students park, which the simulator places by area. Differences between two plans are more reliable than either plan's clock time, but a plan that sends more traffic through signals the study found congested (around the UC campus, and the pre-timed signal at Cedar St and MLK Jr Way) can look better in the simulator than it would on the street. The results panel shows the study's time for the same case.</li>
+      Read weekday clearance times for the large regions as a lower bound: the study's times run up to 1.6 times the simulator's. Part of the gap also comes from where employees and students park, which the simulator places by area. Differences between two plans are more reliable than either plan's clock time, but a plan that sends more traffic through signals the study found congested (around the UC campus, and the pre-timed signal at Cedar St and MLK Jr Way) can look better in the simulator than it would on the street. The results panel shows the study's time for the same case.</li>
   </ul>
   <h3>What Phase 1 does not do</h3>
   <ul class="small">

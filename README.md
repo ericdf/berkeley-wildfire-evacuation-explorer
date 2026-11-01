@@ -126,7 +126,9 @@ distance upwind of it. The overlay puts plausible, comparable pressure on the ev
 it does not predict how a real fire would behave.
 
 **Evacuation** (`js/sim.js`). Synthetic households are placed on streets from Genasys zone
-population estimates. Zones outside Berkeley take their outlines from Genasys Protect and,
+population estimates. Zones outside Berkeley, and the Berkeley and Lab zones that the City
+layer clips at the city line (BER-013, the Oakland part of Panoramic Hill, and ten others;
+SOURCE_NOTES Z1), take their outlines from Genasys Protect. Zones outside Berkeley take,
 where the City layer has no estimate, their population from 2020 Census blocks; only people
 inside the model area are placed (about 74,700 outside Berkeley). Household size, vehicle ownership, ridesharing, compliance
 (100% of Order zones, 50% of Warning zones, 20% shadow, which the study applies to Berkeley
@@ -234,7 +236,7 @@ by the simulator at load time. Scenario presets, severities and time-of-day valu
   but where they park is approximated by area. Signals and stop signs are not modeled one by
   one: every junction has a typical delay and a capacity by road class. Panoramic Hill matches
   the study's evacuation times; the 1923 and Fire Zones 2–3 regions run about 15 min fast at
-  night and 35–80 min fast on weekdays (see `SOURCE_NOTES.md`, calibration). Tuning junction
+  night and 25–65 min fast on weekdays (see `SOURCE_NOTES.md`, calibration). Tuning junction
   capacity to close that gap broke Panoramic Hill, so it is left untuned.
 - Streets outside Berkeley come from OpenStreetMap with assumed widths. The model area ends at
   the edge of the elevation grid (37.84–37.91° N, 122.33–122.21° W), about 1 km into Oakland
