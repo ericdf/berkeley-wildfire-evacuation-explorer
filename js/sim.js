@@ -247,7 +247,7 @@ export class Evacuation {
     // Who leaves and when (Time Study: 100% of Order zones, 50% of Warning zones, 20% shadow
     // elsewhere in the city and its Shadow Region, here the whole model area; mobilization histograms by household type; SOURCE_NOTES E8, E9).
     const M = D.mobilization15min, C = D.compliance;
-    const vHH = [], vDep = [], vCls = [], donors = new Map();
+    const vHH = [], vDep = [], vCls = [], donors = new Map(), baseDonors = new Map(); // baseDonors: count of today's donors per street
     for (let h = 0; h < nH; h++) {
       const z = hh.zone[h], R = h < nBase ? rand : unitRand[h - nBase];
       let T, kind;
@@ -273,16 +273,25 @@ export class Evacuation {
       const dep = T + 60 * sampleHist(curve, R);
       hh.depart[h] = dep;
       if (!hh.veh[h]) continue;
-      if (kind !== 3) { if (!donors.has(hh.edge[h])) donors.set(hh.edge[h], []); donors.get(hh.edge[h]).push(h); }
+      if (kind !== 3) { if (!donors.has(hh.edge[h])) donors.set(hh.edge[h], []); donors.get(hh.edge[h]).push(h); if (h < nBase) baseDonors.set(hh.edge[h], (baseDonors.get(hh.edge[h]) || 0) + 1); }
       if (dep > this.end) continue;
       for (let k = 0; k < hh.veh[h]; k++) { vHH.push(h); vDep.push(dep + k * 20); vCls.push(kind === 3 ? 1 : 0); }
     }
     // Carless households: most ride with a neighbor (Time Study: 86.9% rideshare, E7).
+    // Donors are listed in household order, so today's donors come first in each street's list.
+    // A household of today's with a donor of today's on its street draws from the shared stream
+    // and picks among today's donors, as it does without growth; where only added households can
+    // give a ride, it draws from a stream of its own. Growth and R0 therefore never shift the
+    // shared stream, which later draws the non-resident vehicles.
     this.stranded = 0;
     for (let h = 0; h < nH; h++) {
       if (hh.veh[h] || !hh.kind[h] || hh.kind[h] === 3 || hh.early[h]) continue;
-      const d = donors.get(hh.edge[h]), R = h < nBase ? rand : unitRand[h - nBase];
-      if (d && R() < D.carlessRideshareShare) hh.ride[h] = d[Math.floor(R() * d.length)];
+      const d = donors.get(hh.edge[h]); if (!d) continue;
+      let R = rand, n = d.length;
+      if (h >= nBase) R = unitRand[h - nBase];
+      else if (baseDonors.has(hh.edge[h])) n = baseDonors.get(hh.edge[h]);
+      else R = mulberry32((Math.imul(this.seed + 1, 0x2C1B3C6D) ^ Math.imul(h + 1, 0x297A2D39)) >>> 0);
+      if (R() < D.carlessRideshareShare) hh.ride[h] = d[Math.floor(R() * n)];
     }
     // ---- non-resident vehicles: employees, students, visitors (Time Study §3.4-3.6, Table 6-5;
     // SOURCE_NOTES E32-E36). They park on streets in the study's areas, leave on the employee

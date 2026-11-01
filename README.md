@@ -144,7 +144,10 @@ like today's (2.37 persons; about 1.12 vehicles per unit against the study's 1.1
 gives no split by street, so units go to Berkeley's Fire Zones 2–3, standing in for the
 Hillside Overlay, in proportion to each street's share of today's households (an
 assumption). Where they go depends on the seed only, and each unit draws from its own seeded
-stream, so both plans see the same added homes and today's households are unchanged. The
+stream, so both plans see the same added homes and today's households are unchanged, except
+that a carless household with no neighbor to ride with today can ride with an added one (it
+draws from a stream of its own, so the shared stream and the non-resident vehicles stay the
+same under every growth and R0 setting). The
 plan setting R0 drops the units on streets in its area and moves none elsewhere. Fire Zones
 2–3 hold all the modeled growth, so R0 there equals no growth; the Leave Early Zones hold
 about 29% of it and access-constrained areas about 11% (areas from
@@ -197,6 +200,7 @@ add any parking-removal bonus.
 | `tools/` | Data pipeline (Node 18+, no npm packages) |
 | `tests/headless.mjs` | Runs every scenario × two plans in Node and prints summaries |
 | `tests/calibration.mjs`, `tests/stuck.mjs`, `tests/leftover.mjs` | Compare with the Time Study (fire off); list jammed links; list order-zone vehicles that never leave |
+| `tests/growth.mjs` | Future growth and R0 with the fire on, seeds 1–5 (`SOURCE_NOTES.md` R4, R5); `GROWTH=max node tests/calibration.mjs` gives R3 |
 
 ## Replacing datasets
 
