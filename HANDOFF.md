@@ -6,7 +6,7 @@ Read this first, then `CLAUDE.md` (style and project rules), `specfication.md` (
 
 Phase 1 of the spec is built and working: a browser simulator on Berkeley's real streets and terrain, with scenario and plan controls, an illustrative fire overlay, a queue-based traffic model, a separate fire-engine access layer, and a two-plan comparison over three seeds. Phases 2 (interventions with costs) and 3 (buildings, structure loss) have not started.
 
-Run it: `python3 -m http.server 8766 --bind 127.0.0.1`, open `http://127.0.0.1:8766`. Port 8765 belongs to Eric's other project.
+Run it: `python3 tools/serve.py` (no browser caching), open `http://127.0.0.1:8766`. Port 8765 belongs to Eric's other project.
 
 Checks after any model change:
 

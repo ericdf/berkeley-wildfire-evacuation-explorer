@@ -116,7 +116,8 @@ function renderSimple() {
       <div class="watch"><b>What to look for.</b> ${esc(p.watch)}</div>
       <div class="btns"><button data-watch="A" class="${state.editing === 'A' ? 'on' : ''}">▶ Watch Plan A</button><button data-watch="B" class="${state.editing === 'B' ? 'on' : ''}">▶ Watch Plan B</button>
       <button class="primary" id="simple-compare">Compare A and B on 9 fires</button></div>
-      <p class="small muted">Compare runs both plans on the same 9 fires (low, central and high severity, 3 random seeds each) and the same households. Trust a difference that shows up in every run.</p>` : '<p class="small muted">Each question compares two plans on the same fire and the same households. Expert view (top right) lets you set everything yourself.</p>'}`;
+      <div id="simple-progress" class="small" style="margin-top:4px;color:var(--accent)"></div><div id="simple-result"></div>
+      <p class="small muted">Watch starts the run on the map; pause or slow it in Run below. Compare runs both plans on the same 9 fires (low, central and high severity, 3 random seeds each) and the same households, takes about half a minute, and shows the answer here. Trust a difference that shows up in every run.</p>` : '<p class="small muted">Each question compares two plans on the same fire and the same households. The Expert switch at the top right lets you set everything yourself.</p>'}`;
   $('simple').querySelectorAll('.preset').forEach(b => b.onclick = () => applyPreset(b.dataset.id));
   $('simple').querySelectorAll('[data-watch]').forEach(b => b.onclick = () => { state.editing = b.dataset.watch; showPlan(); if (p.tods) { $('tod').value = p.tods[state.editing]; todNote(); } newRun(); renderSimple(); state.playing = true; $('run').textContent = '❚❚ Pause'; });
   if ($('simple-compare')) $('simple-compare').onclick = () => { $('cmp-scope').value = 'severities'; $('compare').click(); };
@@ -321,11 +322,21 @@ $('compare').onclick = () => {
     : scenarios.flatMap(s => seeds.map(seed => ({ scenarioId: s.id, sev: 'central', seed, tod: s.timeOfDay })));
   const jobs = ['A', 'B'].flatMap(p => cases.map(c => ({ ...c, tod: state.preset?.tods?.[p] ?? c.tod, planKey: p, plan: { ...state.plans[p] } })));
   const batch = ++state.batch, results = [];
-  $('cmp-progress').textContent = `Running ${jobs.length} simulations (identical scenarios and seeds for both plans)…`;
+  const progress = t => { $('cmp-progress').textContent = t; if ($('simple-progress')) $('simple-progress').textContent = t; };
+  if ($('simple-compare')) $('simple-compare').disabled = true;
+  progress(`Running ${jobs.length} simulations (identical fires and households for both plans). This takes about half a minute…`);
   worker.onmessage = ev => {
     const m = ev.data; if (m.batch !== batch) return;
-    if (m.done) { $('cmp-progress').textContent = ''; renderCompare(results, scope); return; }
-    results.push(m); $('cmp-progress').textContent = `Ran ${results.length} of ${jobs.length}…`;
+    if (m.done) {
+      progress(''); renderCompare(results, scope);
+      if ($('simple-compare')) $('simple-compare').disabled = false;
+      if (document.body.classList.contains('simple')) {
+        $('simple-result').innerHTML = takeaway(results, scope) + '<p class="small muted">The full table is in the right-hand panel.</p>';
+        $('compare-out').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      return;
+    }
+    results.push(m); progress(`Ran ${results.length} of ${jobs.length} simulations…`);
   };
   worker.postMessage({ batch, jobs });
 };
@@ -411,7 +422,7 @@ function intro() {
     <li><b>Evacuation time</b>: minutes after the first order until 90% of cars have left the order area, with the 2025 Evacuation Time Study's figure next to it for scale. The simulator lacks the City's signal timing, so on weekdays its times run 35–80 min short of the study's.</li>
     <li><b>Fire-engine travel</b> from the nearest station to the fire edge, and streets where parked cars leave less than an engine's width.</li>
   </ul>
-  <p class="small muted">Simple view offers a few questions with clear answers. Expert view (top right) opens every control: scenario, severity, seed, time of day and both plans. Every number shows whether it is sourced, derived, an assumption, a model rule or synthetic; see Assumptions &amp; limits and Data sources. Streets and residents beyond Berkeley (Oakland, Albany, Kensington, El Cerrito) are included up to the edge of the elevation data; north Kensington and Oakland south of about 37.84° N are not.</p>
+  <p class="small muted">Simple view offers a few questions with clear answers. Expert view (the Simple / Expert switch at the top right of the page) opens every control: scenario, severity, seed, time of day and both plans. Every number shows whether it is sourced, derived, an assumption, a model rule or synthetic; see Assumptions &amp; limits and Data sources. Streets and residents beyond Berkeley (Oakland, Albany, Kensington, El Cerrito) are included up to the edge of the elevation data; north Kensington and Oakland south of about 37.84° N are not.</p>
   <div class="start"><button id="intro-expert">Open expert view</button><button class="primary" id="intro-simple">Start with a question</button></div></div>`, 'intro');
   const go = m => { localStorage.setItem('bhe-intro-seen', '1'); $('modal').close(); setMode(m); };
   $('intro-simple').onclick = () => go('simple'); $('intro-expert').onclick = () => go('expert');

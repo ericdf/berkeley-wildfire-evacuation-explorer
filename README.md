@@ -18,7 +18,7 @@ No build step or dependencies. The simulator is plain ES modules and needs a loc
 
 ```sh
 cd berkeley-wildfire-simulator
-python3 -m http.server 8766 --bind 127.0.0.1
+python3 tools/serve.py
 # open http://127.0.0.1:8766
 ```
 
