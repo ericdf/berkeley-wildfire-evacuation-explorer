@@ -830,8 +830,10 @@ if (A.network?.labGatesExitOnly) {
     const lanes = [publicNode[e.a] ? 0 : e.lanes[0], publicNode[e.b] ? 0 : e.lanes[1]];
     if (lanes[0] === e.lanes[0] && lanes[1] === e.lanes[1]) continue;
     e.labGate = { trav: e.trav, lanes: e.lanes };
-    e.lanes = lanes; e.trav = lanes[0] && lanes[1] ? 'B' : lanes[0] ? 'FT' : lanes[1] ? 'TF' : 'NT';
-    if (e.trav === 'NT') e.mode = 'restricted';
+    // A piece left with no direction stays a vehicle street closed by a gate: residents' cars cannot use it,
+    // engines can (after the barrier delay), as they do at other gates. Codex review on PR #14.
+    if (!lanes[0] && !lanes[1]) { e.barrier = { kind: 'gate', gate: true, engines: true, closed: true, labGate: true, street: e.name }; e.parking = 'none'; e.parkingSrc = 'model rule: no parking in a gate lane'; }
+    else { e.lanes = lanes; e.trav = lanes[0] && lanes[1] ? 'B' : lanes[0] ? 'FT' : 'TF'; }
     stats.labGateEntriesClosed++;
   }
   // Approach lanes that now lead only to a closed gate (the one-way loop at the Grizzly Peak Gate) are closed too.
@@ -839,10 +841,10 @@ if (A.network?.labGatesExitOnly) {
   const into = nodes.map(() => []); for (const e of edges) if (vEdge(e) && !e.barrier?.closed) { if (e.lanes[0]) into[e.b].push(e.a); if (e.lanes[1]) into[e.a].push(e.b); }
   while (st.length) { const u = st.pop(); for (const w of into[u]) if (!reach[w]) { reach[w] = 1; st.push(w); } }
   for (const e of edges) if (vEdge(e) && /^LBL/.test(e.evacZone || '') && !(e.lanes[0] && reach[e.b]) && !(e.lanes[1] && reach[e.a])) {
-    e.labGate = { trav: e.trav, lanes: e.lanes, approach: true }; e.lanes = [0, 0]; e.trav = 'NT'; e.mode = 'restricted'; stats.labGateEntriesClosed++;
+    e.labGate = { trav: e.trav, lanes: e.lanes, approach: true }; { e.barrier = { kind: 'gate', gate: true, engines: true, closed: true, labGate: true, street: e.name }; e.parking = 'none'; e.parkingSrc = 'model rule: no parking in a gate lane'; } stats.labGateEntriesClosed++;
   }
   rebuildInc();
-  console.log('LBNL gate entries closed to cars:', edges.filter(e => e.labGate).map(e => `${e.id} ${e.name} ${e.labGate.trav} -> ${e.trav}`).join('; '));
+  console.log('LBNL gate entries closed to cars:', edges.filter(e => e.labGate).map(e => `${e.id} ${e.name} ${e.labGate.trav} -> ${e.barrier?.labGate ? 'closed to cars (engines pass)' : e.trav}`).join('; '));
 }
 
 // ---------- 6. nodes out ----------
