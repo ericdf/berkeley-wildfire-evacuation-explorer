@@ -167,7 +167,7 @@ export function report(r, whatIf) {
   p('## How steps 2 and 3 can use this');
   p('');
   p('- `nearestOtherStreet` and `nearestFreeStreet` give a straight line, its length, the climb and how far one drives between the two points now. A second connection needs a real alignment over parcels, which is outside this analysis (no parcel data is stored). `existingLink` shows where a path or stairway already makes the connection on foot and could be widened, and `emergencyVehicleLink` where a gate or diverter already does for engines.');
-  p('- `node tools/access-constraints.mjs --open <edge ids>` re-runs the analysis with segments opened to cars (a no-vehicle street, a closed barrier or a path), which is the quickest way to see how many residents a new connection takes out from behind a choke.');
+  p('- `node tools/access-constraints.mjs --open <edge ids>` re-runs the analysis with segments opened to cars in both directions (a no-vehicle street, a closed barrier, a path, or a one-way street run two-way), which is the quickest way to see how many residents a new connection takes out from behind a choke.');
   p('- For managed retreat, each area lists residents, households and vehicles by zone (`evacZones`), the inputs for "reduced future evacuation demand" in the spec.');
   return L.join('\n') + '\n';
 }

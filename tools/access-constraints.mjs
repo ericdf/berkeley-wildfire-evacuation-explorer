@@ -6,7 +6,8 @@
 //   node tools/access-constraints.mjs -v         also prints the top areas
 //   node tools/access-constraints.mjs --open 2322[,id...]
 //                                                what-if: treat these segments as two-way drivable streets
-//                                                (a new or reopened connection); prints results, writes nothing
+//                                                (a new or reopened connection, or a one-way street run two-way);
+//                                                prints results, writes nothing
 //
 // Method (model rules unless marked otherwise; see docs/access-constraints.md):
 // - Graph: the residents' drivable network as js/sim.js builds its links: vehicle edges that are
@@ -53,7 +54,7 @@ const { nodes, edges } = net, nN = nodes.length;
 const CLASS_RANK = { Local: 0, 'Major Collector': 1, 'Principal Arterial': 2, Ramp: 3, Interstate: 3 };
 const simDrivable = e => e.mode === 'vehicle' && !e.disconnected && !e.barrier?.closed; // js/sim.js links
 const drivable = e => simDrivable(e) || OPEN.has(e.id);
-const lanesOf = e => OPEN.has(e.id) && !simDrivable(e) ? [1, 1] : e.lanes;
+const lanesOf = e => OPEN.has(e.id) ? [Math.max(1, e.lanes?.[0] || 0), Math.max(1, e.lanes?.[1] || 0)] : e.lanes; // an opened segment is two-way
 const exits = new Set(net.meta.exitNodes);
 const hills = e => e.fireZone === 2 || e.fireZone === 3;
 
