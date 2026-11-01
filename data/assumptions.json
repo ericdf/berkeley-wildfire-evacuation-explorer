@@ -13,7 +13,20 @@
   "parking": {
     "hills": "both",
     "flats": "both",
-    "parkedCarWidthM": 2.44
+    "parkedCarWidthM": 2.44,
+    "range": {
+      "noParkingShareHills": 0.15,
+      "oneSideShareHills": 0.35,
+      "offPavementShare": 0.25,
+      "offPavementSavesM": 0.9,
+      "minLeftForCarsM": 2.44,
+      "curbMPerCar": 15,
+      "badJobPerCar": 0.02,
+      "badJobExtraM": [
+        0.45,
+        1.2
+      ]
+    }
   },
   "capacity": {
     "speedMph": {
@@ -31,7 +44,8 @@
     "rampPcphPerLane": 1200,
     "steepGradePct": 12,
     "steepFactor": 0.85,
-    "vehicleSpacingM": 7.5
+    "vehicleSpacingM": 7.5,
+    "gridlockReliefS": 180
   },
   "access": {
     "movingLaneM": 3.05,
@@ -126,7 +140,11 @@
         1,
         0
       ]
-    }
+    },
+    "returnDriveMin": [
+      0,
+      30
+    ]
   },
   "_meta": {
     "lanes.hillsLocal": {
@@ -139,7 +157,7 @@
     },
     "parking.hills": {
       "category": "assumption",
-      "note": "Eric, 2026-10-31: parking on both sides in the hills, applied only where a 10 ft lane remains. The City's curb data (used by KLD) would replace this; SB 99 report notes many Panoramic Hill roads have no street parking (SOURCE_NOTES A7)."
+      "note": "Status quo in Fire Zones 2–3: residents would park on both sides (Eric, 2026-10-31), but each run draws one side only on some blocks (parking.range). The City's curb data or aerial counts would replace this."
     },
     "parking.flats": {
       "category": "assumption",
@@ -224,6 +242,29 @@
     "demand.mobilization15min": {
       "category": "sourced",
       "note": "Percent of trips starting in each 15-minute period after the order, Time Study Table 5-9 (p. 5-14) (SOURCE_NOTES E9). A employees/visitors; C residents awaiting a returning commuter (also used for shadow evacuees); D residents not awaiting one; E/F = C/D with child pickup."
+    },
+    "parking.range": {
+      "category": "game rule",
+      "note": "Parking varies by block and by seed. On hill blocks wide enough for both sides: noParkingShareHills parked on neither side, oneSideShareHills on one side, the rest on both (City 2020 aerial counts of 22 hill blocks, data/field/aerial-parking-counts-2020.json: of 12 wider blocks 2 had none, 4 one side, 6 both on at least part; on blocks of 22 ft or less 7 of 9 were one side or sparse, which the 8 ft rule below already produces). offPavementShare / offPavementSavesM: share of hill blocks where cars sit partly off the pavement and the width that saves (Poppy Ln, Latham Ln photos). minLeftForCarsM: residents stop parking where less than 8 ft would remain for a car (City Narrow_Roads shows 7-8 ft left on many streets). curbMPerCar: one parked car per this many metres of a parked side (aerial counts: about 19 m in daytime; 15 assumed to allow for fuller evenings). badJobPerCar, badJobExtraM: each parked car has a small chance of being a bad job (wide vehicle or far from the curb) that narrows the gap by 1.5-4 ft (red van photo); not measurable from the aerials. Placeholders until curb data or evening counts."
+    },
+    "sharedLane": {
+      "category": "game rule",
+      "note": "Two-way streets with one moving lane between parked cars: both directions share one lane's capacity. When both directions have traffic, drivers take turns at gaps (driveways) every passingGapM; each switch loses about passingGapM / speed + 3 s against platoonS of flow. Below one 10 ft lane flow is cut by squeezeBelowLaneFactor; below crawlBelowM (7 ft) cars creep through at crawlFactor. Placeholders until gap spacing is counted from aerial photos."
+    },
+    "demand.returnDriveMin": {
+      "category": "assumption",
+      "note": "Households awaiting a returning commuter (Time Study distributions C and E): the commuter leaves work on the Time Study employee curve (Table 5-9 A), then drives this many minutes (uniform range) to reach the edge of the evacuating area, then drives home on Berkeley streets against the outbound traffic. Their car is one of the household's vehicles, so it adds an inbound trip but no extra outbound vehicle. A commuter turned back by fire leaves the household one car short. Workplace locations are not modelled."
+    },
+    "capacity.gridlockReliefS": {
+      "category": "game rule",
+      "note": "A vehicle that has waited this long at the head of a queue squeezes into a full downstream link, and an oncoming car stuck this long no longer holds up the other direction on a take-turns street. Prevents permanent lock-ups that a simple queue model creates in rings such as traffic circles. Each use is counted in the run summary."
     }
+  },
+  "sharedLane": {
+    "passingGapM": 40,
+    "platoonS": 12,
+    "squeezeBelowLaneFactor": 0.6,
+    "crawlBelowM": 2.13,
+    "crawlFactor": 0.3
   }
 }

@@ -1,0 +1,231 @@
+{
+ "_about": {
+  "what": "Parked cars counted by eye on City of Berkeley 2020 3-inch orthophotos for 22 two-way hill blocks (Fire Zones 2-3). Five are streets Eric photographed; 17 were drawn at random (seeded) from Local two-way hill segments 70-220 m long with a known width.",
+  "source": "https://gis.cityofberkeley.info/arcgis3/rest/services/Imagery/ORTHOPHOTO_2020_3in/ImageServer (City of Berkeley / Pictometry). Only these derived counts are kept; the imagery is not stored in the project.",
+  "counted": "2026-11-01 by Claude from 15 cm/pixel exports with the County centerline overlaid; not checked by a person yet.",
+  "limits": "One daytime moment in 2020 (parking is likely fuller in the evening). Tree canopy hides part of most blocks (canopyHidden). Counts are approximate (plus or minus 1-2 cars on busy blocks). Curb offset and vehicle width cannot be judged at this resolution, so bad parking jobs are not counted.",
+  "category": "derived"
+ },
+ "blocks": [
+  {
+   "edge": 886,
+   "street": "BRET HARTE RD",
+   "lengthM": 227,
+   "pavementFt": 17,
+   "carsVisible": 4,
+   "pattern": "sparse, alternating sides",
+   "canopyHidden": 0.35,
+   "note": "Cars spaced far apart; long gaps."
+  },
+  {
+   "edge": 430,
+   "street": "POPPY LN",
+   "lengthM": 139,
+   "pavementFt": 22,
+   "carsVisible": 5,
+   "pattern": "both sides on part",
+   "canopyHidden": 0.35,
+   "note": "Both sides near the north end, one side on the curve."
+  },
+  {
+   "edge": 650,
+   "street": "MILLER AV",
+   "lengthM": 183,
+   "pavementFt": 21,
+   "carsVisible": 10,
+   "pattern": "one side",
+   "canopyHidden": 0.1,
+   "note": "About 8 on one side, 1-2 on the other."
+  },
+  {
+   "edge": 755,
+   "street": "LATHAM LN",
+   "lengthM": 155,
+   "pavementFt": 21,
+   "carsVisible": 7,
+   "pattern": "one side",
+   "canopyHidden": 0.25,
+   "note": "Open grass on the other side of the upper part."
+  },
+  {
+   "edge": 561,
+   "street": "AVENIDA DR",
+   "lengthM": 133,
+   "pavementFt": 18,
+   "carsVisible": 3,
+   "pattern": "one side",
+   "canopyHidden": 0.4,
+   "note": ""
+  },
+  {
+   "edge": 1624,
+   "street": "COLUSA AV",
+   "lengthM": 82,
+   "pavementFt": 34,
+   "carsVisible": 3,
+   "pattern": "both sides, sparse",
+   "canopyHidden": 0.3,
+   "note": "Wide street."
+  },
+  {
+   "edge": 1032,
+   "street": "PARKSIDE DR",
+   "lengthM": 122,
+   "pavementFt": 28,
+   "carsVisible": 2,
+   "pattern": "unknown",
+   "canopyHidden": 0.7,
+   "note": "Mostly under tree canopy."
+  },
+  {
+   "edge": 2254,
+   "street": "SAN LUIS RD",
+   "lengthM": 95,
+   "pavementFt": 22,
+   "carsVisible": 0,
+   "pattern": "none",
+   "canopyHidden": 0.4,
+   "note": "No parked cars on the visible part."
+  },
+  {
+   "edge": 2138,
+   "street": "SCENIC AV",
+   "lengthM": 136,
+   "pavementFt": 24,
+   "carsVisible": 22,
+   "pattern": "both sides on most",
+   "canopyHidden": 0.15,
+   "note": "Dense parking on both sides; about one car width left between."
+  },
+  {
+   "edge": 506,
+   "street": "MENLO PL",
+   "lengthM": 70,
+   "pavementFt": 24,
+   "carsVisible": 3,
+   "pattern": "sparse, mixed",
+   "canopyHidden": 0.3,
+   "note": ""
+  },
+  {
+   "edge": 759,
+   "street": "QUAIL AV",
+   "lengthM": 106,
+   "pavementFt": 21,
+   "carsVisible": 4,
+   "pattern": "one side",
+   "canopyHidden": 0.2,
+   "note": ""
+  },
+  {
+   "edge": 2326,
+   "street": "GRIZZLY PEAK BL",
+   "lengthM": 89,
+   "pavementFt": 32,
+   "carsVisible": 1,
+   "pattern": "none",
+   "canopyHidden": 0.3,
+   "note": ""
+  },
+  {
+   "edge": 2704,
+   "street": "THE ALAMEDA",
+   "lengthM": 113,
+   "pavementFt": 24,
+   "carsVisible": 6,
+   "pattern": "mostly one side",
+   "canopyHidden": 0.5,
+   "note": ""
+  },
+  {
+   "edge": 1006,
+   "street": "AMADOR AV",
+   "lengthM": 103,
+   "pavementFt": 32,
+   "carsVisible": 5,
+   "pattern": "mostly one side",
+   "canopyHidden": 0.2,
+   "note": ""
+  },
+  {
+   "edge": 151,
+   "street": "EUCLID AV",
+   "lengthM": 187,
+   "pavementFt": 32,
+   "carsVisible": 17,
+   "pattern": "both sides on part",
+   "canopyHidden": 0.25,
+   "note": "Both sides on the upper third, one side on the rest."
+  },
+  {
+   "edge": 237,
+   "street": "VISTAMONT AV",
+   "lengthM": 123,
+   "pavementFt": 18,
+   "carsVisible": 2,
+   "pattern": "one side",
+   "canopyHidden": 0.4,
+   "note": ""
+  },
+  {
+   "edge": 2148,
+   "street": "SAN LORENZO AV",
+   "lengthM": 115,
+   "pavementFt": 26,
+   "carsVisible": 12,
+   "pattern": "both sides on part",
+   "canopyHidden": 0.15,
+   "note": "Both sides on about half, one side on the rest."
+  },
+  {
+   "edge": 1414,
+   "street": "WALNUT ST",
+   "lengthM": 194,
+   "pavementFt": 32,
+   "carsVisible": 10,
+   "pattern": "both sides on part",
+   "canopyHidden": 0.25,
+   "note": "Mostly one side, both sides on a short stretch."
+  },
+  {
+   "edge": 398,
+   "street": "SOUTHAMPTON AV",
+   "lengthM": 117,
+   "pavementFt": 22,
+   "carsVisible": 3,
+   "pattern": "one side",
+   "canopyHidden": 0.5,
+   "note": ""
+  },
+  {
+   "edge": 630,
+   "street": "THE ALAMEDA",
+   "lengthM": 152,
+   "pavementFt": 24,
+   "carsVisible": 10,
+   "pattern": "mostly one side",
+   "canopyHidden": 0.3,
+   "note": ""
+  },
+  {
+   "edge": 1181,
+   "street": "LOS ANGELES AV",
+   "lengthM": 83,
+   "pavementFt": 30,
+   "carsVisible": 0,
+   "pattern": "none",
+   "canopyHidden": 0.2,
+   "note": ""
+  },
+  {
+   "edge": 1532,
+   "street": "SPRUCE ST",
+   "lengthM": 111,
+   "pavementFt": 32,
+   "carsVisible": 10,
+   "pattern": "both sides",
+   "canopyHidden": 0.1,
+   "note": ""
+  }
+ ]
+}

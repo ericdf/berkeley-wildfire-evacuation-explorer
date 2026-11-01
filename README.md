@@ -71,12 +71,19 @@ pavement width (84% of vehicle segments) and lane counts. Grade is sampled from 
 every 4 m. Lanes, parking, speeds and capacities that the data does not give come from
 `data/assumptions.json`.
 
-**Clear width and lanes.** Clear width is pavement width minus 8 ft per parked side (the
-value KLD used for the City's SB 99 and AB 747 analyses). Hill streets (Fire Zones 2–3)
-default to parking on both sides where a 10 ft lane still remains. The City's Narrow_Roads
-survey gives the width with parking directly. A clear width of 20 ft fits two moving lanes;
-10 ft fits one, so oncoming cars must take turns. Under 10 ft, a fire engine cannot get
-through (the City's largest truck is 9.25 ft wide). In the hills the median pavement width is
+**Parked cars and clear width** (`js/parking.js`). Clear width is pavement width minus 8 ft
+per parked side (the value KLD used for the City's SB 99 and AB 747 analyses). Parking varies
+by block and by seed: hill blocks are parked on neither side, one side or both (shares from
+City aerial counts of 22 hill blocks), some cars sit partly off the pavement, and an
+occasional bad parking job (a wide vehicle or a car far from the curb) narrows the gap.
+Residents stop parking where less than 8 ft would remain for a car. The City's Narrow_Roads
+"width with parking" assumes perfect parking on both sides, so it is treated as that case,
+not as a measurement. Plan A and Plan B see the same parked cars for the same seed.
+
+A clear width of 20 ft fits two moving lanes; 10 ft fits one. On a two-way street with one
+lane, both directions share it: when cars come from both ways they take turns at gaps such
+as driveways and the street loses capacity. Under 10 ft, a fire engine cannot get through
+(the City's largest truck is 9.25 ft wide). In the hills the median pavement width is
 7.3 m (24 ft).
 
 **Fire and embers** (`js/fire.js`). An illustrative overlay on 30 m cells. A shortest-time
@@ -94,11 +101,16 @@ measured as the study's ETE, from the first order. Directed links have a capacit
 storage, and every intersection has its own capacity. The 2025 study named intersections
 as the main constraint. Vehicles may use every street and re-route every minute around
 queues, fire and embers toward the nearest node outside every ordered zone and the ember
-area.
+area. Households waiting for a commuter (Time Study) wait for that person to drive home
+first, against the outbound traffic; a commuter turned back by fire leaves the household one
+car short. A vehicle stuck 3 minutes at the head of a queue squeezes forward, so the queue
+model cannot lock up for good (as it did at the Marin traffic circle).
 
 **Parking and the 2025 study.** On a two-way street, removing parking opens the oncoming
-lane. It does not create a second evacuating lane. In this model, parking restrictions
-therefore change engine access far more than evacuation flow. That matches the City's 2025
+lane. It does not create a second evacuating lane. Evacuation traffic runs mostly one way, so
+taking turns rarely binds. In this model, parking restrictions therefore change engine access
+far more than evacuation flow. The plan options include cheaper ones than a ban: parking on
+one side only, or enforcing parking tight to the curb. That matches the City's 2025
 finding that broad restrictions are unlikely to improve evacuation flow. The game does not
 add any parking-removal bonus.
 
@@ -109,13 +121,15 @@ add any parking-removal bonus.
 | `index.html`, `css/style.css` | Page and styles |
 | `js/main.js` | UI: controls, results, inspector, comparison, modals |
 | `js/map.js`, `js/terrain.js` | Canvas map, hillshade and contours |
-| `js/fire.js`, `js/sim.js`, `js/scenarios.js`, `js/rng.js` | Models and presets |
+| `js/fire.js`, `js/sim.js`, `js/parking.js`, `js/scenarios.js`, `js/rng.js` | Models and presets |
 | `js/worker.js` | Runs comparison batches off the main thread |
 | `js/data.js` | Loads the data files |
 | `data/assumptions.json` | **Editable** assumptions and game rules, each with a category and note |
 | `data/game/network.json`, `layers.json` | Built by `tools/build-network.mjs` (do not edit by hand) |
 | `data/terrain/dem.i16`, `dem.json` | Elevation grid, built by `tools/fetch-dem.mjs` |
-| `data/raw/` | Downloaded source data (reproducible, large) |
+| `data/field/` | Field and aerial observations (counts only), e.g. parked cars on 22 hill blocks |
+| `data/raw/` | Downloaded source data (reproducible, large; City layers and report PDFs are not in git) |
+| `correspondence/` | Drafts of data requests to the City |
 | `tools/` | Data pipeline (Node 18+, no npm packages) |
 | `tests/headless.mjs` | Runs every scenario × two plans in Node and prints summaries |
 

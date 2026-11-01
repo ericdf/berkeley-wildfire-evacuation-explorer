@@ -274,7 +274,7 @@ export class MapView {
         const prog = Math.min((t - v.enter[i]) / L.ff * L.len, L.len - Math.floor(k / lanes) * spacing);
         const u = Math.max(0, prog) / L.len;
         const [x, y] = along(g, L.dir ? 1 - u : u);
-        ctx.fillStyle = v.exposed[i] ? '#e11d48' : '#1d4ed8';
+        ctx.fillStyle = v.exposed[i] ? '#e11d48' : v.cls[i] === 2 ? '#d97706' : '#1d4ed8';
         ctx.fillRect(this.sx(x) - s / 2, this.sy(y) - s / 2, s, s);
       });
     }

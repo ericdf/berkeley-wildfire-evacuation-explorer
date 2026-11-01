@@ -15,6 +15,7 @@
 // engine's width.
 
 import { mulberry32 } from './rng.js';
+import { parkingState, PARKING_PLANS } from './parking.js';
 import { minFilter, cellOf, MinHeap, inPoly, bbox, inBB, CELL } from './fire.js';
 
 // Sample minutes from a histogram of % per 15-minute period (Time Study Table 5-9 format).
@@ -46,30 +47,11 @@ export class Evacuation {
     this.events = [];
     const nN = net.nodes.length, edges = net.edges;
 
-    // ---- per-edge state under this plan ----
+    // ---- per-edge parking state under this plan (same parked cars for every plan with this seed) ----
     const nE = edges.length;
-    this.clear = new Float32Array(nE).fill(NaN); this.eff = new Int8Array(nE).fill(-1); this.engineOK = new Uint8Array(nE).fill(1);
-    let parkingChanged = 0, engineFixed = 0, engineBlocked = 0;
-    for (const e of edges) {
-      if (e.mode !== 'vehicle') continue;
-      const hills = e.fireZone === 2 || e.fireZone === 3;
-      // parking where it fits: never more parked sides than leave one moving lane
-      let base = { both: 2, one: 1, none: 0 }[e.parking];
-      if (!e.narrow && e.widthM != null) while (base > 0 && e.widthM - base * A.parking.parkedCarWidthM < A.access.movingLaneM) base--;
-      let sides = base;
-      if (hills && plan.hillsParking === 'none') sides = 0;
-      if (hills && plan.hillsParking === 'narrow' && e.narrow) sides = 0;
-      if (sides !== base) parkingChanged++;
-      const clear = e.narrow ? (sides === 0 ? e.widthM : e.clearWidthM) : e.widthM != null ? Math.max(0, e.widthM - sides * A.parking.parkedCarWidthM) : null;
-      if (clear != null) {
-        this.clear[e.id] = clear;
-        this.eff[e.id] = clear >= 2 * A.access.movingLaneM ? 2 : clear >= A.access.movingLaneM ? 1 : 0;
-        this.engineOK[e.id] = clear >= A.access.engineClearM ? 1 : 0;
-        if (!this.engineOK[e.id]) engineBlocked++;
-        if (sides < base && this.engineOK[e.id] && (e.narrow ? e.clearWidthM : e.widthM - base * A.parking.parkedCarWidthM) < A.access.engineClearM) engineFixed++;
-      }
-    }
-    this.parkingStats = { parkingChanged, engineFixed, engineBlocked };
+    const P = this.parking = parkingState(data, plan, seed);
+    this.clear = P.clear; this.eff = P.eff; this.engineOK = P.engineOK;
+    this.parkingStats = P.stats;
 
     // ---- fire timing per edge / node (minutes → seconds) ----
     const cellT = (arr, x, y) => { const c = cellOf(grid, x, y); return c < 0 ? Infinity : arr[c] * 60; };
@@ -121,7 +103,8 @@ export class Evacuation {
     this.zoneCityShare = Array.from(zones, (_, z) => zoneCells[z] ? zoneCity[z] / zoneCells[z] : 0);
 
     // ---- links ----
-    const spacing = A.capacity.vehicleSpacingM;
+    const spacing = A.capacity.vehicleSpacingM, SL = A.sharedLane;
+    this.sharedLanes = 0; this.gridlockReliefs = 0;
     this.links = []; this.outL = Array.from({ length: nN }, () => []); this.inL = Array.from({ length: nN }, () => []);
     this.edgeLinks = new Map();
     const rank = new Int8Array(nN).fill(-1), deg = new Int16Array(nN);
@@ -131,14 +114,24 @@ export class Evacuation {
       for (const n of [e.a, e.b]) { rank[n] = Math.max(rank[n], r); deg[n]++; }
       const eff = this.eff[e.id];
       const arterial = r === 1 || r === 2;
+      // Two-way street with one moving lane (or less) between parked cars: both directions
+      // share one lane and take turns at gaps when both have traffic (assumptions sharedLane).
+      const twoWay = e.lanes[0] > 0 && e.lanes[1] > 0, narrowed = eff === 0 || eff === 1;
+      const squeeze = eff === 0 ? (this.clear[e.id] < SL.crawlBelowM ? SL.crawlFactor : SL.squeezeBelowLaneFactor) : 1;
+      let share = null;
+      if (twoWay && narrowed) {
+        const lost = Math.min(e.len, SL.passingGapM) / e.speedMps + 3;
+        share = { cap: e.capPerLaneVph / 3600 * squeeze, eta: SL.platoonS / (SL.platoonS + lost), budget: 1, stamp: -1, links: [], used: [0, 0], both: false };
+        this.sharedLanes++;
+      }
       for (const d of [0, 1]) {
         const lanes = e.lanes[d]; if (!lanes) continue;
         const el = eff < 0 || eff >= 2 ? lanes : 1;
-        const friction = eff === 0 ? 0.6 : 1;
-        const cap = el * e.capPerLaneVph / 3600 * friction * (1 - (arterial ? tod.background : 0));
+        const cap = el * e.capPerLaneVph / 3600 * squeeze * (1 - (arterial ? tod.background : 0));
         const id = this.links.length;
         const L = { id, e: e.id, dir: d, from: d ? e.b : e.a, to: d ? e.a : e.b, cap, storage: Math.max(2, Math.floor(e.len * el / spacing)),
-          ff: Math.max(2, e.len / e.speedMps), len: e.len, q: [], budget: 1 };
+          ff: Math.max(2, e.len / e.speedMps), len: e.len, q: [], budget: 1, share };
+        if (share) share.links.push(id);
         this.links.push(L); this.outL[L.from].push(id); this.inL[L.to].push(id);
         if (!this.edgeLinks.has(e.id)) this.edgeLinks.set(e.id, []);
         this.edgeLinks.get(e.id).push(id);
@@ -219,7 +212,9 @@ export class Evacuation {
     const hh = this.hh = { n: nH, edge: Int32Array.from(hhEdge), zone: Int16Array.from(hhZone), veh: Uint8Array.from(hhVeh), early: Uint8Array.from(hhEarly),
       kind: new Uint8Array(nH), // 0 stays, 1 ordered, 2 warned and leaving, 3 shadow (voluntary)
       ride: new Int32Array(nH).fill(-1), depart: new Float64Array(nH).fill(Infinity), leftHome: new Float64Array(nH).fill(Infinity),
-      vehLeft: new Uint8Array(nH), arrived: new Float64Array(nH).fill(Infinity) };
+      vehLeft: new Uint8Array(nH), arrived: new Float64Array(nH).fill(Infinity),
+      commuter: new Uint8Array(nH), // 1 a commuter is driving home; 2 home; 3 turned back
+      commuterHome: new Float64Array(nH).fill(Infinity) };
     this.unplacedPeople = unplaced;
     // Who leaves and when (Time Study: 100% of Order zones, 50% of Warning zones, 20% shadow
     // elsewhere in the city; mobilization histograms by household type; SOURCE_NOTES E8, E9).
@@ -239,6 +234,13 @@ export class Evacuation {
       else {
         const commuter = rand() < tod.commuterShare, kids = rand() < D.childPickupShare * tod.schoolInSession;
         curve = commuter ? (kids ? M.E : M.C) : (kids ? M.F : M.D);
+        // The commuter drives home into the evacuating area before the household leaves
+        // (Time Study: households awaiting a returning commuter). They leave work on the
+        // employee curve (Table 5-9 A), then drive returnDriveMin to reach the area's edge.
+        if (commuter && hh.veh[h] && !hh.early[h]) {
+          const entry = T + 60 * (sampleHist(M.A, rand) + D.returnDriveMin[0] + rand() * (D.returnDriveMin[1] - D.returnDriveMin[0]));
+          if (entry < this.end) { hh.commuter[h] = 1; vHH.push(h); vDep.push(entry); vCls.push(2); }
+        }
       }
       const dep = T + 60 * sampleHist(curve, rand);
       hh.depart[h] = dep;
@@ -257,7 +259,10 @@ export class Evacuation {
     const order = vHH.map((_, i) => i).sort((a, b) => vDep[a] - vDep[b]);
     const nV = order.length;
     this.v = { n: nV, hh: Int32Array.from(order, i => vHH[i]), depart: Float64Array.from(order, i => vDep[i]), cls: Uint8Array.from(order, i => vCls[i]),
-      link: new Int32Array(nV).fill(-1), enter: new Float64Array(nV), state: new Uint8Array(nV), arrive: new Float64Array(nV).fill(Infinity), exposed: new Uint8Array(nV) };
+      link: new Int32Array(nV).fill(-1), enter: new Float64Array(nV), state: new Uint8Array(nV), arrive: new Float64Array(nV).fill(Infinity), exposed: new Uint8Array(nV),
+      dest: new Int32Array(nV).fill(-1), pidx: new Int32Array(nV) };
+    this.commutersTurnedBack = 0; this.lostCar = 0; this.skipVehicle = new Set();
+    this.paths = new Map(); this.held = new Map(); // inbound paths; household vehicles waiting for their commuter
     this.nextDepart = 0; this.waiting = []; // vehicles ready to leave but whose street has no room
     this.active = new Set();
   }
@@ -284,6 +289,15 @@ export class Evacuation {
       }
     }
     this.linkCost = cost;
+    // Inbound commuters: forward tree from every node outside the evacuating area.
+    const din = this.inDist || (this.inDist = new Float64Array(nN)), prevL = this.inPrev || (this.inPrev = new Int32Array(nN));
+    din.fill(Infinity); prevL.fill(-1);
+    const heap = new MinHeap();
+    for (let n = 0; n < nN; n++) if (this.safe[0][n] && outL[n].length) { din[n] = 0; heap.push(0, n); }
+    while (heap.size) {
+      const [d, n] = heap.pop(); if (d > din[n]) continue;
+      for (const lid of outL[n]) { const L = links[lid]; const nd = d + cost[lid]; if (nd < din[L.to]) { din[L.to] = nd; prevL[L.to] = lid; heap.push(nd, L.to); } }
+    }
   }
 
   step() {
@@ -291,32 +305,68 @@ export class Evacuation {
     const { links, v, hh } = this;
     if (Math.round(t) % 60 === 0) this.route();
     // budgets
-    for (const lid of this.active) { const L = links[lid]; L.budget = Math.min(L.budget + L.cap * dt, Math.max(1, L.cap * dt)); }
+    for (const lid of this.active) {
+      const L = links[lid], S = L.share;
+      if (!S) { L.budget = Math.min(L.budget + L.cap * dt, Math.max(1, L.cap * dt)); continue; }
+      if (S.stamp === t) continue;
+      S.stamp = t;
+      const both = S.links.length === 2 && links[S.links[0]].q.length > 0 && links[S.links[1]].q.length > 0;
+      if (both && !S.both) S.used[0] = S.used[1] = 0;
+      S.both = both;
+      const rate = S.cap * (both ? S.eta : 1);
+      S.budget = Math.min(S.budget + rate * dt, Math.max(1, rate * dt));
+    }
     const nb = this.nodeBudget, nc = this.nodeCap;
     for (let n = 0; n < nb.length; n++) nb[n] = nc[n] === Infinity ? Infinity : Math.min(nb[n] + nc[n] * dt, Math.max(1, nc[n] * dt));
     // departures
-    while (this.nextDepart < v.n && v.depart[this.nextDepart] <= t) this.waiting.push(this.nextDepart++);
+    while (this.nextDepart < v.n && v.depart[this.nextDepart] <= t) {
+      const i = this.nextDepart++, h = v.hh[i];
+      if (v.cls[i] !== 2 && hh.commuter[h] === 1) { if (!this.held.has(h)) this.held.set(h, []); this.held.get(h).push(i); continue; }
+      if (v.cls[i] !== 2 && this.skipVehicle.has(h)) { this.skipVehicle.delete(h); v.state[i] = 4; continue; } // the car the commuter could not bring home
+      this.waiting.push(i);
+    }
     if (this.waiting.length) {
       const still = [];
       for (const i of this.waiting) if (!this.enter(i)) still.push(i);
       this.waiting = still;
     }
     // movement
-    for (const lid of Array.from(this.active)) {
+    // Rotate the processing order every step so no link is always served last (otherwise a
+    // link can be starved of an intersection's capacity indefinitely).
+    const act = Array.from(this.active), off = act.length ? Math.floor(t / dt) % act.length : 0;
+    const GR = this.data.A.capacity.gridlockReliefS;
+    for (let a = 0; a < act.length; a++) {
+      const lid = act[(a + off) % act.length];
       const L = links[lid];
       while (L.q.length) {
         const i = L.q[0];
-        if (t < v.enter[i] + L.ff || L.budget < 1) break;
+        const B = L.share || L;
+        if (t < v.enter[i] + L.ff || B.budget < 1) break;
+        if (L.share && L.share.both && L.share.used[L.dir] > L.share.used[1 - L.dir]) { // take turns with an oncoming car that is waiting
+          const O = links[L.share.links[L.share.links[0] === lid ? 1 : 0]];
+          const ow = O.q.length ? t - v.enter[O.q[0]] - O.ff : -1;
+          if (ow >= 0 && ow < GR) break; // an oncoming car blocked downstream for longer does not hold this side up
+        }
         const k = v.cls[i];
-        if (this.safe[k][L.to]) { L.q.shift(); L.budget--; this.arrive(i); continue; }
+        if (k === 2) { // inbound commuter
+          if (L.to === v.dest[i]) { L.q.shift(); B.budget--; if (L.share) L.share.used[L.dir]++; this.commuterHome(i, true); continue; }
+          if (nb[L.to] < 1) break;
+          const path = this.paths.get(i), nl = path[v.pidx[i]];
+          if (this.linkCost[nl] === Infinity) { L.q.shift(); B.budget--; this.commuterHome(i, false); continue; } // fire ahead: turned back
+          const N = links[nl]; if (N.q.length >= N.storage && !this.relieve(i, L)) break;
+          L.q.shift(); B.budget--; nb[L.to]--; if (L.share) L.share.used[L.dir]++;
+          N.q.push(i); v.link[i] = nl; v.enter[i] = t; v.pidx[i]++; this.active.add(nl);
+          continue;
+        }
+        if (this.safe[k][L.to]) { L.q.shift(); B.budget--; if (L.share) L.share.used[L.dir]++; this.arrive(i); continue; }
         if (nb[L.to] < 1) break;
         const opts = this.next[k][L.to]; if (!opts) break;
         let moved = false;
         for (const nl of opts) {
           const N = links[nl];
           if (N.to === L.from && opts.length > 1) continue; // no U-turns unless it is the only way
-          if (N.q.length >= N.storage) continue;
-          L.q.shift(); L.budget--; nb[L.to]--;
+          if (N.q.length >= N.storage && !this.relieve(i, L)) continue;
+          L.q.shift(); B.budget--; nb[L.to]--; if (L.share) L.share.used[L.dir]++;
           N.q.push(i); v.link[i] = nl; v.enter[i] = t; this.active.add(nl);
           moved = true; break;
         }
@@ -331,6 +381,7 @@ export class Evacuation {
 
   enter(i) {
     const { v, hh, links } = this;
+    if (v.cls[i] === 2) return this.enterInbound(i);
     const h = v.hh[i], eid = hh.edge[h];
     const cand = (this.edgeLinks.get(eid) || []).filter(l => links[l].q.length < links[l].storage);
     if (!cand.length) return false;
@@ -340,6 +391,41 @@ export class Evacuation {
     L.q.push(i); v.link[i] = L.id; v.enter[i] = this.t - L.ff * this.rand(); v.state[i] = 1; this.active.add(L.id);
     if (this.t < hh.leftHome[h]) hh.leftHome[h] = this.t;
     return true;
+  }
+
+  // Gridlock relief (game rule): a vehicle that has waited gridlockReliefS at the head of a
+  // queue squeezes into a full downstream link, as drivers creep forward. A queue model can
+  // otherwise lock up permanently in rings such as traffic circles.
+  relieve(i, L) {
+    if (this.t - this.v.enter[i] - L.ff < this.data.A.capacity.gridlockReliefS) return false;
+    this.gridlockReliefs++; return true;
+  }
+
+  // A returning commuter enters at the edge of the evacuating area nearest home (by current travel time).
+  enterInbound(i) {
+    const { v, hh, links, data } = this, h = v.hh[i], e = data.net.edges[hh.edge[h]];
+    const home = this.inDist[e.a] <= this.inDist[e.b] ? e.a : e.b;
+    if (this.inDist[home] === Infinity) { this.commuterHome(i, false); return true; }
+    const path = []; for (let n = home; this.inPrev[n] >= 0 && path.length < 5000;) { const L = links[this.inPrev[n]]; path.push(L.id); n = L.from; }
+    path.reverse();
+    if (!path.length) { this.commuterHome(i, true); return true; }
+    const L = links[path[0]]; if (L.q.length >= L.storage) return false;
+    v.dest[i] = home; v.pidx[i] = 1; this.paths.set(i, path);
+    L.q.push(i); v.link[i] = L.id; v.enter[i] = this.t; v.state[i] = 1; this.active.add(L.id);
+    return true;
+  }
+  commuterHome(i, ok) {
+    const { v, hh } = this, h = v.hh[i];
+    v.state[i] = ok ? 2 : 3; v.arrive[i] = this.t; v.link[i] = -1; this.paths.delete(i);
+    hh.commuter[h] = ok ? 2 : 3; hh.commuterHome[h] = this.t;
+    let held = this.held.get(h) || []; this.held.delete(h);
+    // Turned back by fire: the commuter's car never reaches home, so the household has one
+    // vehicle fewer. A one-car household is left without a car.
+    if (!ok) {
+      this.commutersTurnedBack++; hh.veh[h]--; if (!hh.veh[h]) this.lostCar++;
+      if (held.length) v.state[held.shift()] = 4; else this.skipVehicle.add(h);
+    }
+    for (const j of held) this.waiting.push(j);
   }
 
   arrive(i) {
@@ -452,9 +538,12 @@ export class Evacuation {
       if (k === 2) warned++;
       if (hh.early[h]) { early++; earlyVeh += hh.veh[h]; } else if (!hh.veh[h]) { if (hh.ride[h] >= 0) riders++; else stranded++; }
     }
-    let shadowVeh = 0; for (let i = 0; i < v.n; i++) if (v.cls[i]) shadowVeh++;
+    let shadowVeh = 0, inbound = 0; for (let i = 0; i < v.n; i++) { if (v.cls[i] === 1) shadowVeh++; if (v.cls[i] === 2) inbound++; }
+    if (inbound) this.log(`${inbound.toLocaleString()} commuters drive home into the evacuating area before their households leave (Time Study: households awaiting a returning commuter). On streets with one lane between parked cars they must take turns with evacuees driving out.`, 'order');
     if (early) this.log(`Early departure: ${early.toLocaleString()} households (${earlyVeh.toLocaleString()} vehicles) in Fire Zones 2–3 left before the fire, so they did not enter the road network during the alert.`, 'plan');
-    if (plan.hillsParking !== 'both') this.log(`Parking plan "${plan.hillsParking === 'none' ? 'no parking in Fire Zones 2–3' : 'no parking on City narrow roads'}": ${parkingChanged(parkingStats)}. Two-way hill streets still carry one evacuating lane per direction, so egress gains are small; the change mainly opens the oncoming lane for engines.`, 'plan');
+    { const ps = parkingStats;
+      this.log(`Parked cars this run (seed ${this.seed}): of ${ps.hillsKnown} hill segments with a known width, ${ps.twoSides} parked on both sides and ${ps.oneSide} on one side; ${ps.pinched} segments have a bad parking job narrowing the gap. ${ps.engineBlocked} segments are too narrow for an engine; ${this.sharedLanes} two-way segments leave one lane, so oncoming drivers take turns.`, 'plan'); }
+    if (plan.hillsParking !== 'both') this.log(`Parking plan "${PARKING_PLANS[plan.hillsParking]}": ${parkingChanged(parkingStats)}.`, 'plan');
     if (warned) this.log(`${warned.toLocaleString()} households in warning zones choose to leave (Time Study: 50% of warned households).`, 'order');
     if (shadow) this.log(`${shadow.toLocaleString()} households outside the order and warning zones leave anyway (${shadowVeh.toLocaleString()} vehicles heading out of the city; Time Study: 20% shadow evacuation).`, 'order');
     if (riders) this.log(`${riders.toLocaleString()} households without a vehicle ride with a neighbour.`, 'order');
@@ -512,11 +601,14 @@ export class Evacuation {
     // ETE as the Time Study measures it: minutes from the first order until 50/90/100% of
     // evacuating (non-shadow) vehicles have left the order and warning area.
     let exposedVeh = 0, n0 = 0; const arr = [];
-    for (let i = 0; i < v.n; i++) { if (v.exposed[i]) exposedVeh++; if (v.cls[i]) continue; n0++; if (v.state[i] === 2) arr.push(v.arrive[i] - this.firstOrderT); }
+    for (let i = 0; i < v.n; i++) { if (v.exposed[i]) exposedVeh++; if (v.cls[i] || v.state[i] === 4) continue; n0++; if (v.state[i] === 2) arr.push(v.arrive[i] - this.firstOrderT); }
     S.exposedRoad = exposedVeh * pph / Math.max(1, drivingVeh / Math.max(1, drivingHH));
     S.vehicles = n0; S.shadowVehicles = v.n - n0; S.vehiclesArrived = arr.length; S.vehiclesExposed = exposedVeh;
     S.vehiclesOnRoad = 0; S.vehiclesNoRoute = 0;
-    for (let i = 0; i < v.n; i++) if (v.state[i] === 1) { S.vehiclesOnRoad++; const L = this.links[v.link[i]], k = v.cls[i]; if (!this.safe[k][L.to] && !this.next[k][L.to]) S.vehiclesNoRoute++; }
+    let inbound = 0, inboundHome = 0;
+    for (let i = 0; i < v.n; i++) if (v.cls[i] === 2) { inbound++; if (v.state[i] === 2) inboundHome++; }
+    S.gridlockReliefs = this.gridlockReliefs; S.sharedLanes = this.sharedLanes; S.commutersInbound = inbound; S.commutersHome = inboundHome; S.commutersTurnedBack = this.commutersTurnedBack; S.householdsLostCar = this.lostCar;
+    for (let i = 0; i < v.n; i++) if (v.state[i] === 1 && v.cls[i] !== 2) { S.vehiclesOnRoad++; const L = this.links[v.link[i]], k = v.cls[i]; if (!this.safe[k][L.to] && !this.next[k][L.to]) S.vehiclesNoRoute++; }
     arr.sort((a, b) => a - b);
     const pct = p => n0 ? (arr.length >= Math.ceil(p * n0) ? arr[Math.ceil(p * n0) - 1] / 60 : null) : null;
     S.clearP50 = pct(0.5); S.clearP90 = pct(0.9); S.clearP100 = pct(1);
@@ -553,5 +645,5 @@ function cityExitNodes(data) {
   return out;
 }
 
-const parkingChanged = s => `${s.parkingChanged} hill segments lose parking; ${s.engineFixed} segments that were too narrow for an engine become passable`;
+const parkingChanged = s => `${s.parkingChanged} hill segments lose parked cars on at least one side; ${s.engineFixed} segments that were too narrow for an engine become passable`;
 export const titleCase = s => s.toLowerCase().replace(/\b([a-z])/g, m => m.toUpperCase()).replace(/\b(Av|Wy|St|Rd|Dr|Pl|Ct|Ln|Te|Bl)\b/g, m => m);

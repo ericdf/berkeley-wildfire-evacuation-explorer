@@ -2,6 +2,7 @@ import { loadData } from './data.js';
 import { buildFireGrid, runFire, cellOf, demAt, FUEL, LB_MAX, CELL } from './fire.js';
 import { makeScenarios, SEVERITY, SEVERITY_NOTE, TIME_OF_DAY, TIME_NOTE } from './scenarios.js';
 import { Evacuation, DEFAULT_PLAN, titleCase } from './sim.js';
+import { PARKING_PLANS } from './parking.js';
 import { MapView, STREET_MODES } from './map.js';
 import { fromUTM } from '../tools/utm.mjs';
 
@@ -14,6 +15,7 @@ const CAT = { sourced: 'sourced', derived: 'derived', assumption: 'assumption', 
 const badge = (cat, tip) => `<span class="badge b-${CAT[cat] || 'missing'}"${tip ? ` title="${esc(tip)}"` : ''}>${cat === 'unknown' ? 'no data' : cat}${tip ? ' ⓘ' : ''}</span>`;
 const srcCat = src => !src ? 'unknown' : src.startsWith('city:') ? 'sourced' : src.startsWith('assumption:') ? 'assumption' : src.startsWith('derived:') ? 'derived' : src === 'unknown' ? 'unknown' : 'derived';
 
+const A_NOTE = k => data.A._meta[k]?.note || '';
 const state = {
   plans: { A: { ...DEFAULT_PLAN, name: 'Plan A: baseline' }, B: { ...DEFAULT_PLAN, name: 'Plan B: leave early + targeted parking', earlyShare: 0.5, hillsParking: 'narrow' } },
   editing: 'A', playing: false, speed: 300, sim: null, fires: new Map(), batch: 0,
@@ -58,9 +60,13 @@ function readPlan() {
   p.earlyShare = +$('p-earlyShare').value; p.hillsParking = $('p-hillsParking').value;
   parkingNote();
 }
+for (const [k, label] of Object.entries(PARKING_PLANS)) $('p-hillsParking').add(new Option(label, k));
 function parkingNote() {
   const v = $('p-hillsParking').value;
-  $('parking-note').textContent = v === 'none'
+  $('parking-note').textContent = v === 'both' ? 'Each run draws which hill blocks are parked on one side or both, where cars sit partly off the pavement, and where one bad parking job (a wide vehicle or a car far from the curb) narrows the gap. Both plans see the same parked cars for the same seed; compare across seeds to see how often engines get through.'
+    : v === 'oneside' ? 'Parking stays, but only on one side of hill streets (for example on Red Flag days). Leaves most hill streets with one clear lane for engines and for taking turns. Enforcement and resident impacts are not yet modeled.'
+    : v === 'tight' ? 'Parking stays as it is, but cars must park tight to the curb, so there are no bad parking jobs. Shows how much engine access depends on a few badly parked vehicles. Enforcement is not yet modeled.'
+    : v === 'none'
     ? 'Broad restriction. Berkeley’s 2025 Evacuation Time Study found broad parking restrictions unlikely to improve evacuation flow, and they could worsen intersection queues. This model does not count parking removal as extra evacuation lanes on two-way streets; its main effect here is on fire-engine access. Resident impacts (lost parking, enforcement) are not yet modeled.'
     : v === 'narrow' ? 'Targeted restriction on the City’s mapped narrow roads (Narrow_Roads layer). Aimed at responder ingress; enforcement and resident impacts are not yet modeled.' : '';
 }
@@ -153,7 +159,9 @@ function update(full) {
       <tr><td>Last household with a car out (after the first order)</td><td class="num">${S.lastHousehold == null ? 'not yet' : mins(S.lastHousehold)}</td></tr>
       <tr><td>Vehicles on roads now · peak queued</td><td class="num">${fmt(S.vehiclesOnRoad)} · ${fmt(S.peakQueued)}</td></tr>
       <tr><td>Fire-engine travel to the fire edge: at ignition → now (City standard: ${data.A.access.engineServiceMin} min)</td><td class="num">${S.responderFree === Infinity ? '<b style="color:#b91c1c">blocked by parked cars</b>' : mins(S.responderFree)} → ${S.responderBlocked ? '<b style="color:#b91c1c">blocked</b>' : mins(S.responderEta)}</td></tr>
-      <tr><td>Street segments too narrow for an engine (this plan)</td><td class="num">${fmt(S.engineBlockedSegments)}</td></tr>
+      <tr><td>Street segments too narrow for an engine (this plan and seed)</td><td class="num">${fmt(S.engineBlockedSegments)}</td></tr>
+      <tr><td>Two-way segments where oncoming drivers take turns</td><td class="num">${fmt(S.sharedLanes)}</td></tr>
+      <tr><td>Commuters driving home into the area: home · turned back by fire</td><td class="num">${fmt(S.commutersHome)} of ${fmt(S.commutersInbound)} · ${fmt(S.commutersTurnedBack)}</td></tr>
       <tr><td>Zones ordered · warned</td><td class="num">${fmt(S.zonesOrdered)} · ${fmt(S.zonesWarned)}</td></tr>
     </table>
     <canvas class="spark" id="spark" width="330" height="60"></canvas>
@@ -193,10 +201,11 @@ function inspect(sel, quiet) {
     if (e.mode === 'vehicle') {
       rows += row('Lanes [forward, back]', `${e.lanes.join(', ')}`, srcCat(e.lanesSrc), e.lanesSrc)
         + row('Pavement width', e.widthM == null ? 'unknown' : `${fmt(e.widthM, 1)} m (${fmt(e.widthM / 0.3048)} ft)`, srcCat(e.widthSrc), e.widthSrc)
-        + row('Parking (status quo)', e.parking, 'assumption', F.parking.source);
+        + (e.narrow ? row('City survey: width with parking', `${fmt(e.clearWidthM / 0.3048)} ft`, 'sourced', 'City Narrow_Roads Width_w_Parking: pavement minus 7 ft per parked side, assuming perfect parking. Used as one possible state, not a measurement.') : '');
       if (sim) {
-        const cw = sim.clear[e.id];
-        rows += row('Clear width under this plan', Number.isNaN(cw) ? 'unknown' : `${fmt(cw, 1)} m`, e.narrow ? 'sourced' : Number.isNaN(cw) ? 'unknown' : 'derived', e.narrow ? 'City Narrow_Roads Width_w_Parking (or full width if parking removed)' : 'Width minus parked cars (assumption)')
+        const cw = sim.clear[e.id], P = sim.parking, sd = P.sides[e.id];
+        rows += row('Parked sides (this run)', sd < 0 ? '—' : `${sd}${P.offPave[e.id] ? ', partly off the pavement' : ''}${P.pinchM[e.id] ? `; one bad parking job takes ${fmt(P.pinchM[e.id] / 0.3048, 1)} ft more` : ''}`, 'game rule', A_NOTE('parking.range'))
+          + row('Clear width under this plan', Number.isNaN(cw) ? 'unknown' : `${fmt(cw, 1)} m (${fmt(cw / 0.3048)} ft)`, Number.isNaN(cw) ? 'unknown' : 'derived', 'Pavement width minus parked cars (8 ft per side, KLD), minus any bad parking job, for this run\'s seed')
           + row('Moving lanes that fit', sim.eff[e.id] < 0 ? 'unknown' : sim.eff[e.id], 'game rule', F.effLanes.source)
           + row('Fire engine can pass', sim.engineOK[e.id] ? 'yes' : '<b style="color:#b91c1c">no</b>', 'game rule', F.engineBlocked.source);
       }
@@ -243,7 +252,7 @@ function legend() {
     oneway: sw('#d1495b', 'One-way (arrow = direction)') + sw('#666', 'Two-way'),
   }[m];
   const extra = (map.layers.fire ? `<div><span class="dot" style="background:#ff7a00"></span>Active fire (last 15 min)</div><div><span class="dot" style="background:#5a1e19"></span>Burned</div><div><span class="dot" style="background:#ffb020;opacity:.6"></span>Ember exposure</div>` : '')
-    + (map.layers.vehicles ? `<div><span class="dot" style="background:#1d4ed8"></span>Vehicle · <span class="dot" style="background:#e11d48"></span>vehicle in ember area</div>` : '')
+    + (map.layers.vehicles ? `<div><span class="dot" style="background:#1d4ed8"></span>Vehicle leaving · <span class="dot" style="background:#d97706"></span>commuter driving home · <span class="dot" style="background:#e11d48"></span>in ember area</div>` : '')
     + (map.layers.queues ? sw('rgba(200,20,40,.8)', 'Queue (width = how full)') : '')
     + (map.layers.responder ? sw('#0e7490', 'Engine route to fire edge') : '')
     + (map.layers.paths ? `<div><span class="sw" style="background:repeating-linear-gradient(90deg,#8a5a2b 0 3px,transparent 3px 6px)"></span>Paths &amp; stairways (no vehicles)</div>` : '');
@@ -280,6 +289,7 @@ const METRICS = [
   ['Vehicles trapped (no open route)', S => S.vehiclesNoRoute, -1],
   ['Engine travel time at ignition (min; ∞ = blocked by parked cars)', S => S.responderFree, -1],
   ['Segments too narrow for an engine', S => S.engineBlockedSegments, -1],
+  ['Commuters turned back by fire', S => S.commutersTurnedBack, -1],
 ];
 function renderCompare(results, scope) {
   const groups = scope === 'severities' ? ['low', 'central', 'high'] : scenarios.map(s => s.id);
@@ -334,7 +344,10 @@ $('btn-assumptions').onclick = () => {
     <li>When: each household's departure after the order is drawn from the Time Study's survey-based mobilization tables (Table 5-9), which include noticing the order and getting ready. Households waiting for a commuter, or picking up children on school days, leave later.</li>
     <li>Evacuation time is measured like the Time Study's ETE: from the first order until 90% (and 100%) of evacuating vehicles have left the order and warning area. <code>node tests/calibration.mjs</code> compares the game with the study's results with the fire switched off.</li>
     <li>Vehicles may use every street. They head for the nearest road node outside every ordered or warned zone and the ember area, and re-plan every minute around queues, fire and embers.</li>
-    <li>Each link passes at most its capacity, holds at most its storage, and each intersection passes at most its own capacity. On two-way streets with one moving lane between parked cars, each direction still has one evacuating lane: removing parking does not add evacuation lanes there.</li>
+    <li>Each link passes at most its capacity, holds at most its storage, and each intersection passes at most its own capacity. On two-way streets with only one moving lane between parked cars, both directions share that lane: when cars come from both ways they take turns at gaps such as driveways, and the street loses capacity. Removing parking does not add evacuation lanes on two-way streets.</li>
+    <li>Parked cars vary by block and seed: hill blocks are parked on one side or both, some cars sit partly off the pavement, and an occasional bad parking job (a wide vehicle, or a car far from the curb) narrows the gap. Residents stop parking where less than 8 ft would remain for a car. The City survey's "width with parking" is treated as the both-sides case.</li>
+    <li>Households awaiting a commuter (Time Study) wait for that person to drive home first. The commuter enters at the edge of the evacuating area nearest home and drives in against the outbound traffic. A commuter turned back by fire leaves the household one car short.</li>
+    <li>Gridlock relief: a vehicle stuck ${data.A.capacity.gridlockReliefS} s at the head of a queue squeezes forward. Without it the queue model can lock up for good in rings such as traffic circles.</li>
     <li>Engines travel from the nearest station to the road point nearest the ignition that the fire has not yet reached. They cannot pass segments narrower than an engine (with parked cars), and are delayed by oncoming evacuees where only one lane is clear.</li>
   </ul>
   <h3>What Phase 1 does not do</h3>

@@ -19,7 +19,7 @@ Status as of 2026-10-31. Categories: **sourced** (published data used as-is), **
 | Neighborhoods (24), city limits | City `Neighborhoods` (OED 2023), `City_of_Berkeley_Boundary` | GeoJSON | Map context, navigation | sourced |
 | Fire stations (7), shelters (13) | City `Fire_Stations`, `ShelterSites_WFL1` | GeoJSON | Responder origins; map | sourced |
 | No-parking signs (fire zones and narrow roads) | City sign layers | GeoJSON points | Map layer only (not yet used to set parking) | sourced |
-| City orthophotos 2020 and 2017, 3 in (7.6 cm) pixels; also 2014 4 in and 2020 1 m | City of Berkeley GIS `gis.cityofberkeley.info/arcgis3/rest/services/Imagery/ORTHOPHOTO_2020_3in/ImageServer` (public REST, `exportImage`); flown by Pictometry for the City | Image service, EPSG:2227 | Not yet used. Candidate for counting parked cars, which side is parked, and passing gaps per block | sourced (licence: City of Berkeley / Pictometry; use for derived counts, do not redistribute the imagery) |
+| City orthophotos 2020 and 2017, 3 in (7.6 cm) pixels; also 2014 4 in and 2020 1 m (used for parking counts on 22 hill blocks) | City of Berkeley GIS `gis.cityofberkeley.info/arcgis3/rest/services/Imagery/ORTHOPHOTO_2020_3in/ImageServer` (public REST, `exportImage`); flown by Pictometry for the City | Image service, EPSG:2227 | Counted parked cars, sides parked and gaps on 22 hill blocks (derived counts in `data/field/`). More blocks possible | sourced (licence: City of Berkeley / Pictometry; use for derived counts, do not redistribute the imagery) |
 | FHSZ 2025, ember threat zones | City `CAL_FIRE_and_Berkeley_FHSZ_2025`, `Ember_Threat_Zones` | GeoJSON (100+ MB each) | Downloaded, not yet used | sourced |
 
 ## Where width, grade and lane counts come from
@@ -38,9 +38,11 @@ Status as of 2026-10-31. Categories: **sourced** (published data used as-is), **
   lanes come from City `PAV_LANES`, falling back to an assumption by road class. The 2025
   Evacuation Time Study (KLD) network would give lanes, saturation flow and intersection
   control for every modeled link. That is the best replacement.
-- **Parking.** Assumed on both sides where it fits. The City's no-parking-sign layers are
-  loaded but not yet turned into curb segments. A curb or red-zone inventory would replace
-  the assumption.
+- **Parking.** Varies by block and seed, with shares from counts of parked cars on City 2020
+  orthophotos for 22 hill blocks (`data/field/aerial-parking-counts-2020.json`) and Eric's
+  street photos. Daytime only. The City's no-parking-sign layers are loaded but not yet turned
+  into curb segments. A curb or red-zone inventory and evening counts would replace the
+  remaining assumptions (off-pavement parking, bad parking jobs).
 
 ## Documents read
 

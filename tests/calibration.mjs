@@ -17,7 +17,7 @@ const plan = { ...DEFAULT_PLAN, alertKm: 0, orderDelayMin: 0 };
 for (const sc of makeScenarios(data).filter(s => ETE_TARGETS[s.id])) {
   const T = ETE_TARGETS[sc.id];
   console.log(`\n${T.region} (game scenario "${sc.name}"), ETE after the order, h:mm. Game = median of ${seeds} seeds [min–max]`);
-  console.log('case  p90 study  p90 game              p100 study  p100 game             evac veh  shadow veh');
+  console.log('case  p90 study  p90 game              p100 study  p100 game             evac veh  shadow veh  inbound  relief');
   for (const tk of Object.keys(TIME_OF_DAY)) {
     const runs = [];
     for (let seed = 1; seed <= seeds; seed++) {
@@ -25,6 +25,6 @@ for (const sc of makeScenarios(data).filter(s => ETE_TARGETS[s.id])) {
       runs.push(sim.runToEnd());
     }
     const col = f => { const v = runs.map(f).filter(x => x != null).sort((a, b) => a - b); return v.length ? `${hm(v[Math.floor(v.length / 2)])} [${hm(v[0])}–${hm(v.at(-1))}]` : '—'; };
-    console.log(`${tk}    ${hm(T.p90[tk])}     ${col(S => S.clearP90).padEnd(22)}${hm(T.p100[tk])}       ${col(S => S.clearP100).padEnd(22)}${String(runs[0].vehicles).padStart(8)}  ${String(runs[0].shadowVehicles).padStart(9)}`);
+    console.log(`${tk}    ${hm(T.p90[tk])}     ${col(S => S.clearP90).padEnd(22)}${hm(T.p100[tk])}       ${col(S => S.clearP100).padEnd(22)}${String(runs[0].vehicles).padStart(8)}  ${String(runs[0].shadowVehicles).padStart(9)}  ${String(runs[0].commutersInbound).padStart(7)}  ${String(runs[0].gridlockReliefs).padStart(6)}`);
   }
 }
