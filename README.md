@@ -74,6 +74,19 @@ plan on the map; Compare runs both on 9 fires (3 severities × 3 seeds) and stat
 - **Fire-engine travel** is responder ingress, which is modeled separately from resident
   egress. "Blocked by parked cars" means no route to the fire edge has an engine's width
   of clear road under that plan's parking rules.
+- **Hill homes an engine can reach within 5 minutes** is the share (and number) of synthetic
+  residents of Berkeley's Fire Zones 2–3 whose street a fire engine can reach from the nearest
+  of Berkeley's 7 stations within the City's 5-minute standard (SOURCE_NOTES A6), at ignition,
+  before traffic and fire, under that plan's parking rules and that seed's parked cars. Model
+  rule (SOURCE_NOTES ER1): the engine must reach the nearer end of the home's street segment on
+  a route where every segment leaves 10 ft clear and no fixed barrier closes it; the home's own
+  segment need not pass. The tooltip adds the residents with no engine route at all and the
+  same share later in the run, with traffic and fire. Engines drive at 1.15 times the posted
+  speed with no turn or grade delays, so nearly every home with a route is within 5 minutes and
+  the measure mostly counts homes that parked cars cut off. It covers Berkeley's zones only
+  (stations in Oakland, Kensington and Albany are not modeled) and measures access, not
+  firefighting: engines do not fight the fire in this simulator. "Color streets by → Engine
+  drive time" maps the same drive times.
 - **Event log** explains the results, e.g. "Early departure: 2,896 households left
   before the fire…", "Queue of 109 vehicles waiting at Shattuck Av / Bancroft Wy",
   "Engines cannot reach the fire edge near Summit Rd: parked cars leave less than an
