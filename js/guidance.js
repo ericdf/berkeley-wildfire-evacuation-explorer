@@ -1,0 +1,273 @@
+// Driver information and routing (plan setting, Expert view; SOURCE_NOTES DG1–DG14).
+// With the setting at "today" (the default) this module does nothing and js/sim.js routes
+// exactly as before. Otherwise sim.route() calls Guidance.route() every minute, and every
+// routing decision asks Guidance.tree() which route tree a vehicle follows.
+//
+// Every option sends drivers to the same places the simulator counts as safe (sim.safe);
+// the options differ only in what a driver knows on the way and whom the driver follows.
+// A household follows the option (app, guidance) or drives by habit according to its own
+// seeded draw, never the shared stream, so plans that differ only in routing see the same
+// households, parked cars and fire.
+
+import { mulberry32 } from './rng.js';
+import { MinHeap } from './fire.js';
+
+export const ROUTING = {
+  today: { label: "Today's model: every driver well informed (idealized)", short: "Today's model", category: 'model rule',
+    note: 'Every car re-plans every minute with full knowledge of queues, fire and embers. An idealized, well-informed baseline: real drivers know less. Every result the simulator gave before this setting existed uses it.' },
+  habit: { label: 'Habit: usual route to the nearest way out', short: 'Habit', category: 'assumption',
+    note: 'Drivers take their usual shortest route (free-flow time, ignoring queues) to the nearest place outside the order area, and change only where a street ahead is burning or full. They ignore embers until embers reach the street they are on, then avoid streets under embers. Surveys after the 2017 and 2018 California fires found 77–87% of evacuees did not use GPS navigation (Wong, Broader and Shaheen 2020, Table 10). The share setting is the share of drivers who drive by habit; the rest follow Today\'s model.' },
+  app: { label: 'Ordinary navigation app: live traffic, no fire knowledge', short: 'Ordinary app', category: 'assumption',
+    note: 'Like consumer navigation: re-plans every minute on live queues but knows nothing about fire or embers until a road is closed (here, once the fire front reaches it). In the December 2017 Skirball and Creek fires, navigation apps sent drivers onto streets inside evacuation areas because they showed no traffic (Los Angeles City Council motion 17-1407). The share setting is the share of drivers using the app; the rest drive by habit.' },
+  guided: { label: 'Constrained egress guidance (hypothetical pilot design)', short: 'Constrained guidance', category: 'model rule',
+    note: 'Central guidance with hard constraints, measured against the route each driver would take on their own (by habit). Never worse off: it offers a route only if, under its fire forecast, the route is no riskier than the driver\'s own and either at most a small tolerance slower at current queues or strictly safer. Safety before speed: it never routes toward the fire or through current or forecast ember areas when another way out exists; the forecast is the illustrative fire\'s own arrival times plus a margin, and a real forecast would be uncertain. Among equally safe routes it spreads cars across ways out (load balancing). It never tells anyone to delay leaving (no staging). If no route passes, it offers nothing and the driver keeps their own route. The share setting is the share of drivers following it; the rest drive by habit. No agency runs such a system today.' },
+  system: { label: 'Unconstrained system-optimal (comparison only)', short: 'Unconstrained system-optimal', category: 'model rule',
+    note: 'Load balancing for the whole system with no protection for the individual: each car is routed on the delay it adds to the cars behind it as well as its own, and it has no ember forecast, only today\'s embers. Shown only to measure what the constraint costs or saves. It can send some households on slower or riskier routes, which is why it is not a recommended design. The share setting is the share of drivers following it; the rest drive by habit.' },
+};
+export const ROUTING_DEFAULTS = { routing: 'today', compliance: 1 };
+export const routingOf = plan => (plan && ROUTING[plan.routing] ? plan.routing : 'today');
+export const complianceOf = plan => (plan && plan.compliance != null && plan.compliance !== '' ? +plan.compliance : ROUTING_DEFAULTS.compliance);
+
+// null when the plan uses Today's model: sim.js then takes its original code path.
+export function makeGuidance(sim) {
+  const mode = routingOf(sim.plan);
+  return mode === 'today' ? null : new Guidance(sim, mode, complianceOf(sim.plan));
+}
+
+// One route tree for one class: distance to safety from every node, the link on that best path
+// (via), and the options at a node (up to three, as in sim.route()), computed when first asked.
+class Tree {
+  constructor(sim, nN, nL) { this.sim = sim; this.dist = new Float64Array(nN); this.via = new Int32Array(nN); this.cost = new Float64Array(nL); this.opts = new Array(nN); this.stamp = new Int32Array(nN).fill(-1); this.version = 0; this.order = new Int32Array(nN); this.nSettled = 0; }
+  at(n) {
+    if (this.stamp[n] === this.version) return this.opts[n];
+    this.stamp[n] = this.version;
+    return (this.opts[n] = this.pick ? this.pick(n) : options(this.sim, this, n));
+  }
+}
+function options(sim, tree, n) {
+  const { links, outL } = sim, cost = tree.cost, dist = tree.dist;
+  if (dist[n] === 0 || !outL[n].length) return null;
+  const opts = outL[n].filter(l => cost[l] < Infinity && dist[links[l].to] < Infinity).map(l => [l, cost[l] + dist[links[l].to]]).sort((a, b) => a[1] - b[1]);
+  return opts.length ? opts.filter(([, c], i) => i === 0 || c < opts[0][1] * 1.5 + 60).slice(0, 3).map(o => o[0]) : null;
+}
+const FIRE_RISK = 1e4; // a street in the forecast fire area outranks any time in the ember area
+
+class Guidance {
+  constructor(sim, mode, share) {
+    this.sim = sim; this.mode = mode; this.share = share;
+    const R = sim.data.A.routing;
+    this.marginS = R.forecastMarginMin * 60; this.tolS = R.timeToleranceS; this.W = R.emberSecondWeight; this.beta = R.systemQueueWeight;
+    const v = sim.v, nN = sim.data.net.nodes.length, nL = sim.links.length;
+    // Who follows: one draw per household from a stream keyed by seed and household (non-resident
+    // cars by vehicle index), so the same households follow at every share and in every option.
+    const draw = (salt, i) => mulberry32((Math.imul(sim.seed + 1, 0x7F4A7C15) ^ Math.imul(salt, 0x94D049BB) ^ Math.imul(i + 1, 0x632BE5AB)) >>> 0)();
+    this.follow = new Uint8Array(v.n);
+    let followers = 0, drivers = 0;
+    for (let i = 0; i < v.n; i++) {
+      if (v.cls[i] === 2) continue; // returning commuters drive a fixed path home
+      const h = v.hh[i], u = h >= 0 ? draw(1, h) : draw(2, i);
+      drivers++; if (u < share) { this.follow[i] = 1; followers++; }
+    }
+    this.alerted = new Uint8Array(v.n); // habit drivers who have met embers on their street
+    this.stats = { mode, share, drivers, followers, offered: 0, safety: 0, faster: 0, declined: 0 };
+    const need = mode === 'habit' ? ['habit', 'habitEmber'] : mode === 'app' ? ['habit', 'habitEmber', 'app']
+      : mode === 'guided' ? ['habit', 'habitEmber', 'own', 'so', 'guided'] : ['habit', 'habitEmber', 'system'];
+    this.T = Object.fromEntries(need.map(k => [k, [new Tree(sim, nN, nL), new Tree(sim, nN, nL)]]));
+    this.time = new Float64Array(nL); this.risk = new Float64Array(nL); this.queueTerm = new Float64Array(nL);
+    this.lastBurn = -1; this.lastEmber = -1;
+    if (mode === 'guided') for (const k of [0, 1]) {
+      for (const key of ['own', 'so']) { const tr = this.T[key][k]; tr.PT = new Float64Array(nN); tr.PR = new Float64Array(nN); } // time and risk along the best path
+      this.T.guided[k].pick = n => this.pickGuided(k, n);
+    }
+    if (mode === 'guided') this.hab = [0, 1].map(() => ({ PT: new Float64Array(nN), PR: new Float64Array(nN) })); // the driver's own (habit) route, at current queues and forecast
+  }
+
+  // Called by sim.route() every minute, after Today's tree.
+  route() {
+    const sim = this.sim, { links, t } = sim, opp = sim.data.A.sharedLane.opposingWaitS, n = links.length, T = this.T;
+    let burning = 0, embers = 0;
+    for (let l = 0; l < n; l++) { const e = links[l].e; if (t >= sim.tFire[e]) burning++; if (t >= sim.tEmber[e]) embers++; }
+    // Habit: free-flow time; a burning street is closed. Rebuilt only when a street starts burning.
+    if (burning !== this.lastBurn) for (const k of [0, 1]) {
+      const c = T.habit[k].cost;
+      for (let l = 0; l < n; l++) c[l] = t >= sim.tFire[links[l].e] ? Infinity : links[l].ff;
+      this.build(T.habit[k], k);
+    }
+    // Habit after meeting embers: free-flow time plus Today's ember penalty on streets under embers now.
+    if (burning !== this.lastBurn || embers !== this.lastEmber) for (const k of [0, 1]) {
+      const c = T.habitEmber[k].cost;
+      for (let l = 0; l < n; l++) { const e = links[l].e; c[l] = t >= sim.tFire[e] ? Infinity : links[l].ff + (t >= sim.tEmber[e] ? 300 : 0); }
+      this.build(T.habitEmber[k], k);
+    }
+    this.lastBurn = burning; this.lastEmber = embers;
+    if (this.mode === 'habit') return;
+    // Expected travel time on each link now: free flow, queue, oncoming cars (Today's cost without the ember penalty).
+    const time = this.time, qt = this.queueTerm;
+    for (let l = 0; l < n; l++) {
+      const L = links[l];
+      if (t >= sim.tFire[L.e]) { time[l] = Infinity; qt[l] = 0; continue; }
+      let q = L.q.length / Math.max(L.cap, 1e-3);
+      if (L.share) { const O = links[L.share.links[0] === L.id ? L.share.links[1] : L.share.links[0]]; if (O) q += O.q.length * opp; }
+      qt[l] = q; time[l] = L.ff + q;
+    }
+    if (T.app) for (const k of [0, 1]) { T.app[k].cost.set(time); this.build(T.app[k], k); }
+    if (T.system) for (const k of [0, 1]) {
+      const c = T.system[k].cost;
+      for (let l = 0; l < n; l++) c[l] = time[l] === Infinity ? Infinity : links[l].ff + (1 + this.beta) * qt[l] + (t >= sim.tEmber[links[l].e] ? 300 : 0);
+      this.build(T.system[k], k);
+    }
+    if (T.guided) {
+      // Forecast risk of a link: seconds driven on it if embers are forecast there within the
+      // margin, plus FIRE_RISK if the fire front is.
+      const horizon = t + this.marginS, risk = this.risk;
+      for (let l = 0; l < n; l++) { const e = links[l].e; risk[l] = time[l] === Infinity ? 0 : (sim.tEmber[e] <= horizon ? links[l].ff : 0) + (sim.tFire[e] <= horizon ? FIRE_RISK : 0); }
+      for (const k of [0, 1]) {
+        // The driver's own best route under the forecast: least risk first, then fastest.
+        const own = T.own[k], so = T.so[k], g = T.guided[k];
+        for (let l = 0; l < n; l++) own.cost[l] = time[l] === Infinity ? Infinity : time[l] + this.W * risk[l];
+        this.build(own, k);
+        // Load balancing: the same safety terms, but each car also counts the delay it adds to the cars behind it.
+        for (let l = 0; l < n; l++) so.cost[l] = time[l] === Infinity ? Infinity : links[l].ff + (1 + this.beta) * qt[l] + this.W * risk[l];
+        this.build(so, k);
+        this.along(T.habit[k], this.hab[k]);
+        g.dist.set(own.dist); g.cost.set(own.cost); g.version++;
+      }
+    }
+  }
+
+  // Constrained guidance at node n. The driver's own route is the one they would take without
+  // guidance (habit). Candidates: the safest route under the forecast (least risk, then fastest)
+  // and the load-balancing route. A candidate is offered only if, along its whole path, it is no
+  // riskier than the driver's own route under the forecast and either at most tolS slower at
+  // current queues or strictly safer (safety before speed). The load-balancing route is preferred only when it is as safe as
+  // the safest route. If neither passes, guidance offers nothing and the driver keeps their own route.
+  pickGuided(k, n) {
+    const own = this.T.own[k], so = this.T.so[k], hab = this.T.habit[k], H = this.hab[k], links = this.sim.links, risk = this.risk, time = this.time, eps = 1e-6;
+    const base = own.at(n); if (!base) return hab.at(n);
+    const hR = H.PR[n], hT = H.PT[n];
+    const ok = (T, R) => R <= hR + eps && (T <= hT + this.tolS || R < hR - eps);
+    const oR = own.PR[n], s0 = so.via[n];
+    if (s0 >= 0 && s0 !== base[0]) {
+      const to = links[s0].to, R = risk[s0] + so.PR[to], T = time[s0] + so.PT[to];
+      if (R <= oR + eps && ok(T, R)) {
+        this.stats.offered++;
+        return [s0, ...base.filter(l => l !== s0 && risk[l] + own.PR[links[l].to] <= R + eps)].slice(0, 3);
+      }
+    }
+    if (ok(own.PT[n], oR)) {
+      if (oR < hR - eps) this.stats.safety++; else this.stats.faster++;
+      const opts = base.filter(l => risk[l] + own.PR[links[l].to] <= oR + eps);
+      return opts.length ? opts : base;
+    }
+    this.stats.declined++;
+    return hab.at(n);
+  }
+
+  // Time and risk along each node's best path in a tree built earlier, at current values.
+  along(tree, P) {
+    const links = this.sim.links, { PT, PR } = P;
+    PT.fill(Infinity); PR.fill(Infinity);
+    for (let j = 0; j < tree.nSettled; j++) {
+      const n = tree.order[j], l = tree.via[n];
+      if (l < 0) { PT[n] = 0; PR[n] = 0; continue; }
+      const to = links[l].to; PT[n] = this.time[l] + PT[to]; PR[n] = this.risk[l] + PR[to];
+    }
+  }
+
+  // Reverse Dijkstra from class k's safe nodes on tree.cost, as in sim.route(). Records the best link
+  // from each node (via) and, where the tree carries them, time and risk along that path.
+  build(tree, k) {
+    const sim = this.sim, { links, inL } = sim, cost = tree.cost, safe = sim.safe[k], nN = tree.dist.length;
+    const dist = tree.dist.fill(Infinity), via = tree.via.fill(-1), heap = new MinHeap(), PT = tree.PT, PR = tree.PR;
+    let m = 0;
+    if (PT) { PT.fill(Infinity); PR.fill(Infinity); }
+    for (let n = 0; n < nN; n++) if (safe[n]) { dist[n] = 0; heap.push(0, n); if (PT) { PT[n] = 0; PR[n] = 0; } }
+    while (heap.size) {
+      const [d, n] = heap.pop(); if (d > dist[n]) continue;
+      tree.order[m++] = n;
+      if (PT && via[n] >= 0) { const l = via[n], to = links[l].to; PT[n] = this.time[l] + PT[to]; PR[n] = this.risk[l] + PR[to]; } // the next node settled first
+      for (const lid of inL[n]) { const L = links[lid]; const nd = d + cost[lid]; if (nd < dist[L.from]) { dist[L.from] = nd; via[L.from] = lid; heap.push(nd, L.from); } }
+    }
+    tree.nSettled = m; tree.version++;
+  }
+
+  // The route tree vehicle i (class 0 or 1) follows on edge e, or null for Today's tree.
+  tree(i, k, e) {
+    const f = this.follow[i], T = this.T;
+    if (this.mode === 'habit' && !f) return null;
+    if (this.mode !== 'habit' && f) return T[this.mode][k];
+    if (!this.alerted[i] && e >= 0 && this.sim.t >= this.sim.tEmber[e]) this.alerted[i] = 1;
+    return this.alerted[i] ? T.habitEmber[k] : T.habit[k];
+  }
+}
+
+// Diagnostic, not a plan setting: the same run with a different order of serving cars at
+// junctions (the shared stream is replaced after setup, so households and parked cars stay the
+// same). A run against its reshuffled twin shows how many households move by chance alone: the
+// noise floor of "households worse off".
+export function reshuffle(sim) { sim.rand = mulberry32((Math.imul(sim.seed + 1, 0x2545F491) ^ 0x5BD1E995) >>> 0); return sim; }
+
+// ---- households worse off (pairs two runs that differ only in routing) ----
+// Outcome of each household at the end of a run: level 3 a car of its trip still on the road
+// with no road out (cut off), 2 still there (home or road) when the fire front reached it,
+// 1 still there when embers reached it, 0 none of these; and minutes from ignition until its
+// last car reached safety (Infinity if it did not). A household riding with a neighbor shares
+// that neighbor's trip. key checks that the two runs hold the same households.
+export function householdOutcomes(sim) {
+  const { hh, v, t } = sim, n = hh.n;
+  const level = new Uint8Array(n), arrive = new Float32Array(n).fill(Infinity), trip = new Uint8Array(n);
+  const vLevel = new Uint8Array(n); // worst level over each household's own cars
+  for (let i = 0; i < v.n; i++) {
+    const h = v.hh[i]; if (h < 0 || v.cls[i] === 2) continue;
+    let x = v.fireFront[i] ? 2 : v.exposed[i] ? 1 : 0;
+    if (v.state[i] === 1) { const L = sim.links[v.link[i]], k = v.cls[i]; if (!sim.safe[k][L.to] && !sim.next[k][L.to]) x = 3; }
+    if (x > vLevel[h]) vLevel[h] = x;
+  }
+  let key = n;
+  for (let h = 0; h < n; h++) {
+    const e = hh.ride[h] >= 0 ? hh.ride[h] : h;
+    key = (Math.imul(key, 31) + hh.edge[h] * 7 + hh.zone[h] * 3 + hh.kind[h]) | 0; // fixed at setup (hh.veh can drop during a run)
+    if (hh.early[h]) continue;
+    let x = vLevel[e];
+    const tf = sim.tFire[hh.edge[h]], te = sim.tEmber[hh.edge[h]];
+    if (tf <= t && hh.leftHome[e] > tf) x = Math.max(x, 2); else if (te <= t && hh.leftHome[e] > te) x = Math.max(x, 1);
+    level[h] = x;
+    if (hh.leftHome[e] < Infinity || hh.ride[h] >= 0) trip[h] = 1;
+    if (hh.arrived[e] <= t) arrive[h] = hh.arrived[e] / 60;
+  }
+  return { n, key, level, arrive, trip };
+}
+
+// Households worse off under run b than under run a: a worse outcome level, or safety reached
+// later by more than delayMin, or not at all. Also the mean change in minutes to safety among
+// households that reached it in both runs (positive: faster under b). null when the runs hold
+// different households.
+export function worseOff(a, b, delayMin) {
+  if (!a || !b || a.n !== b.n || a.key !== b.key) return null;
+  const r = { households: 0, cutOff: 0, fireFront: 0, embers: 0, later: 0, notSafe: 0, worstDelayMin: 0, compared: 0, gainSum: 0, gainN: 0 };
+  for (let h = 0; h < a.n; h++) {
+    if (!a.trip[h] && !b.trip[h] && !a.level[h] && !b.level[h]) continue;
+    r.compared++;
+    const la = a.level[h], lb = b.level[h], ta = a.arrive[h], tb = b.arrive[h];
+    if (ta < Infinity && tb < Infinity) { r.gainSum += ta - tb; r.gainN++; }
+    if (lb > la) { r.households++; if (lb === 3) r.cutOff++; else if (lb === 2) r.fireFront++; else r.embers++; continue; }
+    if (ta < Infinity && tb === Infinity) { r.households++; r.notSafe++; continue; }
+    if (ta < Infinity && tb - ta > delayMin) { r.households++; r.later++; r.worstDelayMin = Math.max(r.worstDelayMin, tb - ta); }
+  }
+  r.meanGainMin = r.gainN ? r.gainSum / r.gainN : null;
+  delete r.gainSum;
+  return r;
+}
+
+// Each household's worse (worstOf) or better (bestOf) outcome of two runs of the same plan that
+// differ only in the junction serving order. worseOff(worstOf(A, A2), bestOf(B, B2)) counts
+// households worse off under B in both serving orders than under A in both ("beyond chance"),
+// which filters out most of the chance in who reaches a junction first.
+function combine(a, a2, f) {
+  if (!a || !a2 || a.n !== a2.n || a.key !== a2.key) return null;
+  const level = new Uint8Array(a.n), arrive = new Float32Array(a.n), trip = new Uint8Array(a.n);
+  for (let h = 0; h < a.n; h++) { level[h] = f(a.level[h], a2.level[h]); arrive[h] = f(a.arrive[h], a2.arrive[h]); trip[h] = a.trip[h] | a2.trip[h]; }
+  return { n: a.n, key: a.key, level, arrive, trip };
+}
+export const worstOf = (a, a2) => combine(a, a2, Math.max);
+export const bestOf = (a, a2) => combine(a, a2, Math.min);

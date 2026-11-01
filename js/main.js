@@ -7,6 +7,7 @@ import { PRESETS, FIRES } from './presets.js';
 import { MapView, STREET_MODES } from './map.js';
 import { fromUTM } from '../tools/utm.mjs';
 import { accessCard, accessSummary, accessTable, accessLegend } from './access.js';
+import { ROUTING, routingOf, complianceOf, worseOff, worstOf, bestOf } from './guidance.js';
 
 const $ = id => document.getElementById(id);
 const fmt = (x, d = 0) => x == null || Number.isNaN(x) ? '—' : x === Infinity ? '∞' : Number(x).toLocaleString(undefined, { maximumFractionDigits: d, minimumFractionDigits: d });
@@ -55,6 +56,7 @@ function showPlan() {
   for (const f of PLAN_FIELDS) $(`p-${f}`).value = p[f] ?? DEFAULT_PLAN[f] ?? '';
   document.querySelectorAll('#plan-tabs button').forEach(b => b.classList.toggle('on', b.dataset.plan === state.editing));
   parkingNote(); r0Note();
+  showRouting(); // driver information and routing (js/guidance.js)
 }
 function readPlan() {
   const p = state.plans[state.editing];
@@ -88,6 +90,52 @@ function parkingNote() {
 }
 for (const f of PLAN_FIELDS) $(`p-${f}`).addEventListener('change', () => { readPlan(); newRun(); });
 document.querySelectorAll('#plan-tabs button').forEach(b => b.onclick = () => { readPlan(); state.editing = b.dataset.plan; showPlan(); newRun(); });
+
+// ---------- driver information and routing (plan setting; js/guidance.js, SOURCE_NOTES DG1–DG14) ----------
+// Kept apart from PLAN_FIELDS: a plan without these fields routes with Today's model.
+for (const [k, o] of Object.entries(ROUTING)) $('p-routing').add(new Option(o.label, k));
+function routingNote() {
+  const m = $('p-routing').value, R = ROUTING[m] || ROUTING.today;
+  $('p-compliance').disabled = m === 'today';
+  $('routing-note').innerHTML = `${esc(R.note)} ${badge(R.category)}${m === 'today' ? '' : ` Share of drivers ${badge('assumption')}: the households that follow are drawn per household from their own seeded stream, so the same households follow in Plan A and Plan B. Compare shows households worse off, household by household.`}`;
+}
+function showRouting() { const p = state.plans[state.editing]; $('p-routing').value = routingOf(p); $('p-compliance').value = String(complianceOf(p)); routingNote(); }
+function readRouting() { const p = state.plans[state.editing]; p.routing = $('p-routing').value; p.compliance = +$('p-compliance').value; routingNote(); }
+for (const id of ['p-routing', 'p-compliance']) $(id).addEventListener('change', () => { readRouting(); newRun(); });
+// Results panel: who follows, and once the run is complete, households worse off against the
+// natural comparison (Habit for the app and guidance options, Today's model for Habit), from two
+// background runs of that comparison (the second with a different junction serving order).
+const routingPairs = new Map();
+function routingPanel(sim, S, done) {
+  const mode = routingOf(sim.plan); if (mode === 'today') return '';
+  const R = ROUTING[mode], st = S.routing, base = mode === 'habit' ? 'today' : 'habit';
+  const tr = (label, value, tip) => `<tr title="${esc(tip)}"><td>${label} <span class="tip">ⓘ</span></td><td class="num">${value}</td></tr>`;
+  let html = `<h3>Driver information and routing ${badge(R.category)}</h3><p class="small">${esc(R.short)}: ${fmt(st.followers)} of ${fmt(st.drivers)} cars ${mode === 'habit' ? 'drive by habit; the rest follow Today\'s model' : 'follow it; the rest drive by habit'} (share ${fmt(st.share * 100)}% ${badge('assumption')}).`
+    + (mode === 'guided' ? ` Guidance decisions (one per junction per minute where a following car needed a route): a load-balancing route ${fmt(st.offered)} times; a route safer under the forecast than the driver's own ${fmt(st.safety)} times; an equally safe, faster route ${fmt(st.faster)} times; nothing, so the driver kept their own route, ${fmt(st.declined)} times.` : '')
+    + (mode === 'system' ? ' <b>Comparison only:</b> this option can send some households on slower or riskier routes, which is why it is not a recommended design.' : '') + '</p>';
+  if (!done) return html + '<p class="small muted">Households worse off appear here when the run is complete.</p>';
+  const key = JSON.stringify([sim.scenario.id, sim.sevKey, sim.seed, $('tod').value, sim.plan, world()]);
+  let P = routingPairs.get(key);
+  if (!P) {
+    P = { runs: [], mine: sim.householdOutcomes() }; routingPairs.set(key, P);
+    const batch = ++state.batch, plan = { ...sim.plan, routing: base, compliance: 1, name: ROUTING[base].short };
+    const job = { scenarioId: sim.scenario.id, sev: sim.sevKey, seed: sim.seed, tod: $('tod').value, plan, world: world(), outcomes: true };
+    const on = ev => { const m = ev.data; if (m.batch !== batch) return; if (m.done) { worker.removeEventListener('message', on); P.ready = true; if (state.sim === sim) update(false); return; } P.runs.push(m.outcomes); };
+    worker.addEventListener('message', on);
+    worker.postMessage({ batch, jobs: [job, { ...job, reshuffle: true }, { ...job, plan: { ...sim.plan }, reshuffle: true }] });
+  }
+  const thr = data.A.routing.worseOffDelayMin;
+  if (!P.ready) return html + `<p class="small muted">Checking households worse off against ${esc(ROUTING[base].short)}: three background runs of the same fire, households and seed…</p>`;
+  const w = worseOff(P.runs[0], P.mine, thr), wb = worseOff(worstOf(P.runs[0], P.runs[1]), bestOf(P.mine, P.runs[2]), thr), floor = worseOff(P.runs[0], P.runs[1], thr), better = worseOff(P.mine, P.runs[0], thr);
+  if (!w) return html;
+  return html + `<table class="kv">
+    ${tr(`Households worse off than under ${esc(ROUTING[base].short)}`, fmt(w.households), `Same fire, households, parked cars and seed; only routing differs. Worse off: still there when embers or the fire front reached them, or cut off, where they were not under ${ROUTING[base].short}, or reaching safety more than ${thr} min later or not at all (model rule).`)}
+    ${tr('…beyond chance: worse off in both of two junction serving orders', `${fmt(wb.households)}${wb.later ? ` · worst ${fmt(wb.worstDelayMin)} min later` : ''}`, 'This run and a rerun with another order of serving cars at junctions, against the comparison and its rerun: a household counts only if it does worse in both runs than in both comparison runs. This filters out most households whose outcome changed by the luck of reaching a junction first.')}
+    ${tr('…of these, newly still there when embers or the fire front arrived, or cut off', fmt(wb.embers + wb.fireFront + wb.cutOff), 'Households whose outcome level got worse, not only their arrival time.')}
+    ${tr('Chance alone: households "worse off" when only the junction serving order changes', fmt(floor.households), `Two runs of ${ROUTING[base].short} that differ only in the order cars are served at junctions. A count near this one is within chance.`)}
+    ${tr(`Households better off than under ${esc(ROUTING[base].short)} · average change in time to safety`, `${fmt(better.households)} · ${w.meanGainMin == null ? '—' : `${w.meanGainMin >= 0 ? fmt(w.meanGainMin, 1) + ' min faster' : fmt(-w.meanGainMin, 1) + ' min slower'}`}`, 'Average over households that reached safety in both runs.')}
+  </table><p class="small muted">Synthetic households on an illustrative fire: a comparison, not a prediction.</p>`;
+}
 
 function showScenario() {
   const sc = scenario();
@@ -245,6 +293,7 @@ function update(full) {
       ${tr('Zones ordered · warned', `${fmt(S.zonesOrdered)} · ${fmt(S.zonesWarned)}`, 'Evacuation zones under an order (leave now) and under a warning (get ready) so far.')}
       ${S.growthOption !== 'none' ? `<tr title="Homes added by the Future growth setting (Scenario, Expert view) and the residents living in them. They are counted in every number above. Homes barred by R0 are those the plan\'s R0 setting blocks in its area."><td>Future growth: added homes · residents (counted in every number above)${S.growthBlocked ? ` · homes barred by R0` : ''} ${badge('synthetic')}</td><td class="num">${fmt(S.addedUnits)} · ${fmt(S.addedResidents)}${S.growthBlocked ? ` · ${fmt(S.growthBlocked)}` : ''}</td></tr>` : ''}
     </table>
+    ${routingPanel(sim, S, done)}
     <canvas class="spark" id="spark" width="330" height="60"></canvas>
     <div class="small muted"><span style="color:#b91c1c">■</span> vehicles queued &nbsp; <span style="color:#1d4ed8">■</span> on roads &nbsp; <span style="color:#0e7490">■</span> engine ETA (scaled)</div>
     ${S.bottlenecks.length ? `<h3>Worst queues so far</h3><table>${S.bottlenecks.map(b => `<tr><td>${esc(b.name)}</td><td class="num">${b.max} veh</td><td class="num">t+${fmt(b.at)}m</td></tr>`).join('')}</table>` : ''}
@@ -378,6 +427,7 @@ $('compare').onclick = () => {
   const cases = scope === 'severities' ? ['low', 'central', 'high'].flatMap(sev => seeds.map(seed => ({ scenarioId: sc.id, sev, seed, tod: $('tod').value })))
     : scenarios.flatMap(s => seeds.map(seed => ({ scenarioId: s.id, sev: 'central', seed, tod: s.timeOfDay })));
   const W = world(), jobs = ['A', 'B'].flatMap(p => cases.map(c => ({ ...c, tod: state.preset?.tods?.[p] ?? c.tod, planKey: p, plan: { ...state.plans[p] }, world: W })));
+  if (routingDiffers()) { for (const j of jobs) j.outcomes = true; jobs.push(...jobs.filter(j => j.planKey === 'A' || j.planKey === 'B').map(j => ({ ...j, planKey: j.planKey + '2', reshuffle: true }))); } // households worse off (js/guidance.js)
   const batch = ++state.batch, results = [];
   // Progress goes in a small banner above the map (Eric, 2026-11-01), visible from either panel.
   const progress = (t, done = 0) => { $('sim-banner').hidden = !t; $('sim-banner-text').textContent = t; $('sim-banner-bar').style.width = `${Math.round(100 * done / jobs.length)}%`; };
@@ -417,6 +467,7 @@ const METRICS = [
   ['Hill residents with no engine route (at ignition)', S => S.engineReachUnreachablePeople, -1],
   ['Segments too narrow for an engine', S => S.engineBlockedSegments, -1],
   ['Commuters turned back by fire', S => S.commutersTurnedBack, -1],
+  ['Cars following the routing option (Habit: driving by habit)', S => S.routing ? S.routing.followers : null, 0],
 ];
 function renderCompare(results, scope) {
   const groups = scope === 'severities' ? ['low', 'central', 'high'] : scenarios.map(s => s.id);
@@ -426,7 +477,7 @@ function renderCompare(results, scope) {
   const range = a => { const s = a.filter(x => x != null && !Number.isNaN(x)); return s.length ? `${fmt(Math.min(...s))}–${fmt(Math.max(...s))}` : '—'; };
   let html = `<h2>Plan comparison ${badge('synthetic')}</h2>
     <p class="small">Green or red means B is better or worse than A in every run, by at least 10%; gray means the change is smaller or points different ways across runs, so there is no clear difference. A: <b>${esc(state.plans.A.name)}</b> · B: <b>${esc(state.plans.B.name)}</b>.${results[0]?.job.world?.growth && results[0].job.world.growth !== 'none' ? ` Future growth for both: ${esc(data.A.growth.options[results[0].job.world.growth].label)}.` : ''} Both plans ran the same fires, households and random seeds (1–3). Values are the median of 3 seeds with the min–max range under it. A difference smaller than the range is not a robust result.</p>`;
-  html += takeaway(results, scope);
+  html += takeaway(results, scope) + householdTakeaway(results, scope);
   for (const g of groups) {
     const A = pick('A', g), B = pick('B', g);
     html += `<h3>${esc(gname(g))}</h3><table><tr><th></th><th class="num">A</th><th class="num">B</th><th class="num">B − A</th></tr>`;
@@ -442,7 +493,7 @@ function renderCompare(results, scope) {
       const cls = d == null || dir === 0 || Math.abs(d) < 1e-9 ? '' : !steady ? 'delta-mixed' : (d * dir > 0 ? 'delta-good' : 'delta-bad');
       html += `<tr><td>${esc(label)}</td><td class="num">${fmt(ma)}<div class="small muted">${range(a)}</div></td><td class="num">${fmt(mb)}<div class="small muted">${range(b)}</div></td><td class="num ${cls}"${cls === 'delta-mixed' ? ' title="Smaller than 10%, or B is better in some runs and worse in others: no clear difference"' : ''}>${d == null ? '—' : (d > 0 ? '+' : '') + fmt(d)}</td></tr>`;
     }
-    html += '</table>';
+    html += '</table>' + householdTable(results, g, scope);
   }
   html += `<h3>Why the results differ (Plan B, first seed)</h3><ul class="small">${explain(results, groups[Math.floor(groups.length / 2)], scope)}</ul>`;
   $('compare-out').innerHTML = html;
@@ -464,6 +515,49 @@ function takeaway(results, scope) {
   }
   return `<div class="takeaway${robust ? '' : ' mixed'}"><b>${esc(label)}:</b> about ${fmt(ma)} under Plan A and ${fmt(mb)} under Plan B (median of ${pairs.length} runs). Plan B did better in ${better} of ${pairs.length} runs and worse in ${worse}.${robust ? '' : ' The difference does not hold in every run, so treat it as uncertain.'}${other} These are synthetic households on an illustrative fire, not a prediction.</div>`;
 }
+// ---------- households worse off (Compare, when Plan A and Plan B differ in routing; js/guidance.js) ----------
+function routingDiffers() {
+  const a = state.plans.A, b = state.plans.B, ra = routingOf(a), rb = routingOf(b);
+  return ra !== rb || (ra !== 'today' && complianceOf(a) !== complianceOf(b));
+}
+// Same-seed pairs: B against A; B in both serving orders against A in both (beyond chance: each
+// plan also reruns with another junction serving order); A against its rerun (chance alone); and
+// A against B (better off under B).
+function householdPairs(results, g, scope) {
+  const thr = data.A.routing.worseOffDelayMin, same = (x, y) => x.job.sev === y.job.sev && x.job.seed === y.job.seed && x.job.scenarioId === y.job.scenarioId;
+  return results.filter(r => r.job.planKey === 'A' && r.outcomes && (g == null || (scope === 'severities' ? r.job.sev === g : r.job.scenarioId === g))).map(a => {
+    const f = k => results.find(r => r.job.planKey === k && same(r, a)), b = f('B'), a2 = f('A2'), b2 = f('B2');
+    if (!b?.outcomes || !a2?.outcomes || !b2?.outcomes) return null;
+    const w = worseOff(a.outcomes, b.outcomes, thr); if (!w) return null;
+    return { w, wb: worseOff(worstOf(a.outcomes, a2.outcomes), bestOf(b.outcomes, b2.outcomes), thr), floor: worseOff(a.outcomes, a2.outcomes, thr), better: worseOff(b.outcomes, a.outcomes, thr) };
+  }).filter(Boolean);
+}
+const medOf = a => { const s = a.filter(x => x != null).sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : null; };
+const rangeOf = a => { const s = a.filter(x => x != null); return s.length ? `${fmt(Math.min(...s))}–${fmt(Math.max(...s))}` : '—'; };
+function householdTable(results, g, scope) {
+  const P = householdPairs(results, g, scope); if (!P.length) return '';
+  const row = (label, xs, tip, d = 0) => `<tr title="${esc(tip)}"><td>${esc(label)}</td><td class="num">${fmt(medOf(xs), d)}<div class="small muted">${rangeOf(xs)}</div></td></tr>`;
+  const thr = data.A.routing.worseOffDelayMin;
+  return `<table><tr><th>Household by household, B against A ${badge('synthetic')}</th><th class="num">median (range)</th></tr>
+    ${row('Households worse off under B', P.map(p => p.w.households), `Still there when embers or the fire front reached them, or cut off, where they were not under A, or reaching safety more than ${thr} min later or not at all (model rule).`)}
+    ${row('  …beyond chance: worse off under B in both serving orders than under A in both', P.map(p => p.wb.households), 'Each plan also runs a second time with another order of serving cars at junctions; a household counts only if it does worse under both B runs than under both A runs.')}
+    ${row('  …of these, newly still there when embers or the fire front arrived, or cut off', P.map(p => p.wb.embers + p.wb.fireFront + p.wb.cutOff), 'Outcome level worse, not only time.')}
+    ${row('  …of these, worst delay (min)', P.map(p => p.wb.later ? p.wb.worstDelayMin : 0), 'Largest delay among households beyond chance that reached safety later.')}
+    ${row('Chance alone: A against A rerun with another serving order', P.map(p => p.floor.households), 'Households "worse off" when nothing changes except which car reaches a junction first.')}
+    ${row('Households better off under B', P.map(p => p.better.households), 'Households worse off under A than under B, by the same rule.')}
+    ${row('Average change in time to safety (min; + = faster under B)', P.map(p => p.w.meanGainMin), 'Households that reached safety under both plans.', 1)}
+  </table>`;
+}
+function householdTakeaway(results, scope) {
+  const P = householdPairs(results, null, scope); if (!P.length) return '';
+  const n = P.length, wb = P.map(p => p.wb.households), worseRuns = wb.filter(x => x > 0).length, aboveChance = P.filter(p => p.wb.households > p.floor.households).length;
+  const lvl = P.map(p => p.wb.embers + p.wb.fireFront + p.wb.cutOff), worst = Math.max(0, ...P.map(p => p.wb.later ? p.wb.worstDelayMin : 0));
+  const rb = routingOf(state.plans.B);
+  const flag = worseRuns
+    ? ` <b>⚠ Plan B leaves households worse off in ${worseRuns} of ${n} runs</b> (beyond chance: median ${fmt(medOf(wb))}, up to ${fmt(Math.max(...wb))}; ${fmt(Math.max(...lvl))} at most newly still there when embers or the fire front arrived, or cut off; worst delay ${fmt(worst)} min). ${aboveChance ? `In ${aboveChance} of ${n} runs that is more than chance alone produces.` : 'In every run that is no more than chance alone produces (Plan A against its rerun with only the junction serving order changed).'}${rb === 'system' ? ' Unconstrained system-optimal routing has no protection for the individual.' : ''}`
+    : ' No household did worse under Plan B than under both Plan A runs, in any run.';
+  return `<div class="takeaway${worseRuns ? ' mixed' : ''}"><b>Households worse off, household by household:</b> under Plan B, ${fmt(medOf(P.map(p => p.w.households)))} households (median of ${n} runs, range ${rangeOf(P.map(p => p.w.households))}) did worse than under Plan A, and ${fmt(medOf(P.map(p => p.better.households)))} did better. Changing only the order cars are served at junctions moves ${rangeOf(P.map(p => p.floor.households))} households by as much.${flag} Synthetic households on an illustrative fire, not a prediction.</div>`;
+}
 function explain(results, g, scope) {
   const r = results.find(x => x.job.planKey === 'B' && x.job.seed === 1 && (scope === 'severities' ? x.job.sev === g : x.job.scenarioId === g));
   return r ? r.events.filter(e => ['plan', 'responder', 'warn'].includes(e.kind)).slice(0, 6).map(e => `<li>${esc(e.text)}</li>`).join('') || '<li>No plan-specific events.</li>' : '';
@@ -481,6 +575,7 @@ const INPUTS = [
   ['Early departure', 'Share of households in the City\'s Leave Early Zones who leave on a Red Flag day, before any fire.', 'Exposure falls; evacuation time barely changes.'],
   ['Future growth', 'Added homes in the hills, from none to the 2025 Evacuation Time Study\'s maximum ADU build-out (27,060 units). Both plans face the same growth.', 'Evacuation time and people still there when embers arrived.'],
   ['R0', 'A plan setting that bars added units in one area: Leave Early Zones, Fire Zones 2–3 or areas behind a choke point.', 'How much of the growth\'s effect R0 removes.'],
+  ['Driver information and routing', 'How drivers find their way: Today\'s model (everyone well informed, idealized), habit, an ordinary navigation app, constrained egress guidance, or unconstrained system-optimal routing (comparison only), and the share of drivers who follow.', 'Households worse off, household by household, and people still there when embers arrived. Expert view only.'],
   ['Parking on hill streets', 'How much of the street parked cars take: today\'s mix, one side only, tight to the curb, none on narrow roads, or none.', 'Hill homes a fire engine can reach within the City\'s 5-minute standard. Engines do not fight the fire in this simulator, so better engine access has no effect on the fire. Evacuation flow barely changes.'],
 ];
 function intro() {
@@ -528,13 +623,21 @@ $('btn-assumptions').onclick = () => {
     <li>Who leaves: everyone in Order zones, ${A.demand.compliance.warning * 100}% of Warning zones, and ${A.demand.compliance.shadow * 100}% of all other households in the model area (Berkeley and the neighboring parts of Oakland, Emeryville, Albany, Kensington, El Cerrito and Richmond, which roughly match the Time Study's Shadow Region) as shadow evacuees driving out of the modeled area (Time Study). Orders follow the Time Study's zone lists for the 1923 and Panoramic Hill regions, the City's Fire Zones 2–3 region for the east-wind fires, and optionally the plan's distance rule.</li>
     <li>When: each household's departure after the order is drawn from the Time Study's survey-based mobilization tables (Table 5-9), which include noticing the order and getting ready. Households waiting for a commuter, or picking up children on school days, leave later.</li>
     <li>Evacuation time is measured like the Time Study's ETE: from the first order until 90% (and 100%) of evacuating vehicles have left the order and warning area. <code>node tests/calibration.mjs</code> compares the simulator with the study's results with the fire switched off.</li>
-    <li>Vehicles may use every street. They head for the nearest road node outside every ordered or warned zone and the ember area, and re-plan every minute around queues, fire and embers.</li>
+    <li>Vehicles may use every street. They head for the nearest road node outside every ordered or warned zone and the ember area, and, under Today's model, re-plan every minute around queues, fire and embers. Other ways drivers could find their route are under Driver information and routing below.</li>
     <li>Each link passes at most its capacity, holds at most its storage, and each intersection passes at most its capacity. On two-way streets with only one moving lane between parked cars, both directions share that lane: when cars come from both ways they take turns at gaps such as driveways, and the street loses capacity. Removing parking does not add evacuation lanes on two-way streets.</li>
     <li>Parked cars vary by block and seed: hill blocks are parked on one side or both, some cars sit partly off the pavement, and an occasional bad parking job (a wide vehicle, or a car far from the curb) narrows the gap. Residents stop parking where less than 8 ft would remain for a car. The City survey's "width with parking" is treated as the both-sides case.</li>
     <li>Households awaiting a commuter (Time Study) wait for that person to drive home first. The commuter enters at the edge of the evacuating area nearest home and drives in against the outbound traffic. A commuter turned back by fire leaves the household one car short.</li>
     <li>Gridlock relief: a vehicle stuck ${data.A.capacity.gridlockReliefS} s at the head of a queue squeezes forward. Without it the queue model can lock up for good in rings such as traffic circles.</li>
     <li>Engines travel from the nearest station to the road point nearest the ignition that the fire has not yet reached. They cannot pass segments narrower than an engine (with parked cars), and are delayed by oncoming evacuees where only one lane is clear.</li>
     <li>Engine reach ${badge('model rule')}: a home counts as reached within the City's ${data.A.access.engineServiceMin}-minute standard ${badge('sourced')} when an engine from one of Berkeley's 7 stations can drive to the nearer end of the home's street segment in that time, at ignition, before traffic and fire, on a route where every segment leaves 10 ft clear between parked cars and no fixed barrier closes it (gates and removable bollards cost ${data.A.access.barrierDelayS / 60} min). The home's own segment need not pass: the engine stops at its end. Engines drive both ways on one-way streets at 1.15 times the posted speed, with no turn or grade delays, so drive times are short: in the runs tested nearly every hill home with an engine route is within 5 minutes, and the measure mostly counts homes that parked cars cut off. Stations in Oakland, Kensington and Albany are not modeled, so the measure covers Berkeley's evacuation zones only. It says nothing about what an engine does on arrival.</li>
+  </ul>
+  <h3>Driver information and routing (plan setting, Expert view)</h3>
+  <p class="small">Every option sends drivers to the same places (outside the ordered and warned zones and the illustrative fire's ember area) ${badge('model rule')}; the options differ in what drivers know on the way and whom they follow. The households that follow an option are drawn per household from a seeded stream of their own, so plans that differ only in routing see the same households, parked cars and fire.</p>
+  <ul class="small">${Object.values(ROUTING).map(o => `<li><b>${esc(o.label)}</b> ${badge(o.category)}: ${esc(o.note)}</li>`).join('')}
+    <li><b>Share of drivers who follow</b> ${badge('assumption')}: 100%, 65%, 50% or 15%. 15%: after the 2017 Northern and Southern California fires, 18–19% of surveyed evacuees used GPS and followed its route, and 7.5% after the 2018 Carr fire (Wong, Broader and Shaheen 2020, UC Institute of Transportation Studies, Table 10). 65%: in a 2024 evacuation drill in Roxborough Park, Colorado, 78 of 122 answers said the driver followed the route instructions (Dugstad et al. 2026). No real wildfire has measured compliance with official route guidance. The share stands in for everything the simulator cannot show: phone networks down or overloaded, people who distrust or ignore instructions, and agencies unwilling to direct people because of liability.</li>
+    <li><b>Constrained guidance, settings</b>: forecast margin ${data.A.routing.forecastMarginMin} min ${badge('assumption')}; time tolerance ${data.A.routing.timeToleranceS} s ${badge('assumption')}; one second in the forecast ember area counts as ${data.A.routing.emberSecondWeight} s of driving ${badge('model rule')}; load balancing counts each car's queue delay ${1 + data.A.routing.systemQueueWeight} times ${badge('model rule')}. The forecast is the simulator's own fire, so it is never wrong; a real forecast would be uncertain, and the margin stands in for that. The comparison is the route the driver would take on their own (by habit). The time check uses current queues, so "never worse off" holds when the route is offered, not after other drivers have moved. A route that is strictly safer under the forecast may be slower: with a perfect forecast the margin buys no safety in the simulator and only costs time, so some guided households reach safety later than by habit (see Households worse off below).</li>
+    <li><b>Households worse off</b> ${badge('model rule')} (Compare, when the plans differ in routing; results panel, against Habit or Today's model): a household is worse off under Plan B if it is still there when embers or the fire front reach it, or cut off, where it was not under Plan A, or reaches safety more than ${data.A.routing.worseOffDelayMin} min later, or not at all. Runs are paired by seed, households by identity. Which car reaches a junction first is partly chance, and changing only that order moves hundreds to thousands of households by more than ${data.A.routing.worseOffDelayMin} min, so Compare runs each plan a second time with another serving order and counts households worse off under both B runs than under both A runs ("beyond chance").</li>
+    <li><b>What no simulator run can justify.</b> These runs compare designs on synthetic households and an illustrative fire. None of them justifies deploying route guidance in an evacuation; at most they help decide whether a carefully constrained pilot study is worth designing. The simulator does not model the liability of telling people which way to go, how people respond to an instruction they do not trust, or what happens when the guidance itself is wrong.</li>
   </ul>
   <h3>Information gaps and how far off they make the simulator</h3>
   <ul class="small">

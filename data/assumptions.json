@@ -321,10 +321,37 @@
       "category": "model rule",
       "note": "R0 (plan setting, Eric 2026-11-01): no added units in a chosen area. It removes only the growth placed there and does not count homes lost to fire as people moving out. Legal status per SOURCE_NOTES L1–L9."
     },
+    "routing.forecastMarginMin": {
+      "category": "assumption",
+      "note": "Constrained egress guidance (plan setting Driver information and routing): a street counts as in the forecast ember or fire area if the illustrative fire's embers or front reach it within this many minutes from now. The forecast is the simulator's own fire, so it is never wrong; a real forecast would be uncertain, and a wider margin is the stand-in for that uncertainty. SOURCE_NOTES DG8."
+    },
+    "routing.timeToleranceS": {
+      "category": "assumption",
+      "note": "Constrained egress guidance offers a load-balancing route only if, for that driver, it is expected (at current queues) to take no more than this many seconds longer than the driver's own best route, and spends no more time in the forecast ember area. SOURCE_NOTES DG8."
+    },
+    "routing.emberSecondWeight": {
+      "category": "model rule",
+      "note": "Constrained egress guidance ranks routes by safety first: each second driven in the forecast ember area counts as this many seconds of travel, and any street in the forecast fire area is avoided whenever another way out exists. SOURCE_NOTES DG8."
+    },
+    "routing.systemQueueWeight": {
+      "category": "model rule",
+      "note": "Load balancing (constrained guidance and the unconstrained system-optimal comparison): a car's route cost counts its queue delay (1 + this) times, a simple stand-in for the delay it adds to the cars queued behind it (marginal cost). Re-planned every minute on current queues, not forecast ones. SOURCE_NOTES DG9."
+    },
+    "routing.worseOffDelayMin": {
+      "category": "model rule",
+      "note": "Households worse off (Compare, plans that differ in routing): a household counts as worse off under Plan B if it is still there when embers or the fire front reach it, or cut off, where it was not under Plan A, or if it reaches safety more than this many minutes later. Runs are paired by seed; households by identity. SOURCE_NOTES DG10."
+    },
     "network.segmentCorrections": {
       "category": "sourced",
       "note": "County street-file records corrected where other sources agree the County coding is wrong; each is matched by SEGID and OBJECTID, sets the listed County fields before the network is built, and is listed in network.meta.segmentCorrections and on the edge (correction). Eric, 2026-11-01: the 45 m link from the foot of Panoramic Way to Prospect St / Canyon Rd (County OBJECTID 25386, SEGID 181025458, \"BANCROFT STEPS WY\", TRVLWAY NT) is a two-way street. OpenStreetMap maps it as Bancroft Way (way 24025453, highway=tertiary, lanes=2, no access or oneway tags, checked 2026-11-01); the City Street_Centerline layer has it as pavement section 627042086 (Seg-00193, Prospect St to Panoramic Way, 30 ft, 2 lanes, two-way); the City's AB 747 street layer gives it a capacity of 1,125 vehicles/h; the SB 99 report (KLD, Rev. 3, p. 4) puts Panoramic Hill's single access point at \"Panoramic Way and Prospect St/Canyon Rd\". The Bancroft Steps stairway is a separate feature (OSM ways 311861379-311861382 and 24025452, motor_vehicle=no, Warring St to Prospect St) and is not in the County file. SOURCE_NOTES K1-K6."
     }
+  },
+  "routing": {
+    "forecastMarginMin": 30,
+    "timeToleranceS": 60,
+    "emberSecondWeight": 60,
+    "systemQueueWeight": 1,
+    "worseOffDelayMin": 5
   },
   "sharedLane": {
     "passingGapM": 40,
