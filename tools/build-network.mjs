@@ -125,7 +125,7 @@ for (const f of raw.features) {
   segs.push({ p, pts, mode: ped ? 'path' : p.TRVLWAY === 'NT' ? 'restricted' : 'vehicle' });
 }
 if (corrected.length !== corrections.size) throw new Error(`segmentCorrections: ${corrections.size - corrected.length} not matched in the County file`);
-console.log('County segment corrections applied:', corrected.map(c => `${c.SEGID} ${c.county.STREET} -> ${c.set.STREET} ${c.set.TRVLWAY}`).join('; ') || 'none');
+console.log('County segment corrections applied:', corrected.map(c => `${c.SEGID} ${c.county.STREET} -> ${c.set.STREET || c.county.STREET} ${c.set.TRVLWAY}`).join('; ') || 'none');
 
 // ---------- 2. snap endpoints into nodes ----------
 const SNAP = 1.0; // meters
@@ -404,7 +404,7 @@ for (const s of segs) {
     fireZone, evacZone: evacZoneOf(mid),
   };
   if (fireZoneSrc && s.osm) e.fireZoneSrc = fireZoneSrc;
-  if (s.correction) { e.travSrc = 'correction:network.segmentCorrections'; e.correction = { county: s.correction.county, osmWay: s.correction.osmWay }; }
+  if (s.correction) { e.travSrc = 'correction:network.segmentCorrections'; e.correction = { county: s.correction.county, osmWay: s.correction.osmWay, why: s.correction.why }; }
 
   if (s.mode === 'vehicle') {
     stats.edges++;
@@ -871,7 +871,7 @@ const network = {
       mode: { category: 'derived', source: 'path = SFEATYP PA/WK or names with STEPS/PATH/WALK; restricted = TRVLWAY NT; else vehicle' },
       labPrivate: { category: 'sourced', source: 'Lawrence Berkeley National Laboratory street: a County street in an LBL zone, or an OpenStreetMap way there tagged access=private (the County file does not code access).' },
       labGate: { category: 'model rule', source: 'data/assumptions.json network.labGatesExitOnly: the Lab street lost the direction that enters it from a public street, or (approach: true) it is an approach lane that leads only to a gate now closed to cars entering; labGate holds trav and lanes before. Cars leave the Lab by any of its three gates and none drive through it; engines pass.' },
-      correction: { category: 'sourced', source: 'County record corrected by data/assumptions.json network.segmentCorrections (travSrc says so): correction.county holds the County values replaced, correction.osmWay the OpenStreetMap way that, with the City layers and reports named in the note, shows the County coding is wrong. meta.segmentCorrections lists every correction with its reason. SOURCE_NOTES K1-K6.' },
+      correction: { category: 'sourced', source: 'County record corrected by data/assumptions.json network.segmentCorrections (travSrc says so): correction.county holds the County values replaced, correction.osmWay the OpenStreetMap way that, with the City layers and reports named in correction.why, shows the County coding is wrong. meta.segmentCorrections lists every correction with its reason. SOURCE_NOTES K1-K8.' },
       z: { category: 'derived', source: 'Elevation at segment ends, bilinear from data/terrain/dem.i16 (USGS 3DEP 1 m lidar DEM, 4 m overview)' },
       grade: { category: 'derived', source: 'Net grade % along digitized direction from DEM endpoint elevations' },
       gradeMax: { category: 'derived', source: '90th percentile of ~25 m window grades along the centerline, DEM sampled every 4 m. Can be wrong where the road sits on a cut, fill, bridge or retaining wall.' },

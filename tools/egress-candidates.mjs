@@ -310,7 +310,9 @@ const segDist = ([x, y], [a, b]) => { const vx = b[0] - a[0], vy = b[1] - a[1], 
   const first = new Map();
   for (let i = 0; i < cands.length; i++) {
     const k = key(cands[i]), f = first.get(k);
-    if (f) { (f.alsoFor ??= []).push(cands[i].area); cands.splice(i--, 1); } else first.set(k, cands[i]);
+    // The City's concept wins a tie, so the benchmark keeps its id (CITY-1) when a generated link snaps to the same nodes.
+    if (f && cands[i].type === 'city' && f.type !== 'city') { const j = cands.indexOf(f); (cands[i].alsoFor ??= []).push(f.area, ...(f.alsoFor || [])); cands[i].sameAs = f.id; first.set(k, cands[i]); cands.splice(j, 1); i--; }
+    else if (f) { (f.alsoFor ??= []).push(cands[i].area); cands.splice(i--, 1); } else first.set(k, cands[i]);
   }
 }
 console.log(`candidates generated: ${cands.length}`);
