@@ -97,7 +97,6 @@ function showScenario() {
 $('scenario').onchange = () => { showScenario(); newRun(); };
 const todNote = () => { $('tod-note').textContent = TIME_OF_DAY[$('tod').value].note; };
 $('growth').onchange = () => { growthNote(); r0Note(); newRun(); };
-document.querySelectorAll('#modes button').forEach(b => b.addEventListener('click', () => { if ($('growth').value !== 'none') newRun(); })); // Simple view runs without growth
 ['severity', 'seed', 'tod'].forEach(id => $(id).onchange = () => { todNote(); newRun(); });
 $('street-mode').onchange = e => { map.streetMode = e.target.value; map.draw(); legend(); };
 $('speed').onchange = e => state.speed = +e.target.value;
@@ -158,10 +157,13 @@ function applyPreset(id) {
   $('compare-out').innerHTML = ''; newRun(); renderSimple();
 }
 function setMode(m) {
+  // Simple view runs without growth (world()), so a switch rebuilds the run once the class has changed.
+  const rerun = (document.body.classList.contains('simple') || document.body.classList.contains('expert')) && !document.body.classList.contains(m) && $('growth').value !== 'none';
   document.body.classList.toggle('simple', m === 'simple'); document.body.classList.toggle('expert', m === 'expert');
   document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
   localStorage.setItem('bhe-mode', m);
-  if (m === 'simple') { if (!state.preset) pickFire(state.fire); else renderSimple(); }
+  if (m === 'simple' && !state.preset) pickFire(state.fire); // pickFire starts a new run
+  else { if (rerun) newRun(); if (m === 'simple') renderSimple(); }
 }
 document.querySelectorAll('#modes button').forEach(b => b.onclick = () => setMode(b.dataset.mode));
 // Changing any expert control leaves the preset; the simple view then shows no plan detail.
