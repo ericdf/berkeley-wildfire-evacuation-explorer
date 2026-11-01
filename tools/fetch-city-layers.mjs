@@ -36,6 +36,8 @@ export const LAYERS = {
   no_parking_fz23: { service: 'Map_of_No_Parking_Signs__Without_Tow_Away__in_FZ_2_and_3_WFL1', layer: null, why: 'No parking signs (no tow-away) in Fire Zones 2 and 3' },
   imagined_road_panoramic: { service: 'Imagined_Road_Panoramic_Hill_Berkeley_WFL1', layer: 0, why: '"2nd Route Out": the City\'s imagined road joining Dwight Way (Berkeley) and Dwight Place (Oakland), "For Evacuation Time Study" (§10.4); benchmark for tools/egress-candidates.mjs' },
   traffic_calming: { service: 'Berkeley_Fire_Apparatus_Route_Map_WFL1', layer: 1, why: 'Existing Traffic Calming Devices: the list of record for diverters, traffic circles and gates (network builder, section 5b)' },
+  // Point geometry and control type only (SOURCE_NOTES G4, PC1): 146 signals, actuated or pre-timed; no timings.
+  signals: { service: 'Signals', layer: 0, fields: ['ControlTyp'], why: 'Traffic signals with control type (actuated or pre-timed): the junctions officers can take over in the "Police control of signals" plan setting (tools/signals.mjs)' },
 };
 
 async function json(url) {
@@ -57,9 +59,9 @@ async function fetchLayer(key, spec) {
     if (/parcel|residential/i.test(L.name)) continue;
     const page = L.maxRecordCount || 1000;
     for (let off = 0; ; off += page) {
-      const q = new URLSearchParams({ where: '1=1', outFields: '*', outSR: '4326', f: 'geojson', resultOffset: off, resultRecordCount: page });
+      const q = new URLSearchParams({ where: '1=1', outFields: spec.fields ? spec.fields.join(',') : '*', outSR: '4326', f: 'geojson', resultOffset: off, resultRecordCount: page });
       const fc = await json(`${svc}/${id}/query?${q}`);
-      for (const f of fc.features) { f.properties._layer = L.name; features.push(f); }
+      for (const f of fc.features) { if (spec.fields) f.properties = Object.fromEntries(spec.fields.map(k => [k, f.properties[k]])); f.properties._layer = L.name; features.push(f); }
       if (fc.features.length < page && !fc.properties?.exceededTransferLimit) break;
     }
     layerMeta.push({ id, name: L.name, geometryType: L.geometryType, description: (L.description || '').replace(/<[^>]+>/g, '').trim(),

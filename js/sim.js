@@ -19,6 +19,7 @@ import { toUTM } from '../tools/utm.mjs';
 import { parkingState, PARKING_PLANS } from './parking.js';
 import { LEAVE_EARLY_ZONES } from './scenarios.js';
 import { minFilter, cellOf, MinHeap, inPoly, bbox, inBB, CELL } from './fire.js';
+import { opsActive, setupOperations, stepOperations, markPriority } from './operations.js';
 
 // Sample minutes from a histogram of % per 15-minute period (Time Study Table 5-9 format).
 export function sampleHist(hist, rand) {
@@ -38,7 +39,9 @@ export function sampleCurve(curve, u) {
 const CLASS_RANK = { Local: 0, 'Major Collector': 1, 'Principal Arterial': 2, Ramp: 3, Interstate: 3 };
 const INTERSECTION_KEY = ['localVph', 'collectorVph', 'arterialVph', 'freewayVph'];
 
-export const DEFAULT_PLAN = { name: 'Baseline', alertKm: 0, orderDelayMin: 10, hillsOrderMin: null, earlyShare: 0, earlyZones: 'lez', hillsParking: 'both', r0: 'none' };
+export const DEFAULT_PLAN = { name: 'Baseline', alertKm: 0, orderDelayMin: 10, hillsOrderMin: null, earlyShare: 0, earlyZones: 'lez', hillsParking: 'both', r0: 'none',
+  // Traffic operations (js/operations.js), all off: contraflow streets, how they start, police control of junctions and the shared officer pool.
+  contraflow: 'none', contraflowEdges: [], contraflowMode: 'officers', contraflowPower: 'battery', contraflowFallback: 'officers', police: 'none', officers: 20, officerDelayMin: 30 };
 
 export class Evacuation {
   // world: settings shared by both plans, such as future growth ({ growth: 'none' | 'middle' | 'moderate' | 'max' }).
@@ -192,6 +195,9 @@ export class Evacuation {
     this.responder = { free: null, eta: null, route: [], blocked: false };
     this.computeResponder(true);
     this.logStart();
+    // Contraflow, police control and power shutoff (js/operations.js); null when all are off.
+    this.ops = null;
+    if (opsActive(plan, world)) setupOperations(this);
     this.record();
   }
 
@@ -401,7 +407,7 @@ export class Evacuation {
     const { links, inL, outL, t } = this, nN = this.data.net.nodes.length;
     const cost = new Float64Array(links.length);
     for (const L of links) {
-      if (t >= this.tFire[L.e]) { cost[L.id] = Infinity; continue; }
+      if (t >= this.tFire[L.e] || L.closed) { cost[L.id] = Infinity; continue; } // burning, or the inbound side of a contraflow street
       cost[L.id] = L.ff + L.q.length / Math.max(L.cap, 1e-3) + (t >= this.tEmber[L.e] ? 300 : 0);
       // One lane between parked cars: drivers avoid turning into oncoming traffic (sharedLane.opposingWaitS per oncoming car)
       if (L.share) { const O = links[L.share.links[0] === L.id ? L.share.links[1] : L.share.links[0]]; if (O) cost[L.id] += O.q.length * this.data.A.sharedLane.opposingWaitS; }
@@ -420,6 +426,7 @@ export class Evacuation {
       }
     }
     this.linkCost = cost;
+    if (this.ops?.prio) markPriority(this);
     // Inbound commuters: forward tree from every node outside the evacuating area.
     const din = this.inDist || (this.inDist = new Float64Array(nN)), prevL = this.inPrev || (this.inPrev = new Int32Array(nN));
     din.fill(Infinity); prevL.fill(-1);
@@ -434,6 +441,7 @@ export class Evacuation {
   step() {
     const dt = this.dt; this.t += dt; const t = this.t;
     const { links, v, hh } = this;
+    if (this.ops?.pending.length) stepOperations(this);
     if (Math.round(t) % 60 === 0) this.route();
     // budgets
     const A_THR = this.data.A.nonResident.throughHours;
@@ -467,6 +475,7 @@ export class Evacuation {
     // served last; a fixed order starved some approaches of the intersection's capacity for hours.
     const act = Array.from(this.active), off = 0;
     for (let a = act.length - 1; a > 0; a--) { const b = Math.floor(this.rand() * (a + 1)); [act[a], act[b]] = [act[b], act[a]]; }
+    if (this.ops?.prio) { const first = act.filter(l => links[l].prio); if (first.length) { const rest = act.filter(l => !links[l].prio); act.length = 0; act.push(...first, ...rest); } } // officers serve outbound approaches first; no extra draws
     const GR = this.data.A.capacity.gridlockReliefS;
     for (let a = 0; a < act.length; a++) {
       const lid = act[(a + off) % act.length];
@@ -484,7 +493,7 @@ export class Evacuation {
           const path = this.paths.get(i), nl = path?.[v.pidx[i]];
           if (L.to === v.dest[i] || L.e === hh.edge[v.hh[i]] || nl == null) { L.q.shift(); L.lastOut = t; B.budget--; if (L.share) L.share.used[L.dir]++; this.commuterHome(i, true); continue; } // reached their street
           if (nb[L.to] < 1) break;
-          if (this.linkCost[nl] === Infinity) { L.q.shift(); L.lastOut = t; B.budget--; this.commuterHome(i, false); continue; } // fire ahead: turned back
+          if (this.linkCost[nl] === Infinity) { if (links[nl].closed && t < this.tFire[links[nl].e]) this.commutersTurnedBackCf = (this.commutersTurnedBackCf || 0) + 1; L.q.shift(); L.lastOut = t; B.budget--; this.commuterHome(i, false); continue; } // fire ahead, or a contraflow street: turned back
           const N = links[nl]; if (N.q.length >= N.storage && !this.relieve(i, L, N)) break;
           L.q.shift(); L.lastOut = t; B.budget--; nb[L.to]--; if (L.share) L.share.used[L.dir]++;
           N.q.push(i); v.link[i] = nl; v.enter[i] = t; v.pidx[i]++; this.active.add(nl);
@@ -525,7 +534,7 @@ export class Evacuation {
     const { v, hh, links } = this;
     if (v.cls[i] === 2) return this.enterInbound(i);
     const h = v.hh[i], eid = v.edge[i];
-    const cand = (this.edgeLinks.get(eid) || []).filter(l => links[l].q.length < links[l].storage);
+    const cand = (this.edgeLinks.get(eid) || []).filter(l => links[l].q.length < links[l].storage && !links[l].closed);
     if (!cand.length) return false;
     const dist = this.dist[v.cls[i]];
     cand.sort((a, b) => dist[links[a].to] - dist[links[b].to]);
@@ -636,6 +645,7 @@ export class Evacuation {
   engineTimes({ withTraffic = false, ignoreParking = false, fire = true, target = -1 } = {}) {
     const { data, links, t } = this, net = data.net, edges = net.edges, A_ACC = data.A.access;
     const nN = net.nodes.length, dist = new Float64Array(nN).fill(Infinity), prev = new Int32Array(nN).fill(-1), heap = new MinHeap();
+    const cfBlocked = this.ops?.cf?.blocked; // contraflow: no engine drives up the closed direction
     for (const s of data.stationNodes) { dist[s] = 0; heap.push(0, s); }
     while (heap.size) {
       const [d, n] = heap.pop(); if (d > dist[n]) continue; if (n === target) break;
@@ -645,6 +655,7 @@ export class Evacuation {
         if (fire && t >= this.tFire[eid]) continue;
         if (e.barrier?.closed && !e.barrier.engines) continue; // fixed bollards or barriers
         if (!this.engineOK[eid] && !ignoreParking) continue;
+        if (cfBlocked && cfBlocked[eid] >= 0 && e.a !== e.b && (n === e.a ? 0 : 1) === cfBlocked[eid]) continue;
         let c = e.len / (e.speedMps * 1.15) + (e.barrier?.closed ? A_ACC.barrierDelayS : 0); // removable bollard or gate: crew opens it
         if (withTraffic) {
           let onEdge = 0; for (const l of this.edgeLinks.get(eid) || []) onEdge += links[l].q.length;
@@ -689,6 +700,7 @@ export class Evacuation {
     const stations = data.stationNodes;
     if (initial) { this.engineReach0 = this.engineReachTimes(false); this.engineReach = this.engineReachStats(this.engineReach0); }
     this.engineReachNow = this.engineReachStats(this.engineReachTimes(true));
+    if (!initial && this.t >= this.firstOrderT) (this.reachSeries ||= []).push(this.engineReachNow.hill.share); // live share every 5 min after the first order
     if (!stations.length) return;
     let target = -1;
     // withTraffic: current fire and queues; ignoreParking: pretend every parked car is gone (to find the pinch points)
@@ -829,7 +841,12 @@ export class Evacuation {
     { const R = this.engineReach, N = this.engineReachNow;
       S.engineReach5Share = R.hill.share; S.engineReach5People = R.hill.people; S.engineReachUnreachablePeople = R.hill.unreachable; S.engineReachHillPeople = R.hill.total; S.engineReachBeyond5People = R.hill.total - R.hill.people;
       S.engineReach5ShareAll = R.all.share; S.engineReach5PeopleAll = R.all.people; S.engineReachUnreachablePeopleAll = R.all.unreachable; S.engineReachAllPeople = R.all.total;
-      S.engineReach5ShareNow = N.hill.share; S.engineReach5PeopleNow = N.hill.people; }
+      S.engineReach5ShareNow = N.hill.share; S.engineReach5PeopleNow = N.hill.people;
+      const rs = this.reachSeries || []; S.engineReach5ShareLiveMean = rs.length ? rs.reduce((a, b) => a + b, 0) / rs.length : null; S.engineReach5ShareLiveMin = rs.length ? Math.min(...rs) : null; }
+    // Traffic operations (js/operations.js)
+    { const o = this.ops; S.commutersTurnedBackContraflow = this.commutersTurnedBackCf || 0;
+      S.contraflowPieces = o?.cf?.active ?? 0; S.contraflowSegments = o?.cf?.segments ?? 0; S.contraflowEntries = o?.cf?.entries ?? 0; S.contraflowPlannedEntries = o?.cf?.plannedEntries ?? 0;
+      S.officersUsed = o?.officers.used ?? 0; S.junctionsControlled = o?.police?.controlled ?? 0; S.signalsDark = o?.shutoff?.dark ?? 0; }
     S.peakQueued = Math.max(0, ...this.series.queued);
     S.bottlenecks = [...this.nodeWaitMax.entries()].filter(([, w]) => w > 0).sort((a, b) => b[1] - a[1]).slice(0, 5)
       .map(([n, w]) => ({ node: n, name: this.nodeName(n), max: w, at: this.nodeWaitAt[n] / 60 }));

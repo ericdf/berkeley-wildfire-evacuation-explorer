@@ -45,12 +45,17 @@ plan on the map; Compare runs both on 9 fires (3 severities × 3 seeds) and stat
    Time of day changes who is home and how much background traffic there is.
    Future growth (Expert view) adds homes in the hills for both plans: none, the 2025
    Evacuation Time Study's middle-housing case (870 units) or maximum ADU build-out (27,060),
-   or a moderate case (2,706, an assumption).
+   or a moderate case (2,706, an assumption). A Red Flag power shutoff (Expert view, both plans)
+   turns the signals in and next to the hills, or all of them, into all-way stops.
 2. **Operating plan.** Plan A and Plan B are edited in tabs: when zones are ordered,
    how long detection and the decision take, whether all hill zones are ordered at once,
    early departure on Red Flag days (from the City's Leave Early Zones, or all of Fire Zones 2–3),
    parking on hill streets, and R0: no added units in the Leave Early Zones, Fire Zones 2–3
-   or access-constrained areas, shown with its legal status.
+   or access-constrained areas, shown with its legal status. Contraflow runs both lanes of the
+   main hill exit streets, or streets you choose, outbound, started by officers or by
+   pre-installed signs and gates; police control puts officers at pre-timed signals and the Time
+   Study's congestion points. Both draw on one pool of officers. All three settings are off by
+   default.
 3. **Run.** Watch the fire, embers, vehicles, queues and the fire-engine route. Drag the
    slider to jump to a time. Click a street or zone to inspect it; hover a badge (ⓘ)
    to see where each value comes from.
@@ -210,6 +215,26 @@ crossings OSM tags `emergency=yes` after 3 minutes (✕ on the map; purple where
 Junctions at the City's 63 circles and inside OSM roundabouts pass at most 900 vehicles per hour
 (Time Study).
 
+**Contraflow, police control and power shutoff** (`js/operations.js`; SOURCE_NOTES CF1–CF15).
+All off by default; with them off a run is identical to one without the module, and none of them
+draws a random number. *Contraflow* (plan): once started, both lanes of a chosen two-way street
+carry traffic away from the order area and the inbound side is closed, so returning commuters
+turn back or reroute and engines cannot drive up it (engine reach and the engine route both
+respect it). It runs only where at least 20 ft (2 × `access.movingLaneM`) stays clear between the
+plan's parked cars; narrower streets stay two-way, and the Inspector says so. The reversed lane
+carries 70% of a normal lane (freeway data, CF4); junction capacity is unchanged. The main hill
+exit streets come from `tools/contraflow-streets.mjs` (174 segments on 70 streets, CF12); "streets I
+choose" adds a street from the Inspector. Officer-staffed contraflow needs one officer at every
+entry point and starts when officers arrive; pre-installed signs and gates start 10 minutes after
+the zone's order and fail if the fire reaches them first or, on grid power alone, in a power
+shutoff; a failed sign falls back to officers or to no contraflow. *Police control* (plan):
+officers from the same pool take over pre-timed signals (and optionally the Time Study's Appendix
+F congestion points, or every signal) on the households' routes, busiest first; a controlled
+junction passes 9% more vehicles and serves outbound approaches first, the optimistic end of
+published findings (CF8). *Power shutoff* (scenario): dark signals run as all-way stops at about
+900 vehicles per hour (CF9). Signal locations and control types come from the City's Signals layer
+via `tools/signals.mjs` (CF1).
+
 **Parking and the 2025 study.** On a two-way street, removing parking opens the oncoming
 lane. It does not create a second evacuating lane. Evacuation traffic runs mostly one way, so
 taking turns rarely binds. In this model, parking restrictions therefore change engine access
@@ -229,10 +254,13 @@ add any parking-removal bonus.
 | `js/presets.js` | Simple view: its fires, questions, per-fire "What to look for" text and the reasons a question is withheld |
 | `js/worker.js` | Runs comparison batches off the main thread |
 | `js/access.js` | Access-constrained areas: inspector card, Expert-view summary, ranking table, map key |
-| `js/data.js` | Loads the data files (`access-constraints.json` is optional) |
+| `js/data.js` | Loads the data files (`access-constraints.json`, `signals.json` and `contraflow-streets.json` are optional) |
+| `js/operations.js` | Contraflow, police control of junctions and the Red Flag power shutoff |
 | `data/assumptions.json` | **Editable** assumptions and model rules, each with a category and note |
 | `data/model/network.json`, `layers.json` | Built by `tools/build-network.mjs` (do not edit by hand) |
 | `data/model/access-constraints.json` | Built by `tools/access-constraints.mjs`; the simulator runs without it |
+| `data/model/signals.json` | Signal junctions and control type (City `Signals` layer) and the Time Study's Appendix F congestion points, built by `tools/signals.mjs` |
+| `data/model/contraflow-streets.json` | Main hill exit streets for contraflow, built by `tools/contraflow-streets.mjs` from status-quo runs |
 | `data/terrain/dem.i16`, `dem.json` | Elevation grid, built by `tools/fetch-dem.mjs` |
 | `data/field/` | Field and aerial observations (counts only), e.g. parked cars on 22 hill blocks |
 | `data/raw/` | Downloaded source data (reproducible, large; City layers and report PDFs are not in git). `osm/east-bay-roads.json` (OSM streets), `osm/lbnl-gate-roads.json` (the Lab's gate roads), `genasys/zones.json` (zone outlines), `census/` (2020 block counts) each have a retrieval note |
@@ -251,6 +279,8 @@ Every tool is plain Node (18+) with no dependencies.
 node tools/fetch-dem.mjs           # elevation: USGS 3DEP 1 m lidar DEM (4 m overview), ~1 minute
 node tools/fetch-city-layers.mjs   # City of Berkeley ArcGIS Online layers → data/raw/city/
 node tools/build-network.mjs       # rebuild data/model/*.json from everything above
+node tools/signals.mjs             # signal junctions for police control and the power shutoff (after every rebuild)
+node tools/contraflow-streets.mjs  # main hill exit streets for contraflow, ~30 s on 8 cores (after every rebuild)
 node tests/headless.mjs            # sanity-check the models (optionally: low | central | high)
 node tests/calibration.mjs         # compare evacuation times with the 2025 Evacuation Time Study (fire off)
 node tests/plan-draws.mjs          # check that Plan A and Plan B see the same households for a seed
@@ -297,6 +327,11 @@ by the simulator at load time. Scenario presets, severities and time-of-day valu
   and through the middle of Kensington; north Kensington (about 1,500 people) and Oakland
   south of that line are not modeled. Traffic that reaches the edge has left.
 - Fire spread, ember distances and spot-fire rates are illustrative model values.
+- Contraflow and officer control act on the model's link and junction capacities, not on real
+  signal phases or lane markings. Not modeled: drivers who ignore contraflow signs, the time to
+  clear a street before it reverses beyond the start delay, rehearsal making people leave sooner,
+  battery backup running down during a long power shutoff, and anything a shutoff does besides
+  darkening signals and signs (SOURCE_NOTES CF15).
 - Future growth: with the Time Study's maximum ADU build-out the simulator's evacuation time
   in the large regions grows less than the study's (fire off, fall weekday S4: 1923 region +42%
   against the study's +58%; Fire Zones 2–3 +3% against +97%), because its junctions pass traffic

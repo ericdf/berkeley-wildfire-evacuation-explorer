@@ -7,6 +7,7 @@ import { PRESETS, FIRES } from './presets.js';
 import { MapView, STREET_MODES } from './map.js';
 import { fromUTM } from '../tools/utm.mjs';
 import { accessCard, accessSummary, accessTable, accessLegend } from './access.js';
+import { SHUTOFF } from './operations.js';
 
 const $ = id => document.getElementById(id);
 const fmt = (x, d = 0) => x == null || Number.isNaN(x) ? '—' : x === Infinity ? '∞' : Number(x).toLocaleString(undefined, { maximumFractionDigits: d, minimumFractionDigits: d });
@@ -49,12 +50,13 @@ for (const [k, label] of Object.entries(LAYER_NAMES)) {
 }
 
 const scenario = () => scenarios.find(s => s.id === $('scenario').value);
-const PLAN_FIELDS = ['name', 'alertKm', 'orderDelayMin', 'hillsOrderMin', 'earlyShare', 'earlyZones', 'hillsParking', 'r0'];
+const PLAN_FIELDS = ['name', 'alertKm', 'orderDelayMin', 'hillsOrderMin', 'earlyShare', 'earlyZones', 'hillsParking', 'r0',
+  'contraflow', 'contraflowMode', 'contraflowPower', 'contraflowFallback', 'police', 'officers', 'officerDelayMin'];
 function showPlan() {
   const p = state.plans[state.editing];
   for (const f of PLAN_FIELDS) $(`p-${f}`).value = p[f] ?? DEFAULT_PLAN[f] ?? '';
   document.querySelectorAll('#plan-tabs button').forEach(b => b.classList.toggle('on', b.dataset.plan === state.editing));
-  parkingNote(); r0Note();
+  parkingNote(); r0Note(); opsNote();
 }
 function readPlan() {
   const p = state.plans[state.editing];
@@ -63,11 +65,47 @@ function readPlan() {
   p.hillsOrderMin = $('p-hillsOrderMin').value === '' ? null : +$('p-hillsOrderMin').value;
   p.earlyShare = +$('p-earlyShare').value; p.earlyZones = $('p-earlyZones').value; p.hillsParking = $('p-hillsParking').value;
   p.r0 = $('p-r0').value || 'none';
-  parkingNote(); r0Note();
+  p.contraflow = $('p-contraflow').value; p.contraflowMode = $('p-contraflowMode').value; p.contraflowPower = $('p-contraflowPower').value; p.contraflowFallback = $('p-contraflowFallback').value;
+  p.police = $('p-police').value; p.officers = +$('p-officers').value; p.officerDelayMin = +$('p-officerDelayMin').value;
+  parkingNote(); r0Note(); opsNote();
+}
+// ---------- traffic operations: contraflow, police control (plan) and power shutoff (scenario); js/operations.js ----------
+const OPS = () => data.A.operations;
+function opsNote() {
+  const p = state.plans[state.editing], O = OPS(), cf = $('p-contraflow').value, signs = $('p-contraflowMode').value === 'signs';
+  $('cf-opts').hidden = cf === 'none';
+  document.querySelectorAll('.cf-signs').forEach(el => el.hidden = !signs);
+  const lane = data.A.access.movingLaneM / 0.3048, cost = O.contraflow.costPerEntryUSD[$('p-contraflowPower').value];
+  $('cf-note').innerHTML = cf === 'none' ? '' : `${cf === 'main' ? `${fmt(data.contraflow?.meta.segments)} street segments on ${fmt(data.contraflow?.meta.streets)} streets that carried the most order-zone traffic out of the hills in status-quo runs, plus the entrances of the larger access-constrained areas ${badge('model rule', data.contraflow?.meta.rule)}.`
+    : `${(p.contraflowEdges || []).length} street segments chosen. Click a street on the map and use “Add to contraflow” in the Inspector.`}
+    A street runs two outbound lanes only where at least ${fmt(2 * lane)} ft stays clear between this plan's parked cars; narrower streets stay two-way (the Inspector says which). Once it starts, nobody drives in: returning commuters turn back or find another way, and engines cannot drive up it. Junction capacity is unchanged. ${signs
+    ? `Signs switch on ${O.contraflow.signDelayMin} min after the zone's order${$('p-contraflowPower').value === 'mechanical' ? ` plus ${O.contraflow.mechanicalExtraMin} min to swing gates and unfold signs by hand` : ''} ${badge('assumption', A_NOTE('operations.contraflow'))}; a sign fails if the fire reaches it first${$('p-contraflowPower').value === 'grid' ? ' or the power is shut off' : ''}. ${cost ? `Signs cost about $${fmt(cost[0] / 1000)}k–$${fmt(cost[1] / 1000)}k per entry point; gates are not costed` : 'No public unit cost was found for mechanical signs and gates'} ${badge('assumption', A_NOTE('operations.contraflow.costPerEntryUSD'))}.`
+    : `One officer per entry point (each junction where a driver could turn into the closed direction), from the shared pool below ${badge('assumption', A_NOTE('operations.contraflow'))}.`}`;
+  const pol = $('p-police').value;
+  $('police-note').innerHTML = pol === 'none' && cf === 'none' ? '' : `Officers ${badge('assumption', A_NOTE('operations.police.officers'))} staff contraflow entry points first, then junctions on the evacuation routes, busiest first. ${pol === 'none' ? '' : `A junction an officer controls passes ${Math.round(O.police.capacityUplift * 100)}% more vehicles than its model capacity and lets traffic heading out go first ${badge('assumption', A_NOTE('operations.police.capacityUplift'))}. The 2025 Evacuation Time Study keeps signals on normal timing and models staffed control only where plans call for it (§4.3), so its times assume none of this.`}`;
+}
+function shutoffNote() {
+  const v = $('powerShutoff').value;
+  $('shutoff-note').innerHTML = v === 'none' ? '' : `${esc(SHUTOFF[v])}: each dark signal runs as an all-way stop (California Vehicle Code §21800(d)) and passes at most about ${fmt(OPS().powerShutoff.allWayStopVph)} vehicles per hour ${badge('assumption', A_NOTE('operations.powerShutoff.allWayStopVph'))}. No signal is assumed to have battery backup. Grid-powered contraflow signs fail. ${badge('model rule', A_NOTE('operations.powerShutoff'))}`;
+}
+$('powerShutoff').onchange = () => { shutoffNote(); newRun(); };
+// Streets I choose: the clicked segment and the same-named two-way street running on from it.
+function sameStreet(id) {
+  const edges = data.net.edges, name = edges[id].name, seen = new Set([id]), stack = [id];
+  const two = e => e.mode === 'vehicle' && !e.disconnected && e.lanes[0] > 0 && e.lanes[1] > 0;
+  while (stack.length) { const e = edges[stack.pop()]; for (const n of [e.a, e.b]) for (const o of data.nodeEdges[n]) if (!seen.has(o) && edges[o].name === name && two(edges[o])) { seen.add(o); stack.push(o); } }
+  return [...seen].filter(i => two(edges[i]));
+}
+function toggleContraflow(id) {
+  const p = state.plans[state.editing], cur = new Set(p.contraflowEdges || []), ids = sameStreet(id), on = ids.every(i => cur.has(i));
+  for (const i of ids) on ? cur.delete(i) : cur.add(i);
+  p.contraflowEdges = [...cur]; p.contraflow = 'custom'; $('p-contraflow').value = 'custom';
+  if (state.preset) { state.preset = null; renderSimple(); }
+  opsNote(); newRun();
 }
 // ---------- future growth (scenario) and R0 (plan) ----------
 // Growth is part of the world both plans face. Simple view always runs today's population.
-const world = () => ({ growth: document.body.classList.contains('simple') ? 'none' : $('growth').value });
+const world = () => document.body.classList.contains('simple') ? { growth: 'none', powerShutoff: 'none' } : { growth: $('growth').value, powerShutoff: $('powerShutoff').value };
 for (const [k, o] of Object.entries(data.A.growth.options)) $('growth').add(new Option(o.label, k));
 if (!data.access) { const o = $('p-r0').querySelector('option[value="access"]'); o.disabled = true; o.textContent += ' (needs data/model/access-constraints.json)'; }
 const growthNote = () => { const o = data.A.growth.options[$('growth').value]; $('growth-note').innerHTML = `${esc(o.note)} ${badge(o.category)}`; };
@@ -163,7 +201,7 @@ function applyPreset(id) {
 }
 function setMode(m) {
   // Simple view runs without growth (world()), so a switch rebuilds the run once the class has changed.
-  const rerun = (document.body.classList.contains('simple') || document.body.classList.contains('expert')) && !document.body.classList.contains(m) && $('growth').value !== 'none';
+  const rerun = (document.body.classList.contains('simple') || document.body.classList.contains('expert')) && !document.body.classList.contains(m) && ($('growth').value !== 'none' || $('powerShutoff').value !== 'none');
   document.body.classList.toggle('simple', m === 'simple'); document.body.classList.toggle('expert', m === 'expert');
   document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
   localStorage.setItem('bhe-mode', m);
@@ -238,10 +276,11 @@ function update(full) {
       ${tr('Last household with a car out (after the first order)', S.lastHousehold == null ? 'not yet' : mins(S.lastHousehold), 'Minutes from the first order until the last ordered or warned household with a car reached safety.')}
       ${tr('Vehicles on roads now · peak queued', `${fmt(S.vehiclesOnRoad)} · ${fmt(S.peakQueued)}`, 'Cars on the road at this moment, and the most cars waiting in queues at any one moment so far.')}
       ${tr(`Fire-engine travel to the fire edge: at ignition → now (City standard: ${data.A.access.engineServiceMin} min)`, `${S.responderFree === Infinity ? '<b style="color:#b91c1c">blocked by parked cars</b>' : mins(S.responderFree)} → ${S.responderBlocked ? '<b style="color:#b91c1c">blocked</b>' : mins(S.responderEta)}`, 'Minutes for a fire engine to drive from the nearest station to the nearest point of the fire edge it can reach: at ignition, and now, with evacuation traffic in the way. "Blocked" means parked cars leave less than an engine\'s width on every route. The City\'s standard is 5 minutes.')}
-      ${tr(`Hill homes an engine can reach within ${data.A.access.engineServiceMin} minutes (City standard)`, `${fmt(S.engineReach5Share * 100, 1)}% · ${fmt(S.engineReach5People)} people`, `Share of synthetic residents of Berkeley's Fire Zones 2–3 whose street a fire engine can reach from the nearest of Berkeley's 7 fire stations within the City's ${data.A.access.engineServiceMin}-minute standard, at ignition, before traffic and fire, under this plan's parking rules and this seed's parked cars. Model rule: the engine must reach the nearer end of the home's street segment by a route on which every segment leaves an engine's width (10 ft) clear and no fixed barrier closes it; the home's own segment need not pass. ${fmt(S.engineReachUnreachablePeople)} of ${fmt(S.engineReachHillPeople)} hill residents have no engine route at all. Now, with evacuation traffic and the fire: ${fmt(S.engineReach5ShareNow * 100, 1)}% (a street the fire has reached counts as not reached). This measures access only: engines do not fight the fire in this simulator, so it says nothing about firefighting outcomes. Color streets by "Engine drive time" (Expert view, Map) to see where.`)}
+      ${tr(`Hill homes an engine can reach within ${data.A.access.engineServiceMin} minutes (City standard)`, `${fmt(S.engineReach5Share * 100, 1)}% · ${fmt(S.engineReach5People)} people`, `Share of synthetic residents of Berkeley's Fire Zones 2–3 whose street a fire engine can reach from the nearest of Berkeley's 7 fire stations within the City's ${data.A.access.engineServiceMin}-minute standard, at ignition, before traffic and fire, under this plan's parking rules and this seed's parked cars. Model rule: the engine must reach the nearer end of the home's street segment by a route on which every segment leaves an engine's width (10 ft) clear and no fixed barrier closes it; the home's own segment need not pass. ${fmt(S.engineReachUnreachablePeople)} of ${fmt(S.engineReachHillPeople)} hill residents have no engine route at all. Now, with evacuation traffic and the fire: ${fmt(S.engineReach5ShareNow * 100, 1)}% (a street the fire has reached counts as not reached; engines cannot drive up a contraflow street); averaged every 5 min since the first order: ${fmt(S.engineReach5ShareLiveMean * 100, 1)}%. This measures access only: engines do not fight the fire in this simulator, so it says nothing about firefighting outcomes. Color streets by "Engine drive time" (Expert view, Map) to see where.`)}
       ${tr('Street segments too narrow for an engine (this plan and seed)', fmt(S.engineBlockedSegments), 'Street segments where parked cars leave less than 10 ft, an engine\'s width, under this plan\'s parking rules and this seed\'s parked cars.')}
       ${tr('Two-way segments where oncoming drivers take turns', fmt(S.sharedLanes), 'Two-way street segments where parked cars leave room for only one moving car, so drivers meeting from opposite directions take turns at gaps such as driveways.')}
-      ${tr('Commuters driving home into the area: home · turned back by fire', `${fmt(S.commutersHome)} of ${fmt(S.commutersInbound)} · ${fmt(S.commutersTurnedBack)}`, 'On weekdays some households wait for a family member to drive home before leaving (Time Study: 13% of households midweek). How many of those commuters got home, out of all driving in, and how many the fire turned back.')}
+      ${tr('Commuters driving home into the area: home · turned back', `${fmt(S.commutersHome)} of ${fmt(S.commutersInbound)} · ${fmt(S.commutersTurnedBack)}`, 'On weekdays some households wait for a family member to drive home before leaving (Time Study: 13% of households midweek). How many of those commuters got home, out of all driving in, and how many turned back because the fire, or a contraflow street closed to inbound traffic, left no way home.')}
+      ${S.contraflowPlannedEntries || S.officersUsed || S.signalsDark ? tr('Traffic operations: contraflow segments running · officers used · junctions officers control · signals dark', `${fmt(S.contraflowSegments)} · ${fmt(S.officersUsed)} · ${fmt(S.junctionsControlled)} · ${fmt(S.signalsDark)}`, 'Contraflow street segments with both lanes outbound so far; officers assigned from the plan\'s pool to contraflow entry points and junctions; junctions under officer control; signals dark in the Red Flag power shutoff (scenario setting). Model rules and assumptions; see Assumptions & limits. The event log lists what started when and what did not run.') : ''}
       ${tr('Zones ordered · warned', `${fmt(S.zonesOrdered)} · ${fmt(S.zonesWarned)}`, 'Evacuation zones under an order (leave now) and under a warning (get ready) so far.')}
       ${S.growthOption !== 'none' ? `<tr title="Homes added by the Future growth setting (Scenario, Expert view) and the residents living in them. They are counted in every number above. Homes barred by R0 are those the plan\'s R0 setting blocks in its area."><td>Future growth: added homes · residents (counted in every number above)${S.growthBlocked ? ` · homes barred by R0` : ''} ${badge('synthetic')}</td><td class="num">${fmt(S.addedUnits)} · ${fmt(S.addedResidents)}${S.growthBlocked ? ` · ${fmt(S.growthBlocked)}` : ''}</td></tr>` : ''}
     </table>
@@ -301,7 +340,8 @@ function inspect(sel, quiet) {
         rows += row('Parked sides (this run)', sd < 0 ? '—' : `${sd}${P.offPave[e.id] ? ', partly off the pavement' : ''}${P.pinchM[e.id] ? `; one bad parking job takes ${fmt(P.pinchM[e.id] / 0.3048, 1)} ft more` : ''}`, 'model rule', A_NOTE('parking.range'))
           + row('Clear width under this plan', Number.isNaN(cw) ? 'unknown' : `${fmt(cw, 1)} m (${fmt(cw / 0.3048)} ft)`, Number.isNaN(cw) ? 'unknown' : 'derived', 'Pavement width minus parked cars (8 ft per side, KLD), minus any bad parking job, for this run\'s seed')
           + row('Moving lanes that fit', sim.eff[e.id] < 0 ? 'unknown' : sim.eff[e.id], 'model rule', F.effLanes.source)
-          + row('Fire engine can pass', sim.engineOK[e.id] ? 'yes' : '<b style="color:#b91c1c">no</b>', 'model rule', F.engineBlocked.source);
+          + row('Fire engine can pass', sim.engineOK[e.id] ? 'yes' : '<b style="color:#b91c1c">no</b>', 'model rule', F.engineBlocked.source)
+          + opsRows(e, sim, row);
       }
       rows += row('Steep grade', e.gradeReliable ? `${fmt(e.gradeMax, 1)}%` : `${fmt(e.gradeMax, 1)}% (unreliable)`, 'derived', F.gradeMax.source)
         + row('Net grade (drawn direction)', `${fmt(e.grade, 1)}%`, 'derived', F.grade.source)
@@ -324,6 +364,7 @@ function inspect(sel, quiet) {
     const areas = data.access?.edgeAreas.get(e.id);
     if (areas && !map.layers.access) rows += row('Access-constrained area', `${esc(areas[0].id)}, behind ${esc(areas[0].chokeStreets.join(' / '))} (turn on the Access constraints layer)`, 'derived');
     box.innerHTML = (map.selectedArea ? accessCard(data, map.selectedArea, H) : '') + `<h2>Street segment</h2><table class="kv">${rows}</table>`;
+    if ($('cf-toggle')) $('cf-toggle').onclick = () => toggleContraflow(e.id);
   } else {
     const z = data.layers.evacZones[sel.id];
     const berk = /^(BER|LBL)-/.test(z.id);
@@ -347,6 +388,25 @@ function inspect(sel, quiet) {
   }
 }
 
+// Contraflow status of a street segment and officer or power status of the junctions at its ends.
+function opsRows(e, sim, row) {
+  let out = '';
+  const cf = sim.ops?.cf, st = cf?.status.get(e.id), need = 2 * data.A.access.movingLaneM / 0.3048;
+  if (st) {
+    const c = cf.comps[st.comp], d = st.dir === 0 ? [e.a, e.b] : [e.b, e.a];
+    out += row('Contraflow (this plan)', !st.ok ? `<b>Gains nothing here</b>: ${esc(st.reason)}. The street stays two-way. Widening it or a red curb (no parking) would let it run two lanes out.`
+      : `Both lanes toward ${esc(sim.nodeName(d[1]))}; ${c?.state === 'running' ? `running since t+${hm(c.t)}` : c?.state === 'scheduled' ? `starts at t+${hm(c.t)}` : esc(c?.state || '')}`, 'model rule', `Two outbound lanes need at least ${need.toFixed(0)} ft clear between parked cars (2 × access.movingLaneM). Clear width here: ${Number.isNaN(st.clear) ? 'unknown' : (st.clear / 0.3048).toFixed(0) + ' ft'}.`);
+  } else if (sim.plan.contraflow === 'custom' || (sim.plan.contraflow === 'main' && data.contraflow)) out += row('Contraflow (this plan)', 'not on this plan\'s list', 'model rule');
+  if (sim.plan.contraflow === 'custom' && e.lanes[0] > 0 && e.lanes[1] > 0) out += `<tr><td></td><td><button id="cf-toggle">${(sim.plan.contraflowEdges || []).includes(e.id) ? 'Remove this street from contraflow' : 'Add this street to contraflow'}</button></td></tr>`;
+  const J = data.signals?.junctions; if (!J) return out;
+  for (const n of [e.a, e.b]) {
+    const j = J.find(x => x.node === n); if (!j) continue;
+    const ctl = sim.ops?.police?.nodes.includes(n), dark = sim.ops?.shutoff && j.signal && (sim.world.powerShutoff === 'all' || j.hills);
+    out += row(`Junction ${esc(j.name)}`, `${j.signal ? `${j.control === 'pretimed' ? 'pre-timed' : 'actuated'} signal (City layer)` : 'no signal'}${j.appF ? `; Time Study congestion point: ${esc(j.appF)}` : ''}${ctl ? `; officers take over at t+${hm(sim.ops.police.t)}` : ''}${dark && !ctl ? '; dark in the power shutoff: all-way stop' : ''}`, j.signal ? 'sourced' : 'derived', data.signals.meta.rule);
+  }
+  return out;
+}
+
 // ---------- legend ----------
 function legend() {
   const m = map.streetMode, sw = (c, t) => `<div><span class="sw" style="background:${c}"></span>${t}</div>`;
@@ -358,6 +418,7 @@ function legend() {
     grade: sw('#4f7f9b', '< 5%') + sw('#8fae4a', '5–10%') + sw('#e0b21e', '10–15%') + sw('#e07a1e', '15–20%') + sw('#c0262d', '≥ 20%') + sw('#aaa', 'unreliable (structure or DEM artefact)'),
     widthSource: sw('#2b6cb0', 'City pavement-management width') + sw('#8a3fb8', 'City narrow-roads survey') + sw('#aaa', 'no width data'),
     oneway: sw('#d1495b', 'One-way (arrow = direction)') + sw('#666', 'Two-way'),
+    ops: sw('#1d4ed8', 'Contraflow running: both lanes out') + sw('#93c5fd', 'Contraflow planned, not started') + sw('#e07a1e', 'On the plan, too narrow for two lanes out') + sw('#9ca3af', 'On the plan, not running (see event log)') + '<div class="small muted">Junctions: <span class="dot" style="background:#7c3aed"></span>officer control · <span class="dot" style="background:#111"></span>dark signal (all-way stop)</div>',
   }[m];
   const extra = (map.layers.fire ? `<div><span class="dot" style="background:#ff7a00"></span>Active fire (last 15 min)</div><div><span class="dot" style="background:#5a1e19"></span>Burned</div><div><span class="dot" style="background:#ffb020;opacity:.6"></span>Ember exposure</div>` : '')
     + (map.layers.vehicles ? `<div><span class="dot" style="background:#1d4ed8"></span>Vehicle leaving · <span class="dot" style="background:#d97706"></span>commuter driving home · <span class="dot" style="background:#e11d48"></span>in ember area</div>` : '')
@@ -416,7 +477,11 @@ const METRICS = [
   ['Hill residents an engine cannot reach within 5 min (at ignition)', S => S.engineReachBeyond5People, -1],
   ['Hill residents with no engine route (at ignition)', S => S.engineReachUnreachablePeople, -1],
   ['Segments too narrow for an engine', S => S.engineBlockedSegments, -1],
-  ['Commuters turned back by fire', S => S.commutersTurnedBack, -1],
+  ['Commuters turned back (fire, or a contraflow street closed to them)', S => S.commutersTurnedBack, -1],
+  ['Hill residents an engine can reach within 5 min, live (mean share since the first order, %)', S => S.engineReach5ShareLiveMean == null ? null : S.engineReach5ShareLiveMean * 100, 1],
+  ['Contraflow segments running', S => S.contraflowSegments, 0],
+  ['Officers used (contraflow and junctions)', S => S.officersUsed, 0],
+  ['Signals dark (power shutoff)', S => S.signalsDark, 0],
 ];
 function renderCompare(results, scope) {
   const groups = scope === 'severities' ? ['low', 'central', 'high'] : scenarios.map(s => s.id);
@@ -481,6 +546,9 @@ const INPUTS = [
   ['Early departure', 'Share of households in the City\'s Leave Early Zones who leave on a Red Flag day, before any fire.', 'Exposure falls; evacuation time barely changes.'],
   ['Future growth', 'Added homes in the hills, from none to the 2025 Evacuation Time Study\'s maximum ADU build-out (27,060 units). Both plans face the same growth.', 'Evacuation time and people still there when embers arrived.'],
   ['R0', 'A plan setting that bars added units in one area: Leave Early Zones, Fire Zones 2–3 or areas behind a choke point.', 'How much of the growth\'s effect R0 removes.'],
+  ['Red Flag power shutoff', 'A scenario setting: signals in the hills, or all 146 City signals, go dark and run as all-way stops; grid-powered contraflow signs fail.', 'Evacuation time and queues at the dark junctions.'],
+  ['Contraflow', 'Both lanes of chosen two-way streets run outbound once officers or pre-installed signs start it. Only where at least 20 ft stays clear between parked cars.', 'Commuters turned back, live engine reach, evacuation time.'],
+  ['Police control of junctions', 'Officers from a shared pool take over pre-timed signals and the Time Study\'s congestion points after an arrival delay.', 'Evacuation time and queues at the controlled junctions.'],
   ['Parking on hill streets', 'How much of the street parked cars take: today\'s mix, one side only, tight to the curb, none on narrow roads, or none.', 'Hill homes a fire engine can reach within the City\'s 5-minute standard. Engines do not fight the fire in this simulator, so better engine access has no effect on the fire. Evacuation flow barely changes.'],
 ];
 function intro() {
@@ -536,6 +604,12 @@ $('btn-assumptions').onclick = () => {
     <li>Engines travel from the nearest station to the road point nearest the ignition that the fire has not yet reached. They cannot pass segments narrower than an engine (with parked cars), and are delayed by oncoming evacuees where only one lane is clear.</li>
     <li>Engine reach ${badge('model rule')}: a home counts as reached within the City's ${data.A.access.engineServiceMin}-minute standard ${badge('sourced')} when an engine from one of Berkeley's 7 stations can drive to the nearer end of the home's street segment in that time, at ignition, before traffic and fire, on a route where every segment leaves 10 ft clear between parked cars and no fixed barrier closes it (gates and removable bollards cost ${data.A.access.barrierDelayS / 60} min). The home's own segment need not pass: the engine stops at its end. Engines drive both ways on one-way streets at 1.15 times the posted speed, with no turn or grade delays, so drive times are short: in the runs tested nearly every hill home with an engine route is within 5 minutes, and the measure mostly counts homes that parked cars cut off. Stations in Oakland, Kensington and Albany are not modeled, so the measure covers Berkeley's evacuation zones only. It says nothing about what an engine does on arrival.</li>
   </ul>
+  <h3>Contraflow, police control and power shutoff ${badge('model rule')} ${badge('assumption')}</h3>
+  <ul class="small">
+    <li><b>Contraflow</b> (plan setting): once it starts, both lanes of a chosen two-way street carry traffic away from the order area and the inbound direction is closed. It runs only where at least ${fmt(2 * data.A.access.movingLaneM / 0.3048)} ft stays clear between the plan's parked cars (two 10-ft lanes); on narrower streets it gains nothing and the street stays two-way. The main hill exit streets are those that carried the most order-zone traffic out of the hills in status-quo runs, plus the entrances of the larger access-constrained areas (<code>tools/contraflow-streets.mjs</code>). A street runs contraflow only while its zone is ordered or warned. Junction capacity is unchanged, so where the junction at the bottom of a street is the bottleneck, contraflow adds room to queue but not throughput. Costs it models: returning commuters cannot drive in (they turn back or reroute), and engines cannot drive up a contraflow street (they take another route or cannot reach). Officer-staffed contraflow needs one officer at every entry point (the street's outbound end and every side-street junction) and starts when they arrive; pre-installed signs and gates start ${OPS().contraflow.signDelayMin} min after the order. A sign fails if the fire reaches it first, or if it runs on grid power alone during a power shutoff; a failed sign falls back to officers or to no contraflow. Battery backup is assumed to last the whole run, which a shutoff that starts a day ahead of the fire might not allow. Not modeled: drivers who ignore the signs, wrong-way crashes, the time to clear inbound traffic off the street before it reverses, and rehearsal making people leave sooner.</li>
+    <li><b>Police control of junctions</b> (plan setting): officers arrive a set time after the first order and staff contraflow entry points first, then target junctions on the evacuation routes, busiest first (by the households whose first route passes through). An officer-controlled junction passes ${Math.round(OPS().police.capacityUplift * 100)}% more vehicles than its model capacity and lets approaches heading toward safety go first. That uplift is an assumption kept modest: the Time Study models staffed control as actuated signal timing (§4.3, p. 4-7) and finds converting pre-timed signals to actuated cuts evacuation time by up to 13% (p. 10-9); manual control can also do worse than a signal. The simulator models signals only as a capacity per road class, so officer control acts on that capacity, not on real signal phases.</li>
+    <li><b>Red Flag power shutoff</b> (scenario setting): dark signals run as all-way stops (California Vehicle Code §21800(d)) at about ${fmt(OPS().powerShutoff.allWayStopVph)} vehicles per hour through the junction, or less where the model's capacity was already lower. No public source says which Berkeley signals have battery backup, so none is assumed. An officer at a dark signal restores it to officer control. Streetlights, phones, alerts and water pressure, which a shutoff also affects, are not modeled.</li>
+  </ul>
   <h3>Information gaps and how far off they make the simulator</h3>
   <ul class="small">
     <li><b>Traffic signal timing ${badge('assumption')}.</b> The City has not published its signal timings, so every junction gets a typical delay and a capacity by road class (<code>intersections</code> above). The 2025 Time Study used the City's timings and found intersections to be the main constraint. The simulator therefore clears traffic too fast when roads are busy. Measured against the study (90% of order-zone vehicles out, no fire, median of 3 seeds):
@@ -554,7 +628,7 @@ $('btn-assumptions').onclick = () => {
     <li>No stairway or steep-path access time between homes and the street, and no assistance for people who need help (Phase 2).</li>
     <li>Employees, students, visitors and I-80 and CA-24 through traffic use the Time Study's vehicle counts, placed by area (an approximation).</li>
     <li>Intersection capacities are illustrative per road class; the study models each signal and stop sign. Traffic circles (900 vehicles per hour, Time Study) and diverters come from the City's list of traffic-calming devices (75 diverters, 63 circles); how each one channels traffic is read from OpenStreetMap. 13 of the 75 stay open: OpenStreetMap shows no restriction at 6 and only banned turns at 1 (turn bans are not modeled), 2 could not be placed on the network, and 4 would cut streets off or leave cars on one-way streets with no way out.</li>
-    <li>Contraflow, traffic control and road closures beyond fire-blocked segments are not modeled.</li>
+    <li>Road closures beyond fire-blocked segments and contraflow streets are not modeled. Officers do not direct turning movements or close streets; they raise a junction's capacity and let outbound traffic go first.</li>
     <li>Streets outside Berkeley come from OpenStreetMap, with widths assumed from Berkeley's medians and lanes from OSM tags or by road class. The model area stops at the edge of the elevation grid (37.84–37.91° N, 122.33–122.21° W: about 1 km into Oakland, the middle of Kensington, the Caldecott Tunnel); traffic that reaches the edge has left, and people beyond it are not modeled (about 1,500 of Kensington's 5,428 residents in the 2020 Census).</li>
   </ul>`);
 };
@@ -581,7 +655,7 @@ if (data.access) {
 }
 
 // ---------- start ----------
-growthNote(); showScenario(); showPlan(); legend(); newRun();
+growthNote(); shutoffNote(); showScenario(); showPlan(); legend(); newRun();
 setMode(localStorage.getItem('bhe-mode') || 'simple');
 if (!localStorage.getItem('bhe-intro-seen')) intro();
 requestAnimationFrame(loop);
