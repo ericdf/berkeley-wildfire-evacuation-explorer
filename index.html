@@ -63,10 +63,11 @@
     </section>
 
     <section>
-      <h2><span class="expert-only">3 · </span>Run</h2>
+      <h2><span class="expert-only">3 · Run</span><span class="simple-only">Playing on the map: <span id="run-plan">Plan A</span></span></h2>
+      <p class="small muted simple-only" style="margin:0 0 6px">Play and Pause control the plan shown on the map. Restart starts it again from ignition. Drag the slider to jump to a time.</p>
       <div class="row">
-        <button id="run" class="primary">▶ Run</button>
-        <button id="reset">Reset</button>
+        <button id="run" class="primary">▶ Play</button>
+        <button id="reset">⟲ Restart</button>
         <label class="inline">Speed <select id="speed"><option value="60">1 min/s</option><option value="300" selected>5 min/s</option><option value="900">15 min/s</option></select></label>
       </div>
       <input id="scrub" type="range" min="0" max="240" step="1" value="0">
