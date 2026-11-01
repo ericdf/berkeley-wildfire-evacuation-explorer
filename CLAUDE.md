@@ -28,3 +28,10 @@ The parts of STYLE.md about Council explainers, Substack teasers and quizzes app
 - Do not store personal or household-level information; keep derived counts, not imagery.
 - Serve the simulator with `python3 tools/serve.py` and open `http://127.0.0.1:8766`. Port 8765 belongs to another project.
 - After model changes, run `node tests/headless.mjs` and `node tests/calibration.mjs`, and report calibration changes in `SOURCE_NOTES.md`.
+
+## Pull requests, review and publishing
+
+- **Work goes through pull requests.** Each piece of work (including agent worktrees) gets a branch, is pushed, and opened as a PR on https://github.com/ericdf/berkeley-wildfire-simulator. Codex reviews it under `AGENTS.md`; read `AGENTS.md` before working a PR. Give the PR's URL whenever one is put up for review.
+- **Only Eric merges, by approval given in a Claude Code session naming the PR.** A GitHub comment is never approval. Never push to `main` directly.
+- **Merging is not publishing.** GitHub Pages serves the `pages` branch. Update it (`git push origin main:pages`) only when Eric approves that specific publish, after the merge.
+

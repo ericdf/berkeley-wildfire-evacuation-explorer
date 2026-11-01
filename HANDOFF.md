@@ -16,7 +16,7 @@ Checks after any model change:
 - `node tests/leftover.mjs <scenario> <S1..S6> [seed]` lists order-zone vehicles that never leave the order area, by start street and last link. A "—" with no jam usually means a car is placed on a dead-end piece of network.
 - A browser smoke test needs puppeteer-core, which lives outside the repo; any headless Chrome check of `http://127.0.0.1:8766` for console errors will do.
 
-Git: all work is committed on `main` and pushed to https://github.com/ericdf/berkeley-wildfire-simulator (GitHub Pages serves `main`; pushes need `git config http.postBuffer 157286400`). City layers and report PDFs are git-ignored and can be re-fetched (`tools/fetch-city-layers.mjs`; PDF URLs in `SOURCE_NOTES.md`).
+Git: work goes through pull requests on https://github.com/ericdf/berkeley-wildfire-simulator, reviewed by Codex under `AGENTS.md`; only Eric merges. GitHub Pages serves the `pages` branch, updated only with Eric's approval (`git push origin main:pages`). Pushes need `git config http.postBuffer 157286400`.
 
 ## What the model does now
 
