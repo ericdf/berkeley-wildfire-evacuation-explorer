@@ -7,3 +7,6 @@ data/raw/docs/*.pdf
 data/raw/imagery/
 # Claude Code worktrees and local settings
 .claude/
+
+# Egress candidates: Overpass responses and lookups (tools/egress-candidates.mjs); re-fetched on demand. Parcel geometry is never saved.
+data/raw/egress/
