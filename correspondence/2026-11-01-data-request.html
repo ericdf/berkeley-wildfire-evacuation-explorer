@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Draft: data request to the City of Berkeley</title>
+<style>
+  body { font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; color: #1f2328; background: #f4f5f7; margin: 0; padding: 32px 16px; }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  .head { background: #fff; border: 1px solid #d8dbe0; border-radius: 8px; padding: 14px 18px; margin-bottom: 16px; }
+  .head h1 { font-size: 16px; margin: 0 0 8px; }
+  .head p { margin: 4px 0; color: #57606a; font-size: 13px; }
+  .field { display: flex; gap: 8px; align-items: baseline; margin: 6px 0; }
+  .field b { width: 64px; flex: none; }
+  .field span { flex: 1; }
+  button { font: inherit; font-size: 13px; padding: 4px 10px; border: 1px solid #c4c9d0; border-radius: 6px; background: #f6f8fa; cursor: pointer; }
+  button:hover { background: #eef1f4; }
+  .bar { display: flex; gap: 8px; align-items: center; margin: 0 0 8px; }
+  .ok { color: #1a7f37; font-size: 13px; }
+  .letter { background: #fff; border: 1px solid #d8dbe0; border-radius: 8px; padding: 24px 28px; }
+  .ph { background: #fff3bf; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <h1>Draft: data request to the City of Berkeley (not sent)</h1>
+    <p>Fill in the highlighted placeholders, then use <b>Copy letter</b> and paste into your email. Formatting (bold, numbered list) comes along.</p>
+    <div class="field"><b>To</b><span class="ph">[City contact: Fire Department / Office of Emergency Services, or Public Works Transportation]</span></div>
+    <div class="field"><b>Cc</b><span class="ph">[optional: KLD Engineering project contact for the 2025 Evacuation Time Study]</span></div>
+    <div class="field"><b>Subject</b><span id="subject">Request for evacuation study data: curb parking, model network, and zone layers</span><button data-copy="subject">Copy</button></div>
+  </div>
+
+  <div class="bar"><button id="copy-letter">Copy letter</button><span id="msg" class="ok"></span></div>
+
+  <div class="letter" id="letter">
+    <p>Hello <span class="ph">[name]</span>,</p>
+
+    <p>I'm a Berkeley Hills resident building an educational, browser-based tool that lets residents explore wildfire evacuation tradeoffs on Berkeley's real street network: when zones are ordered, leaving early, parking on narrow hill streets, and fire-engine access. It is clearly labelled as a teaching tool, not a prediction or an official plan, and it points people to the City's evacuation pages. Every number in it shows where it came from.</p>
+
+    <p>I've built it on the City's public GIS layers (street centerlines, Narrow_Roads, Genasys zones, Evac_Regions, fire zones) and calibrated it against the 2025 Evacuation Time Study, the SB 99 Access Impaired Neighborhood report and the AB 747 route analysis. Its evacuation times for the 1923 Repeat and Panoramic Hill night and weekend cases come within about 15 minutes of the study.</p>
+
+    <p>A few datasets would replace guesses with the City's own data. Would it be possible to share any of the following?</p>
+
+    <ol>
+      <li><b>Curb parking data</b> used by KLD for the SB 99 and AB 747 analyses: where parking is allowed on one side, both sides or neither, and red curbs. Right now I estimate it from street photos and from parked cars counted on City aerial photos, which only show one daytime moment.</li>
+      <li><b>The KLD model network and demand for the 2025 Evacuation Time Study</b>: link and node tables with lanes, speeds, capacities and intersection control, and the employee, student, visitor and transit-dependent demand by zone. Without the non-resident demand my weekday daytime times run about an hour faster than the study's.</li>
+      <li><b>Leave Early Zone boundaries</b>, as GIS polygons.</li>
+      <li><b>Traffic diverters, traffic circles, bollards and gates</b> in the hills, as points or lines. The study identifies the Channing/Piedmont circle and the Derby St diverter as key constraints for Panoramic Hill.</li>
+      <li><b>How Width_w_Parking in the Narrow_Roads layer was produced.</b> It appears to be pavement width minus 7 ft per parked side. Was it measured in the field anywhere?</li>
+      <li><b>Berkeley Fire's view of which hill streets engines have trouble reaching</b> with normal parking, if that can be shared in any form.</li>
+    </ol>
+
+    <p>I'm not asking for anything with personal or household information, and I won't publish addresses. I'm happy to share the tool and its source notes with staff, and to credit the City and KLD for anything you provide.</p>
+
+    <p>One small thing I noticed: the City's links to the full SB 99, AB 747 and Evacuation Time Study PDFs (from the Evacuation StoryMaps text version) currently return "page not found". I found copies in the Internet Archive.</p>
+
+    <p>Thank you for any help, and for the work behind the evacuation study.</p>
+
+    <p>Best regards,<br>Eric Friedman<br><span class="ph">[phone / email]</span></p>
+  </div>
+</div>
+<script>
+  const msg = t => { const m = document.getElementById('msg'); m.textContent = t; setTimeout(() => m.textContent = '', 2500); };
+  async function copyEl(el) {
+    const clone = el.cloneNode(true);
+    clone.querySelectorAll('.ph').forEach(s => s.removeAttribute('class')); // no highlight in the email
+    const html = clone.innerHTML, text = el.innerText;
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([text], { type: 'text/plain' }) })]);
+      return true;
+    } catch {
+      const r = document.createRange(); r.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+      const ok = document.execCommand('copy'); s.removeAllRanges(); return ok;
+    }
+  }
+  document.getElementById('copy-letter').onclick = async () => msg(await copyEl(document.getElementById('letter')) ? 'Letter copied with formatting.' : 'Select the letter and copy it manually.');
+  document.querySelectorAll('[data-copy]').forEach(b => b.onclick = async () => msg(await copyEl(document.getElementById(b.dataset.copy)) ? 'Subject copied.' : 'Copy failed.'));
+</script>
+</body>
+</html>

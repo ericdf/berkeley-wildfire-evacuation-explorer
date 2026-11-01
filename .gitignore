@@ -3,5 +3,5 @@
 # the report PDFs come from the Wayback Machine URLs in SOURCE_NOTES.md.
 data/raw/city/
 data/raw/docs/*.pdf
-# Aerial imagery is City of Berkeley / Pictometry copyright: keep derived counts only.
+# Aerial imagery clips (public City service): large; keep derived counts only.
 data/raw/imagery/

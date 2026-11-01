@@ -23,8 +23,8 @@ A few datasets would replace guesses with the City's own data. Would it be possi
 any of the following?
 
 1. **Curb parking data** used by KLD for the SB 99 and AB 747 analyses: where parking is allowed
-   on one side, both sides or neither, and red curbs. Right now I assume both sides wherever a
-   10 ft lane remains, and field photos show that's often wrong.
+   on one side, both sides or neither, and red curbs. Right now I estimate it from street photos
+   and from parked cars counted on City aerial photos, which only show one daytime moment.
 2. **The KLD model network and demand for the 2025 Evacuation Time Study**: link and node tables
    with lanes, speeds, capacities and intersection control, and the employee, student, visitor
    and transit-dependent demand by zone. Without the non-resident demand my weekday daytime
@@ -37,9 +37,6 @@ any of the following?
    pavement width minus 7 ft per parked side. Was it measured in the field anywhere?
 6. **Berkeley Fire's view of which hill streets engines have trouble reaching** with normal
    parking, if that can be shared in any form.
-7. **Terms for the City orthophotos** (2020, 3-inch). I'd like to use them only to count parked
-   cars and passing gaps per block, keep the counts, and not redistribute the imagery. Is that
-   acceptable?
 
 I'm not asking for anything with personal or household information, and I won't publish
 addresses. I'm happy to share the tool and its source notes with staff, and to credit the City

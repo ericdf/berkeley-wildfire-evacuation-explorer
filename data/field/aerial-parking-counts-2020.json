@@ -1,7 +1,7 @@
 {
  "_about": {
   "what": "Parked cars counted by eye on City of Berkeley 2020 3-inch orthophotos for 22 two-way hill blocks (Fire Zones 2-3). Five are streets Eric photographed; 17 were drawn at random (seeded) from Local two-way hill segments 70-220 m long with a known width.",
-  "source": "https://gis.cityofberkeley.info/arcgis3/rest/services/Imagery/ORTHOPHOTO_2020_3in/ImageServer (City of Berkeley / Pictometry). Only these derived counts are kept; the imagery is not stored in the project.",
+  "source": "https://gis.cityofberkeley.info/arcgis3/rest/services/Imagery/ORTHOPHOTO_2020_3in/ImageServer (City of Berkeley / Pictometry). Public City imagery. Only these derived counts are kept; the imagery is not stored in the project, to keep it small.",
   "counted": "2026-11-01 by Claude from 15 cm/pixel exports with the County centerline overlaid; not checked by a person yet.",
   "limits": "One daytime moment in 2020 (parking is likely fuller in the evening). Tree canopy hides part of most blocks (canopyHidden). Counts are approximate (plus or minus 1-2 cars on busy blocks). Curb offset and vehicle width cannot be judged at this resolution, so bad parking jobs are not counted.",
   "category": "derived"
