@@ -14,7 +14,7 @@ const noFire = { arrival: new Float64Array(grid.W * grid.H).fill(Infinity), embe
 const seeds = +(process.argv[2] || 3);
 if (process.argv[3]) data.A.intersections.scale = +process.argv[3]; // optional: try another intersection-capacity scale
 console.log(`intersection capacity scale ${data.A.intersections.scale}`);
-const hm = m => m == null ? '  —  ' : `${Math.floor(m / 60)}:${String(Math.round(m % 60)).padStart(2, '0')}`;
+const hm = m => { if (m == null) return '  —  '; const r = Math.round(m); return `${Math.floor(r / 60)}:${String(r % 60).padStart(2, '0')}`; };
 const plan = { ...DEFAULT_PLAN, alertKm: 0, orderDelayMin: 0 };
 for (const sc of makeScenarios(data).filter(s => ETE_TARGETS[s.id])) {
   const T = ETE_TARGETS[sc.id];
