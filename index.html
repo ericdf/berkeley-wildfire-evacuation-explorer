@@ -71,6 +71,7 @@
         <label class="inline">Speed <select id="speed"><option value="60">1 min/s</option><option value="300" selected>5 min/s</option><option value="900">15 min/s</option></select></label>
       </div>
       <input id="scrub" type="range" min="0" max="240" step="1" value="0">
+      <div id="run-status" class="run-status"></div>
       <h3 class="expert-only">Compare Plan A and Plan B</h3>
       <div class="row expert-only">
         <select id="cmp-scope">
@@ -79,7 +80,6 @@
         </select>
         <button id="compare">Compare</button>
       </div>
-      <div id="cmp-progress" class="small muted"></div>
     </section>
 
     <section class="expert-only">
@@ -95,7 +95,8 @@
 
   <div id="mapwrap">
     <canvas id="map"></canvas>
-    <div id="clock">Ready</div>
+    <div id="sim-banner" hidden><span id="sim-banner-text"></span><div class="track"><div id="sim-banner-bar"></div></div></div>
+    <div id="clockbar"><div id="clock">Ready</div><div id="map-controls"><button id="map-run" class="primary" title="Play or pause the plan shown on the map">▶ Play</button><button id="map-reset" title="Start the plan shown on the map again from ignition">⟲ Restart</button></div></div>
     <div id="legend"></div>
     <div id="status"></div>
     <div id="loading">Loading street network, terrain and City layers…</div>
