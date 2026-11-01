@@ -6,7 +6,7 @@ export async function loadData(load = browserLoad) {
     load('data/model/network.json', 'json'), load('data/model/layers.json', 'json'),
     load('data/terrain/dem.json', 'json'), load('data/terrain/dem.i16', 'buffer'), load('data/assumptions.json', 'json'),
   ]);
-  // Optional: access-constrained areas (tools/access-constraints.mjs). The simulator runs without them.
+  // Optional: access-constrained areas (tools/access-constraints.mjs), for the map layer and the R0 plan setting. The simulator runs without them.
   const access = await Promise.resolve().then(() => load('data/model/access-constraints.json', 'json')).catch(() => null);
   return prepare({ net, layers, dem, Z: new Int16Array(demBuf), A, access });
 }

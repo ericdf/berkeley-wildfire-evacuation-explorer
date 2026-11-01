@@ -49,12 +49,12 @@ for (const [k, label] of Object.entries(LAYER_NAMES)) {
 }
 
 const scenario = () => scenarios.find(s => s.id === $('scenario').value);
-const PLAN_FIELDS = ['name', 'alertKm', 'orderDelayMin', 'hillsOrderMin', 'earlyShare', 'earlyZones', 'hillsParking'];
+const PLAN_FIELDS = ['name', 'alertKm', 'orderDelayMin', 'hillsOrderMin', 'earlyShare', 'earlyZones', 'hillsParking', 'r0'];
 function showPlan() {
   const p = state.plans[state.editing];
-  for (const f of PLAN_FIELDS) $(`p-${f}`).value = p[f] == null ? '' : p[f];
+  for (const f of PLAN_FIELDS) $(`p-${f}`).value = p[f] ?? DEFAULT_PLAN[f] ?? '';
   document.querySelectorAll('#plan-tabs button').forEach(b => b.classList.toggle('on', b.dataset.plan === state.editing));
-  parkingNote();
+  parkingNote(); r0Note();
 }
 function readPlan() {
   const p = state.plans[state.editing];
@@ -62,7 +62,19 @@ function readPlan() {
   p.alertKm = +$('p-alertKm').value; p.orderDelayMin = +$('p-orderDelayMin').value;
   p.hillsOrderMin = $('p-hillsOrderMin').value === '' ? null : +$('p-hillsOrderMin').value;
   p.earlyShare = +$('p-earlyShare').value; p.earlyZones = $('p-earlyZones').value; p.hillsParking = $('p-hillsParking').value;
-  parkingNote();
+  p.r0 = $('p-r0').value || 'none';
+  parkingNote(); r0Note();
+}
+// ---------- future growth (scenario) and R0 (plan) ----------
+// Growth is part of the world both plans face. Simple view always runs today's population.
+const world = () => ({ growth: document.body.classList.contains('simple') ? 'none' : $('growth').value });
+for (const [k, o] of Object.entries(data.A.growth.options)) $('growth').add(new Option(o.label, k));
+if (!data.access) { const o = $('p-r0').querySelector('option[value="access"]'); o.disabled = true; o.textContent += ' (needs data/model/access-constraints.json)'; }
+const growthNote = () => { const o = data.A.growth.options[$('growth').value]; $('growth-note').innerHTML = `${esc(o.note)} ${badge(o.category)}`; };
+function r0Note() {
+  const v = $('p-r0').value, R = data.A.growth.r0;
+  $('r0-note').innerHTML = v === 'none' || !v ? esc(R.none)
+    : `${esc(R.areas[v])} <b>Legal status:</b> ${esc(R.legal)} ${badge('model rule', R.provenance)}${$('growth').value === 'none' ? ' <span class="muted">No effect while Future growth is set to none.</span>' : ''}`;
 }
 for (const [k, label] of Object.entries(PARKING_PLANS)) $('p-hillsParking').add(new Option(label, k));
 function parkingNote() {
@@ -86,6 +98,7 @@ function showScenario() {
 }
 $('scenario').onchange = () => { showScenario(); newRun(); };
 const todNote = () => { $('tod-note').textContent = TIME_OF_DAY[$('tod').value].note; };
+$('growth').onchange = () => { growthNote(); r0Note(); newRun(); };
 ['severity', 'seed', 'tod'].forEach(id => $(id).onchange = () => { todNote(); newRun(); });
 $('street-mode').onchange = e => { map.streetMode = e.target.value; map.draw(); legend(); };
 $('speed').onchange = e => state.speed = +e.target.value;
@@ -149,10 +162,13 @@ function applyPreset(id) {
   $('compare-out').innerHTML = ''; newRun(); renderSimple();
 }
 function setMode(m) {
+  // Simple view runs without growth (world()), so a switch rebuilds the run once the class has changed.
+  const rerun = (document.body.classList.contains('simple') || document.body.classList.contains('expert')) && !document.body.classList.contains(m) && $('growth').value !== 'none';
   document.body.classList.toggle('simple', m === 'simple'); document.body.classList.toggle('expert', m === 'expert');
   document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
   localStorage.setItem('bhe-mode', m);
-  if (m === 'simple') { if (!state.preset) pickFire(state.fire); else renderSimple(); }
+  if (m === 'simple' && !state.preset) pickFire(state.fire); // pickFire starts a new run
+  else { if (rerun) newRun(); if (m === 'simple') renderSimple(); }
 }
 document.querySelectorAll('#modes button').forEach(b => b.onclick = () => setMode(b.dataset.mode));
 // Changing any expert control leaves the preset; the simple view then shows no plan detail.
@@ -166,7 +182,7 @@ function getFire(sc, sev, seed) {
 }
 function newRun() {
   const sc = scenario(), sev = $('severity').value, seed = +$('seed').value || 1;
-  state.sim = new Evacuation(data, grid, getFire(sc, sev, seed), sc, sev, { ...state.plans[state.editing] }, seed, TIME_OF_DAY[$('tod').value]);
+  state.sim = new Evacuation(data, grid, getFire(sc, sev, seed), sc, sev, { ...state.plans[state.editing] }, seed, TIME_OF_DAY[$('tod').value], world());
   map.sim = state.sim; state.playing = false; runLabel('▶ Play'); $('scrub').value = 0;
   $('run-plan').textContent = `Plan ${state.editing}${state.preset ? ': ' + state.plans[state.editing].name.replace(/^[AB]: /, '') : ''}`;
   update(true); map.draw();
@@ -226,6 +242,7 @@ function update(full) {
       ${tr('Two-way segments where oncoming drivers take turns', fmt(S.sharedLanes), 'Two-way street segments where parked cars leave room for only one moving car, so drivers meeting from opposite directions take turns at gaps such as driveways.')}
       ${tr('Commuters driving home into the area: home · turned back by fire', `${fmt(S.commutersHome)} of ${fmt(S.commutersInbound)} · ${fmt(S.commutersTurnedBack)}`, 'On weekdays some households wait for a family member to drive home before leaving (Time Study: 13% of households midweek). How many of those commuters got home, out of all driving in, and how many the fire turned back.')}
       ${tr('Zones ordered · warned', `${fmt(S.zonesOrdered)} · ${fmt(S.zonesWarned)}`, 'Evacuation zones under an order (leave now) and under a warning (get ready) so far.')}
+      ${S.growthOption !== 'none' ? `<tr title="Homes added by the Future growth setting (Scenario, Expert view) and the residents living in them. They are counted in every number above. Homes barred by R0 are those the plan\'s R0 setting blocks in its area."><td>Future growth: added homes · residents (counted in every number above)${S.growthBlocked ? ` · homes barred by R0` : ''} ${badge('synthetic')}</td><td class="num">${fmt(S.addedUnits)} · ${fmt(S.addedResidents)}${S.growthBlocked ? ` · ${fmt(S.growthBlocked)}` : ''}</td></tr>` : ''}
     </table>
     <canvas class="spark" id="spark" width="330" height="60"></canvas>
     <div class="small muted"><span style="color:#b91c1c">■</span> vehicles queued &nbsp; <span style="color:#1d4ed8">■</span> on roads &nbsp; <span style="color:#0e7490">■</span> engine ETA (scaled)</div>
@@ -353,7 +370,7 @@ $('compare').onclick = () => {
   const scope = $('cmp-scope').value, seeds = [1, 2, 3], sc = scenario();
   const cases = scope === 'severities' ? ['low', 'central', 'high'].flatMap(sev => seeds.map(seed => ({ scenarioId: sc.id, sev, seed, tod: $('tod').value })))
     : scenarios.flatMap(s => seeds.map(seed => ({ scenarioId: s.id, sev: 'central', seed, tod: s.timeOfDay })));
-  const jobs = ['A', 'B'].flatMap(p => cases.map(c => ({ ...c, tod: state.preset?.tods?.[p] ?? c.tod, planKey: p, plan: { ...state.plans[p] } })));
+  const W = world(), jobs = ['A', 'B'].flatMap(p => cases.map(c => ({ ...c, tod: state.preset?.tods?.[p] ?? c.tod, planKey: p, plan: { ...state.plans[p] }, world: W })));
   const batch = ++state.batch, results = [];
   // Progress goes in a small banner above the map (Eric, 2026-11-01), visible from either panel.
   const progress = (t, done = 0) => { $('sim-banner').hidden = !t; $('sim-banner-text').textContent = t; $('sim-banner-bar').style.width = `${Math.round(100 * done / jobs.length)}%`; };
@@ -381,6 +398,7 @@ const METRICS = [
   ['  …without a vehicle', S => S.exposedNoVehicle, -1],
   ['People still there when the fire front arrived', S => S.fireFrontHome + S.fireFrontRoad, -1],
   ['People in ordered zones', S => S.orderedPeople, 0],
+  ['Added residents (growth)', S => S.addedResidents, 0],
   ['People with no vehicle and no ride', S => S.noVehicle, -1],
   ['Left early', S => S.leftEarly, 0],
   ['Vehicles evacuating', S => S.vehicles, 0],
@@ -398,7 +416,7 @@ function renderCompare(results, scope) {
   const med = a => { const s = a.filter(x => x != null && !Number.isNaN(x)).sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : null; };
   const range = a => { const s = a.filter(x => x != null && !Number.isNaN(x)); return s.length ? `${fmt(Math.min(...s))}–${fmt(Math.max(...s))}` : '—'; };
   let html = `<h2>Plan comparison ${badge('synthetic')}</h2>
-    <p class="small">Green or red means B is better or worse than A in every run, by at least 10%; gray means the change is smaller or points different ways across runs, so there is no clear difference. A: <b>${esc(state.plans.A.name)}</b> · B: <b>${esc(state.plans.B.name)}</b>. Both plans ran the same fires, households and random seeds (1–3). Values are the median of 3 seeds with the min–max range under it. A difference smaller than the range is not a robust result.</p>`;
+    <p class="small">Green or red means B is better or worse than A in every run, by at least 10%; gray means the change is smaller or points different ways across runs, so there is no clear difference. A: <b>${esc(state.plans.A.name)}</b> · B: <b>${esc(state.plans.B.name)}</b>.${results[0]?.job.world?.growth && results[0].job.world.growth !== 'none' ? ` Future growth for both: ${esc(data.A.growth.options[results[0].job.world.growth].label)}.` : ''} Both plans ran the same fires, households and random seeds (1–3). Values are the median of 3 seeds with the min–max range under it. A difference smaller than the range is not a robust result.</p>`;
   html += takeaway(results, scope);
   for (const g of groups) {
     const A = pick('A', g), B = pick('B', g);
@@ -452,6 +470,8 @@ const INPUTS = [
   ['Decision delay', 'Minutes from ignition to the first evacuation order.', 'Households still home when embers arrive.'],
   ['Zones ordered', 'Only the City\'s pre-defined zones, or also zones within 1–3 km of the fire, or all hill zones at once.', 'Exposure falls; more cars on the road at once.'],
   ['Early departure', 'Share of households in the City\'s Leave Early Zones who leave on a Red Flag day, before any fire.', 'Exposure falls; evacuation time barely changes.'],
+  ['Future growth', 'Added homes in the hills, from none to the 2025 Evacuation Time Study\'s maximum ADU build-out (27,060 units). Both plans face the same growth.', 'Evacuation time and people still there when embers arrived.'],
+  ['R0', 'A plan setting that bars added units in one area: Leave Early Zones, Fire Zones 2–3 or areas behind a choke point.', 'How much of the growth\'s effect R0 removes.'],
   ['Parking on hill streets', 'How much of the street parked cars take: today\'s mix, one side only, tight to the curb, none on narrow roads, or none.', 'Fire-engine access. Engines do not fight the fire in this simulator, so better engine access has no effect on the fire. Evacuation flow barely changes.'],
 ];
 function intro() {
@@ -477,8 +497,7 @@ $('modal').addEventListener('close', () => localStorage.setItem('bhe-intro-seen'
 $('btn-assumptions').onclick = () => {
   const A = data.A, F = data.net.meta.fields;
   const val = path => { const v = path.split('.').reduce((o, k) => o?.[k], A);
-    if (path === 'network.segmentCorrections') return v.map(c => `County SEGID ${c.SEGID}: ${c.county.STREET} ${c.county.TRVLWAY} → ${c.set.STREET} ${c.set.TRVLWAY}`).join('; ');
-    return typeof v === 'object' ? JSON.stringify(v).replace(/[{}"]/g, '').replace(/,/g, ', ') : v; };
+    if (path === 'network.segmentCorrections') return v.map(c => `County SEGID ${c.SEGID}: ${c.county.STREET} ${c.county.TRVLWAY} → ${c.set.STREET} ${c.set.TRVLWAY}`).join('; '); if (path === 'growth.options') return Object.values(v).map(o => `${o.label.replace(/ \(.*/, '')}: ${o.units.toLocaleString()} units`).join(', '); return typeof v === 'object' ? JSON.stringify(v).replace(/[{}"]/g, '').replace(/,/g, ', ') : v; };
   modal(`<h2>Assumptions &amp; limits</h2>
   <p class="note">This is an educational comparison tool. It is not a calibrated fire-behavior or traffic model, not an official evacuation plan, and it must not guide real evacuation decisions. Follow official instructions: <a href="https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation" target="_blank" rel="noopener">City of Berkeley fire weather &amp; evacuation</a>.</p>
   <p>Labels used throughout: ${badge('sourced')} published data used as-is · ${badge('derived')} computed from sourced data · ${badge('assumption')} a placeholder you can change in <code>data/assumptions.json</code> · ${badge('model rule')} a simplification that makes the simulator work · ${badge('synthetic')} generated people or vehicles.</p>
@@ -494,6 +513,7 @@ $('btn-assumptions').onclick = () => {
   <h3>How people and vehicles are modeled ${badge('synthetic')}</h3>
   <ul class="small">
     <li>Households are synthetic. Each zone's Genasys population estimate (sourced; the 2020 Census count of the zone's blocks where Genasys publishes none, as in Oakland's hills beyond the City's layer, Kensington and El Cerrito) is cut to the share inside the model area, divided by ${A.demand.personsPerHousehold} persons per household (Time Study), and spread over the zone's streets in proportion to length. Residents are not reduced by time of day (Time Study).</li>
+    <li><b>Future growth</b> (Scenario, both plans; Expert view only): added homes from the 2025 Evacuation Time Study's Hillside Overlay figures (${badge('sourced')} middle housing 870 units, maximum ADU build-out 27,060) or a moderate case (${badge('assumption')} ${A.growth.options.moderate.units.toLocaleString()} units). The study gives no split by street, so units go to Berkeley's Fire Zones 2–3 in proportion to today's households on each street ${badge('assumption')}. Each unit is a synthetic household drawn like today's (${A.demand.personsPerHousehold} persons, about 1.12 vehicles against the study's 1.14) and is counted in every result. Parked cars do not increase with growth. With the maximum build-out the simulator's 90% evacuation time rises far less than the study's (fall weekday, fire off: 1923 region +30% against +58%, Fire Zones 2–3 +3% against +97%), because its junctions pass traffic faster than the study's signals, so read growth's effect on evacuation time as a lower bound. <b>R0</b> (plan setting ${badge('model rule')}) bars added homes in one area and moves none elsewhere; it does not treat homes lost to fire as people moving out. Legal status: ${esc(A.growth.r0.legal)}</li>
     <li>${(A.demand.householdsWithoutVehicleShare * 100).toFixed(2)}% of households have no vehicle; ${A.demand.carlessRideshareShare * 100}% of those ride with a neighbor on the same street; the rest are stranded and counted as at risk. Households that drive take 1–4 vehicles (Time Study survey). Age is not used at all.</li>
     <li>Who leaves: everyone in Order zones, ${A.demand.compliance.warning * 100}% of Warning zones, and ${A.demand.compliance.shadow * 100}% of all other households in the model area (Berkeley and the neighboring parts of Oakland, Emeryville, Albany, Kensington, El Cerrito and Richmond, which roughly match the Time Study's Shadow Region) as shadow evacuees driving out of the modeled area (Time Study). Orders follow the Time Study's zone lists for the 1923 and Panoramic Hill regions, the City's Fire Zones 2–3 region for the east-wind fires, and optionally the plan's distance rule.</li>
     <li>When: each household's departure after the order is drawn from the Time Study's survey-based mobilization tables (Table 5-9), which include noticing the order and getting ready. Households waiting for a commuter, or picking up children on school days, leave later.</li>
@@ -550,7 +570,7 @@ if (data.access) {
 }
 
 // ---------- start ----------
-showScenario(); showPlan(); legend(); newRun();
+growthNote(); showScenario(); showPlan(); legend(); newRun();
 setMode(localStorage.getItem('bhe-mode') || 'simple');
 if (!localStorage.getItem('bhe-intro-seen')) intro();
 requestAnimationFrame(loop);
