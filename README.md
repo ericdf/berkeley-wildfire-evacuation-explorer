@@ -101,11 +101,14 @@ to UTM 10N meters. Segment endpoints are snapped into intersections (1 m toleran
 Paths, walks and steps become a separate pedestrian layer. County records that other sources
 show to be miscoded are corrected from a short, labeled list (`network.segmentCorrections` in
 `data/assumptions.json`), matched by SEGID; the build stops if a corrected record no longer
-holds the County values the correction expects. The one correction so far opens the 45 m link
-from the foot of Panoramic Way to Prospect St, which the County file codes as no vehicle travel
-and names "Bancroft Steps Wy". OpenStreetMap maps it as two-way Bancroft Way, the City's street
+holds the County values the correction expects. Two corrections so far, both records the County
+file codes as no vehicle travel. The 45 m link from the foot of Panoramic Way to Prospect St,
+which the County names "Bancroft Steps Wy": OpenStreetMap maps it as two-way Bancroft Way, the City's street
 layers as a 30 ft, two-lane street, and the SB 99 report puts Panoramic Hill's single access point at Panoramic Way
-and Prospect St/Canyon Rd (SOURCE_NOTES K1–K6). The inspector shows the County value next to the corrected one. Each segment is matched by
+and Prospect St/Canyon Rd (SOURCE_NOTES K1–K6). The Crossways, 67 m from Overlook Rd to
+Middlefield Rd: OpenStreetMap, the City's pavement records (21 ft, 2 lanes), the City narrow-roads
+survey and KLD's AB 747 traffic model treat it as a street, while the same City segment's network
+fields code it a stairway; Eric chose the street (SOURCE_NOTES K5, K8). The inspector shows the County value next to the corrected one. Each segment is matched by
 name and distance to the City's centerline and narrow-roads layers, which supply
 pavement width (84% of Berkeley's vehicle segments) and lane counts. Grade is sampled from the DEM
 every 4 m. Lanes, parking, speeds and capacities that the data does not give come from
@@ -155,7 +158,10 @@ it does not predict how a real fire would behave.
 population estimates. Zones outside Berkeley, and the Berkeley and Lab zones that the City
 layer clips at the city line (BER-013, the Oakland part of Panoramic Hill, and ten others;
 SOURCE_NOTES Z1), take their outlines from Genasys Protect. Zones outside Berkeley take,
-where the City layer has no estimate, their population from 2020 Census blocks; only people
+where the City layer has no estimate, their population from 2020 Census blocks; two R04
+Panoramic Hill order zones, OKL-003 (Claremont Canyon, 307 instead of Genasys 27) and BER-013
+(the Oakland part of Panoramic Hill, 122 instead of 83), take the Census count by Eric's choice
+(`population.overrides`, SOURCE_NOTES X6, Z2); only people
 inside the model area are placed (about 74,700 outside Berkeley). Household size, vehicle ownership, ridesharing, compliance
 (100% of Order zones, 50% of Warning zones, 20% shadow, which the study applies to Berkeley
 and to a Shadow Region around it) and departure times come from the 2025 Evacuation Time Study.
@@ -303,9 +309,9 @@ by the simulator at load time. Scenario presets, severities and time-of-day valu
   in the large regions grows less than the study's (fire off, fall weekday S4: 1923 region +42%
   against the study's +58%; Fire Zones 2–3 +3% against +97%), because its junctions pass traffic
   faster than the study's signals and stop signs; read growth effects there as a lower bound.
-  Panoramic Hill grows more than the study's (+115% against +25%): with one way out, its
+  Panoramic Hill grows more than the study's (+120% against +25%): with one way out, its
   streets lock up and the gridlock rule fires hundreds of times per run, so that figure is less
-  certain (`SOURCE_NOTES.md` R3, R7).
+  certain (`SOURCE_NOTES.md` R3, R7, R8).
 
 ## Access-constrained areas
 
@@ -315,6 +321,7 @@ by the simulator at load time. Scenario presets, severities and time-of-day valu
 node tools/access-constraints.mjs              # writes data/model/access-constraints.json and docs/access-constraints.md
 node tools/access-constraints.mjs -v           # also prints the top areas
 node tools/access-constraints.mjs --open 2322  # what-if: treat segment 2322 (or a comma list) as a two-way street; prints, writes nothing
+node tools/access-constraints.mjs --links f.json --quick  # what-if: add new links between existing nodes (tools/egress-link.mjs)
 ```
 
 Rerun it after `tools/build-network.mjs`.
@@ -337,3 +344,5 @@ node tools/retreat-sim.mjs                 # about 20 min on 7 workers; writes d
 node tools/retreat-sim.mjs --report-only   # rebuilds the report from data/model/retreat.json
 node tests/retreat-draws.mjs               # bought-out households leave every other draw unchanged
 ```
+### Second ways out
+`node tools/egress-all.mjs` screens candidate road connections that would give these areas a second way out: straight new roads up to 250 m, upgraded paths and stairways, opened barriers, and the City's "2nd Route Out" for Panoramic Hill. For each it reports length, grade from the lidar DEM, buildings and Alameda County parcels in a 40 ft corridor (counts only), park and campus land, the residents it takes out from behind a choke, a screening cost range from public figures, and the simulator's result with and without the link for the same seeds (the link is added at run time; `network.json` is unchanged). The candidates are a screening, not designs, and the results are a comparison, not a prediction. Method, ranked table, what was pruned and the Time Study benchmark are in `docs/egress-candidates.md`; the whole run takes 20–30 minutes on 8 cores. Rerun it after every network rebuild: candidate ids are built from the access-constraint area ids (AC-160-N3 is a link out of area AC-160), which shift when the network changes.
