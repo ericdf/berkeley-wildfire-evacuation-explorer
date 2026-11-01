@@ -221,3 +221,15 @@ by the simulator at load time. Scenario presets, severities and time-of-day valu
   and through the middle of Kensington; north Kensington (about 1,500 people) and Oakland
   south of that line are not modeled. Traffic that reaches the edge has left.
 - Fire spread, ember distances and spot-fire rates are illustrative model values.
+
+## Access-constrained areas
+
+`tools/access-constraints.mjs` maps where a single street segment is the only drivable way out, with no fire needed. On the residents' network as the simulator builds it (barrier-closed segments removed, one-way streets one way, exits at the grid edge), it finds every choke link, the area behind it, how many chokes lie in series, and for each area the synthetic residents, households and vehicles, fire-zone mix, clear width and engine fit at the entrance, steepest grade, the nearest street outside the area and any existing path or stairway. About 14% of hill residents in the model area live behind at least one choke; Panoramic Hill is the largest such area. Method, rankings and checks against the City's SB 99 analysis are in `docs/access-constraints.md`.
+
+```sh
+node tools/access-constraints.mjs              # writes data/model/access-constraints.json and docs/access-constraints.md
+node tools/access-constraints.mjs -v           # also prints the top areas
+node tools/access-constraints.mjs --open 2322  # what-if: treat segment 2322 (or a comma list) as a two-way street; prints, writes nothing
+```
+
+Rerun it after `tools/build-network.mjs`.
