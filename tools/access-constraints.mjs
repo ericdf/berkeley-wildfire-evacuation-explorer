@@ -200,22 +200,29 @@ for (const a of areas) {
 const nodeEdgesAll = Array.from({ length: nN }, () => []);
 for (const e of edges) { nodeEdgesAll[e.a].push(e.id); if (e.b !== e.a) nodeEdgesAll[e.b].push(e.id); }
 const hasDrivable = new Uint8Array(nN); for (const e of vehEdges) { hasDrivable[e.a] = 1; hasDrivable[e.b] = 1; }
-function dijkstra(src, allowEdge, limit = 8000) { // undirected drivable distance (m) from src
-  const dist = new Map([[src, 0]]), heap = [[0, src]];
+// Driving distance (m) along legal directions: from src to every node, or with toSrc from every node to src.
+const outArcs = Array.from({ length: nN }, () => []), inArcs = Array.from({ length: nN }, () => []);
+for (const [eid, u, v] of arcs) { outArcs[u].push([eid, v]); inArcs[v].push([eid, u]); }
+function dijkstra(src, allowEdge, limit = 8000, toSrc = false) {
+  const dist = new Map(), heap = [];
+  for (const s of [].concat(src)) { dist.set(s, 0); heap.push([0, s]); }
   while (heap.length) {
     let bi = 0; for (let i = 1; i < heap.length; i++) if (heap[i][0] < heap[bi][0]) bi = i;
     const [d, n] = heap[bi]; heap[bi] = heap[heap.length - 1]; heap.pop();
     if (d > dist.get(n) || d > limit) continue;
-    for (const id of nodeEdgesAll[n]) {
-      const e = edges[id]; if (!drivable(e) || !allowEdge(id)) continue;
-      const w = e.a === n ? e.b : e.a, nd = d + e.len;
+    for (const [id, w] of (toSrc ? inArcs : outArcs)[n]) {
+      if (!allowEdge(id)) continue;
+      const nd = d + edges[id].len;
       if (nd < (dist.get(w) ?? Infinity)) { dist.set(w, nd); heap.push([nd, w]); }
     }
   }
   return dist;
 }
 const polyLen = g => { let L = 0; for (let i = 1; i < g.length; i++) L += Math.hypot(g[i][0] - g[i - 1][0], g[i][1] - g[i - 1][1]); return L; };
-const atEdge = (dist, e, s) => Math.min((dist.get(e.a) ?? Infinity) + s, (dist.get(e.b) ?? Infinity) + e.len - s); // s: meters from e.a
+// A point s meters from e.a: driving from it to the search source (dist from dijkstra with toSrc), or from the source to it
+const fwd = e => lanesOf(e)[0] > 0, back = e => lanesOf(e)[1] > 0; // a→b, b→a allowed
+const fromPoint = (dist, e, s) => Math.min(fwd(e) ? (dist.get(e.b) ?? Infinity) + e.len - s : Infinity, back(e) ? (dist.get(e.a) ?? Infinity) + s : Infinity);
+const toPoint = (dist, e, s) => Math.min(fwd(e) ? (dist.get(e.a) ?? Infinity) + s : Infinity, back(e) ? (dist.get(e.b) ?? Infinity) + e.len - s : Infinity);
 const G = 50, grid = new Map();
 for (const e of vehEdges) {
   if (CLASS_RANK[e.cls] === 3) continue; // no freeways or ramps
@@ -228,20 +235,20 @@ for (const e of vehEdges) {
   }
 }
 const cumLen = new Map(); const cumOf = e => { if (!cumLen.has(e.id)) { const c = [0]; for (let i = 1; i < e.geom.length; i++) c.push(c[i - 1] + Math.hypot(e.geom[i][0] - e.geom[i - 1][0], e.geom[i][1] - e.geom[i - 1][1])); cumLen.set(e.id, c); } return cumLen.get(e.id); };
-// Sample the area's streets every 10 m: [x, y, driving distance from the choke's outer end]
+// Sample the area's streets every 10 m: [x, y, driving distance to the choke's outer end]
 function samples(list, dIn) {
   const out = [];
   for (const e of list) {
     const c = cumOf(e), k = e.len / (c[c.length - 1] || 1);
     for (let i = 1; i < e.geom.length; i++) {
       const [ax, ay] = e.geom[i - 1], [bx, by] = e.geom[i], seg = c[i] - c[i - 1], n = Math.max(1, Math.ceil(seg / 10));
-      for (let j = 0; j <= n; j++) out.push([ax + (bx - ax) * j / n, ay + (by - ay) * j / n, atEdge(dIn, e, (c[i - 1] + seg * j / n) * k)]);
+      for (let j = 0; j <= n; j++) out.push([ax + (bx - ax) * j / n, ay + (by - ay) * j / n, fromPoint(dIn, e, (c[i - 1] + seg * j / n) * k)]);
     }
   }
   return out;
 }
 // Shortest straight line from the area to an accepted street outside it, among those where the
-// existing drive between the two points is at least MIN_DETOUR_M and DETOUR_RATIO times the line
+// existing drive from the area point to the outside point (legal directions, by way of the choke) is at least MIN_DETOUR_M and DETOUR_RATIO times the line
 // (model rule: a link that saves no driving is no second way out).
 const MIN_DETOUR_M = 300, DETOUR_RATIO = 3, MAX_SEARCH_M = 3000;
 function nearestOutside(pts, accept, dOut) {
@@ -258,7 +265,7 @@ function nearestOutside(pts, accept, dOut) {
           const qx = ax + u * vx, qy = ay + u * vy, d = Math.hypot(x - qx, y - qy);
           if (d >= best.d) continue;
           const c = cumOf(e), s = (c[i - 1] + u * (c[i] - c[i - 1])) * e.len / (c[c.length - 1] || 1);
-          const detour = din + atEdge(dOut, e, s);
+          const detour = din + toPoint(dOut, e, s);
           if (detour < Math.max(MIN_DETOUR_M, DETOUR_RATIO * d)) continue;
           best = { d, id, from: [x, y], to: [qx, qy], detour };
         }
@@ -322,7 +329,7 @@ const out = areas.map((a, i) => {
   const memberSet = new Set(a.members.map(e => e.id));
   const insideNode = new Set(); for (const e of a.members) for (const n of [e.a, e.b]) if (inSub(a.head, n)) insideNode.add(n);
   const outer = arcs[a.head - nN][2];
-  const dIn = dijkstra(outer, id => memberSet.has(id)), dOut = dijkstra(outer, id => !memberSet.has(id));
+  const dIn = dijkstra(outer, id => memberSet.has(id), 8000, true), dOut = dijkstra(outer, id => !memberSet.has(id)); // to the choke from inside; from the choke outside
   const pts = samples(a.members, dIn);
   const nearOther = nearestOutside(pts, id => !memberSet.has(id), dOut);
   const nearFree = nearestOutside(pts, id => areaOf[id] < 0, dOut);
@@ -465,9 +472,9 @@ const narrowStats = {
 // Areas whose residents come mostly from a zone with more than 5,000 people per km of street (allocation artifact)
 const crowdedSet = new Set(crowded.filter(z => z.perKm > 5000).map(z => z.zone));
 for (const o of out) { const c = Object.entries(o.evacZones).filter(([z]) => crowdedSet.has(z)).reduce((s, [, v]) => s + v, 0); if (c > o.residents / 2) o.allocationWarning = `most residents come from ${Object.keys(o.evacZones).filter(z => crowdedSet.has(z)).join(', ')}, whose whole population lands on ${crowded.find(z => crowdedSet.has(z.zone)).streetM} m of street`; }
-// Edge effect: hill residents within 500 m of driving from an exit on a hill street (that exit may hide a dead end beyond the grid)
-{ const d = new Map(); for (const x of hillExits) for (const [n, v] of dijkstra(x, () => true, 500)) if (v < (d.get(n) ?? Infinity)) d.set(n, v);
-  totals.hillResidentsWithin500mOfHillExit = r0(sumP(vehEdges, e => hills(e) && (d.has(e.a) || d.has(e.b)))); }
+// Edge effect: hill residents within 500 m of driving to an exit on a hill street (that exit may hide a dead end beyond the grid)
+{ const d = dijkstra(hillExits, () => true, 500, true), near = e => (d.get(e.a) ?? Infinity) <= 500 || (d.get(e.b) ?? Infinity) <= 500;
+  totals.hillResidentsWithin500mOfHillExit = r0(sumP(vehEdges, e => hills(e) && near(e))); }
 const top = (k, n) => out.slice().sort((a, b) => k(b) - k(a)).slice(0, n);
 const result = {
   meta: {
@@ -486,7 +493,7 @@ const result = {
       vehicles: `assumption: households × (1 − ${D.householdsWithoutVehicleShare}) × ${meanVeh.toFixed(3)} vehicles taken (Time Study Fig. D-11 shares, data/assumptions.json demand)`,
       choke: 'derived: narrowest entrance edge under status-quo parking in its nominal state (js/parking.js, seed null: both sides where they fit, perfect parking); engine fits if clear width ≥ access.engineClearM (10 ft); fire-code width 20 ft; tiers from the SB 99 report p. 4',
       steepestGradePct: 'derived: largest 25 m-window grade (gradeMax, DEM) on any street in the area, unreliable segments left out',
-      nearestOtherStreet: `derived: shortest straight line from the area streets (sampled every 10 m) to a drivable street outside the area (no freeways or ramps) where driving between the two points now takes at least ${MIN_DETOUR_M} m and ${DETOUR_RATIO} times the line (model rule); climb from the DEM. A hint, not a route or a design`,
+      nearestOtherStreet: `derived: shortest straight line from the area streets (sampled every 10 m) to a drivable street outside the area (no freeways or ramps) where driving from the area point to the outside point now, along legal one-way directions, takes at least ${MIN_DETOUR_M} m and ${DETOUR_RATIO} times the line (model rule); climb from the DEM. A hint, not a route or a design`,
       nearestFreeStreet: 'derived: same, to a street behind no choke point',
       existingLink: 'derived: shortest chain of path, stairway, no-vehicle (County TRVLWAY NT) or barrier-closed segments from the area to a drivable street outside it (search limit 1.5 km)',
       emergencyVehicleLink: 'derived: same, through barrier-closed vehicle segments only (diverters, bollards, gates); enginesPass from OSM emergency=yes',
