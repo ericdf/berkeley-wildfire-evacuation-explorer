@@ -43,10 +43,14 @@ plan on the map; Compare runs both on 9 fires (3 severities × 3 seeds) and stat
 
 1. **Scenario.** Pick a preset, a severity (low / central / high) and a random seed.
    Time of day changes who is home and how much background traffic there is.
+   Future growth (Expert view) adds homes in the hills for both plans: none, the 2025
+   Evacuation Time Study's middle-housing case (870 units) or maximum ADU build-out (27,060),
+   or a moderate case (2,706, an assumption).
 2. **Operating plan.** Plan A and Plan B are edited in tabs: when zones are ordered,
    how long detection and the decision take, whether all hill zones are ordered at once,
    early departure on Red Flag days (from the City's Leave Early Zones, or all of Fire Zones 2–3),
-   and parking on hill streets.
+   parking on hill streets, and R0: no added units in the Leave Early Zones, Fire Zones 2–3
+   or access-constrained areas, shown with its legal status.
 3. **Run.** Watch the fire, embers, vehicles, queues and the fire-engine route. Drag the
    slider to jump to a time. Click a street or zone to inspect it; hover a badge (ⓘ)
    to see where each value comes from.
@@ -81,7 +85,14 @@ Every number is visible in **Assumptions & limits** in the app and in `data/assu
 
 **Street network** (`tools/build-network.mjs`). The County street centerlines are projected
 to UTM 10N meters. Segment endpoints are snapped into intersections (1 m tolerance).
-Paths, walks and steps become a separate pedestrian layer. Each segment is matched by
+Paths, walks and steps become a separate pedestrian layer. County records that other sources
+show to be miscoded are corrected from a short, labeled list (`network.segmentCorrections` in
+`data/assumptions.json`), matched by SEGID; the build stops if a corrected record no longer
+holds the County values the correction expects. The one correction so far opens the 45 m link
+from the foot of Panoramic Way to Prospect St, which the County file codes as no vehicle travel
+and names "Bancroft Steps Wy". OpenStreetMap maps it as two-way Bancroft Way, the City's street
+layers as a 30 ft, two-lane street, and the SB 99 report puts Panoramic Hill's single access point at Panoramic Way
+and Prospect St/Canyon Rd (SOURCE_NOTES K1–K6). The inspector shows the County value next to the corrected one. Each segment is matched by
 name and distance to the City's centerline and narrow-roads layers, which supply
 pavement width (84% of Berkeley's vehicle segments) and lane counts. Grade is sampled from the DEM
 every 4 m. Lanes, parking, speeds and capacities that the data does not give come from
@@ -137,7 +148,25 @@ Plan A and Plan B see the same households for the same seed: placement, vehicles
 mobilization delay, commuters and rides are drawn in an order fixed by the scenario's
 orders, never by the plan, and the leave-early decision has a separate random stream. A
 household that leaves early in Plan B is the only one whose draws go unused; a carless
-household whose Plan A neighbor left early rides with another neighbor.
+household whose Plan A neighbor left early rides with another neighbor. Added units (future
+growth, below) draw in the same fixed order from streams of their own, so with growth both
+plans see the same units wherever R0 builds them in both.
+
+**Future growth and R0.** The growth setting (`growth` in `data/assumptions.json`) adds the
+Time Study's Hillside Overlay units (§10.5, Table 10-11) as more synthetic households, drawn
+like today's (2.37 persons; about 1.12 vehicles per unit against the study's 1.14). The study
+gives no split by street, so units go to Berkeley's Fire Zones 2–3, standing in for the
+Hillside Overlay, in proportion to each street's share of today's households (an
+assumption). Where they go depends on the seed only, and each unit draws from its own seeded
+stream, so both plans see the same added homes and today's households are unchanged, except
+that a carless household with no neighbor to ride with today can ride with an added one (it
+draws from a stream of its own, so the shared stream and the non-resident vehicles stay the
+same under every growth and R0 setting). The
+plan setting R0 drops the units on streets in its area and moves none elsewhere. Fire Zones
+2–3 hold all the modeled growth, so R0 there equals no growth; the Leave Early Zones hold
+about 29% of it and access-constrained areas about 11% (areas from
+`data/model/access-constraints.json`, written by `tools/access-constraints.mjs`; the option
+stays disabled until that file exists). Parked cars do not increase with growth.
 
 **Diverters and traffic circles.** The list of record is the City's "Existing Traffic
 Calming Devices" layer (edited 2025-10-28: 75 diverters, 63 circles, 1 gate). The City gives
@@ -185,7 +214,8 @@ add any parking-removal bonus.
 | `tools/` | Data pipeline (Node 18+, no npm packages) |
 | `tests/headless.mjs` | Runs every scenario × two plans in Node and prints summaries |
 | `tests/calibration.mjs`, `tests/stuck.mjs`, `tests/leftover.mjs` | Compare with the Time Study (fire off); list jammed links; list order-zone vehicles that never leave |
-| `tests/plan-draws.mjs` | Checks that Plan A and Plan B of every Simple-view question see the same households for a seed (each fire, seeds 1–3) |
+| `tests/plan-draws.mjs` | Checks that Plan A and Plan B of every Simple-view question see the same households for a seed (each fire, seeds 1–3), the same with maximum growth under each R0 area, and that growth leaves today's households and the shared random stream unchanged |
+| `tests/growth.mjs` | Future growth and R0 with the fire on, seeds 1–5 (`SOURCE_NOTES.md` R4, R5); `GROWTH=max node tests/calibration.mjs` gives R3 |
 
 ## Replacing datasets
 
@@ -241,3 +271,20 @@ by the simulator at load time. Scenario presets, severities and time-of-day valu
   and through the middle of Kensington; north Kensington (about 1,500 people) and Oakland
   south of that line are not modeled. Traffic that reaches the edge has left.
 - Fire spread, ember distances and spot-fire rates are illustrative model values.
+- Future growth: with the Time Study's maximum ADU build-out the simulator's evacuation time
+  grows far less than the study's (fire off, fall weekday S4: 1923 region +30% against the
+  study's +58%; Panoramic Hill +2% against +25%; Fire Zones 2–3 +3% against +97%), because its junctions pass traffic faster
+  than the study's signals and stop signs. Read growth effects on evacuation time as a lower
+  bound (`SOURCE_NOTES.md`, "Future growth and R0").
+
+## Access-constrained areas
+
+`tools/access-constraints.mjs` maps where a single street segment is the only drivable way out, with no fire needed. On the residents' network as the simulator builds it (barrier-closed segments removed, one-way streets one way, exits at the grid edge), it finds every choke link, the area behind it, how many chokes lie in series, and for each area the synthetic residents, households and vehicles, fire-zone mix, clear width and engine fit at the entrance, steepest grade, the nearest street outside the area and any existing path or stairway. About 14% of hill residents in the model area live behind at least one choke; Panoramic Hill is the largest such area. Method, rankings and checks against the City's SB 99 analysis are in `docs/access-constraints.md`.
+
+```sh
+node tools/access-constraints.mjs              # writes data/model/access-constraints.json and docs/access-constraints.md
+node tools/access-constraints.mjs -v           # also prints the top areas
+node tools/access-constraints.mjs --open 2322  # what-if: treat segment 2322 (or a comma list) as a two-way street; prints, writes nothing
+```
+
+Rerun it after `tools/build-network.mjs`.

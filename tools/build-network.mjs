@@ -102,14 +102,30 @@ const cityLayer = k => has(`data/raw/city/${k}.geojson`) ? readJSON(`data/raw/ci
 // ---------- 1. read base network ----------
 const raw = readJSON('data/raw/street-centerlines.geojson');
 const PED_TYPES = new Set(['PA', 'WK']);
+// Labeled corrections to County records (data/assumptions.json network.segmentCorrections), matched by SEGID
+// and OBJECTID. Each must still find the County values it expects, so a new County export cannot be
+// overwritten silently. Applied before anything else reads the record (the OSM join in step 3b included).
+const corrections = new Map((A.network?.segmentCorrections || []).map(c => [c.SEGID, c]));
+const corrected = [];
 const segs = [];
 for (const f of raw.features) {
-  const p = f.properties;
+  let p = f.properties;
   if (!f.geometry || f.geometry.type !== 'LineString') continue;
   const pts = f.geometry.coordinates.map(local);
+  const c = corrections.get(p.SEGID);
+  if (c && c.OBJECTID === p.OBJECTID) {
+    const stale = Object.entries(c.county || {}).filter(([k, v]) => p[k] !== v);
+    if (stale.length) throw new Error(`segmentCorrections: County SEGID ${p.SEGID} no longer has ${stale.map(([k, v]) => `${k}=${v} (now ${p[k]})`).join(', ')}; recheck the correction`);
+    p = { ...p, ...c.set };
+    corrected.push({ SEGID: c.SEGID, OBJECTID: c.OBJECTID, county: c.county, set: c.set, osmWay: c.osmWay, why: c.why });
+    segs.push({ p, pts, mode: p.TRVLWAY === 'NT' ? 'restricted' : 'vehicle', correction: corrected.at(-1) });
+    continue;
+  }
   const ped = PED_TYPES.has(p.SFEATYP) || /\b(STEPS|PATH|WALK)\b/.test(p.STREET || '');
   segs.push({ p, pts, mode: ped ? 'path' : p.TRVLWAY === 'NT' ? 'restricted' : 'vehicle' });
 }
+if (corrected.length !== corrections.size) throw new Error(`segmentCorrections: ${corrections.size - corrected.length} not matched in the County file`);
+console.log('County segment corrections applied:', corrected.map(c => `${c.SEGID} ${c.county.STREET} -> ${c.set.STREET} ${c.set.TRVLWAY}`).join('; ') || 'none');
 
 // ---------- 2. snap endpoints into nodes ----------
 const SNAP = 1.0; // meters
@@ -340,6 +356,7 @@ for (const s of segs) {
     fireZone, evacZone: evacZoneOf(mid),
   };
   if (fireZoneSrc && s.osm) e.fireZoneSrc = fireZoneSrc;
+  if (s.correction) { e.travSrc = 'correction:network.segmentCorrections'; e.correction = { county: s.correction.county, osmWay: s.correction.osmWay }; }
 
   if (s.mode === 'vehicle') {
     stats.edges++;
@@ -764,6 +781,7 @@ const network = {
     circleNodes: [...circleNodes],
     barrierSites: sites,
     exitNodes: exitIds,
+    segmentCorrections: corrected,
     fields: {
       geom: { category: 'sourced', source: 'Berkeley: Alameda County Street Centerlines export (data.acgov.org), downloaded 2026-10-20; segment data revised 2015-09-26. Outside Berkeley (src.osmWay): OpenStreetMap drivable ways (Overpass API, 2026-11-01; © OpenStreetMap contributors, ODbL), joined to the County network at the city line.', note: 'Projected to UTM 10N, simplified to 0.75 m. OSM ends are moved onto the nearest County node (up to 60 m) where the two networks meet.' },
       name: { category: 'sourced', source: 'County STREET field; outside Berkeley the OSM name, upper-cased with the County\'s suffix abbreviations (I-80 and CA-24 carriageways named by direction as in the County file)' },
@@ -773,6 +791,7 @@ const network = {
       fireZoneSrc: { category: 'model rule', source: 'Outside Berkeley the City fire zones do not apply; OSM streets whose midpoint is at 90 m elevation or higher (DEM) get fireZone 2, so the hill rules for lanes, speed and parking apply (proxy:elevation>=90m). Same threshold fire.js uses for hill residential land outside the city.' },
       trav: { category: 'sourced', source: 'County TRVLWAY: B both ways, FT one-way in the digitized direction, TF against it, NT no vehicle travel. FT/TF meaning checked against the right-hand rule on 100 divided-street pairs (97 agree).' },
       mode: { category: 'derived', source: 'path = SFEATYP PA/WK or names with STEPS/PATH/WALK; restricted = TRVLWAY NT; else vehicle' },
+      correction: { category: 'sourced', source: 'County record corrected by data/assumptions.json network.segmentCorrections (travSrc says so): correction.county holds the County values replaced, correction.osmWay the OpenStreetMap way that, with the City layers and reports named in the note, shows the County coding is wrong. meta.segmentCorrections lists every correction with its reason. SOURCE_NOTES K1-K6.' },
       z: { category: 'derived', source: 'Elevation at segment ends, bilinear from data/terrain/dem.i16 (USGS 3DEP 1 m lidar DEM, 4 m overview)' },
       grade: { category: 'derived', source: 'Net grade % along digitized direction from DEM endpoint elevations' },
       gradeMax: { category: 'derived', source: '90th percentile of ~25 m window grades along the centerline, DEM sampled every 4 m. Can be wrong where the road sits on a cut, fill, bridge or retaining wall.' },

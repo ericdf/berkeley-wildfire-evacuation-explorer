@@ -27,9 +27,9 @@ export const PRESETS = [
     A: plan('A: everyone waits for an order'),
     B: plan('B: half of hill households leave on the Red Flag warning', { earlyShare: 0.5, earlyZones: 'fz23' }),
     on: {
-      eastWind: 'In Plan B more than a quarter fewer people are still there when embers arrive (about 5,100 against 3,600 in the central case), and the roads clear less than a minute sooner. If only the City\'s smaller Leave Early Zones do it, the drop is about 5%: most hill residents live outside them.',
-      ref1923: 'In Plan B about a third fewer people are still there when embers arrive (about 4,750 against 3,050 in the central case), and 90% of cars are out about 2 minutes sooner (89 against 91 min).',
-      panoramic: `In Plan B about a fifth fewer people are still there when embers arrive (about 15,000 against 12,000 in the central case). ${PANORAMIC_UNORDERED} In most runs not all ordered cars get out within the 4 hours simulated, so watch the count, not the clearance time.`,
+      eastWind: 'In Plan B more than a quarter fewer people are still there when embers arrive (about 5,150 against 3,650 in the central case), and the roads clear about a minute and a half sooner. If only the City\'s smaller Leave Early Zones do it, the drop is about 5%: most hill residents live outside them.',
+      ref1923: 'In Plan B about a third fewer people are still there when embers arrive (about 4,800 against 3,050 in the central case), and 90% of cars are out about 2 minutes sooner (89 against 91 min).',
+      panoramic: `In Plan B about a fifth fewer people are still there when embers arrive (about 14,900 against 12,000 in the central case). ${PANORAMIC_UNORDERED} In most runs not all ordered cars get out within the 4 hours simulated, so watch the count, not the clearance time.`,
     },
     off: {},
     headline: { label: 'People still there when embers arrived', f: exposed, dir: -1 },
@@ -44,7 +44,7 @@ export const PRESETS = [
     on: {
       ref1923: 'About a fifth fewer people are still there when embers arrive (about 6,800 against 5,450 in the central case). The time to clear the roads hardly changes: the gain is people getting out ahead of the fire, not faster traffic.',
       eastWind: 'About 15% fewer people are still there when embers arrive (about 6,500 against 5,600 in the central case). The time to clear the roads hardly changes: the gain is people getting out ahead of the fire, not faster traffic.',
-      panoramic: `About 9% fewer people are still there when embers arrive (about 16,850 against 15,350 in the central case), a smaller gain than on the two larger fires. ${PANORAMIC_UNORDERED}`,
+      panoramic: `About 9% fewer people are still there when embers arrive (about 16,800 against 15,300 in the central case), a smaller gain than on the two larger fires. ${PANORAMIC_UNORDERED}`,
     },
     off: {},
     headline: { label: 'People still there when embers arrived', f: exposed, dir: -1 },
@@ -72,9 +72,10 @@ export const PRESETS = [
     tod: 'S6',
     A: plan('A: parking as it is today'),
     B: plan('B: parking on one side only in Fire Zones 2–3', { hillsParking: 'oneside' }),
+    otherNote: 'In this simulator engines only drive to the fire edge; they do not fight the fire or protect homes, so better engine access has no effect on the fire. Parking still changes traffic on hill streets a little, but in the runs tested it made no consistent difference to who was still there. The engine\'s route to the fire edge runs on streets that stay passable, so engine travel time is the same under both plans.',
     on: Object.fromEntries(['eastWind', 'ref1923', 'panoramic'].map(id => [id, 'Color streets by "fire-engine access" (Expert view, Map) to see the red streets, where parked cars leave less than an engine\'s width. One-side parking cuts them from about 284 segments to 143; the count covers hill streets citywide, so it is the same on every fire. '
       + (id === 'panoramic' ? 'Evacuation time cannot be compared here, because in most runs not all ordered cars get out within the 4 hours simulated.'
-        : 'Evacuation time does not change: on a two-way street, removing parking opens the oncoming lane, not a second lane out.')])),
+        : 'Evacuation time does not change: on a two-way street, removing parking opens the oncoming lane, not a second lane out. People still there when embers arrive show no consistent change either: engines do not fight the fire in this simulator, and parking changes traffic on hill streets only a little.')])),
     off: {},
     headline: { label: 'Street segments too narrow for an engine', f: S => S.engineBlockedSegments, dir: -1 },
   },
