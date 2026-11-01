@@ -23,7 +23,7 @@ The parts of STYLE.md about Council explainers, Substack teasers and quizzes app
 
 ## Project rules
 
-- The game is an educational comparison tool, never a prediction. Every number in the game carries its provenance category (sourced, derived, assumption, game rule, synthetic).
+- The game is an educational comparison tool, never a prediction. Saying so plainly ("not a prediction", "not an official evacuation plan") is required by the spec and is an intended exception to STYLE.md's rule against denial-first sentences; keep those statements wherever results are shown. Every number in the game carries its provenance category (sourced, derived, assumption, game rule, synthetic).
 - Log every insight taken from a document, a photo or a conversation in `SOURCE_NOTES.md`, with the source (document and page, or who said it and when) and what we did with it. Record conflicts between sources there too.
 - Do not store personal or household-level information; keep derived counts, not imagery.
 - Serve the game with `python3 -m http.server 8766 --bind 127.0.0.1` and open `http://127.0.0.1:8766`. Port 8765 belongs to another project.
