@@ -144,6 +144,13 @@ area. Households waiting for a commuter (Time Study) wait for that person to dri
 first, against the outbound traffic; a commuter turned back by fire leaves the household one
 car short. A vehicle stuck 3 minutes at the head of a queue squeezes forward, so the queue
 model cannot lock up for good (as it did at the Marin traffic circle).
+Plan A and Plan B see the same households for the same seed: placement, vehicles, who leaves,
+mobilization delay, commuters and rides are drawn in an order fixed by the scenario's
+orders, never by the plan, and the leave-early decision has a separate random stream. A
+household that leaves early in Plan B is the only one whose draws go unused; a carless
+household whose Plan A neighbor left early rides with another neighbor. Added units (future
+growth, below) draw in the same fixed order from streams of their own, so with growth both
+plans see the same units wherever R0 builds them in both.
 
 **Future growth and R0.** The growth setting (`growth` in `data/assumptions.json`) adds the
 Time Study's Hillside Overlay units (§10.5, Table 10-11) as more synthetic households, drawn
@@ -209,6 +216,7 @@ add any parking-removal bonus.
 | `tools/` | Data pipeline (Node 18+, no npm packages) |
 | `tests/headless.mjs` | Runs every scenario × two plans in Node and prints summaries |
 | `tests/calibration.mjs`, `tests/stuck.mjs`, `tests/leftover.mjs` | Compare with the Time Study (fire off); list jammed links; list order-zone vehicles that never leave |
+| `tests/plan-draws.mjs` | Checks that Plan A and Plan B of every Simple-view question see the same households for a seed (each fire, seeds 1–3), the same with maximum growth under each R0 area, and that growth leaves today's households and the shared random stream unchanged |
 | `tests/growth.mjs` | Future growth and R0 with the fire on, seeds 1–5 (`SOURCE_NOTES.md` R4, R5); `GROWTH=max node tests/calibration.mjs` gives R3 |
 
 ## Replacing datasets
@@ -221,6 +229,7 @@ node tools/fetch-city-layers.mjs   # City of Berkeley ArcGIS Online layers → d
 node tools/build-network.mjs       # rebuild data/model/*.json from everything above
 node tests/headless.mjs            # sanity-check the models (optionally: low | central | high)
 node tests/calibration.mjs         # compare evacuation times with the 2025 Evacuation Time Study (fire off)
+node tests/plan-draws.mjs          # check that Plan A and Plan B see the same households for a seed
 ```
 
 **Street network.** Replace `data/raw/street-centerlines.geojson` with a GeoJSON

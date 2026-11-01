@@ -27,9 +27,9 @@ export const PRESETS = [
     A: plan('A: everyone waits for an order'),
     B: plan('B: half of hill households leave on the Red Flag warning', { earlyShare: 0.5, earlyZones: 'fz23' }),
     on: {
-      eastWind: 'In Plan B more than a quarter fewer people are still there when embers arrive (about 5,100 against 3,650 in the central case), and the roads clear a minute or so sooner. If only the City\'s smaller Leave Early Zones do it, the drop is about 4%: most hill residents live outside them.',
-      ref1923: 'In Plan B about a third fewer people are still there when embers arrive (about 4,750 against 3,100 in the central case), and 90% of cars are out about 2 minutes sooner (89 against 91 min).',
-      panoramic: `In Plan B about a fifth fewer people are still there when embers arrive (about 14,900 against 11,900 in the central case). ${PANORAMIC_UNORDERED} In most runs not all ordered cars get out within the 4 hours simulated, so watch the count, not the clearance time.`,
+      eastWind: 'In Plan B more than a quarter fewer people are still there when embers arrive (about 5,150 against 3,650 in the central case), and the roads clear about a minute and a half sooner. If only the City\'s smaller Leave Early Zones do it, the drop is about 5%: most hill residents live outside them.',
+      ref1923: 'In Plan B about a third fewer people are still there when embers arrive (about 4,800 against 3,050 in the central case), and 90% of cars are out about 2 minutes sooner (89 against 91 min).',
+      panoramic: `In Plan B about a fifth fewer people are still there when embers arrive (about 14,900 against 12,000 in the central case). ${PANORAMIC_UNORDERED} In most runs not all ordered cars get out within the 4 hours simulated, so watch the count, not the clearance time.`,
     },
     off: {},
     headline: { label: 'People still there when embers arrived', f: exposed, dir: -1 },
