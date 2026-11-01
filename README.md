@@ -313,6 +313,7 @@ by the simulator at load time. Scenario presets, severities and time-of-day valu
 node tools/access-constraints.mjs              # writes data/model/access-constraints.json and docs/access-constraints.md
 node tools/access-constraints.mjs -v           # also prints the top areas
 node tools/access-constraints.mjs --open 2322  # what-if: treat segment 2322 (or a comma list) as a two-way street; prints, writes nothing
+node tools/access-constraints.mjs --links f.json --quick  # what-if: add new links between existing nodes (tools/egress-link.mjs)
 ```
 
 Rerun it after `tools/build-network.mjs`.
@@ -325,3 +326,7 @@ Rerun it after `tools/build-network.mjs`.
 - A hatched, dashed box with "⚠ population placement artifact" around areas with an `allocationWarning` (Albany Hill, AC-315: zone ALB-011's 2,535 residents all land on one 221 m segment).
 
 Clicking a street in an area, with the layer on, outlines the innermost area in yellow and puts an "Access-constrained area" card above the street card: entrance, type, streets, residents, households and vehicles (synthetic), evacuation zones, nesting with the enclosing areas, clear width and engine fit at the entrance, steepest grade, fire-zone mix, nearest other street, existing path, and the constraint score with its components, each with its provenance badge and source note. With the layer off, the street card names the area in one row. Below the layer list, a line gives hill residents behind a choke point (5,749 of 41,475; Berkeley and LBNL 3,149 of 27,840) and opens a sortable table of the union of the two top-50 rankings (68 areas), with the score and its components labeled a model rule; clicking an area zooms to it. None of this appears in Simple view.
+
+### Second ways out
+
+`node tools/egress-all.mjs` screens candidate road connections that would give these areas a second way out: straight new roads up to 250 m, upgraded paths and stairways, opened barriers, and the City's "2nd Route Out" for Panoramic Hill. For each it reports length, grade from the lidar DEM, buildings and Alameda County parcels in a 40 ft corridor (counts only), park and campus land, the residents it takes out from behind a choke, a screening cost range from public figures, and the simulator's result with and without the link for the same seeds (the link is added at run time; `network.json` is unchanged). The candidates are a screening, not designs, and the results are a comparison, not a prediction. Method, ranked table, what was pruned and the Time Study benchmark are in `docs/egress-candidates.md`; the whole run takes 20–30 minutes on 8 cores. Rerun it after every network rebuild: candidate ids are built from the access-constraint area ids (AC-160-N3 is a link out of area AC-160), which shift when the network changes.
