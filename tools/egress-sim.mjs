@@ -41,6 +41,9 @@ const VARIANT_OPEN = { asIs: [] }; // segments opened on top of the network as i
 const URGENT_HIST = [50, 50]; // % per 15 minutes: everyone ready within 30 minutes
 
 const median = a => { const s = a.filter(v => v != null && Number.isFinite(v)).sort((x, y) => x - y); return s.length ? (s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2) : null; };
+// Clearance times: a run that never reaches the percentile counts as slower than any finished run, and a median
+// that lands on such a run is itself 'not reached' (null). Codex review on PR #15.
+const medianTime = a => { const s = a.map(v => v == null || !Number.isFinite(v) ? Infinity : v).sort((x, y) => x - y); if (!s.length) return null; const m = s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2; return Number.isFinite(m) ? m : null; };
 const pct = (arr, p, n) => n && arr.length >= Math.ceil(p * n) ? arr[Math.ceil(p * n) - 1] : null;
 
 // ---------- worker: run a list of jobs ----------
@@ -200,8 +203,9 @@ function summarize(pairs, get, m) {
     if (x != null && y != null) { d.push(x - y); if (w.sev === 'central') dc.push(x - y); } }
   const B = pairs.map(([, b]) => get(b)?.[m]), W = pairs.map(([w]) => get(w)?.[m]);
   const cB = pairs.filter(([w]) => w.sev === 'central').map(([, b]) => get(b)?.[m]), cW = pairs.filter(([w]) => w.sev === 'central').map(([w]) => get(w)?.[m]);
+  const med = /^clear/.test(m) ? medianTime : median;
   return { better, worse, same, n: pairs.length, holdsEveryPair: better === pairs.length, neverWorse: worse === 0,
-    medianWithout: median(B), medianWith: median(W), centralMedianWithout: median(cB), centralMedianWith: median(cW), medianChange: median(d), centralMedianChange: median(dc),
+    medianWithout: med(B), medianWith: med(W), centralMedianWithout: med(cB), centralMedianWith: med(cW), medianChange: median(d), centralMedianChange: median(dc),
     notAllOutWithout: B.filter(v => v == null).length, notAllOutWith: W.filter(v => v == null).length };
 }
 const summaries = [];

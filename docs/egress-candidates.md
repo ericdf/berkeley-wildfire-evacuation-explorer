@@ -105,8 +105,8 @@ This is an educational comparison, not a prediction and not an official evacuati
 | AC-225-N3 | AC-225 San Mateo Rd | ref1923 | 20 | 52 | 0 → 0 (0/0/15) | 0 → 0 (0/0/15) | 0 → 0 (0/0/15) | 0 → 0 (0/0/15) | 93 → 93 (1/14/0) | 107 → 108 (0/13/2) | 103 → 103 (4/3/8) | 778 → 771 (9/6/0) |
 | AC-225-N3 | AC-225 San Mateo Rd | eastWind | 10 | 52 | 0 → 0 (0/0/15) | 0 → 0 (0/0/15) | 0 → 0 (0/0/15) | 0 → 0 (0/0/15) | 86 → 86 (4/5/6) | 110 → 110 (7/4/4) | 50 → 50 (4/2/9) | 412 → 408 (7/7/1) |
 | AC-225-N3 | AC-225 San Mateo Rd | eastWind | 20 | 52 | 0 → 0 (0/0/15) | 0 → 0 (0/0/15) | 0 → 0 (0/0/15) | 0 → 0 (0/0/15) | 86 → 86 (3/9/3) | 110 → 110 (4/6/5) | 74 → 74 (3/2/10) | 509 → 521 (7/4/4) |
-| AC-193-N1 | AC-193 Buena Vista Wy | ref1923 | 10 | 38 | 7 → 7 (1/0/14) | 36 → 36 (0/0/15) | 7 → 1 (9/0/6) | 4 → 0 (8/0/7) | 99 → 109 (5/4/6) | not all out → 137 (3/5/7) | 78 → 70 (8/2/5) | 603 → 593 (10/3/2) |
-| AC-193-N1 | AC-193 Buena Vista Wy | ref1923 | 20 | 38 | 12 → 12 (1/0/14) | 36 → 36 (0/0/15) | 8 → 2 (8/0/7) | 4 → 0 (7/0/8) | 99 → 109 (4/5/6) | not all out → 137 (5/2/8) | 103 → 94 (9/0/6) | 778 → 761 (10/4/1) |
+| AC-193-N1 | AC-193 Buena Vista Wy | ref1923 | 10 | 38 | 7 → 7 (1/0/14) | 36 → 36 (0/0/15) | 7 → 1 (9/0/6) | 4 → 0 (8/0/7) | not all out → 119 (5/4/6) | not all out → 144 (3/5/7) | 78 → 70 (8/2/5) | 603 → 593 (10/3/2) |
+| AC-193-N1 | AC-193 Buena Vista Wy | ref1923 | 20 | 38 | 12 → 12 (1/0/14) | 36 → 36 (0/0/15) | 8 → 2 (8/0/7) | 4 → 0 (7/0/8) | not all out → 119 (4/5/6) | not all out → 144 (5/2/8) | 103 → 94 (9/0/6) | 778 → 761 (10/4/1) |
 | AC-193-N1 | AC-193 Buena Vista Wy | eastWind | 10 | 38 | 2 → 2 (0/0/15) | 28 → 28 (0/0/15) | 0 → 0 (4/1/10) | 0 → 0 (1/0/14) | 88 → 89 (1/3/11) | 102 → 103 (1/4/10) | 50 → 49 (5/1/9) | 412 → 412 (4/4/7) |
 | AC-193-N1 | AC-193 Buena Vista Wy | eastWind | 20 | 38 | 2 → 2 (0/0/15) | 36 → 36 (0/0/15) | 0 → 0 (2/2/11) | 0 → 0 (1/0/14) | 88 → 88 (2/2/11) | 102 → 103 (1/4/10) | 74 → 74 (3/1/11) | 509 → 521 (5/2/8) |
 | AC-211-N2 | AC-211 High Ct, Laurel St … | ref1923 | 10 | 104 | 0 → 0 (0/0/15) | 0 → 0 (0/0/15) | 0 → 0 (0/0/15) | 0 → 0 (0/0/15) | 106 → 106 (3/9/3) | 152 → 152 (6/6/3) | 78 → 79 (3/6/6) | 603 → 604 (8/4/3) |
@@ -145,22 +145,22 @@ The simulator measures the same thing for all of Panoramic Hill (area AC-155, be
 | Candidate | Fire | Mobilization | Panoramic Hill 90% out, min | 100% out, min | Vehicles cut off | Still home when the fire front arrived |
 |---|---|---|---|---|---|---|
 | AC-160-N3 | panoramic | normal | not all out → not all out (5/0/10) | not all out → not all out (0/0/15) | 163 → 150 (13/0/2) | 389 → 389 (0/0/15) |
-| AC-160-N3 | panoramic | urgent | 61 → 48 (10/0/5) | not all out → 78 (7/0/8) | 42 → 1 (11/0/4) | 33 → 33 (6/4/5) |
+| AC-160-N3 | panoramic | urgent | 63 → 48 (10/0/5) | not all out → not all out (7/0/8) | 42 → 1 (11/0/4) | 33 → 33 (6/4/5) |
 | AC-160-N3 | ref1923 | normal | 112 → 108 (13/1/1) | 173 → 173 (5/3/7) | 0 → 0 (0/0/15) | 0 → 0 (0/0/15) |
 | AC-160-N3 | ref1923 | urgent | 86 → 39 (15/0/0) | 95 → 62 (15/0/0) | 0 → 0 (0/0/15) | 0 → 0 (0/0/15) |
 | AC-134-N2 | panoramic | normal | not all out → not all out (5/0/10) | not all out → not all out (0/0/15) | 163 → 142 (13/0/2) | 389 → 389 (1/0/14) |
-| AC-134-N2 | panoramic | urgent | 61 → 52 (10/0/5) | not all out → 80 (7/0/8) | 42 → 1 (10/1/4) | 33 → 36 (5/4/6) |
+| AC-134-N2 | panoramic | urgent | 63 → 52 (10/0/5) | not all out → not all out (7/0/8) | 42 → 1 (10/1/4) | 33 → 36 (5/4/6) |
 | AC-134-N2 | ref1923 | normal | 112 → 108 (13/1/1) | 173 → 173 (2/4/9) | 0 → 0 (0/0/15) | 0 → 0 (0/0/15) |
 | AC-134-N2 | ref1923 | urgent | 86 → 42 (15/0/0) | 95 → 63 (15/0/0) | 0 → 0 (0/0/15) | 0 → 0 (0/0/15) |
 | CITY-1 | panoramic | normal | not all out → not all out (5/0/10) | not all out → not all out (0/0/15) | 163 → 131 (15/0/0) | 389 → 389 (5/0/10) |
-| CITY-1 | panoramic | urgent | 61 → 45 (10/0/5) | not all out → not all out (5/0/10) | 42 → 1 (11/0/4) | 33 → 24 (9/1/5) |
+| CITY-1 | panoramic | urgent | 63 → 45 (10/0/5) | not all out → not all out (5/0/10) | 42 → 1 (11/0/4) | 33 → 24 (9/1/5) |
 | CITY-1 | ref1923 | normal | 112 → 109 (12/1/2) | 173 → 173 (3/3/9) | 0 → 0 (0/0/15) | 0 → 0 (0/0/15) |
 | CITY-1 | ref1923 | urgent | 86 → 54 (15/0/0) | 95 → 65 (14/1/0) | 0 → 0 (0/0/15) | 0 → 0 (0/0/15) |
 
 - **Normal mobilization mostly agrees with the Time Study.** On the 1923 fire, where Panoramic Hill is ordered but the fire does not reach it, its 90% time is about 112 minutes without a link, and a link shortens it by 1.3, 1.1, 0.1 minutes (AC-160-N3, AC-134-N2, CITY-1; central median change), against no change in the study (1:30 for R04 S4 either way).
 - **Urgent mobilization, compared with the Time Study (Table 10-9, S4).** The study's figures time Panoramic Hill's own vehicles, "when vehicles have evacuated beyond either Panoramic Way or Dwight Way, rather than the final times when the entire evacuating Regions are clear" (§10.4, p. 10-4), so the matching simulator measure is the 90% time of Panoramic Hill's cars. With everyone ready within 30 minutes (fire on, central-severity medians):
   - **1923 fire (R02):** 86 minutes with one way out, 39 with AC-160-N3, 42 with AC-134-N2, 54 with CITY-1, better in 15, 15, 15 of 15 same-seed pairs. The study: 1:25 → 1:00. The one-exit time matches; the simulator's gain is larger.
-  - **Panoramic Hill fire (R04):** 61 minutes with one way out, 48 with AC-160-N3, 52 with AC-134-N2, 45 with CITY-1, better in 10, 10, 10 of 15. The study: 1:00 → 0:40. The one-exit time matches; the simulator's gain is somewhat smaller.
+  - **Panoramic Hill fire (R04):** 63 minutes with one way out, 48 with AC-160-N3, 52 with AC-134-N2, 45 with CITY-1, better in 10, 10, 10 of 15. The study: 1:00 → 0:40. The one-exit time matches; the simulator's gain is somewhat smaller.
   - With one way out, Panoramic Hill's cars queue down Panoramic Way into the queues on Rim Rd, Stadium Rim Rd, Bancroft Wy and Piedmont Av by Memorial Stadium; a link lets most of them leave by Smyth Ln and Dwight Way instead. The study's runs have no fire; these have the fire on. The first run of this analysis, on the network before the Bancroft Wy correction, found no gain (SOURCE_NOTES EG8).
 - **On the Panoramic Hill fire, the problem is timing more than the number of exits.** With urgent mobilization the synthetic people still home when the fire front arrived fall from about 389 to 33 with or without a link, and vehicles cut off from about 163 to 42 with one way out and 1, 1, 1 with AC-160-N3, AC-134-N2, CITY-1.
 
