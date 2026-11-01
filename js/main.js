@@ -383,7 +383,7 @@ function renderCompare(results, scope) {
   const med = a => { const s = a.filter(x => x != null && !Number.isNaN(x)).sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : null; };
   const range = a => { const s = a.filter(x => x != null && !Number.isNaN(x)); return s.length ? `${fmt(Math.min(...s))}–${fmt(Math.max(...s))}` : '—'; };
   let html = `<h2>Plan comparison ${badge('synthetic')}</h2>
-    <p class="small">A: <b>${esc(state.plans.A.name)}</b> · B: <b>${esc(state.plans.B.name)}</b>. Both plans ran the same fires, households and random seeds (1–3). Values are the median of 3 seeds with the min–max range under it. A difference smaller than the range is not a robust result.</p>`;
+    <p class="small">Green or red means B is better or worse than A in every run; gray means it is better in some runs and worse in others, so there is no clear difference. A: <b>${esc(state.plans.A.name)}</b> · B: <b>${esc(state.plans.B.name)}</b>. Both plans ran the same fires, households and random seeds (1–3). Values are the median of 3 seeds with the min–max range under it. A difference smaller than the range is not a robust result.</p>`;
   html += takeaway(results, scope);
   for (const g of groups) {
     const A = pick('A', g), B = pick('B', g);
@@ -392,8 +392,12 @@ function renderCompare(results, scope) {
       const a = A.map(f), b = B.map(f), ma = med(a), mb = med(b);
       let d = ma != null && mb != null && isFinite(ma) && isFinite(mb) ? mb - ma : null;
       if (d != null && Math.abs(d) < 0.5) d = 0;
-      const cls = d == null || dir === 0 || Math.abs(d) < 1e-9 ? '' : (d * dir > 0 ? 'delta-good' : 'delta-bad');
-      html += `<tr><td>${esc(label)}</td><td class="num">${fmt(ma)}<div class="small muted">${range(a)}</div></td><td class="num">${fmt(mb)}<div class="small muted">${range(b)}</div></td><td class="num ${cls}">${d == null ? '—' : (d > 0 ? '+' : '') + fmt(d)}</td></tr>`;
+      // Color a difference only when B moves the same way as A in every same-seed run; otherwise it is noise.
+      const pairs = a.map((x, i) => [x, b[i]]).filter(([x, y]) => x != null && y != null && isFinite(x) && isFinite(y));
+      const better = pairs.filter(([x, y]) => (y - x) * dir > 0.5 * Math.abs(dir)).length, worse = pairs.filter(([x, y]) => (y - x) * dir < -0.5 * Math.abs(dir)).length;
+      const steady = pairs.length && (better === pairs.length || worse === pairs.length);
+      const cls = d == null || dir === 0 || Math.abs(d) < 1e-9 ? '' : !steady ? 'delta-mixed' : (d * dir > 0 ? 'delta-good' : 'delta-bad');
+      html += `<tr><td>${esc(label)}</td><td class="num">${fmt(ma)}<div class="small muted">${range(a)}</div></td><td class="num">${fmt(mb)}<div class="small muted">${range(b)}</div></td><td class="num ${cls}"${cls === 'delta-mixed' ? ' title="B is better in some runs and worse in others: no clear difference"' : ''}>${d == null ? '—' : (d > 0 ? '+' : '') + fmt(d)}</td></tr>`;
     }
     html += '</table>';
   }
@@ -409,7 +413,13 @@ function takeaway(results, scope) {
   const ma = med(pairs.map(x => x[0])), mb = med(pairs.map(x => x[1]));
   const better = pairs.filter(([a, b]) => (b - a) * dir > 0).length, worse = pairs.filter(([a, b]) => (b - a) * dir < 0).length;
   const robust = better === pairs.length || worse === pairs.length;
-  return `<div class="takeaway${robust ? '' : ' mixed'}"><b>${esc(label)}:</b> about ${fmt(ma)} under Plan A and ${fmt(mb)} under Plan B (median of ${pairs.length} runs). Plan B did better in ${better} of ${pairs.length} runs and worse in ${worse}.${robust ? '' : ' The difference does not hold in every run, so treat it as uncertain.'} These are synthetic households on an illustrative fire, not a prediction.</div>`;
+  const exF = S => S.exposedHome + S.exposedRoad + S.exposedNoVehicle + S.notOrderedExposed;
+  let other = '';
+  if (f.toString() !== exF.toString() && !/embers arrived/.test(label)) {
+    const ex = results.filter(r => r.job.planKey === 'A').map(a => exF(results.find(b => b.job.planKey === 'B' && b.job.sev === a.job.sev && b.job.seed === a.job.seed).summary) - exF(a.summary));
+    if (!(ex.every(x => x < -0.5) || ex.every(x => x > 0.5))) other = ` People still there when embers arrived show no clear difference (B − A ranges from ${fmt(Math.min(...ex))} to ${fmt(Math.max(...ex))} across runs).${p.otherNote ? ' ' + esc(p.otherNote) : ''}`;
+  }
+  return `<div class="takeaway${robust ? '' : ' mixed'}"><b>${esc(label)}:</b> about ${fmt(ma)} under Plan A and ${fmt(mb)} under Plan B (median of ${pairs.length} runs). Plan B did better in ${better} of ${pairs.length} runs and worse in ${worse}.${robust ? '' : ' The difference does not hold in every run, so treat it as uncertain.'}${other} These are synthetic households on an illustrative fire, not a prediction.</div>`;
 }
 function explain(results, g, scope) {
   const r = results.find(x => x.job.planKey === 'B' && x.job.seed === 1 && (scope === 'severities' ? x.job.sev === g : x.job.scenarioId === g));
@@ -426,7 +436,7 @@ const INPUTS = [
   ['Decision delay', 'Minutes from ignition to the first evacuation order.', 'Households still home when embers arrive.'],
   ['Zones ordered', 'Only the City\'s pre-defined zones, or also zones within 1–3 km of the fire, or all hill zones at once.', 'Exposure falls; more cars on the road at once.'],
   ['Early departure', 'Share of households in the City\'s Leave Early Zones who leave on a Red Flag day, before any fire.', 'Exposure falls; evacuation time barely changes.'],
-  ['Parking on hill streets', 'How much of the street parked cars take: today\'s mix, one side only, tight to the curb, none on narrow roads, or none.', 'Fire-engine access. Evacuation flow barely changes.'],
+  ['Parking on hill streets', 'How much of the street parked cars take: today\'s mix, one side only, tight to the curb, none on narrow roads, or none.', 'Fire-engine access. Engines do not fight the fire in this simulator, so parking cannot change the fire or who is still there when embers arrive. Evacuation flow barely changes.'],
 ];
 function intro() {
   modal(`<div class="intro"><h2>Berkeley Hills Wildfire Evacuation: Scenario Explorer</h2>
@@ -489,6 +499,7 @@ $('btn-assumptions').onclick = () => {
   </ul>
   <h3>What Phase 1 does not do</h3>
   <ul class="small">
+    <li>Engines do not fight the fire. The simulator times an engine's drive from the nearest station to the fire edge, but nothing an engine does slows the fire, protects homes or helps people leave. Parking rules therefore change engine access only; they cannot change the fire or who is still there when embers arrive.</li>
     <li>No deaths or injuries. "Still there when embers arrived" counts people at home or on the road when embers first reached their street (any burning cell within the ember distance upwind); "…when the fire front arrived" counts those still there when the fire itself reached the street. Whether they would be hurt depends on house survival, sheltering, fire intensity and smoke, none of which the simulator models.</li>
     <li>No buildings yet, so no structures exposed or lost; no home hardening or vegetation effects.</li>
     <li>No stairway or steep-path access time between homes and the street, and no assistance for people who need help (Phase 2).</li>

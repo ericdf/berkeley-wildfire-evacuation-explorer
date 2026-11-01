@@ -106,3 +106,4 @@ header nav #btn-intro:hover { background: #fcd34d; filter: none; }
 #run-plan { display: block; text-transform: none; letter-spacing: 0; font-size: 12.5px; color: var(--accent); margin-top: 2px; }
 .tip { color: var(--muted); cursor: help; font-size: 11px; }
 .card[title]:not([title=""]), tr[title]:not([title=""]) { cursor: help; }
+.delta-mixed { color: var(--muted); }

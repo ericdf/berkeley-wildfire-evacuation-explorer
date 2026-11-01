@@ -72,9 +72,10 @@ export const PRESETS = [
     tod: 'S6',
     A: plan('A: parking as it is today'),
     B: plan('B: parking on one side only in Fire Zones 2–3', { hillsParking: 'oneside' }),
+    otherNote: 'In this simulator engines only drive to the fire edge; they do not fight the fire or protect homes, so engine access cannot change who is caught by it. Its route to the fire edge runs on streets that stay passable, so engine travel time is the same under both plans.',
     on: Object.fromEntries(['eastWind', 'ref1923', 'panoramic'].map(id => [id, 'Color streets by "fire-engine access" (Expert view, Map) to see the red streets, where parked cars leave less than an engine\'s width. One-side parking cuts them from about 284 segments to 143; the count covers hill streets citywide, so it is the same on every fire. '
       + (id === 'panoramic' ? 'Evacuation time cannot be compared here, because in most runs not all ordered cars get out within the 4 hours simulated.'
-        : 'Evacuation time does not change: on a two-way street, removing parking opens the oncoming lane, not a second lane out.')])),
+        : 'Evacuation time does not change: on a two-way street, removing parking opens the oncoming lane, not a second lane out. People still there when embers arrive do not change either: engines do not fight the fire in this simulator.')])),
     off: {},
     headline: { label: 'Street segments too narrow for an engine', f: S => S.engineBlockedSegments, dir: -1 },
   },
