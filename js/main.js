@@ -112,13 +112,13 @@ function renderSimple() {
   $('simple').innerHTML = `<h2>Pick a question</h2>
     <div class="presets">${PRESETS.map(q => `<button class="preset${p?.id === q.id ? ' on' : ''}" data-id="${q.id}"><b>${esc(q.title)}</b><span>${esc(q.question)}</span></button>`).join('')}</div>
     ${p ? `<div class="plans-ab"><div><b>Plan A</b> ${esc(p.A.name.replace(/^A: /, ''))}</div><div><b>Plan B</b> ${esc(p.B.name.replace(/^B: /, ''))}</div>
-      <div class="small muted">${esc(scenario().name)} · ${esc(TIME_OF_DAY[p.tod].label)} · central severity</div></div>
+      <div class="small muted">${esc(scenario().name)} · ${p.tods ? 'time of day as above' : esc(TIME_OF_DAY[p.tod].label)} · central severity</div></div>
       <div class="watch"><b>What to look for.</b> ${esc(p.watch)}</div>
       <div class="btns"><button data-watch="A" class="${state.editing === 'A' ? 'on' : ''}">▶ Watch Plan A</button><button data-watch="B" class="${state.editing === 'B' ? 'on' : ''}">▶ Watch Plan B</button>
       <button class="primary" id="simple-compare">Compare A and B on 9 fires</button></div>
       <p class="small muted">Compare runs both plans on the same 9 fires (low, central and high severity, 3 random seeds each) and the same households. Trust a difference that shows up in every run.</p>` : '<p class="small muted">Each question compares two plans on the same fire and the same households. Expert view (top right) lets you set everything yourself.</p>'}`;
   $('simple').querySelectorAll('.preset').forEach(b => b.onclick = () => applyPreset(b.dataset.id));
-  $('simple').querySelectorAll('[data-watch]').forEach(b => b.onclick = () => { state.editing = b.dataset.watch; showPlan(); newRun(); renderSimple(); state.playing = true; $('run').textContent = '❚❚ Pause'; });
+  $('simple').querySelectorAll('[data-watch]').forEach(b => b.onclick = () => { state.editing = b.dataset.watch; showPlan(); if (p.tods) { $('tod').value = p.tods[state.editing]; todNote(); } newRun(); renderSimple(); state.playing = true; $('run').textContent = '❚❚ Pause'; });
   if ($('simple-compare')) $('simple-compare').onclick = () => { $('cmp-scope').value = 'severities'; $('compare').click(); };
 }
 function applyPreset(id) {
@@ -315,7 +315,7 @@ $('compare').onclick = () => {
   const scope = $('cmp-scope').value, seeds = [1, 2, 3], sc = scenario();
   const cases = scope === 'severities' ? ['low', 'central', 'high'].flatMap(sev => seeds.map(seed => ({ scenarioId: sc.id, sev, seed, tod: $('tod').value })))
     : scenarios.flatMap(s => seeds.map(seed => ({ scenarioId: s.id, sev: 'central', seed, tod: s.timeOfDay })));
-  const jobs = ['A', 'B'].flatMap(p => cases.map(c => ({ ...c, planKey: p, plan: { ...state.plans[p] } })));
+  const jobs = ['A', 'B'].flatMap(p => cases.map(c => ({ ...c, tod: state.preset?.tods?.[p] ?? c.tod, planKey: p, plan: { ...state.plans[p] } })));
   const batch = ++state.batch, results = [];
   $('cmp-progress').textContent = `Running ${jobs.length} simulations (identical scenarios and seeds for both plans)…`;
   worker.onmessage = ev => {

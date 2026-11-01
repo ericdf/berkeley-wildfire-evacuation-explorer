@@ -250,6 +250,21 @@ Eric pasted an AI-written list of public sources for the four data-request items
 | G9 | Vacancies are "backfilled by float personnel first, then voluntary overtime, then forced/mandatory overtime" (FY26 Fire presentation, slide 7). Mutual-aid hours ranged from 838 to 8,576 a year, FY16–FY24 (slide 4). The 2024 LHMP says after a Hayward earthquake "Outside fire departments may not be able to provide mutual aid" (p. B-51) and describes no off-duty recall. The Alameda County Operational Area Emergency Operations Plan was not found online. | **pending**: no public callback policy; a staffing layer would have to state it as an assumption. |
 | G10 | Genasys Protect's public map shows zones, alert polygons, road closures, evacuation points and fires (help.genasys.com, "Genasys Protect FAQs"). The FAQ does not mention routes or gates. Berkeley's live layers could not be viewed without running the app. | **context**. |
 
+## Simple-view presets: robustness test, 2026-11-01
+
+1,140 runs: scenarios ref1923, eastWind, panoramic and eastWindDay at low, central and high severity, seeds 1–5, each with 19 plan variants (fire on). A preset qualifies only if Plan B beats Plan A on its headline measure in every same-seed pair. Medians below are central severity. All are model results on synthetic households, not predictions.
+
+| # | Finding | Status / use |
+|---|---|---|
+| P10 | Half of Fire Zones 2–3 households leaving on a Red Flag warning cuts people still there when embers arrived in all 60 pairs: eastWind about 5,200 → 3,500, ref1923 about 6,000 → 3,700 (−26% to −43% by seed; −16% to −19% at high severity). 90% clearance improves 1–15 min. Limited to the City's Leave Early Zones, the direction holds in 60 of 60 but the effect is only 1–12% at central and high severity. | **applied**: preset "Leave early on a Red Flag day" uses Fire Zones 2–3. |
+| P11 | First order at 5 min instead of 20 cuts people still there when embers arrived in all 60 pairs: ref1923 about 6,900 → 5,500 (−20% every seed), eastWind about 5,700 → 4,900. 90% clearance changes by a median of −0.3 min. | **applied**: preset "Decide faster" (ref1923, S4). |
+| P12 | Same fire and plan, fall weekday (S4) vs night (S6), eastWind: 90% clearance about 107 → 93 min, 13–19 min shorter in all 15 runs; about 17,800 vs 15,700 evacuating vehicles. | **applied**: preset "Weekday midday or night". In ref1923 the time gain is only 3–7 min at low and central severity. |
+| P13 | Hill parking options leave evacuation time unchanged (median change 0.0–0.2 min in every scenario) but cut segments too narrow for an engine in every run: eastWind S6 about 194 → 107 (one side), 75 (none); tight-to-curb and narrow-roads-only are milder (113–137). Engine travel time at ignition is 0.3–4.6 min and never blocked, so it is not a useful headline. | **applied**: preset "Parked cars and fire engines" headlines blocked segments. |
+| P14 | Ordering all hill zones at ignition + 10 or + 30 min has no consistent effect (median about 0%; better in only 4–11 of 15 pairs per scenario; + 30 min slows 90% clearance by about 11 min in ref1923). | **pending**: check whether the setting works as intended; kept out of simple view. |
+| P15 | Ordering every zone within 1–2 km of the fire orders about 110,000 people instead of 27,000–31,000, roughly doubles peak queues and pushes 90% clearance from about 95 to 150–240 min. It helps in eastWind (14 of 15) but is worse in Panoramic Hill in all 15 pairs (+10% to +36% still there when embers arrived) and in ref1923 at high severity. | **context**: a possible "wider orders can backfire" lesson for expert view; rests on model rules for junction capacity. |
+| P16 | In Panoramic Hill most people still there when embers arrived are in zones with no order (9,444 of about 15,700, central, seed 1), and in 10 of 15 runs not all ordered vehicles clear within 240 min. | **context**: Panoramic preset dropped from simple view. |
+| P17 | At high severity most of the count is people in zones that never got an order (eastWind seed 1: 21,768 of 37,000), so plan effects shrink to a few percent. Seed-to-seed spread (eastWind central 2,935–9,298) is larger than most plan effects, which is why every comparison pairs runs on the same seed. | **context**: simple view defaults to central severity and compares same-seed pairs. |
+
 ## Change log: insights applied to the game
 
 | Date | Change | From |
@@ -283,6 +298,7 @@ Eric pasted an AI-written list of public sources for the four data-request items
 | 2026-11-01 | Junction delay (5/10/20 s by road class); one-lane route choice avoids oncoming traffic; jam fixes listed in the calibration recheck; R05 added to calibration | model fixes |
 | 2026-11-01 | OSM diverters and bollards close 18 segments to residents' cars; traffic circles at 900 veh/h; engines open gates and removable bollards in 3 min; fuller parking in night cases | O2, O4, P2, P3 |
 | 2026-11-01 | Signal timing disclosed as an information gap: the game runs 15–25 min fast at night and 35–80 min fast on weekdays for the 1923 and Fire Zones 2–3 regions (Panoramic Hill within 10 min); weekday times are shown as a lower bound next to the study's figure | Eric 2026-11-01, calibration check |
+| 2026-11-01 | Intro screen and simple view with four tested presets; 'exposed' renamed 'still there when embers arrived', plus 'still there when the fire front arrived'; 'vehicles trapped' renamed 'vehicles cut off by fire' | P10–P17, Eric 2026-11-01 |
 
 ### Calibration check (fire off, study order/warning zones, seed 1), 2026-10-31
 
