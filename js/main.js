@@ -87,7 +87,7 @@ const todNote = () => { $('tod-note').textContent = TIME_OF_DAY[$('tod').value].
 ['severity', 'seed', 'tod'].forEach(id => $(id).onchange = () => { todNote(); newRun(); });
 $('street-mode').onchange = e => { map.streetMode = e.target.value; map.draw(); legend(); };
 $('speed').onchange = e => state.speed = +e.target.value;
-$('run').onclick = () => { if (state.sim.t >= state.sim.end) newRun(); state.playing = !state.playing; $('run').textContent = state.playing ? '❚❚ Pause' : '▶ Play'; };
+$('run').onclick = () => { if (state.sim.t >= state.sim.end) newRun(); state.playing = !state.playing; $('run').textContent = state.playing ? '❚❚ Pause' : '▶ Play'; update(false); };
 $('reset').onclick = () => newRun();
 $('scrub').oninput = e => seek(+e.target.value * 60);
 $('search').onchange = e => {
@@ -178,7 +178,7 @@ function loop(now) {
   if (state.playing && sim) {
     let steps = Math.min(400, Math.round(state.speed * dt / sim.dt));
     while (steps-- > 0 && sim.t < sim.end) sim.step();
-    if (sim.t >= sim.end) { state.playing = false; $('run').textContent = '▶ Play again'; }
+    if (sim.t >= sim.end) { state.playing = false; $('run').textContent = '▶ Play again'; update(true); map.draw(); requestAnimationFrame(loop); return; }
     $('scrub').value = Math.floor(sim.t / 60);
     map.draw();
     if (now - lastUi > 300) { update(false); lastUi = now; }
@@ -189,11 +189,14 @@ function loop(now) {
 // ---------- results panel ----------
 function update(full) {
   const sim = state.sim, S = sim.summary(), sc = sim.scenario;
-  $('clock').innerHTML = `t + ${hm(sim.t)} <span class="sub">${esc(sc.name)} · ${SEVERITY[sim.sevKey].label} severity · seed ${sim.seed} · ${esc(sim.plan.name)}</span>`;
+  const done = sim.t >= sim.end;
+  $('clock').classList.toggle('done', done);
+  $('clock').innerHTML = `${done ? '<span class="done-tag">✓ Run complete</span> ' : ''}t + ${hm(sim.t)} <span class="of">of ${hm(sim.end)}${done ? '' : state.playing ? ' · playing' : sim.t > 0 ? ' · paused' : ''}</span> <span class="sub">${esc(sc.name)} · ${SEVERITY[sim.sevKey].label} severity · seed ${sim.seed} · ${esc(sim.plan.name)}</span>`;
   const c = (k, v, cls = '', tip = '') => `<div class="card ${cls}" title="${esc(tip)}"><div class="v">${v}</div><div class="k">${k}${tip ? ' <span class="tip">ⓘ</span>' : ''}</div></div>`;
   const tr = (label, value, tip) => `<tr title="${esc(tip)}"><td>${label} <span class="tip">ⓘ</span></td><td class="num">${value}</td></tr>`;
   const exposed = S.exposedHome + S.exposedRoad + S.exposedNoVehicle + S.notOrderedExposed;
-  $('results').innerHTML = `<h2>Results so far ${badge('synthetic')}</h2>
+  if ($('run-status')) $('run-status').innerHTML = done ? `<b>✓ Run complete.</b> ${esc(sim.plan.name)} ran the full ${hm(sim.end)} (h:mm) after ignition. The results on the right are final for this run; Play again restarts it.` : '';
+  $('results').innerHTML = `<h2>${done ? 'Results at the end of the run' : 'Results so far'} ${badge('synthetic')}</h2>
     <p class="small muted">People are synthetic households placed from Genasys zone population estimates (2020 Census blocks where Genasys publishes none); the fire is an illustrative overlay. Compare plans on the same scenario and seed; do not read the numbers as predictions.</p>
     <div class="cards">
       ${c('people in ordered zones', fmt(S.orderedPeople), '', 'Residents of zones under an evacuation order so far. An order means leave now; the 2025 Evacuation Time Study assumes everyone in an order zone leaves.')}
