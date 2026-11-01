@@ -243,6 +243,11 @@ by the simulator at load time. Scenario presets, severities and time-of-day valu
 node tools/access-constraints.mjs              # writes data/model/access-constraints.json and docs/access-constraints.md
 node tools/access-constraints.mjs -v           # also prints the top areas
 node tools/access-constraints.mjs --open 2322  # what-if: treat segment 2322 (or a comma list) as a two-way street; prints, writes nothing
+node tools/access-constraints.mjs --links f.json --quick  # what-if: add new links between existing nodes (tools/egress-link.mjs)
 ```
 
 Rerun it after `tools/build-network.mjs`.
+
+### Second ways out
+
+`node tools/egress-all.mjs` screens candidate road connections that would give these areas a second way out: straight new roads up to 250 m, upgraded paths and stairways, opened barriers, and the City's "2nd Route Out" for Panoramic Hill. For each it reports length, grade from the lidar DEM, buildings and Alameda County parcels in a 40 ft corridor (counts only), park and campus land, the residents it takes out from behind a choke, a screening cost range from public figures, and the simulator's result with and without the link for the same seeds (the link is added at run time; `network.json` is unchanged). The candidates are a screening, not designs, and the results are a comparison, not a prediction. Method, ranked table, what was pruned and the Time Study benchmark are in `docs/egress-candidates.md`; the whole run takes about 45 minutes on 8 cores.
