@@ -19,7 +19,7 @@ const srcCat = src => !src ? 'unknown' : src.startsWith('city:') ? 'sourced' : s
 const A_NOTE = k => data.A._meta[k]?.note || '';
 const state = {
   plans: { A: { ...DEFAULT_PLAN, name: 'Plan A: baseline' }, B: { ...DEFAULT_PLAN, name: 'Plan B: leave early + targeted parking', earlyShare: 0.5, hillsParking: 'narrow' } },
-  editing: 'A', preset: null, fire: null, playing: false, speed: 300, sim: null, fires: new Map(), batch: 0,
+  editing: 'A', preset: null, fire: null, playing: false, speed: 900, sim: null, fires: new Map(), batch: 0,
 };
 
 const data = await loadData();
