@@ -91,3 +91,5 @@ header nav .modes button.on { background: #f5efe6; color: #2b2118; font-weight: 
 .intro .steps div { background: #fbfaf7; border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-size: 12px; }
 .intro .steps b { display: block; color: var(--accent); }
 .intro .start { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+header nav #btn-intro { background: #fde68a; color: #2b2118; border-color: #fbbf24; font-weight: 700; padding: 5px 14px; }
+header nav #btn-intro:hover { background: #fcd34d; filter: none; }
