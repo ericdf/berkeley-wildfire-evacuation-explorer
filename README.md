@@ -1,6 +1,6 @@
 # Berkeley Hills Wildfire Evacuation: Scenario Explorer (Phase 1 prototype)
 
-A browser game for exploring Berkeley's wildfire evacuation tradeoffs. Choose a fire
+A browser simulator for exploring Berkeley's wildfire evacuation tradeoffs. Choose a fire
 scenario and an operating plan, run it on Berkeley's real street network and terrain,
 and compare two plans against identical fires and synthetic households.
 
@@ -13,11 +13,11 @@ The design brief is `specfication.md`. What is still missing is listed in `DATA_
 
 ## Run it
 
-No build step or dependencies. The game is plain ES modules and needs a local web server
+No build step or dependencies. The simulator is plain ES modules and needs a local web server
 (browsers block `fetch` from `file://`):
 
 ```sh
-cd berkeley-hills-evacuation-game
+cd berkeley-wildfire-simulator
 python3 -m http.server 8766 --bind 127.0.0.1
 # open http://127.0.0.1:8766
 ```
@@ -49,7 +49,7 @@ Loading takes a few seconds: about 10 MB of terrain and 2 MB of street network.
   embers first reached their street, split into four groups: still home with a car, on the
   road, without a vehicle, and in zones that never got an order. A good average can hide
   any one of them. **…when the fire front arrived** counts those still there when the fire
-  itself reached the street. Neither is a count of deaths or injuries: the game does not
+  itself reached the street. Neither is a count of deaths or injuries: the simulator does not
   model house survival, sheltering, fire intensity or smoke.
 - **Clearance** is reported at 50%, 90% and 100% of evacuating vehicles, plus the time
   the last household with a car reaches safety. No single average is shown.
@@ -109,10 +109,10 @@ it does not predict how a real fire would behave.
 **Evacuation** (`js/sim.js`). Synthetic households are placed on streets from Genasys zone
 population estimates. Zones outside Berkeley take their outlines from Genasys Protect and,
 where the City layer has no estimate, their population from 2020 Census blocks; only people
-inside the game area are placed (about 74,700 outside Berkeley). Household size, vehicle ownership, ridesharing, compliance
+inside the model area are placed (about 74,700 outside Berkeley). Household size, vehicle ownership, ridesharing, compliance
 (100% of Order zones, 50% of Warning zones, 20% shadow, which the study applies to Berkeley
 and to a Shadow Region around it) and departure times come from the 2025 Evacuation Time Study.
-Shadow evacuees drive out of the game area. Orders and warnings use the study's zone lists. Evacuation time is
+Shadow evacuees drive out of the model area. Orders and warnings use the study's zone lists. Evacuation time is
 measured as the study's ETE, from the first order. Directed links have a capacity and
 storage, and every intersection has a capacity. The 2025 study named intersections
 as the main constraint. Vehicles may use every street and re-route every minute around
@@ -134,7 +134,7 @@ lane. It does not create a second evacuating lane. Evacuation traffic runs mostl
 taking turns rarely binds. In this model, parking restrictions therefore change engine access
 far more than evacuation flow. The plan options include cheaper ones than a ban: parking on
 one side only, or enforcing parking tight to the curb. That matches the City's 2025
-finding that broad restrictions are unlikely to improve evacuation flow. The game does not
+finding that broad restrictions are unlikely to improve evacuation flow. The simulator does not
 add any parking-removal bonus.
 
 ## Files
@@ -147,8 +147,8 @@ add any parking-removal bonus.
 | `js/fire.js`, `js/sim.js`, `js/parking.js`, `js/scenarios.js`, `js/rng.js` | Models and presets |
 | `js/worker.js` | Runs comparison batches off the main thread |
 | `js/data.js` | Loads the data files |
-| `data/assumptions.json` | **Editable** assumptions and game rules, each with a category and note |
-| `data/game/network.json`, `layers.json` | Built by `tools/build-network.mjs` (do not edit by hand) |
+| `data/assumptions.json` | **Editable** assumptions and model rules, each with a category and note |
+| `data/model/network.json`, `layers.json` | Built by `tools/build-network.mjs` (do not edit by hand) |
 | `data/terrain/dem.i16`, `dem.json` | Elevation grid, built by `tools/fetch-dem.mjs` |
 | `data/field/` | Field and aerial observations (counts only), e.g. parked cars on 22 hill blocks |
 | `data/raw/` | Downloaded source data (reproducible, large; City layers and report PDFs are not in git). `osm/east-bay-roads.json` (OSM streets), `genasys/zones.json` (zone outlines), `census/` (2020 block counts) each have a retrieval note |
@@ -164,7 +164,7 @@ Every tool is plain Node (18+) with no dependencies.
 ```sh
 node tools/fetch-dem.mjs           # elevation: USGS 3DEP 1 m lidar DEM (4 m overview), ~1 minute
 node tools/fetch-city-layers.mjs   # City of Berkeley ArcGIS Online layers → data/raw/city/
-node tools/build-network.mjs       # rebuild data/game/*.json from everything above
+node tools/build-network.mjs       # rebuild data/model/*.json from everything above
 node tests/headless.mjs            # sanity-check the models (optionally: low | central | high)
 node tests/calibration.mjs         # compare evacuation times with the 2025 Evacuation Time Study (fire off)
 ```
@@ -188,10 +188,10 @@ FeatureServer name and layer id. Parcel layers carrying addresses are skipped on
 ## Editing assumptions
 
 Edit `data/assumptions.json`. Each value has an entry in `_meta` with its category
-(`assumption`, `game rule`, `sourced`) and a note, which the app shows in Assumptions &
+(`assumption`, `model rule`, `sourced`) and a note, which the app shows in Assumptions &
 limits. Lane, parking and capacity values are applied when the network is built, so run
 `node tools/build-network.mjs` after changing them. Demand and access values are read
-by the game at load time. Scenario presets, severities and time-of-day values are in
+by the simulator at load time. Scenario presets, severities and time-of-day values are in
 `js/scenarios.js`.
 
 ## Limits of Phase 1
@@ -205,8 +205,8 @@ by the game at load time. Scenario presets, severities and time-of-day values ar
   the study's evacuation times; the 1923 and Fire Zones 2–3 regions run about 15 min fast at
   night and 35–80 min fast on weekdays (see `SOURCE_NOTES.md`, calibration). Tuning junction
   capacity to close that gap broke Panoramic Hill, so it is left untuned.
-- Streets outside Berkeley come from OpenStreetMap with assumed widths. The game area ends at
+- Streets outside Berkeley come from OpenStreetMap with assumed widths. The model area ends at
   the edge of the elevation grid (37.84–37.91° N, 122.33–122.21° W), about 1 km into Oakland
   and through the middle of Kensington; north Kensington (about 1,500 people) and Oakland
   south of that line are not modeled. Traffic that reaches the edge has left.
-- Fire spread, ember distances and spot-fire rates are illustrative game values.
+- Fire spread, ember distances and spot-fire rates are illustrative model values.

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Build the game's data files from the raw inputs.
+// Build the simulator's data files from the raw inputs.
 //
 //   node tools/build-network.mjs
 //
@@ -13,8 +13,8 @@
 //   data/raw/census/blocks-2020.json      2020 Census block population at interior points (TIGERweb)
 //   data/assumptions.json                 editable defaults (lanes, parking, capacities …)
 // Outputs:
-//   data/game/network.json   road graph: nodes, edges, per-field provenance
-//   data/game/layers.json    zones, fire zones, 1923 boundary, stations, shelters, paths
+//   data/model/network.json   road graph: nodes, edges, per-field provenance
+//   data/model/layers.json    zones, fire zones, 1923 boundary, stations, shelters, paths
 //
 // Every coordinate in the outputs is meters in UTM 10N (EPSG:32610) minus the DEM
 // origin (xmin, ymin), with y pointing north. Nothing is measured in lon/lat.
@@ -180,7 +180,7 @@ const allZoneFeatures = [...cityLayer('evac_zones').filter(f => berkZone(f.prope
 const evacZoneOf = zoneIndex(allZoneFeatures, p => zoneLabel(p.zone_id));
 
 // ---------- 3b. OpenStreetMap streets beyond Berkeley ----------
-// data/raw/osm/east-bay-roads.json: drivable OSM ways in the game area (Overpass, 2026-11-01).
+// data/raw/osm/east-bay-roads.json: drivable OSM ways in the model area (Overpass, 2026-11-01).
 // Inside Berkeley the County file wins: OSM vertices inside the city limits or within 8 m of a County
 // street are dropped. Where an OSM street meets the County network, its end is moved onto the nearest
 // County node (a dead end within 60 m preferred, any node within 25 m otherwise). OSM streets are cut
@@ -395,7 +395,7 @@ for (const s of segs) {
       e.clearWidthM = r1(Math.max(0, e.widthM - sides * A.parking.parkedCarWidthM));
       e.clearWidthSrc = 'derived:width-minus-parking';
     } else { e.clearWidthM = null; e.clearWidthSrc = 'unknown'; }
-    // moving lanes that physically fit between parked cars (game rule)
+    // moving lanes that physically fit between parked cars (model rule)
     e.effLanes = e.clearWidthM == null ? null
       : e.clearWidthM >= 2 * A.access.movingLaneM ? 2 : e.clearWidthM >= A.access.movingLaneM ? 1 : 0;
     e.belowFireCodeWidth = e.clearWidthM != null && e.clearWidthM < A.access.fireCodeClearM;
@@ -428,7 +428,7 @@ for (let i = 0; i < nodes.length; i++) {
 }
 const main = compSize.indexOf(Math.max(...compSize));
 // where OSM streets were cut at the edge of the DEM: traffic leaves the modeled area here. A street
-// group that reaches the edge of the game area connects to the rest of the network beyond it.
+// group that reaches the edge of the model area connects to the rest of the network beyond it.
 const exitIds = [...new Set([...exitNodes].map(pt => nodeFor(pt)))].filter(n => comp[n] >= 0);
 const outward = new Set(exitIds.map(n => comp[n])); outward.add(main);
 for (const e of edges) if (e.mode === 'vehicle' && !outward.has(comp[e.a])) e.disconnected = true;
@@ -448,7 +448,7 @@ for (const e of edges) if (e.mode === 'vehicle' && !outward.has(comp[e.a])) e.di
 // unless tagged otherwise; a gate is passable unless tagged access/motor_vehicle = no or private.
 const nearestVehicleEdge = (x, y, maxD) => { let best = null; for (const e of edges) { if (e.mode !== 'vehicle') continue; for (let k = 1; k < e.geom.length; k++) { const d = segD(x, y, e.geom[k - 1], e.geom[k]); if (d <= maxD && (!best || d < best.d)) best = { e, d }; } } return best; };
 const barrierStats = { onStreets: 0, matched: 0, closedToCars: 0, enginesPass: 0, gatesClosed: 0 }, barrierSeen = new Set();
-// data/raw/osm/east-bay-roads.json adds barrier nodes on drivable streets across the whole game area
+// data/raw/osm/east-bay-roads.json adds barrier nodes on drivable streets across the whole model area
 // (the barrier file stops at 122.23 W). Kerbs (a curb at a crossing) do not close a street.
 for (const f of ['data/raw/osm/barriers-on-roads.json', 'data/raw/osm/east-bay-roads.json']) if (has(f)) {
   const osm = readJSON(f).elements;
@@ -486,9 +486,9 @@ if (has('data/raw/osm/berkeley-barriers.json')) {
   }
 }
 // A closure that would cut streets off from the rest of the network stays open: near the edge of the
-// game area a street may have an outlet beyond the network. (Before the OSM streets were added this kept
+// model area a street may have an outlet beyond the network. (Before the OSM streets were added this kept
 // Tanglewood Rd open; it now connects through Oakland.)
-// Reachability from the main component and from every exit (streets beyond the game area connect them).
+// Reachability from the main component and from every exit (streets beyond the model area connect them).
 const mainNode = nodes.findIndex((_, i) => comp[i] === main);
 const reach = skip => { const seen = new Uint8Array(nodes.length), st = []; for (const s of [mainNode, ...exitIds]) if (!seen[s]) { seen[s] = 1; st.push(s); }
   const adj2 = nodes.map(() => []); for (const e of edges) if (e.mode === 'vehicle' && !e.disconnected && !skip.has(e)) { adj2[e.a].push(e.b); adj2[e.b].push(e.a); }
@@ -521,10 +521,10 @@ const network = {
     fields: {
       geom: { category: 'sourced', source: 'Berkeley: Alameda County Street Centerlines export (data.acgov.org), downloaded 2026-10-20; segment data revised 2015-09-26. Outside Berkeley (src.osmWay): OpenStreetMap drivable ways (Overpass API, 2026-11-01; © OpenStreetMap contributors, ODbL), joined to the County network at the city line.', note: 'Projected to UTM 10N, simplified to 0.75 m. OSM ends are moved onto the nearest County node (up to 60 m) where the two networks meet.' },
       name: { category: 'sourced', source: 'County STREET field; outside Berkeley the OSM name, upper-cased with the County\'s suffix abbreviations (I-80 and CA-24 carriageways named by direction as in the County file)' },
-      cls: { category: 'sourced', source: 'County CLASS field. Outside Berkeley mapped from OSM highway (game rule): motorway = Interstate; motorway_link, trunk_link = Ramp; trunk, primary, secondary = Principal Arterial; tertiary = Major Collector; residential, unclassified, living_street = Local' },
+      cls: { category: 'sourced', source: 'County CLASS field. Outside Berkeley mapped from OSM highway (model rule): motorway = Interstate; motorway_link, trunk_link = Ramp; trunk, primary, secondary = Principal Arterial; tertiary = Major Collector; residential, unclassified, living_street = Local' },
       osm: { category: 'sourced', source: 'OpenStreetMap contributors, ODbL (openstreetmap.org/copyright). Streets outside Berkeley, barriers and traffic circles.' },
-      exitNodes: { category: 'game rule', source: 'Nodes where an OSM street was cut 15 m inside the DEM extent (UTM 10N x 558896-569512, y 4188272-4196124). Traffic that reaches one has left the modeled area.' },
-      fireZoneSrc: { category: 'game rule', source: 'Outside Berkeley the City fire zones do not apply; OSM streets whose midpoint is at 90 m elevation or higher (DEM) get fireZone 2, so the hill rules for lanes, speed and parking apply (proxy:elevation>=90m). Same threshold fire.js uses for hill residential land outside the city.' },
+      exitNodes: { category: 'model rule', source: 'Nodes where an OSM street was cut 15 m inside the DEM extent (UTM 10N x 558896-569512, y 4188272-4196124). Traffic that reaches one has left the modeled area.' },
+      fireZoneSrc: { category: 'model rule', source: 'Outside Berkeley the City fire zones do not apply; OSM streets whose midpoint is at 90 m elevation or higher (DEM) get fireZone 2, so the hill rules for lanes, speed and parking apply (proxy:elevation>=90m). Same threshold fire.js uses for hill residential land outside the city.' },
       trav: { category: 'sourced', source: 'County TRVLWAY: B both ways, FT one-way in the digitized direction, TF against it, NT no vehicle travel. FT/TF meaning checked against the right-hand rule on 100 divided-street pairs (97 agree).' },
       mode: { category: 'derived', source: 'path = SFEATYP PA/WK or names with STEPS/PATH/WALK; restricted = TRVLWAY NT; else vehicle' },
       z: { category: 'derived', source: 'Elevation at segment ends, bilinear from data/terrain/dem.i16 (USGS 3DEP 1 m lidar DEM, 4 m overview)' },
@@ -537,26 +537,26 @@ const network = {
       widthM: { category: 'mixed', source: 'widthSrc says where. city: City of Berkeley Street_Centerline PAV_WIDTH_RD (pavement-management width, feet) or Narrow_Roads PAV_WIDTH_, matched to County segments by name and distance (<= 12 m). osm:width = OSM width tag. assumption:berkeleyMedian(...) = median City width of Berkeley streets of the same class in the hills or flats (one-way streets: 60% of it, at least 3.5 m per lane), used for Oakland, Albany, Emeryville and Kensington streets with no width tag.' },
       parking: { category: 'assumption', source: 'data/assumptions.json parking.hills / parking.flats. Hills default per Eric, 2026-10-31: parking on both sides. Not yet checked against posted no-parking signs.' },
       clearWidthM: { category: 'mixed', source: 'City Narrow_Roads Width_w_Parking where present; else widthM minus parked-car width per parked side (assumption)' },
-      effLanes: { category: 'game rule', source: 'Moving lanes that fit in clearWidthM: 2 if >= 2 x access.movingLaneM, 1 if >= one lane, else 0. With one effective lane, opposing vehicles must wait for each other.' },
+      effLanes: { category: 'model rule', source: 'Moving lanes that fit in clearWidthM: 2 if >= 2 x access.movingLaneM, 1 if >= one lane, else 0. With one effective lane, opposing vehicles must wait for each other.' },
       belowFireCodeWidth: { category: 'derived', source: 'clearWidthM below access.fireCodeClearM (20 ft unobstructed width, California Fire Code 503.2.1 for new fire apparatus access roads; context only, existing streets are not required to meet it)' },
-      engineBlocked: { category: 'game rule', source: 'clearWidthM below access.engineClearM: a fire engine cannot get through without parked cars being moved' },
+      engineBlocked: { category: 'model rule', source: 'clearWidthM below access.engineClearM: a fire engine cannot get through without parked cars being moved' },
       barrier: { category: 'sourced', source: 'OpenStreetMap barrier node on this street (Overpass API, 2026-11-01; © OpenStreetMap contributors, ODbL), matched within 15 m. Closed to residents\' cars; engines pass where tagged emergency=yes or at gates. Diverters that block only some turns are treated as closing the whole segment (approximation).' },
       speedMps: { category: 'assumption', source: 'data/assumptions.json capacity.speedMph by road class, capped by City SPEED where known, or by the OSM maxspeed tag outside Berkeley (outside the hills)' },
-      capPerLaneVph: { category: 'sourced', source: 'AB 747 report capacity rules (HCM 2022): two-lane roads 45 pc/h per mph up to 1,700; multilane 1,900 per lane; freeway 2,250 per lane (capRule says which). Speed input is an assumption; steep segments reduced by a game rule.' },
+      capPerLaneVph: { category: 'sourced', source: 'AB 747 report capacity rules (HCM 2022): two-lane roads 45 pc/h per mph up to 1,700; multilane 1,900 per lane; freeway 2,250 per lane (capRule says which). Speed input is an assumption; steep segments reduced by a model rule.' },
     },
   },
   nodes: nodesOut,
   edges,
 };
-fs.mkdirSync(P('data/game'), { recursive: true });
-fs.writeFileSync(P('data/game/network.json'), JSON.stringify(network));
+fs.mkdirSync(P('data/model'), { recursive: true });
+fs.writeFileSync(P('data/model/network.json'), JSON.stringify(network));
 
 // ---------- 7. context layers ----------
 // One entry per zone: parts and duplicate features merged, population counted once.
 // pop: the City layer's Genasys estimate, or for zones only in the Genasys WFS (no population there) the
 // 2020 Census population of blocks whose interior point lies in the zone (data/raw/census/blocks-2020.json,
-// which covers the game area plus a small margin). popModeled: the part inside the DEM extent, which is
-// what the game places on streets (Genasys estimates scaled by the zone's area share inside the extent).
+// which covers the model area plus a small margin). popModeled: the part inside the DEM extent, which is
+// what the simulator places on streets (Genasys estimates scaled by the zone's area share inside the extent).
 const blocks = has('data/raw/census/blocks-2020.json') ? readJSON('data/raw/census/blocks-2020.json').features
   .map(f => ({ pt: local([+f.attributes.INTPTLON, +f.attributes.INTPTLAT]), pop: +f.attributes.POP100 || 0 })) : [];
 const EXT = [0, 0, dem.xmax - OX, dem.ymax - OY];
@@ -588,7 +588,7 @@ function zonesOut(features, tol = 3) {
     if (z.popSrc === 'census2020') { z.pop = cAll; z.popModeled = cIn; }
     else z.popModeled = Math.round(z.pop * share);
     z.census2020 = cAll; z.areaShareModeled = Math.round(share * 1000) / 1000;
-    if (!berkZone(z.zoneId) && !share) continue; // entirely outside the game area (e.g. Orinda zones)
+    if (!berkZone(z.zoneId) && !share) continue; // entirely outside the model area (e.g. Orinda zones)
     const { seen, polys, ...rest } = z; out.push(rest);
   }
   return out;
@@ -606,7 +606,7 @@ const layers = {
       { key: 'streets', title: 'Street Centerlines (base network)', publisher: 'County of Alameda open data portal (data.acgov.org)', retrieved: '2026-10-20', category: 'sourced', why: 'Road geometry, names, class, direction of travel. Segment data revised 2015-09-26.' },
       { key: 'osm', title: 'OpenStreetMap drivable streets, barriers and traffic circles', publisher: '© OpenStreetMap contributors, ODbL (Overpass API)', retrieved: '2026-11-01', category: 'sourced', why: 'Streets outside Berkeley (Oakland, Emeryville, Albany, Kensington, El Cerrito, Richmond), joined to the County network at the city line; name, class, one-way, lanes and maxspeed tags. Widths outside Berkeley are assumptions (Berkeley medians). Barriers and traffic circles everywhere.', url: 'https://www.openstreetmap.org/copyright' },
       { key: 'genasys', title: 'Genasys Protect evacuation zones (WFS layer zonehavenv2:evacuation_zone)', publisher: 'Genasys Protect (protect.genasys.com)', retrieved: '2026-11-01', category: 'sourced', why: 'Zone outlines outside Berkeley (Oakland, Albany, Emeryville, Kensington and El Cerrito, Richmond, Contra Costa County). The City layer holds only slivers of these zones along the city line; its population estimates are kept where it has them.' },
-      { key: 'census', title: '2020 Census blocks (POP100) and Kensington CDP', publisher: 'U.S. Census Bureau, TIGERweb', retrieved: '2026-11-01', category: 'sourced', why: 'Population of Genasys zones that have no estimate in the City layer (counted from block interior points), the share of each zone inside the game area, and a check on the Genasys estimates.', url: 'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Tracts_Blocks/MapServer/12' },
+      { key: 'census', title: '2020 Census blocks (POP100) and Kensington CDP', publisher: 'U.S. Census Bureau, TIGERweb', retrieved: '2026-11-01', category: 'sourced', why: 'Population of Genasys zones that have no estimate in the City layer (counted from block interior points), the share of each zone inside the model area, and a check on the Genasys estimates.', url: 'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Tracts_Blocks/MapServer/12' },
       { key: 'dem', title: dem.provenance.sources.join('; '), publisher: 'USGS 3D Elevation Program', retrieved: dem.provenance.retrieved, category: 'derived', why: dem.provenance.method + ' ' + dem.provenance.limits },
       ...(fs.existsSync(P('data/raw/city')) ? fs.readdirSync(P('data/raw/city')).filter(f => f.endsWith('.meta.json')).map(f => {
         const m = readJSON(`data/raw/city/${f}`);
@@ -626,11 +626,11 @@ const layers = {
   noParkingSigns: [...cityLayer('no_parking_fz23'), ...cityLayer('no_parking_narrow')].filter(f => f.geometry?.type === 'Point')
     .map(f => ({ mutcd: f.properties.MUTCD, pt: local(f.geometry.coordinates).map(Math.round) })),
 };
-fs.writeFileSync(P('data/game/layers.json'), JSON.stringify(layers));
+fs.writeFileSync(P('data/model/layers.json'), JSON.stringify(layers));
 { const Z = layers.evacZones, sum = (f, k) => Z.filter(f).reduce((s, z) => s + (z[k] || 0), 0), city = c => z => z.id.startsWith(c);
   for (const c of ['BER', 'LBL', 'OKL', 'ALB', 'EMV', 'ECK', 'CCC', 'RCH', 'ORI']) console.log(`zones ${c}: ${Z.filter(city(c)).length}, pop ${sum(city(c), 'pop')}, modeled ${sum(city(c), 'popModeled')}, census2020 ${sum(city(c), 'census2020')}`);
-  for (const z of Z.filter(z => !/^(BER|LBL)/.test(z.id) && z.popSrc === 'genasys')) console.log(`  ${z.id} Genasys ${z.pop} vs Census 2020 ${z.census2020} (area share in game ${z.areaShareModeled})`); }
+  for (const z of Z.filter(z => !/^(BER|LBL)/.test(z.id) && z.popSrc === 'genasys')) console.log(`  ${z.id} Genasys ${z.pop} vs Census 2020 ${z.census2020} (area share in model area ${z.areaShareModeled})`); }
 const kb = f => (fs.statSync(P(f)).size / 1024).toFixed(0) + ' KB';
 console.log(`nodes ${nodes.length}, edges ${edges.length} (${stats.edges} vehicle), components ${ncomp}, main ${compSize[main]} nodes`);
 console.log(`City width matched ${stats.width}/${stats.edges}, City lanes ${stats.cityLanes}, narrow ${stats.narrow}`);
-console.log(`network.json ${kb('data/game/network.json')}, layers.json ${kb('data/game/layers.json')}`);
+console.log(`network.json ${kb('data/model/network.json')}, layers.json ${kb('data/model/layers.json')}`);

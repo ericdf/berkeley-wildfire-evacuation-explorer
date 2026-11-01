@@ -12,7 +12,7 @@ const fmt = (x, d = 0) => x == null || Number.isNaN(x) ? '—' : x === Infinity 
 const mins = x => x == null ? '—' : x === Infinity ? 'none' : `${fmt(x)} min`;
 const hm = s => { const m = Math.floor(s / 60); return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`; };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const CAT = { sourced: 'sourced', derived: 'derived', assumption: 'assumption', 'game rule': 'rule', mixed: 'derived', synthetic: 'synthetic', unknown: 'missing' };
+const CAT = { sourced: 'sourced', derived: 'derived', assumption: 'assumption', 'model rule': 'rule', mixed: 'derived', synthetic: 'synthetic', unknown: 'missing' };
 const badge = (cat, tip) => `<span class="badge b-${CAT[cat] || 'missing'}"${tip ? ` title="${esc(tip)}"` : ''}>${cat === 'unknown' ? 'no data' : cat}${tip ? ' ⓘ' : ''}</span>`;
 const srcCat = src => !src ? 'unknown' : src.startsWith('city:') ? 'sourced' : src.startsWith('assumption:') ? 'assumption' : src.startsWith('derived:') ? 'derived' : src === 'unknown' ? 'unknown' : 'derived';
 
@@ -211,14 +211,14 @@ function update(full) {
   if (map.selected) inspect(map.selected, true);
 }
 // The Time Study's 90% time for the same region and time of day, so users can see how far off the
-// game runs. The gap comes mostly from signal timing and non-resident parking, which we lack.
+// simulator runs. The gap comes mostly from signal timing and non-resident parking, which we lack.
 function studyRow(sc) {
   const T = ETE_TARGETS[sc.id === 'eastWindDay' ? 'eastWind' : sc.id], tk = $('tod').value;
   if (!T?.p90[tk]) return '';
   const weekday = tk === 'S1' || tk === 'S4';
   return `<tr><td>For scale: the 2025 Evacuation Time Study's 90% time for ${esc(T.region)}, ${esc(TIME_OF_DAY[tk].label)} (status quo, no fire) ${badge('sourced')}<div class="small muted">${weekday && sc.id !== 'panoramic'
-    ? 'On weekdays the game runs 35–80 min faster than the study here, probably because it lacks the City\'s signal timing and where commuters and students park. Treat its times as a lower bound.'
-    : sc.id === 'panoramic' ? 'The game runs within about 10 min of the study here.' : 'At night and on weekends the game runs 15–25 min faster than the study here.'} See Assumptions &amp; limits.</div></td><td class="num">${mins(T.p90[tk])}</td></tr>`;
+    ? 'On weekdays the simulator runs 35–80 min faster than the study here, probably because it lacks the City\'s signal timing and where commuters and students park. Treat its times as a lower bound.'
+    : sc.id === 'panoramic' ? 'The simulator runs within about 10 min of the study here.' : 'At night and on weekends the simulator runs 15–25 min faster than the study here.'} See Assumptions &amp; limits.</div></td><td class="num">${mins(T.p90[tk])}</td></tr>`;
 }
 function spark(sim) {
   const cv = $('spark'); if (!cv) return; const ctx = cv.getContext('2d'), s = sim.series;
@@ -252,24 +252,24 @@ function inspect(sel, quiet) {
         + (e.narrow ? row('City survey: width with parking', `${fmt(e.clearWidthM / 0.3048)} ft`, 'sourced', 'City Narrow_Roads Width_w_Parking: pavement minus 7 ft per parked side, assuming perfect parking. Used as one possible state, not a measurement.') : '');
       if (sim) {
         const cw = sim.clear[e.id], P = sim.parking, sd = P.sides[e.id];
-        rows += row('Parked sides (this run)', sd < 0 ? '—' : `${sd}${P.offPave[e.id] ? ', partly off the pavement' : ''}${P.pinchM[e.id] ? `; one bad parking job takes ${fmt(P.pinchM[e.id] / 0.3048, 1)} ft more` : ''}`, 'game rule', A_NOTE('parking.range'))
+        rows += row('Parked sides (this run)', sd < 0 ? '—' : `${sd}${P.offPave[e.id] ? ', partly off the pavement' : ''}${P.pinchM[e.id] ? `; one bad parking job takes ${fmt(P.pinchM[e.id] / 0.3048, 1)} ft more` : ''}`, 'model rule', A_NOTE('parking.range'))
           + row('Clear width under this plan', Number.isNaN(cw) ? 'unknown' : `${fmt(cw, 1)} m (${fmt(cw / 0.3048)} ft)`, Number.isNaN(cw) ? 'unknown' : 'derived', 'Pavement width minus parked cars (8 ft per side, KLD), minus any bad parking job, for this run\'s seed')
-          + row('Moving lanes that fit', sim.eff[e.id] < 0 ? 'unknown' : sim.eff[e.id], 'game rule', F.effLanes.source)
-          + row('Fire engine can pass', sim.engineOK[e.id] ? 'yes' : '<b style="color:#b91c1c">no</b>', 'game rule', F.engineBlocked.source);
+          + row('Moving lanes that fit', sim.eff[e.id] < 0 ? 'unknown' : sim.eff[e.id], 'model rule', F.effLanes.source)
+          + row('Fire engine can pass', sim.engineOK[e.id] ? 'yes' : '<b style="color:#b91c1c">no</b>', 'model rule', F.engineBlocked.source);
       }
       rows += row('Steep grade', e.gradeReliable ? `${fmt(e.gradeMax, 1)}%` : `${fmt(e.gradeMax, 1)}% (unreliable)`, 'derived', F.gradeMax.source)
         + row('Net grade (drawn direction)', `${fmt(e.grade, 1)}%`, 'derived', F.grade.source)
         + row('Elevation at ends', `${fmt(e.z[0])} m → ${fmt(e.z[1])} m`, 'derived', F.z.source)
-        + row('Speed · capacity per lane', `${fmt(e.speedMps * 2.237)} mph · ${fmt(e.capPerLaneVph)} veh/h${e.steep ? ' (steep)' : ''}`, 'game rule', F.capPerLaneVph.source)
+        + row('Speed · capacity per lane', `${fmt(e.speedMps * 2.237)} mph · ${fmt(e.capPerLaneVph)} veh/h${e.steep ? ' (steep)' : ''}`, 'model rule', F.capPerLaneVph.source)
         + (e.barrier ? row('Barrier (OpenStreetMap)', `${esc(e.barrier.kind.replace('_', ' '))}${e.barrier.closed ? ': closed to residents\' cars' + (e.barrier.engines ? '; engines pass after ' + data.A.access.barrierDelayS / 60 + ' min' : '; engines blocked') : ': left open (' + esc(e.barrier.keptOpen || '') + ')'}`, 'sourced', F.barrier.source) : '')
-        + (e.fireZoneSrc?.startsWith('proxy') ? row('Fire zone', 'hills (outside Berkeley)', 'game rule', F.fireZoneSrc.source) : row('Fire zone', e.fireZone ?? 'outside', 'sourced', F.fireZone.source))
+        + (e.fireZoneSrc?.startsWith('proxy') ? row('Fire zone', 'hills (outside Berkeley)', 'model rule', F.fireZoneSrc.source) : row('Fire zone', e.fireZone ?? 'outside', 'sourced', F.fireZone.source))
         + row('Evacuation zone', e.evacZone ?? '—', 'sourced', F.evacZone.source)
         + (e.src.osmWay ? '' : row('City segment match', e.city?.id ?? 'none', e.city ? 'derived' : 'unknown', 'Matched by street name and distance'));
       if (sim) {
         const ls = sim.edgeLinks.get(e.id) || [];
         const q = ls.map(l => sim.links[l].q.length).reduce((a, b) => a + b, 0);
         rows += row('Vehicles on segment now', q, 'synthetic')
-          + row('Fire reaches · embers reach', `${sim.tFire[e.id] === Infinity ? 'never' : 't+' + hm(sim.tFire[e.id])} · ${sim.tEmber[e.id] === Infinity ? 'never' : 't+' + hm(sim.tEmber[e.id])}`, 'game rule', 'Illustrative overlay for this scenario, severity and seed');
+          + row('Fire reaches · embers reach', `${sim.tFire[e.id] === Infinity ? 'never' : 't+' + hm(sim.tFire[e.id])} · ${sim.tEmber[e.id] === Infinity ? 'never' : 't+' + hm(sim.tEmber[e.id])}`, 'model rule', 'Illustrative overlay for this scenario, severity and seed');
       }
     }
     rows += e.src.osmWay ? row('Source record', `OpenStreetMap way <a href="https://www.openstreetmap.org/way/${e.src.osmWay}" target="_blank" rel="noopener">${e.src.osmWay}</a> (© OpenStreetMap contributors, ODbL)`, 'sourced', F.osm.source)
@@ -279,14 +279,14 @@ function inspect(sel, quiet) {
     const z = data.layers.evacZones[sel.id];
     let rows = row('Zone', esc(z.id), 'sourced') + row('Described as', esc(z.knownAs || '—'), 'sourced')
       + row('Estimated population', fmt(z.pop), 'sourced', z.popSrc === 'census2020' ? '2020 Census population of the blocks whose interior point lies in this Genasys zone (Genasys publishes no estimate for it)' : 'Genasys zone estimate in the City layer (method not documented there)')
-      + row('2020 Census, same zone', fmt(z.census2020), 'sourced', 'Population of 2020 Census blocks whose interior point lies in the zone, inside the game area plus a small margin. A check on the Genasys estimate.');
+      + row('2020 Census, same zone', fmt(z.census2020), 'sourced', 'Population of 2020 Census blocks whose interior point lies in the zone, inside the model area plus a small margin. A check on the Genasys estimate.');
     if (sim) {
       let hh = 0, left = 0, noCar = 0;
       for (let h = 0; h < sim.hh.n; h++) if (sim.hh.zone[h] === sel.id) { hh++; if (sim.hh.leftHome[h] <= sim.t || sim.hh.early[h]) left++; if (!sim.hh.veh[h]) noCar++; }
-      rows += row('Share inside the modeled area', `${fmt(sim.zoneModeledShare[sel.id] * 100)}%`, 'derived', 'Share of the zone\'s population inside the game area (the elevation grid\'s extent): 2020 Census blocks for zones without a Genasys estimate, the zone\'s area share otherwise')
+      rows += row('Share inside the modeled area', `${fmt(sim.zoneModeledShare[sel.id] * 100)}%`, 'derived', 'Share of the zone\'s population inside the model area (the elevation grid\'s extent): 2020 Census blocks for zones without a Genasys estimate, the zone\'s area share otherwise')
         + row('Modeled households', fmt(hh), 'synthetic', `Population inside the modeled area ÷ ${data.A.demand.personsPerHousehold} persons per household`)
         + row('Households without a vehicle', fmt(noCar), 'synthetic')
-        + row('Order issued', sim.orderT[sel.id] === Infinity ? 'no order in this run' : `t+${hm(sim.orderT[sel.id])}`, 'game rule')
+        + row('Order issued', sim.orderT[sel.id] === Infinity ? 'no order in this run' : `t+${hm(sim.orderT[sel.id])}`, 'model rule')
         + row('Households gone so far', fmt(left), 'synthetic');
     }
     box.innerHTML = `<h2>Evacuation zone</h2><table class="kv">${rows}</table>`;
@@ -407,11 +407,11 @@ function intro() {
   <table><tr><th>Input</th><th>What it sets</th><th>What to watch</th></tr>${INPUTS.map(r => `<tr><td><b>${r[0]}</b></td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`).join('')}</table>
   <h3>Reading the results</h3>
   <ul class="small">
-    <li><b>People still there when embers arrived</b>: still at home or on the road when embers first reached their street, split into those with a car, on the road, without a car, and in zones with no order. <b>…when the fire front arrived</b> is the harsher version. Neither is a count of deaths or injuries: the game does not model whether a house survives, whether people can shelter, or smoke. Use them to compare plans.</li>
-    <li><b>Evacuation time</b>: minutes after the first order until 90% of cars have left the order area, with the 2025 Evacuation Time Study's figure next to it for scale. The game lacks the City's signal timing, so on weekdays its times run 35–80 min short of the study's.</li>
+    <li><b>People still there when embers arrived</b>: still at home or on the road when embers first reached their street, split into those with a car, on the road, without a car, and in zones with no order. <b>…when the fire front arrived</b> is the harsher version. Neither is a count of deaths or injuries: the simulator does not model whether a house survives, whether people can shelter, or smoke. Use them to compare plans.</li>
+    <li><b>Evacuation time</b>: minutes after the first order until 90% of cars have left the order area, with the 2025 Evacuation Time Study's figure next to it for scale. The simulator lacks the City's signal timing, so on weekdays its times run 35–80 min short of the study's.</li>
     <li><b>Fire-engine travel</b> from the nearest station to the fire edge, and streets where parked cars leave less than an engine's width.</li>
   </ul>
-  <p class="small muted">Simple view offers a few questions with clear answers. Expert view (top right) opens every control: scenario, severity, seed, time of day and both plans. Every number shows whether it is sourced, derived, an assumption, a game rule or synthetic; see Assumptions &amp; limits and Data sources. Streets and residents beyond Berkeley (Oakland, Albany, Kensington, El Cerrito) are included up to the edge of the elevation data; north Kensington and Oakland south of about 37.84° N are not.</p>
+  <p class="small muted">Simple view offers a few questions with clear answers. Expert view (top right) opens every control: scenario, severity, seed, time of day and both plans. Every number shows whether it is sourced, derived, an assumption, a model rule or synthetic; see Assumptions &amp; limits and Data sources. Streets and residents beyond Berkeley (Oakland, Albany, Kensington, El Cerrito) are included up to the edge of the elevation data; north Kensington and Oakland south of about 37.84° N are not.</p>
   <div class="start"><button id="intro-expert">Open expert view</button><button class="primary" id="intro-simple">Start with a question</button></div></div>`, 'intro');
   const go = m => { localStorage.setItem('bhe-intro-seen', '1'); $('modal').close(); setMode(m); };
   $('intro-simple').onclick = () => go('simple'); $('intro-expert').onclick = () => go('expert');
@@ -423,23 +423,23 @@ $('btn-assumptions').onclick = () => {
   const val = path => { const v = path.split('.').reduce((o, k) => o?.[k], A); return typeof v === 'object' ? JSON.stringify(v).replace(/[{}"]/g, '').replace(/,/g, ', ') : v; };
   modal(`<h2>Assumptions &amp; limits</h2>
   <p class="note">This is an educational comparison tool. It is not a calibrated fire-behavior or traffic model, not an official evacuation plan, and it must not guide real evacuation decisions. Follow official instructions: <a href="https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation" target="_blank" rel="noopener">City of Berkeley fire weather &amp; evacuation</a>.</p>
-  <p>Labels used throughout: ${badge('sourced')} published data used as-is · ${badge('derived')} computed from sourced data · ${badge('assumption')} a placeholder you can change in <code>data/assumptions.json</code> · ${badge('game rule')} a simplification that makes the game work · ${badge('synthetic')} generated people or vehicles.</p>
-  <h3>Editable assumptions and game rules (data/assumptions.json)</h3>
+  <p>Labels used throughout: ${badge('sourced')} published data used as-is · ${badge('derived')} computed from sourced data · ${badge('assumption')} a placeholder you can change in <code>data/assumptions.json</code> · ${badge('model rule')} a simplification that makes the simulator work · ${badge('synthetic')} generated people or vehicles.</p>
+  <h3>Editable assumptions and model rules (data/assumptions.json)</h3>
   <table>${Object.entries(A._meta).map(([k, m]) => `<tr><td><code>${k}</code></td><td>${esc(val(k))}</td><td>${badge(m.category)} ${esc(m.note)}</td></tr>`).join('')}</table>
   <h3>Street network fields</h3>
   <table>${Object.entries(F).map(([k, m]) => `<tr><td><code>${k}</code></td><td>${badge(m.category)} ${esc(m.source)}${m.note ? ' ' + esc(m.note) : ''}</td></tr>`).join('')}</table>
-  <h3>Fire and ember overlay ${badge('game rule')}</h3>
+  <h3>Fire and ember overlay ${badge('model rule')}</h3>
   <p class="small">${esc(SEVERITY_NOTE)} Spread runs on ${CELL} m cells: wind sets an elliptical shape (Anderson 1983 length-to-breadth, capped at ${LB_MAX}); uphill is faster and downhill slower; a proxy fuel factor comes from the City fire zones (${Object.entries(FUEL).map(([k, v]) => `${k} ${v}`).join(', ')}), not from vegetation data. Spot fires are random, so seeds differ. A cell is "ember-exposed" once any burning cell lies within the ember distance upwind. The 1923 reference fire is confined to the City's archival boundary.</p>
   <table><tr><th>Severity</th><th>Head spread (m/min)</th><th>Wind ×</th><th>Ember distance (m)</th><th>Spot probability</th></tr>${Object.values(SEVERITY).map(s => `<tr><td>${s.label}</td><td>${s.rosMpm}</td><td>${s.windFactor}</td><td>${s.emberM}</td><td>${s.spotProb}</td></tr>`).join('')}</table>
   <h3>Time of day ${badge('assumption')}</h3><p class="small">${esc(TIME_NOTE)}</p>
   <table>${Object.values(TIME_OF_DAY).map(t => `<tr><td>${t.label}</td><td>households awaiting a commuter ${t.commuterShare * 100}%, school in session ${t.schoolInSession * 100}%, background traffic allowance ${t.background * 100}%</td><td class="small">${esc(t.note)}</td></tr>`).join('')}</table>
   <h3>How people and vehicles are modeled ${badge('synthetic')}</h3>
   <ul class="small">
-    <li>Households are synthetic. Each zone's Genasys population estimate (sourced; the 2020 Census count of the zone's blocks where Genasys publishes none, as in Oakland's hills beyond the City's layer, Kensington and El Cerrito) is cut to the share inside the game area, divided by ${A.demand.personsPerHousehold} persons per household (Time Study), and spread over the zone's streets in proportion to length. Residents are not reduced by time of day (Time Study).</li>
+    <li>Households are synthetic. Each zone's Genasys population estimate (sourced; the 2020 Census count of the zone's blocks where Genasys publishes none, as in Oakland's hills beyond the City's layer, Kensington and El Cerrito) is cut to the share inside the model area, divided by ${A.demand.personsPerHousehold} persons per household (Time Study), and spread over the zone's streets in proportion to length. Residents are not reduced by time of day (Time Study).</li>
     <li>${(A.demand.householdsWithoutVehicleShare * 100).toFixed(2)}% of households have no vehicle; ${A.demand.carlessRideshareShare * 100}% of those ride with a neighbor on the same street; the rest are stranded and counted as at risk. Households that drive take 1–4 vehicles (Time Study survey). Age is not used at all.</li>
-    <li>Who leaves: everyone in Order zones, ${A.demand.compliance.warning * 100}% of Warning zones, and ${A.demand.compliance.shadow * 100}% of all other households in the game area (Berkeley and the neighboring parts of Oakland, Emeryville, Albany, Kensington, El Cerrito and Richmond, which roughly match the Time Study's Shadow Region) as shadow evacuees driving out of the modeled area (Time Study). Orders follow the Time Study's zone lists for the 1923 and Panoramic Hill regions, the City's Fire Zones 2–3 region for the east-wind fires, and optionally the plan's distance rule.</li>
+    <li>Who leaves: everyone in Order zones, ${A.demand.compliance.warning * 100}% of Warning zones, and ${A.demand.compliance.shadow * 100}% of all other households in the model area (Berkeley and the neighboring parts of Oakland, Emeryville, Albany, Kensington, El Cerrito and Richmond, which roughly match the Time Study's Shadow Region) as shadow evacuees driving out of the modeled area (Time Study). Orders follow the Time Study's zone lists for the 1923 and Panoramic Hill regions, the City's Fire Zones 2–3 region for the east-wind fires, and optionally the plan's distance rule.</li>
     <li>When: each household's departure after the order is drawn from the Time Study's survey-based mobilization tables (Table 5-9), which include noticing the order and getting ready. Households waiting for a commuter, or picking up children on school days, leave later.</li>
-    <li>Evacuation time is measured like the Time Study's ETE: from the first order until 90% (and 100%) of evacuating vehicles have left the order and warning area. <code>node tests/calibration.mjs</code> compares the game with the study's results with the fire switched off.</li>
+    <li>Evacuation time is measured like the Time Study's ETE: from the first order until 90% (and 100%) of evacuating vehicles have left the order and warning area. <code>node tests/calibration.mjs</code> compares the simulator with the study's results with the fire switched off.</li>
     <li>Vehicles may use every street. They head for the nearest road node outside every ordered or warned zone and the ember area, and re-plan every minute around queues, fire and embers.</li>
     <li>Each link passes at most its capacity, holds at most its storage, and each intersection passes at most its capacity. On two-way streets with only one moving lane between parked cars, both directions share that lane: when cars come from both ways they take turns at gaps such as driveways, and the street loses capacity. Removing parking does not add evacuation lanes on two-way streets.</li>
     <li>Parked cars vary by block and seed: hill blocks are parked on one side or both, some cars sit partly off the pavement, and an occasional bad parking job (a wide vehicle, or a car far from the curb) narrows the gap. Residents stop parking where less than 8 ft would remain for a car. The City survey's "width with parking" is treated as the both-sides case.</li>
@@ -447,30 +447,30 @@ $('btn-assumptions').onclick = () => {
     <li>Gridlock relief: a vehicle stuck ${data.A.capacity.gridlockReliefS} s at the head of a queue squeezes forward. Without it the queue model can lock up for good in rings such as traffic circles.</li>
     <li>Engines travel from the nearest station to the road point nearest the ignition that the fire has not yet reached. They cannot pass segments narrower than an engine (with parked cars), and are delayed by oncoming evacuees where only one lane is clear.</li>
   </ul>
-  <h3>Information gaps and how far off they make the game</h3>
+  <h3>Information gaps and how far off they make the simulator</h3>
   <ul class="small">
-    <li><b>Traffic signal timing ${badge('assumption')}.</b> The City has not published its signal timings, so every junction gets a typical delay and a capacity by road class (<code>intersections</code> above). The 2025 Time Study used the City's timings and found intersections to be the main constraint. The game therefore clears traffic too fast when roads are busy. Measured against the study (90% of order-zone vehicles out, no fire, median of 3 seeds):
+    <li><b>Traffic signal timing ${badge('assumption')}.</b> The City has not published its signal timings, so every junction gets a typical delay and a capacity by road class (<code>intersections</code> above). The 2025 Time Study used the City's timings and found intersections to be the main constraint. The simulator therefore clears traffic too fast when roads are busy. Measured against the study (90% of order-zone vehicles out, no fire, median of 3 seeds):
       <ul>
         <li>Panoramic Hill: within about 10 min of the study at all times of day.</li>
-        <li>1923 repeat and Fire Zones 2–3, nights and weekends: 15–25 min too fast (study 1 h 45 min to 1 h 55 min; game about 1 h 30 min).</li>
-        <li>Same regions on weekdays: 35–80 min too fast. On a fall weekday the study takes 2 h 55 min for the 1923 region; the game takes about 1 h 35 min.</li>
+        <li>1923 repeat and Fire Zones 2–3, nights and weekends: 15–25 min too fast (study 1 h 45 min to 1 h 55 min; simulator about 1 h 30 min).</li>
+        <li>Same regions on weekdays: 35–80 min too fast. On a fall weekday the study takes 2 h 55 min for the 1923 region; the simulator takes about 1 h 35 min.</li>
       </ul>
-      Read weekday clearance times for the large regions as a lower bound: the study's times run up to 1.8 times the game's. Part of the gap also comes from where employees and students park, which the game places by area. Differences between two plans are more reliable than either plan's clock time, but a plan that sends more traffic through signals the study found congested (around the UC campus, and the pre-timed signal at Cedar St and MLK Jr Way) can look better in the game than it would on the street. The results panel shows the study's time for the same case.</li>
+      Read weekday clearance times for the large regions as a lower bound: the study's times run up to 1.8 times the simulator's. Part of the gap also comes from where employees and students park, which the simulator places by area. Differences between two plans are more reliable than either plan's clock time, but a plan that sends more traffic through signals the study found congested (around the UC campus, and the pre-timed signal at Cedar St and MLK Jr Way) can look better in the simulator than it would on the street. The results panel shows the study's time for the same case.</li>
   </ul>
   <h3>What Phase 1 does not do</h3>
   <ul class="small">
-    <li>No deaths or injuries. "Still there when embers arrived" counts people at home or on the road when embers first reached their street (any burning cell within the ember distance upwind); "…when the fire front arrived" counts those still there when the fire itself reached the street. Whether they would be hurt depends on house survival, sheltering, fire intensity and smoke, none of which the game models.</li>
+    <li>No deaths or injuries. "Still there when embers arrived" counts people at home or on the road when embers first reached their street (any burning cell within the ember distance upwind); "…when the fire front arrived" counts those still there when the fire itself reached the street. Whether they would be hurt depends on house survival, sheltering, fire intensity and smoke, none of which the simulator models.</li>
     <li>No buildings yet, so no structures exposed or lost; no home hardening or vegetation effects.</li>
     <li>No stairway or steep-path access time between homes and the street, and no assistance for people who need help (Phase 2).</li>
     <li>Employees, students, visitors and I-80 and CA-24 through traffic use the Time Study's vehicle counts, placed by area (an approximation).</li>
     <li>Intersection capacities are illustrative per road class; the study models each signal and stop sign. Traffic circles (900 vehicles per hour, Time Study) and diverters come from OpenStreetMap, not from a City list.</li>
     <li>Contraflow, traffic control and road closures beyond fire-blocked segments are not modeled.</li>
-    <li>Streets outside Berkeley come from OpenStreetMap, with widths assumed from Berkeley's medians and lanes from OSM tags or by road class. The game area stops at the edge of the elevation grid (37.84–37.91° N, 122.33–122.21° W: about 1 km into Oakland, the middle of Kensington, the Caldecott Tunnel); traffic that reaches the edge has left, and people beyond it are not modeled (about 1,500 of Kensington's 5,428 residents in the 2020 Census).</li>
+    <li>Streets outside Berkeley come from OpenStreetMap, with widths assumed from Berkeley's medians and lanes from OSM tags or by road class. The model area stops at the edge of the elevation grid (37.84–37.91° N, 122.33–122.21° W: about 1 km into Oakland, the middle of Kensington, the Caldecott Tunnel); traffic that reaches the edge has left, and people beyond it are not modeled (about 1,500 of Kensington's 5,428 residents in the 2020 Census).</li>
   </ul>`);
 };
 $('btn-sources').onclick = () => {
   const S = data.layers.meta.sources || [];
-  modal(`<h2>Data sources</h2><p class="small">Every imported layer, where it came from and how the game uses it. See <code>DATA_INVENTORY.md</code> for missing inputs.</p>
+  modal(`<h2>Data sources</h2><p class="small">Every imported layer, where it came from and how the simulator uses it. See <code>DATA_INVENTORY.md</code> for missing inputs.</p>
   <table><tr><th>Layer</th><th>Publisher · retrieved</th><th>Used for</th></tr>${S.map(s => `<tr><td>${esc(s.title)} ${badge(s.category)}${s.url ? `<div class="small"><a href="${esc(s.url)}" target="_blank" rel="noopener">service</a></div>` : ''}</td><td class="small">${esc(s.publisher)}<br>${esc(s.retrieved || '')}${s.lastEdit ? `<br>last edited ${esc(s.lastEdit)}` : ''}</td><td class="small">${esc(s.why)}</td></tr>`).join('')}</table>`);
 };
 

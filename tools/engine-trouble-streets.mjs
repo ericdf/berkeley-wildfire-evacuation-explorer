@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import path from "node:path"; import { fileURLToPath } from "node:url";
 const R = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const { parkingState } = await import(R + '/js/parking.js');
-const net = JSON.parse(fs.readFileSync(R + '/data/game/network.json'));
+const net = JSON.parse(fs.readFileSync(R + '/data/model/network.json'));
 const A = JSON.parse(fs.readFileSync(R + '/data/assumptions.json'));
 const data = { A, net };
 const N = 60, by = new Map();
@@ -23,7 +23,7 @@ for (const night of [false, true]) for (let seed = 1; seed <= N; seed++) {
     if (!S.engineOK[e.id]) b.blk[+night] += e.len / N;
   }
 }
-const tt = JSON.parse(fs.readFileSync(R + '/data/game/layers.json')).tightTurns.map(t => t.name);
+const tt = JSON.parse(fs.readFileSync(R + '/data/model/layers.json')).tightTurns.map(t => t.name);
 const ttc = {}; for (const n of tt) ttc[n] = (ttc[n] || 0) + 1;
 const rows = [...by].map(([n, b]) => ({ n, len: Math.round(b.len), day: b.blk[0] / b.len, nightF: b.blk[1] / b.len, blkM: Math.round(b.blk[1]), minW: Math.min(...b.w) / 0.3048, tt: ttc[n] || 0 }))
   .filter(r => process.argv[2] ? new RegExp(process.argv[2]).test(r.n) : r.blkM >= 30).sort((a, b) => b.blkM - a.blkM);

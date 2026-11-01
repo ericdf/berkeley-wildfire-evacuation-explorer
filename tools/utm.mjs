@@ -1,5 +1,5 @@
 // WGS84 <-> UTM zone 10N (EPSG:32610). Used so that every distance, length and
-// grade in the game is computed in meters, never from raw longitude/latitude.
+// grade in the simulator is computed in meters, never from raw longitude/latitude.
 // Standard Transverse Mercator series (Snyder, "Map Projections: A Working Manual", 1987).
 
 const a = 6378137.0;

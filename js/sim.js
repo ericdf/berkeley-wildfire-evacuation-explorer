@@ -1,4 +1,4 @@
-// Simplified evacuation and responder-access model. Transparent game rules, not a
+// Simplified evacuation and responder-access model. Transparent model rules, not a
 // calibrated traffic model. See README "How the simulation works".
 //
 // Resident egress: households (synthetic, placed on streets in proportion to the
@@ -231,7 +231,7 @@ export class Evacuation {
       commuterHome: new Float64Array(nH).fill(Infinity) };
     this.unplacedPeople = unplaced;
     // Who leaves and when (Time Study: 100% of Order zones, 50% of Warning zones, 20% shadow
-    // elsewhere in the city and its Shadow Region, here the whole game area; mobilization histograms by household type; SOURCE_NOTES E8, E9).
+    // elsewhere in the city and its Shadow Region, here the whole model area; mobilization histograms by household type; SOURCE_NOTES E8, E9).
     const M = D.mobilization15min, C = D.compliance;
     const vHH = [], vDep = [], vCls = [], donors = new Map();
     for (let h = 0; h < nH; h++) {
@@ -456,7 +456,7 @@ export class Evacuation {
     return true;
   }
 
-  // Gridlock relief (game rule): a vehicle that has waited gridlockReliefS at the head of a
+  // Gridlock relief (model rule): a vehicle that has waited gridlockReliefS at the head of a
   // queue squeezes into a full downstream link, as drivers creep forward. A queue model can
   // otherwise lock up permanently in rings such as traffic circles.
   // True if the head vehicle of link L cannot move on because every next link is full or it has no route.
@@ -621,7 +621,7 @@ export class Evacuation {
       this.log(`Parked cars this run (seed ${this.seed}): of ${ps.hillsKnown} hill segments with a known width, ${ps.twoSides} parked on both sides and ${ps.oneSide} on one side; ${ps.pinched} segments have a bad parking job narrowing the gap. ${ps.engineBlocked} segments are too narrow for an engine; ${this.sharedLanes} two-way segments leave one lane, so oncoming drivers take turns.`, 'plan'); }
     if (plan.hillsParking !== 'both') this.log(`Parking plan "${PARKING_PLANS[plan.hillsParking]}": ${parkingChanged(parkingStats)}.`, 'plan');
     if (warned) this.log(`${warned.toLocaleString()} households in warning zones choose to leave (Time Study: 50% of warned households).`, 'order');
-    if (shadow) this.log(`${shadow.toLocaleString()} households outside the order and warning zones leave anyway (${shadowVeh.toLocaleString()} vehicles heading out of the game area; Time Study: 20% shadow evacuation).`, 'order');
+    if (shadow) this.log(`${shadow.toLocaleString()} households outside the order and warning zones leave anyway (${shadowVeh.toLocaleString()} vehicles heading out of the model area; Time Study: 20% shadow evacuation).`, 'order');
     if (riders) this.log(`${riders.toLocaleString()} households without a vehicle ride with a neighbor.`, 'order');
     if (stranded) this.log(`${stranded.toLocaleString()} households without a vehicle found no ride. Phase 1 gives them no transport: they stay where they are and are counted as at risk.`, 'warn');
   }
@@ -716,7 +716,7 @@ export class Evacuation {
 }
 
 // Street segments where non-resident vehicles park, by the Time Study's areas (Table 3-5) plus
-// student and visitor areas. Approximations (game rule): areas from City neighborhoods, fire zones
+// student and visitor areas. Approximations (model rule): areas from City neighborhoods, fire zones
 // and distance to campus, BCC, LBNL and the Tilden park entrances. Weighted by street length.
 function nonResidentAreas(data) {
   if (data._nrAreas) return data._nrAreas;

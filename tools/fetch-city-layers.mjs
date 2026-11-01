@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// Download City of Berkeley ArcGIS Online layers used by the game into data/raw/city/.
+// Download City of Berkeley ArcGIS Online layers used by the simulator into data/raw/city/.
 //
 //   node tools/fetch-city-layers.mjs            # all layers below
 //   node tools/fetch-city-layers.mjs evac_zones # just one
 //
 // Each layer is saved as <key>.geojson (WGS84) plus <key>.meta.json recording the
 // service URL, layer description, last-edit date and retrieval date. These are the
-// City's published layers; the game treats them as "sourced" data, but they are
+// City's published layers; the simulator treats them as "sourced" data, but they are
 // not guaranteed current. Parcel layers that carry addresses are deliberately not
 // downloaded (see the spec's privacy rules).
 

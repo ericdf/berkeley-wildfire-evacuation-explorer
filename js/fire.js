@@ -9,7 +9,7 @@
 //   - a proxy "fuel" factor taken from the City fire zones (not vegetation data).
 // Spot fires: when a hill or wildland cell ignites it may throw embers downwind;
 // a landing ember can start a new ignition. That is random, so different seeds
-// give different fire footprints; the game shows the spread across seeds.
+// give different fire footprints; the simulator shows the spread across seeds.
 // Ember exposure: a cell is under ember exposure from the moment any cell within
 // the scenario's ember distance upwind of it is burning.
 
@@ -18,7 +18,7 @@ import { mulberry32, normal } from './rng.js';
 export const CELL = 30;
 export const LB_MAX = 3.5;
 
-// Proxy spread factors by area (game rule; see assumptions panel).
+// Proxy spread factors by area (model rule; see assumptions panel).
 export const FUEL = { water: 0, flats: 0.25, hillResidential: 0.7, wildlandInterface: 1.0, wildland: 1.0 };
 
 export function buildFireGrid(data) {

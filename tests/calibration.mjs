@@ -1,4 +1,4 @@
-// Compare the game's traffic model with the 2025 Evacuation Time Study (KLD).
+// Compare the simulator's traffic model with the 2025 Evacuation Time Study (KLD).
 // The study models traffic only, so these runs switch the fire off (no blocked roads,
 // no embers) and use only the study's order/warning zones.
 //   node tests/calibration.mjs [seeds=3] [intersection scale]
@@ -18,8 +18,8 @@ const hm = m => m == null ? '  —  ' : `${Math.floor(m / 60)}:${String(Math.rou
 const plan = { ...DEFAULT_PLAN, alertKm: 0, orderDelayMin: 0 };
 for (const sc of makeScenarios(data).filter(s => ETE_TARGETS[s.id])) {
   const T = ETE_TARGETS[sc.id];
-  console.log(`\n${T.region} (game scenario "${sc.name}"), ETE after the order, h:mm. Game = median of ${seeds} seeds [min–max]`);
-  console.log('case  p90 study  p90 game              p100 study  p100 game             order veh  evac veh  shadow veh  inbound  relief');
+  console.log(`\n${T.region} (simulator scenario "${sc.name}"), ETE after the order, h:mm. Sim = median of ${seeds} seeds [min–max]`);
+  console.log('case  p90 study  p90 sim               p100 study  p100 sim              order veh  evac veh  shadow veh  inbound  relief');
   for (const tk of Object.keys(TIME_OF_DAY)) {
     const runs = [];
     for (let seed = 1; seed <= seeds; seed++) {

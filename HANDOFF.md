@@ -4,7 +4,7 @@ Read this first, then `CLAUDE.md` (style and project rules), `specfication.md` (
 
 ## State
 
-Phase 1 of the spec is built and working: a browser game on Berkeley's real streets and terrain, with scenario and plan controls, an illustrative fire overlay, a queue-based traffic model, a separate fire-engine access layer, and a two-plan comparison over three seeds. Phases 2 (interventions with costs) and 3 (buildings, structure loss) have not started.
+Phase 1 of the spec is built and working: a browser simulator on Berkeley's real streets and terrain, with scenario and plan controls, an illustrative fire overlay, a queue-based traffic model, a separate fire-engine access layer, and a two-plan comparison over three seeds. Phases 2 (interventions with costs) and 3 (buildings, structure loss) have not started.
 
 Run it: `python3 -m http.server 8766 --bind 127.0.0.1`, open `http://127.0.0.1:8766`. Port 8765 belongs to Eric's other project.
 
@@ -48,7 +48,7 @@ After the network was extended beyond Berkeley (2026-11-01) these moved by at mo
 
 ## Pending rename (Eric, 2026-11-01)
 
-Do right after the Oakland/Kensington branch merges, in one pass: retire the word "game" for "simulator" ("it's educational but not fun") in every user-facing string, doc and comment; rename the provenance category "game rule" to "model rule"; rename `data/game/` and update its readers; rename the folder and repo to `berkeley-wildfire-simulator` (no remote yet). Moving the folder also changes Claude Code's memory folder for the project, so copy `~/.claude/projects/-Users-eric-prj-berkeley-hills-evacuation-game/memory/` to the new project's memory folder.
+Do right after the Oakland/Kensington branch merges, in one pass: retire the word "game" for "simulator" ("it's educational but not fun") in every user-facing string, doc and comment; rename the provenance category "model rule" to "model rule"; rename `data/model/` and update its readers; rename the folder and repo to `berkeley-wildfire-simulator` (no remote yet). Moving the folder also changes Claude Code's memory folder for the project, so copy `~/.claude/projects/-Users-eric-prj-berkeley-wildfire-simulator/memory/` to the new project's memory folder.
 
 ## Punch list
 
@@ -61,7 +61,7 @@ In rough priority order. Items marked **Eric** need him.
 5. **Evening parking evidence.** Every photo and count is daytime; night parking is an assumption. **Eric**: an evening walk or drive with photos on a few streets; a tape measure at Poppy Ln and Bret Harte Rd (8 ft vs 10 ft decides engine access).
 6. *(Merged into item 3.)*
 7a. **Police control of signals (Eric, 2026-11-01).** Eric is certain police will take over signals; the Time Study assumes they stay on normal timing (SOURCE_NOTES). Build a plan setting for officer-controlled junctions after the Oakland/Kensington merge: which junctions (the 44 pre-timed signals in the City `Signals` layer first, then the study's App. F congestion points), how many officers, and how soon they arrive, each labeled as an assumption. Keep a calibration run with it off, because the study's times assume no officer control.
-7. **Fire Department staffing (Eric's idea, 2026-11-01).** Many BFD members live outside Berkeley; in a regional disaster, crews called in from home may be delayed, leaving the department short-handed. The game assumes one engine is staffed at the nearest station. A staffing layer would need on-duty crews per shift (Standards of Coverage), the callback policy, where off-duty members live (aggregate), and mutual-aid arrival times. It would matter most when several demands compete (fire attack, traffic control, assisted evacuation). Worth a short design note before building.
+7. **Fire Department staffing (Eric's idea, 2026-11-01).** Many BFD members live outside Berkeley; in a regional disaster, crews called in from home may be delayed, leaving the department short-handed. The simulator assumes one engine is staffed at the nearest station. A staffing layer would need on-duty crews per shift (Standards of Coverage), the callback policy, where off-duty members live (aggregate), and mutual-aid arrival times. It would matter most when several demands compete (fire attack, traffic control, assisted evacuation). Worth a short design note before building.
 8. **Phase 2 interventions** from the spec, with sourced effects where the Time Study has them: second egress from Panoramic Hill (E25), actuated signals (E27), ADUs as uncertain added demand (E26), half of early leavers relocating to the flats (E13), transport assistance for households without a car (E29), and costs.
 9. **Fire overlay timing:** the 1923 fire reaches the 1923 entry point too early (38–108 min vs about 150 min in the StoryMap). Logged, not fixed.
 10. **Aerial counts:** 22 blocks so far, counted by Claude, not checked by a person. **Eric** could spot-check the five he photographed (`data/field/aerial-parking-counts-2020.json`). More blocks would tighten the parking shares.
@@ -69,7 +69,7 @@ In rough priority order. Items marked **Eric** need him.
 
 ## Gotchas
 
-- `data/game/*.json` is generated by `tools/build-network.mjs`; rebuild after changing the builder or the lane, parking or capacity assumptions it reads.
+- `data/model/*.json` is generated by `tools/build-network.mjs`; rebuild after changing the builder or the lane, parking or capacity assumptions it reads.
 - Genasys zone IDs: key on `zone_id` (labels like BER-006). The layer's `zonenum` repeats across cities.
 - Outside Berkeley the hill rules apply to streets at 90 m elevation or higher (`proxy:elevation>=90m` in `fireZoneSrc`); `fireZone` 2 there is that proxy, not a City fire zone. The CAL FIRE layer in the City's FHSZ service was rejected (it rates Hiller Highlands "Moderate").
 - `tools/build-network.mjs` step 3b joins OSM to the County network. If you change it, rerun the dead-end check described in SOURCE_NOTES X2 and look for one-way pieces that dead-end (the I-80 ends at Ashby Av and Gilman St were the hard cases).

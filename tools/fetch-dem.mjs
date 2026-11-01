@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Build the game's elevation grid from USGS 3DEP 1-meter lidar DEM tiles.
+// Build the simulator's elevation grid from USGS 3DEP 1-meter lidar DEM tiles.
 //
 //   node tools/fetch-dem.mjs [overview_level=2]
 //

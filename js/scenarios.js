@@ -1,4 +1,4 @@
-// Scenario presets. Every number here is an illustrative game value unless marked
+// Scenario presets. Every number here is an illustrative model value unless marked
 // otherwise; they are listed in the Assumptions & limits panel.
 import { toUTM } from '../tools/utm.mjs';
 
@@ -16,7 +16,7 @@ export const SEVERITY_NOTE = 'Central head spread rate is calibrated to the City
 // The Evacuation Time Study's six scenarios (Table 6-5, p. 6-11; SOURCE_NOTES E11).
 // Residents are never reduced. commuterShare = households waiting for a returning commuter
 // (mobilization C/E instead of D/F); schoolInSession scales child pickup.
-// background is a game-rule stand-in for through and non-resident traffic (E12) until employees,
+// background is a model-rule stand-in for through and non-resident traffic (E12) until employees,
 // students and visitors are placed on the network.
 export const TIME_OF_DAY = {
   S1: { groups: { employees: 0.96, tourists: 1.28, offCampus: 0.10, onCampus: 0.10, external: 1 }, label: 'S1 · Summer, midweek midday', commuterShare: 0.13, schoolInSession: 0.10, background: 0, note: 'Employees 96%, tourists 128%, college 10%, external traffic 100%.' },
@@ -74,7 +74,7 @@ export function makeScenarios(data) {
       blurb: 'Fire starts in wildland near the ridge during a strong, dry east wind at night. Embers carry west, downslope, over hill neighborhoods and toward the flats. All of Fire Zones 2–3 is ordered.',
       ignition: L(-122.2425, 37.8845), ignitionLabel: 'Wildland near Grizzly Peak Blvd (illustrative)',
       windFrom: 75, windMph: 35, durationMin: 240, timeOfDay: 'S6', orderRegion: 'R05',
-      sources: ['Orders: City evacuation region R05 "Fire Zones 2 3 Combined" (Time Study region R05)', 'Ignition point and wind are illustrative game choices'],
+      sources: ['Orders: City evacuation region R05 "Fire Zones 2 3 Combined" (Time Study region R05)', 'Ignition point and wind are illustrative model choices'],
     },
     {
       id: 'panoramic', name: 'Constrained neighborhood: Panoramic Hill',
@@ -91,7 +91,7 @@ export function makeScenarios(data) {
       blurb: 'Same fire as "Extreme east wind", but on a fall weekday at midday (Time Study S4): some households wait for a commuter to come home, parents pick up children, and there is more other traffic. Compare with the night run.',
       ignition: L(-122.2425, 37.8845), ignitionLabel: 'Wildland near Grizzly Peak Blvd (illustrative)',
       windFrom: 75, windMph: 35, durationMin: 240, timeOfDay: 'S4', orderRegion: 'R05',
-      sources: ['Time-of-day behavior from the Time Study (Table 6-5, Table 5-9); background traffic is a game rule; employees and students are not yet placed'],
+      sources: ['Time-of-day behavior from the Time Study (Table 6-5, Table 5-9); background traffic is a model rule; employees and students are not yet placed'],
     },
   ];
 }

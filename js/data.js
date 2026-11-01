@@ -1,9 +1,9 @@
-// Load game data and build lookup structures. Works in the browser (fetch) and in
+// Load simulator data and build lookup structures. Works in the browser (fetch) and in
 // Node tests (pass a loader that reads files).
 
 export async function loadData(load = browserLoad) {
   const [net, layers, dem, demBuf, A] = await Promise.all([
-    load('data/game/network.json', 'json'), load('data/game/layers.json', 'json'),
+    load('data/model/network.json', 'json'), load('data/model/layers.json', 'json'),
     load('data/terrain/dem.json', 'json'), load('data/terrain/dem.i16', 'buffer'), load('data/assumptions.json', 'json'),
   ]);
   return prepare({ net, layers, dem, Z: new Int16Array(demBuf), A });

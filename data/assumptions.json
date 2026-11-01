@@ -202,11 +202,11 @@
       "note": "Ramp capacity placeholder; AB 747 uses HCM Exhibit 14-12 by ramp speed."
     },
     "capacity.steepFactor": {
-      "category": "game rule",
+      "category": "model rule",
       "note": "Flow multiplier on segments whose steep grade (90th percentile of 25 m windows) exceeds steepGradePct. KLD's surveyed speeds would already include grade."
     },
     "capacity.vehicleSpacingM": {
-      "category": "game rule",
+      "category": "model rule",
       "note": "Road length one queued vehicle occupies (storage)."
     },
     "access.movingLaneM": {
@@ -226,7 +226,7 @@
       "note": "5-minute fire-station drive-time standard from the City's Standards of Coverage, as used in the SB 99 analysis (SOURCE_NOTES A6)."
     },
     "intersections": {
-      "category": "game rule",
+      "category": "model rule",
       "note": "Total vehicles per hour a node can pass, by the highest road class meeting there. Illustrative. The 2025 study names intersections as the main constraint."
     },
     "demand.personsPerHousehold": {
@@ -243,7 +243,7 @@
     },
     "demand.carlessRideshareShare": {
       "category": "sourced",
-      "note": "86.9% of people without a vehicle ride with someone else (Time Study 3-9). In the game they ride with an evacuating household on the same street; the rest are stranded (SOURCE_NOTES E7)."
+      "note": "86.9% of people without a vehicle ride with someone else (Time Study 3-9). In the simulator they ride with an evacuating household on the same street; the rest are stranded (SOURCE_NOTES E7)."
     },
     "demand.compliance": {
       "category": "sourced",
@@ -258,11 +258,11 @@
       "note": "Percent of trips starting in each 15-minute period after the order, Time Study Table 5-9 (p. 5-14) (SOURCE_NOTES E9). A employees/visitors; C residents awaiting a returning commuter (also used for shadow evacuees); D residents not awaiting one; E/F = C/D with child pickup."
     },
     "parking.range": {
-      "category": "game rule",
+      "category": "model rule",
       "note": "Parking varies by block and by seed. On hill blocks wide enough for both sides: noParkingShareHills parked on neither side, oneSideShareHills on one side, the rest on both (City 2020 aerial counts of 22 hill blocks, data/field/aerial-parking-counts-2020.json: of 12 wider blocks 2 had none, 4 one side, 6 both on at least part; on blocks of 22 ft or less 7 of 9 were one side or sparse, which the 8 ft rule below already produces). offPavementShare / offPavementSavesM: share of hill blocks where cars sit partly off the pavement and the width that saves (Poppy Ln, Latham Ln photos). minLeftForCarsM: residents stop parking where less than 8 ft would remain for a car (City Narrow_Roads shows 7-8 ft left on many streets). curbMPerCar: one parked car per this many meters of a parked side (aerial counts: about 19 m in daytime; 15 assumed to allow for fuller evenings). badJobPerCar, badJobExtraM: each parked car has a small chance of being a bad job (wide vehicle or far from the curb) that narrows the gap by 1.5-4 ft (red van photo); not measurable from the aerials. Placeholders until curb data or evening counts."
     },
     "sharedLane": {
-      "category": "game rule",
+      "category": "model rule",
       "note": "Two-way streets with one moving lane between parked cars: both directions share one lane's capacity. When both directions have traffic, drivers take turns at gaps (driveways) every passingGapM; each switch loses about passingGapM / speed + 3 s against platoonS of flow. Below one 10 ft lane flow is cut by squeezeBelowLaneFactor; below crawlBelowM (7 ft) cars creep through at crawlFactor. Placeholders until gap spacing is counted from aerial photos. opposingWaitS: in route choice, each oncoming car on a one-lane street counts as this much delay, so drivers avoid turning into oncoming traffic (without it, re-routing around hill loops created two-way jams on Panoramic Hill)."
     },
     "demand.returnDriveMin": {
@@ -270,19 +270,19 @@
       "note": "Households awaiting a returning commuter (Time Study distributions C and E): the commuter leaves work on the Time Study employee curve (Table 5-9 A), then drives this many minutes (uniform range) to reach the edge of the evacuating area, then drives home on Berkeley streets against the outbound traffic. Their car is one of the household's vehicles, so it adds an inbound trip but no extra outbound vehicle. A commuter turned back by fire leaves the household one car short. Workplace locations are not modeled."
     },
     "capacity.gridlockReliefS": {
-      "category": "game rule",
+      "category": "model rule",
       "note": "A vehicle that has waited this long at the head of a queue squeezes into a full downstream link, and an oncoming car stuck this long no longer holds up the other direction on a take-turns street. Prevents permanent lock-ups that a simple queue model creates in rings such as traffic circles. Each use is counted in the run summary."
     },
     "nonResident": {
       "category": "sourced",
-      "note": "Vehicle counts from the 2025 Evacuation Time Study: employees by area (Table 3-5), college students (Tables 3-8, 3-9), visitors including 549 at Tilden lots (§3.5), I-80 through traffic over 2 h after the order (Table 3-12); scaled by the scenario's percent present (Table 6-5) (SOURCE_NOTES E32-E36). Placement is a game rule: the study's areas are approximated from City neighborhoods (West Berkeley = 4th St., Gilman, NW/SW Berkeley, Marina), fire zones (hills north/south of campus), LBNL employees on streets in the Lab's zones (LBL-*), 400 m around Berkeley City College, streets within 1 km of the campus center, outside the campus and outside Fire Zones 2-3, for commuting students; visitors on streets outside Fire Zones 2-3, 400 m around two Tilden entrances (approximate points), weighted by street length. The I-80 and CA-24 westbound (the study's \"SB\") parts of the study's through traffic are on our network; I-580 and I-880 lie outside the game area except where I-580 shares the I-80 freeway."
+      "note": "Vehicle counts from the 2025 Evacuation Time Study: employees by area (Table 3-5), college students (Tables 3-8, 3-9), visitors including 549 at Tilden lots (§3.5), I-80 through traffic over 2 h after the order (Table 3-12); scaled by the scenario's percent present (Table 6-5) (SOURCE_NOTES E32-E36). Placement is a model rule: the study's areas are approximated from City neighborhoods (West Berkeley = 4th St., Gilman, NW/SW Berkeley, Marina), fire zones (hills north/south of campus), LBNL employees on streets in the Lab's zones (LBL-*), 400 m around Berkeley City College, streets within 1 km of the campus center, outside the campus and outside Fire Zones 2-3, for commuting students; visitors on streets outside Fire Zones 2-3, 400 m around two Tilden entrances (approximate points), weighted by street length. The I-80 and CA-24 westbound (the study's \"SB\") parts of the study's through traffic are on our network; I-580 and I-880 lie outside the model area except where I-580 shares the I-80 freeway."
     },
     "intersections.delayS": {
       "category": "assumption",
       "note": "Average delay per junction when traffic is light, added to the travel time into each junction: about 20 s at arterial junctions (mostly signals; HCM uncongested signal delay is typically 10-35 s), 10 s on collectors, 5 s on local streets (stop signs, yielding). The street file has no signal or stop-sign data; the Time Study models each signal. Set once from typical values, not tuned."
     },
     "intersections.scale": {
-      "category": "game rule",
+      "category": "model rule",
       "note": "Multiplier on collector and arterial intersection capacities (local and freeway junctions unchanged). The one setting tuned against the Time Study (1923 repeat, night S3 and fall weekday S4); checked on cases not used for tuning. See SOURCE_NOTES calibration."
     },
     "parking.range.night": {
