@@ -16,7 +16,7 @@ Checks after any model change:
 - `node tests/leftover.mjs <scenario> <S1..S6> [seed]` lists order-zone vehicles that never leave the order area, by start street and last link. A "—" with no jam usually means a car is placed on a dead-end piece of network.
 - A browser smoke test needs puppeteer-core, which lives outside the repo; any headless Chrome check of `http://127.0.0.1:8766` for console errors will do.
 
-Git: all work is committed on `main` (no remote). City layers and report PDFs are git-ignored and can be re-fetched (`tools/fetch-city-layers.mjs`; PDF URLs in `SOURCE_NOTES.md`).
+Git: all work is committed on `main` and pushed to https://github.com/ericdf/berkeley-wildfire-simulator (GitHub Pages serves `main`; pushes need `git config http.postBuffer 157286400`). City layers and report PDFs are git-ignored and can be re-fetched (`tools/fetch-city-layers.mjs`; PDF URLs in `SOURCE_NOTES.md`).
 
 ## What the model does now
 
@@ -49,7 +49,7 @@ After the diverter rebuild and the OKL-003 Census override (2026-11-01) these mo
 
 ## Rename (done 2026-11-01)
 
-"Game" is now "simulator" everywhere except `specfication.md` (Eric's brief, left as written); the provenance category "game rule" is "model rule"; generated data lives in `data/model/`; the folder is `berkeley-wildfire-simulator` (no remote yet). Claude Code's project memory was copied to `~/.claude/projects/-Users-eric-prj-berkeley-wildfire-simulator/memory/`.
+"Game" is now "simulator" everywhere except `specfication.md` (Eric's brief, left as written); the provenance category "game rule" is "model rule"; generated data lives in `data/model/`; the folder is `berkeley-wildfire-simulator`. Claude Code's project memory was copied to `~/.claude/projects/-Users-eric-prj-berkeley-wildfire-simulator/memory/`.
 
 ## Punch list
 
