@@ -51,7 +51,7 @@ export class Evacuation {
 
     // ---- per-edge parking state under this plan (same parked cars for every plan with this seed) ----
     const nE = edges.length;
-    const P = this.parking = parkingState(data, plan, seed);
+    const P = this.parking = parkingState(data, plan, seed, tod);
     this.clear = P.clear; this.eff = P.eff; this.engineOK = P.engineOK;
     this.parkingStats = P.stats;
 
@@ -111,7 +111,7 @@ export class Evacuation {
     this.edgeLinks = new Map();
     const rank = new Int8Array(nN).fill(-1), deg = new Int16Array(nN);
     for (const e of edges) {
-      if (e.mode !== 'vehicle' || e.disconnected) continue;
+      if (e.mode !== 'vehicle' || e.disconnected || e.barrier?.closed) continue; // OSM diverter or bollard: closed to residents' cars
       const r = CLASS_RANK[e.cls] ?? 0;
       for (const n of [e.a, e.b]) { rank[n] = Math.max(rank[n], r); deg[n]++; }
       const eff = this.eff[e.id];
@@ -145,6 +145,8 @@ export class Evacuation {
     this.nodeCap = new Float64Array(nN).fill(Infinity);
     for (let n = 0; n < nN; n++) if (deg[n] >= 3 && rank[n] >= 0)
       this.nodeCap[n] = A.intersections[INTERSECTION_KEY[rank[n]]] * (rank[n] === 1 || rank[n] === 2 ? A.intersections.scale ?? 1 : 1) / 3600 * (rank[n] >= 1 && rank[n] <= 2 ? 1 - tod.background : 1);
+    // Traffic circles (OSM junction=roundabout): Time Study capacity about 900 veh/h per lane (E16)
+    for (const n of net.meta.circleNodes || []) this.nodeCap[n] = Math.min(this.nodeCap[n], A.intersections.circleVph / 3600);
     this.nodeBudget = new Float64Array(nN).fill(1);
     // Control delay at junctions with light traffic (signals, stop signs): added to the travel
     // time of every link entering a junction (assumptions intersections.delayS).
@@ -190,7 +192,7 @@ export class Evacuation {
     const rand = this.rand;
     const byZone = new Map();
     for (const e of net.edges) {
-      if (e.mode !== 'vehicle' || e.disconnected || e.evacZone == null || CLASS_RANK[e.cls] === 3) continue;
+      if (e.mode !== 'vehicle' || e.disconnected || e.barrier?.closed || e.evacZone == null || CLASS_RANK[e.cls] === 3) continue;
       const w = e.len * (e.cls === 'Principal Arterial' ? 0.7 : 1);
       if (!byZone.has(e.evacZone)) byZone.set(e.evacZone, []);
       byZone.get(e.evacZone).push([e.id, w]);
@@ -547,6 +549,7 @@ export class Evacuation {
 
   computeResponder(initial) {
     const { data, links, t } = this, net = data.net, edges = net.edges;
+    const A_ACC = data.A.access;
     const stations = data.stationNodes;
     if (!stations.length) return;
     let target = -1;
@@ -560,8 +563,9 @@ export class Evacuation {
           const e = edges[eid];
           if (e.mode !== 'vehicle' || e.disconnected) continue;
           if (t >= this.tFire[eid]) continue;
+          if (e.barrier?.closed && !e.barrier.engines) continue; // fixed bollards or barriers
           if (!this.engineOK[eid] && !ignoreParking) continue;
-          let c = e.len / (e.speedMps * 1.15);
+          let c = e.len / (e.speedMps * 1.15) + (e.barrier?.closed ? A_ACC.barrierDelayS : 0); // removable bollard or gate: crew opens it
           if (withTraffic) {
             let onEdge = 0; for (const l of this.edgeLinks.get(eid) || []) onEdge += links[l].q.length;
             c += this.eff[eid] >= 2 || this.eff[eid] < 0 ? onEdge * 0.5 : onEdge * 6; // oncoming cars must pull over to let the engine by
@@ -721,7 +725,7 @@ function nonResidentAreas(data) {
   const out = {}; const add = (k, id, w) => { (out[k] ??= { ids: [], cum: [], total: 0 }); out[k].total += w; out[k].ids.push(id); out[k].cum.push(out[k].total); };
   for (const e of net.edges) {
     const zl = String(e.evacZone || '');
-    if (e.mode !== 'vehicle' || e.disconnected || CLASS_RANK[e.cls] === 3 || !(zl.startsWith('BER') || zl.startsWith('LBL'))) continue;
+    if (e.mode !== 'vehicle' || e.disconnected || e.barrier?.closed || CLASS_RANK[e.cls] === 3 || !(zl.startsWith('BER') || zl.startsWith('LBL'))) continue;
     const m = data.edgeMid[e.id], w = e.len;
     const hills = e.fireZone >= 2;
     const area = zl.startsWith('LBL') ? 'lbnl' : inUC(m) ? 'uc' : inWest(m) ? 'west' : hills ? (m[1] > P_.campus[1] ? 'northHills' : 'southHills') : 'flats';

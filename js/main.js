@@ -213,6 +213,7 @@ function inspect(sel, quiet) {
         + row('Net grade (drawn direction)', `${fmt(e.grade, 1)}%`, 'derived', F.grade.source)
         + row('Elevation at ends', `${fmt(e.z[0])} m → ${fmt(e.z[1])} m`, 'derived', F.z.source)
         + row('Speed · capacity per lane', `${fmt(e.speedMps * 2.237)} mph · ${fmt(e.capPerLaneVph)} veh/h${e.steep ? ' (steep)' : ''}`, 'game rule', F.capPerLaneVph.source)
+        + (e.barrier ? row('Barrier (OpenStreetMap)', `${esc(e.barrier.kind.replace('_', ' '))}${e.barrier.closed ? ': closed to residents\' cars' + (e.barrier.engines ? '; engines pass after ' + data.A.access.barrierDelayS / 60 + ' min' : '; engines blocked') : ': left open (' + esc(e.barrier.keptOpen || '') + ')'}`, 'sourced', F.barrier.source) : '')
         + row('Fire zone', e.fireZone ?? 'outside', 'sourced', F.fireZone.source) + row('Evacuation zone', e.evacZone ?? '—', 'sourced', F.evacZone.source)
         + row('City segment match', e.city?.id ?? 'none', e.city ? 'derived' : 'unknown', 'Matched by street name and distance');
       if (sim) {
@@ -255,6 +256,7 @@ function legend() {
     + (map.layers.vehicles ? `<div><span class="dot" style="background:#1d4ed8"></span>Vehicle leaving · <span class="dot" style="background:#d97706"></span>commuter driving home · <span class="dot" style="background:#e11d48"></span>in ember area</div>` : '')
     + (map.layers.queues ? sw('rgba(200,20,40,.8)', 'Queue (width = how full)') : '')
     + (map.layers.responder ? sw('#0e7490', 'Engine route to fire edge') : '')
+    + (map.layers.streets ? '<div><b style="color:#111">✕</b> diverter or bollard, closed to cars · <b style="color:#7c3aed">✕</b> engines can pass (OpenStreetMap)</div>' : '')
     + (map.layers.paths ? `<div><span class="sw" style="background:repeating-linear-gradient(90deg,#8a5a2b 0 3px,transparent 3px 6px)"></span>Paths &amp; stairways (no vehicles)</div>` : '');
   $('legend').innerHTML = `<b>${STREET_MODES[m]}</b>${L}${extra}`;
 }

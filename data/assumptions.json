@@ -25,7 +25,12 @@
       "badJobExtraM": [
         0.45,
         1.2
-      ]
+      ],
+      "night": {
+        "noParkingShareHills": 0.05,
+        "oneSideShareHills": 0.3,
+        "curbMPerCar": 9
+      }
     }
   },
   "capacity": {
@@ -51,7 +56,8 @@
     "movingLaneM": 3.05,
     "engineClearM": 3.05,
     "fireCodeClearM": 6.1,
-    "engineServiceMin": 5
+    "engineServiceMin": 5,
+    "barrierDelayS": 180
   },
   "intersections": {
     "localVph": 900,
@@ -64,7 +70,8 @@
       "arterial": 20,
       "freeway": 0
     },
-    "scale": 1
+    "scale": 1,
+    "circleVph": 900
   },
   "demand": {
     "personsPerHousehold": 2.37,
@@ -281,6 +288,18 @@
     "intersections.scale": {
       "category": "game rule",
       "note": "Multiplier on collector and arterial intersection capacities (local and freeway junctions unchanged). The one setting tuned against the Time Study (1923 repeat, night S3 and fall weekday S4); checked on cases not used for tuning. See SOURCE_NOTES calibration."
+    },
+    "parking.range.night": {
+      "category": "assumption",
+      "note": "Night cases (Time Study S3, S6): residents are home, so fewer hill blocks have no parked cars and parked sides are fuller (one car per 9 m instead of 15 m), which raises the chance of a bad parking job. Placeholder until evening counts or curb data; daytime aerial counts found about one car per 19 m. Suggested in pasted egress notes (SOURCE_NOTES P3) and consistent with Eric's photos being daytime."
+    },
+    "intersections.circleVph": {
+      "category": "sourced",
+      "note": "Traffic circles at about 900 veh/h per lane (Time Study Appendix G, SOURCE_NOTES E16), applied to network nodes inside OpenStreetMap junction=roundabout rings."
+    },
+    "access.barrierDelayS": {
+      "category": "assumption",
+      "note": "Time for an engine crew to open a gate or remove an emergency bollard (3 min, middle of the 2-5 min in pasted egress notes, SOURCE_NOTES P2; unsourced)."
     }
   },
   "sharedLane": {

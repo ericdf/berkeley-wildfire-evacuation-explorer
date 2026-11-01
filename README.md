@@ -107,6 +107,12 @@ first, against the outbound traffic; a commuter turned back by fire leaves the h
 car short. A vehicle stuck 3 minutes at the head of a queue squeezes forward, so the queue
 model cannot lock up for good (as it did at the Marin traffic circle).
 
+**Diverters and traffic circles.** Bollards, planters and jersey barriers that OpenStreetMap
+records on public streets close those segments to residents' cars (18 segments; ✕ on the map).
+Engines get through gates and removable bollards after 3 minutes. A closure that would cut
+streets off in our network (which stops at the city line) stays open and is flagged. Junctions
+inside OpenStreetMap traffic circles pass at most 900 vehicles per hour (Time Study).
+
 **Parking and the 2025 study.** On a two-way street, removing parking opens the oncoming
 lane. It does not create a second evacuating lane. Evacuation traffic runs mostly one way, so
 taking turns rarely binds. In this model, parking restrictions therefore change engine access

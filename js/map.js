@@ -181,6 +181,14 @@ export class MapView {
       ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); this.path(e.geom); ctx.stroke();
       if (this.streetMode === 'oneway' && (e.trav === 'FT' || e.trav === 'TF') && this.scale > 0.5) this.arrow(e);
     }
+    // Diverters and bollards from OpenStreetMap that close a street to residents' cars
+    for (const e of data.net.edges) {
+      if (!e.barrier?.closed) continue;
+      const [mx, my] = data.edgeMid[e.id], x = this.sx(mx), y = this.sy(my), r = Math.max(3, Math.min(6, this.scale * 4));
+      if (x < -10 || y < -10 || x > this.w + 10 || y > this.h + 10) continue;
+      ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x - r, y - r); ctx.lineTo(x + r, y + r); ctx.moveTo(x + r, y - r); ctx.lineTo(x - r, y + r); ctx.stroke();
+      ctx.strokeStyle = e.barrier.engines ? '#7c3aed' : '#111'; ctx.lineWidth = 2; ctx.stroke();
+    }
     if (this.scale > 1.2) { // street labels
       ctx.font = '10px system-ui, sans-serif'; ctx.fillStyle = '#222'; ctx.textAlign = 'center';
       const seen = new Set();

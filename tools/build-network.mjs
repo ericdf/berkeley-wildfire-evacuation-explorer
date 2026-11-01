@@ -269,6 +269,66 @@ for (let i = 0; i < nodes.length; i++) {
 const main = compSize.indexOf(Math.max(...compSize));
 for (const e of edges) if (e.mode === 'vehicle' && comp[e.a] !== main) e.disconnected = true;
 
+// ---------- 5b. OpenStreetMap barriers (diverters, bollards, gates) and traffic circles ----------
+// data/raw/osm/barriers-on-roads.json: barrier nodes on public OSM streets (Overpass, 2026-11-01).
+// OSM convention: a bollard, block, planter, jersey barrier or chain closes the street to cars
+// unless tagged otherwise; a gate is passable unless tagged access/motor_vehicle = no or private.
+const segD = (px, py, [ax, ay], [bx, by]) => { const dx = bx - ax, dy = by - ay, L = dx * dx + dy * dy, u = L ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / L)) : 0; return Math.hypot(px - ax - u * dx, py - ay - u * dy); };
+const nearestVehicleEdge = (x, y, maxD) => { let best = null; for (const e of edges) { if (e.mode !== 'vehicle') continue; for (let k = 1; k < e.geom.length; k++) { const d = segD(x, y, e.geom[k - 1], e.geom[k]); if (d <= maxD && (!best || d < best.d)) best = { e, d }; } } return best; };
+const barrierStats = { onStreets: 0, matched: 0, closedToCars: 0, enginesPass: 0, gatesClosed: 0 };
+if (has('data/raw/osm/barriers-on-roads.json')) {
+  const osm = readJSON('data/raw/osm/barriers-on-roads.json').elements;
+  const ways = osm.filter(x => x.type === 'way' && x.tags?.highway !== 'service'), bn = new Map(osm.filter(x => x.type === 'node').map(n => [n.id, n]));
+  const seen = new Set();
+  for (const w of ways) for (const id of w.nodes || []) {
+    const n = bn.get(id); if (!n || seen.has(id)) continue; seen.add(id); barrierStats.onStreets++;
+    const t = n.tags || {}, kind = t.barrier;
+    const motor = t.motor_vehicle ?? t.vehicle ?? t.access;
+    const gate = /gate/.test(kind);
+    const closed = gate ? ['no', 'private'].includes(motor) : !['yes', 'permissive', 'destination'].includes(motor);
+    if (!closed) continue;
+    const [x, y] = local([n.lon, n.lat]);
+    const m = nearestVehicleEdge(x, y, 15); if (!m) continue;
+    barrierStats.matched++; barrierStats.closedToCars++;
+    const engines = t.emergency === 'yes' || gate; // emergency=yes bollards are removable; engines can open gates
+    if (engines) barrierStats.enginesPass++;
+    if (gate) barrierStats.gatesClosed++;
+    m.e.barrier = { kind, osm: id, engines, gate, street: w.tags?.name || '', tags: Object.fromEntries(Object.entries(t).filter(([k]) => /access|vehicle|emergency|bicycle|foot/.test(k))) };
+  }
+}
+// Traffic circles: OSM junction=roundabout rings in data/raw/osm/berkeley-barriers.json; every
+// network node inside a ring (plus 12 m) gets the Time Study's circle capacity (E16).
+const circleNodes = new Set();
+if (has('data/raw/osm/berkeley-barriers.json')) {
+  const osm = readJSON('data/raw/osm/berkeley-barriers.json').elements;
+  const pts = new Map(osm.filter(x => x.type === 'node').map(n => [n.id, n]));
+  for (const w of osm.filter(x => x.type === 'way' && /roundabout|circular/.test(x.tags?.junction || ''))) {
+    const ring = (w.nodes || []).map(id => pts.get(id)).filter(Boolean).map(n => local([n.lon, n.lat]));
+    if (ring.length < 3) continue;
+    const cx = ring.reduce((s, p) => s + p[0], 0) / ring.length, cy = ring.reduce((s, p) => s + p[1], 0) / ring.length;
+    const r = Math.max(...ring.map(p => Math.hypot(p[0] - cx, p[1] - cy))) + 12;
+    nodes.forEach((nd, i) => { if (Math.hypot(nd.pt[0] - cx, nd.pt[1] - cy) <= r) circleNodes.add(i); });
+  }
+}
+// A closure that would cut streets off from the rest of the network stays open: our network stops
+// at the city line, so the street may have an outlet we cannot see (e.g. Tanglewood Rd into Oakland).
+const reach = skip => { const seen = new Uint8Array(nodes.length), st = []; const start = edges.find(e => e.mode === 'vehicle' && !e.disconnected).a; seen[start] = 1; st.push(start);
+  const adj2 = nodes.map(() => []); for (const e of edges) if (e.mode === 'vehicle' && !e.disconnected && !skip.has(e)) { adj2[e.a].push(e.b); adj2[e.b].push(e.a); }
+  while (st.length) { const u = st.pop(); for (const w of adj2[u]) if (!seen[w]) { seen[w] = 1; st.push(w); } }
+  return seen; };
+const closedSet = new Set(edges.filter(e => e.barrier));
+for (const e of [...closedSet]) {
+  const seen = reach(closedSet);
+  const cut = edges.some(x => x.mode === 'vehicle' && !x.disconnected && !closedSet.has(x) && (!seen[x.a] || !seen[x.b]));
+  if (!cut) break;
+  // find closures whose removal isolates streets, one at a time
+  const alone = reach(new Set([e]));
+  if (edges.some(x => x.mode === 'vehicle' && !x.disconnected && x !== e && (!alone[x.a] || !alone[x.b]))) { closedSet.delete(e); e.barrier.keptOpen = 'closing it would cut streets off in our network, which stops at the city line'; barrierStats.closedToCars--; barrierStats.keptOpen = (barrierStats.keptOpen || 0) + 1; }
+}
+for (const e of edges) if (e.barrier) e.barrier.closed = closedSet.has(e);
+stats.osmBarriers = barrierStats; stats.circleNodes = circleNodes.size;
+console.log('OSM barriers', JSON.stringify(barrierStats), '| traffic-circle nodes', circleNodes.size);
+
 // ---------- 6. nodes out ----------
 const nodesOut = nodes.map(nd => { const z = elev(...nd.pt); return [r1(nd.pt[0]), r1(nd.pt[1]), z == null ? null : r1(z)]; });
 
@@ -278,6 +338,7 @@ const network = {
     crs: 'EPSG:32610 local: x = easting - xmin, y = northing - ymin (meters)', origin: [OX, OY],
     terrain: { width: dem.width, height: dem.height, resolution: dem.resolution, xmax: dem.xmax - OX, ymax: dem.ymax - OY },
     stats: { ...stats, nodes: nodes.length, components: ncomp, mainComponentNodes: compSize[main] },
+    circleNodes: [...circleNodes],
     fields: {
       geom: { category: 'sourced', source: 'Alameda County Street Centerlines export (data.acgov.org), downloaded 2026-10-20; segment data revised 2015-09-26', note: 'Projected to UTM 10N, simplified to 0.75 m.' },
       name: { category: 'sourced', source: 'County STREET field' },
@@ -297,6 +358,7 @@ const network = {
       effLanes: { category: 'game rule', source: 'Moving lanes that fit in clearWidthM: 2 if >= 2 x access.movingLaneM, 1 if >= one lane, else 0. With one effective lane, opposing vehicles must wait for each other.' },
       belowFireCodeWidth: { category: 'derived', source: 'clearWidthM below access.fireCodeClearM (20 ft unobstructed width, California Fire Code 503.2.1 for new fire apparatus access roads; context only, existing streets are not required to meet it)' },
       engineBlocked: { category: 'game rule', source: 'clearWidthM below access.engineClearM: a fire engine cannot get through without parked cars being moved' },
+      barrier: { category: 'sourced', source: 'OpenStreetMap barrier node on this street (Overpass API, 2026-11-01; © OpenStreetMap contributors, ODbL), matched within 15 m. Closed to residents\' cars; engines pass where tagged emergency=yes or at gates. Diverters that block only some turns are treated as closing the whole segment (approximation).' },
       speedMps: { category: 'assumption', source: 'data/assumptions.json capacity.speedMph by road class, capped by City SPEED where known' },
       capPerLaneVph: { category: 'sourced', source: 'AB 747 report capacity rules (HCM 2022): two-lane roads 45 pc/h per mph up to 1,700; multilane 1,900 per lane; freeway 2,250 per lane (capRule says which). Speed input is an assumption; steep segments reduced by a game rule.' },
     },

@@ -23,8 +23,10 @@ export const PARKING_PLANS = {
 };
 
 // seed = null gives the nominal state: both sides where they fit, perfect parking.
-export function parkingState(data, plan, seed) {
-  const A = data.A, P = A.parking, R = P.range, acc = A.access, edges = data.net.edges, nE = edges.length;
+export function parkingState(data, plan, seed, tod) {
+  const A = data.A, P = A.parking, acc = A.access, edges = data.net.edges, nE = edges.length;
+  // Night cases (Time Study S3, S6): residents are home, so curbs are fuller (parking.range.night).
+  const R = tod?.night ? { ...P.range, ...P.range.night } : P.range;
   const rand = seed == null ? null : mulberry32(seed * 7919 + 17);
   const S = {
     sides: new Int8Array(nE).fill(-1), offPave: new Uint8Array(nE), pinchM: new Float32Array(nE),
