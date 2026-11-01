@@ -103,6 +103,15 @@ width for the same road class in the hills or flats. Outside Berkeley a street a
 elevation or higher follows the hill rules (one lane each way, hill speeds and parking).
 Streets cut at the edge of the grid are the exits: traffic that reaches one has left.
 
+The County file stops the Lawrence Berkeley National Laboratory's streets at the city line, and
+OSM tags the Lab's roads `highway=service`, which the street extract leaves out, so the Lab once
+had a single way out (Cyclotron Rd to Hearst Av). Two OSM roads from a short, labeled list
+(`network.osmAdditions` in `data/assumptions.json`, matched by way and node ids) restore its
+other two gates on Centennial Dr: McMillan Road to the Grizzly Peak Gate and Lawrence Road to the
+Strawberry Canyon Gate. The Lab's streets are private and its gates staffed, so the simulator
+lets cars leave by any of the three gates and lets none drive in (model rule
+`network.labGatesExitOnly`); engines still pass (SOURCE_NOTES Z5).
+
 **Parked cars and clear width** (`js/parking.js`). Clear width is pavement width minus 8 ft
 per parked side (the value KLD used for the City's SB 99 and AB 747 analyses). Parking varies
 by block and by seed: hill blocks are parked on neither side, one side or both (shares from
@@ -184,7 +193,7 @@ add any parking-removal bonus.
 | `data/model/network.json`, `layers.json` | Built by `tools/build-network.mjs` (do not edit by hand) |
 | `data/terrain/dem.i16`, `dem.json` | Elevation grid, built by `tools/fetch-dem.mjs` |
 | `data/field/` | Field and aerial observations (counts only), e.g. parked cars on 22 hill blocks |
-| `data/raw/` | Downloaded source data (reproducible, large; City layers and report PDFs are not in git). `osm/east-bay-roads.json` (OSM streets), `genasys/zones.json` (zone outlines), `census/` (2020 block counts) each have a retrieval note |
+| `data/raw/` | Downloaded source data (reproducible, large; City layers and report PDFs are not in git). `osm/east-bay-roads.json` (OSM streets), `osm/lbnl-gate-roads.json` (the Lab's gate roads), `genasys/zones.json` (zone outlines), `census/` (2020 block counts) each have a retrieval note |
 | `correspondence/` | Drafts of letters, such as the informal question to Berkeley Fire |
 | `tools/` | Data pipeline (Node 18+, no npm packages) |
 | `tests/headless.mjs` | Runs every scenario × two plans in Node and prints summaries |
@@ -236,7 +245,7 @@ by the simulator at load time. Scenario presets, severities and time-of-day valu
   but where they park is approximated by area. Signals and stop signs are not modeled one by
   one: every junction has a typical delay and a capacity by road class. Panoramic Hill matches
   the study's evacuation times; the 1923 and Fire Zones 2–3 regions run about 15 min fast at
-  night and 25–65 min fast on weekdays (see `SOURCE_NOTES.md`, calibration). Tuning junction
+  night and 25–80 min fast on weekdays (see `SOURCE_NOTES.md`, calibration). Tuning junction
   capacity to close that gap broke Panoramic Hill, so it is left untuned.
 - Streets outside Berkeley come from OpenStreetMap with assumed widths. The model area ends at
   the edge of the elevation grid (37.84–37.91° N, 122.33–122.21° W), about 1 km into Oakland

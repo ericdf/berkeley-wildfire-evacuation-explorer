@@ -247,6 +247,18 @@ if (has('data/raw/osm/east-bay-roads.json')) {
   const osm = readJSON('data/raw/osm/east-bay-roads.json').elements;
   const onode = new Map(osm.filter(x => x.type === 'node').map(n => [n.id, n]));
   const ways = osm.filter(x => x.type === 'way' && OSM_CLASS[x.tags?.highway]);
+  // Labeled additions (data/assumptions.json network.osmAdditions): stretches of OSM ways the query above leaves
+  // out (highway=service), from node `from` to node `to`, kept whole, inside Berkeley too. An end within 15 m of a
+  // County node joins it. Each must still find its way and nodes, so a new OSM extract cannot drop one silently.
+  for (const ad of A.network?.osmAdditions || []) {
+    const el = readJSON(ad.file).elements, w = el.find(x => x.type === 'way' && x.id === ad.osmWay);
+    if (!w) throw new Error(`osmAdditions: way ${ad.osmWay} not in ${ad.file}`);
+    for (const nd of el) if (nd.type === 'node' && !onode.has(nd.id)) onode.set(nd.id, nd);
+    const i0 = ad.from == null ? 0 : w.nodes.indexOf(ad.from), i1 = ad.to == null ? w.nodes.length - 1 : w.nodes.indexOf(ad.to);
+    if (i0 < 0 || i1 < 0 || i0 === i1) throw new Error(`osmAdditions: way ${ad.osmWay} no longer runs from node ${ad.from} to ${ad.to}`);
+    const ids = i0 < i1 ? w.nodes.slice(i0, i1 + 1) : w.nodes.slice(i1, i0 + 1);
+    ways.push({ ...w, nodes: ids, tags: { ...w.tags, highway: OSM_CLASS[w.tags.highway] ? w.tags.highway : 'unclassified' }, addition: ad });
+  }
   const uses = new Map(); for (const w of ways) w.nodes.forEach((id, i) => uses.set(id, (uses.get(id) || 0) + (i === 0 || i === w.nodes.length - 1 ? 2 : 1)));
   const berk = cityLayer('city_boundary').flatMap(f => polygonsOf(f.geometry)).map(rings => ({ rings, bb: bboxOf(rings) }));
   const inBerk = p => berk.some(q => p[0] >= q.bb[0] && p[0] <= q.bb[2] && p[1] >= q.bb[1] && p[1] <= q.bb[3] && inPoly(p, q.rings));
@@ -294,7 +306,11 @@ if (has('data/raw/osm/east-bay-roads.json')) {
     // streets that run along the line (Claremont Av near Tanglewood Rd) are not in the County file
     // freeways too: the County file stops I-80 at the Ashby Av ramps, short of the Emeryville line
     const fwy = /^motorway/.test(t.highway);
-    const keep = pts.map(p => inExtent(p) && (fwy ? !nearCounty(p, 25) : !nearCounty(p, 8) && !(inBerk(p) && !nearLine(p, 40))));
+    const keep = pts.map(p => inExtent(p) && (w.addition || (fwy ? !nearCounty(p, 25) : !nearCounty(p, 8) && !(inBerk(p) && !nearLine(p, 40)))));
+    if (w.addition) for (const k of [0, pts.length - 1]) { // an end next to a County street joins its node
+      let best = null, bd = 15; for (const id of countyNodes) { const d = dist(nodes[id].pt, pts[k]); if (d <= bd) { bd = d; best = id; } }
+      if (best != null) { pts[k] = [...nodes[best].pt]; osmStats.joins++; (w.addition.joins ??= []).push({ osmNode: w.nodes[k], countyNode: best, m: r1(bd) }); }
+    }
     const cls = OSM_CLASS[t.highway];
     const dirOf = () => { const ow = t.oneway; if (ow === '-1') return 'TF'; if (ow === 'yes' || ow === 'true' || ow === '1' || t.junction === 'roundabout' || (t.highway === 'motorway' && ow !== 'no')) return 'FT'; return 'B'; };
     const motorNo = ['no'].includes(t.motor_vehicle ?? t.vehicle ?? t.access);
@@ -327,7 +343,7 @@ if (has('data/raw/osm/east-bay-roads.json')) {
             // name freeway carriageways the way the County file does, so the Time Study's through traffic finds them
             if (cls === 'Interstate' && /\bI ?80\b/.test(t.ref || '')) { const north = sp.at(-1)[1] > sp[0][1]; nm = north ? 'I80 EB' : 'I80 WB'; }
             else if (/\bCA ?24\b/.test(t.ref || '') && t.highway === 'motorway') { const west = sp.at(-1)[0] < sp[0][0]; nm = west ? 'CA24 SB' : 'CA24 NB'; }
-            segs.push({ pts: sp, mode: motorNo ? 'restricted' : 'vehicle', osm: { way: w.id, tags: t },
+            segs.push({ pts: sp, mode: motorNo ? 'restricted' : 'vehicle', osm: { way: w.id, tags: t, added: !!w.addition },
               p: { CLASS: cls, STREET: nm, SFEATYP: null, TRVLWAY: motorNo ? 'NT' : dirOf(), OBJECTID: null, SEGID: null } });
             osmStats.segments++;
           }
@@ -379,7 +395,7 @@ for (const s of segs) {
 
   const e = {
     id: edges.length, a, b, name: p.STREET || 'UNNAMED', cls: p.CLASS, type: p.SFEATYP, trav: p.TRVLWAY, mode: s.mode,
-    src: s.osm ? { osmWay: s.osm.way } : { OBJECTID: p.OBJECTID, SEGID: p.SEGID },
+    src: s.osm ? { osmWay: s.osm.way, ...(s.osm.added ? { added: 'network.osmAdditions' } : {}) } : { OBJECTID: p.OBJECTID, SEGID: p.SEGID },
     len: r1(len), geom: simplify(s.pts, 0.75).map(([x, y]) => [r1(x), r1(y)]),
     z: [za == null ? null : r1(za), zb == null ? null : r1(zb)],
     grade: za == null || zb == null ? null : Math.round((zb - za) / len * 1000) / 10, // % in digitized direction
@@ -393,6 +409,8 @@ for (const s of segs) {
   if (s.mode === 'vehicle') {
     stats.edges++;
     const t = s.osm?.tags;
+    // Lawrence Berkeley National Laboratory streets are private: County streets in Lab zones, and OSM ways there tagged access=private
+    if (/^LBL/.test(e.evacZone || '') && (!t || t.access === 'private')) e.labPrivate = true;
     const city = t ? null : cityLines(s.pts, e.name, q => q.FULLNAME);
     const widthFt = city && city.PAV_WIDTH_RD > 0 ? city.PAV_WIDTH_RD : null;
     const pavLanes = city && city.PAV_LANES > 0 ? city.PAV_LANES : null;
@@ -801,6 +819,32 @@ stats.barriers = { cityDevices: citySites.length, city: tally(citySites), osmBar
 stats.circleNodes = circleNodes.size; stats.cityCirclesMatched = cityCircles;
 console.log('Barriers: City', JSON.stringify(stats.barriers.city), '| OSM', JSON.stringify(stats.barriers.osm), '| engines pass', stats.barriers.enginesPass, '| traffic-circle nodes', circleNodes.size, `(City circles matched ${cityCircles})`);
 
+// LBNL gates are exit-only for cars (model rule, data/assumptions.json network.labGatesExitOnly): a Lab street loses
+// the direction that enters it from a node where a public street meets it, so cars leave the Lab by any gate and
+// no car from outside drives through it. A piece left with no direction is closed to cars; engines pass.
+stats.labGateEntriesClosed = 0;
+if (A.network?.labGatesExitOnly) {
+  rebuildInc();
+  const publicNode = inc.map(list => list.some(e => !e.labPrivate));
+  for (const e of edges) if (vEdge(e) && e.labPrivate) {
+    const lanes = [publicNode[e.a] ? 0 : e.lanes[0], publicNode[e.b] ? 0 : e.lanes[1]];
+    if (lanes[0] === e.lanes[0] && lanes[1] === e.lanes[1]) continue;
+    e.labGate = { trav: e.trav, lanes: e.lanes };
+    e.lanes = lanes; e.trav = lanes[0] && lanes[1] ? 'B' : lanes[0] ? 'FT' : lanes[1] ? 'TF' : 'NT';
+    if (e.trav === 'NT') e.mode = 'restricted';
+    stats.labGateEntriesClosed++;
+  }
+  // Approach lanes that now lead only to a closed gate (the one-way loop at the Grizzly Peak Gate) are closed too.
+  const reach = new Uint8Array(nodes.length), st = [...exitIds]; st.forEach(n => { reach[n] = 1; });
+  const into = nodes.map(() => []); for (const e of edges) if (vEdge(e) && !e.barrier?.closed) { if (e.lanes[0]) into[e.b].push(e.a); if (e.lanes[1]) into[e.a].push(e.b); }
+  while (st.length) { const u = st.pop(); for (const w of into[u]) if (!reach[w]) { reach[w] = 1; st.push(w); } }
+  for (const e of edges) if (vEdge(e) && /^LBL/.test(e.evacZone || '') && !(e.lanes[0] && reach[e.b]) && !(e.lanes[1] && reach[e.a])) {
+    e.labGate = { trav: e.trav, lanes: e.lanes, approach: true }; e.lanes = [0, 0]; e.trav = 'NT'; e.mode = 'restricted'; stats.labGateEntriesClosed++;
+  }
+  rebuildInc();
+  console.log('LBNL gate entries closed to cars:', edges.filter(e => e.labGate).map(e => `${e.id} ${e.name} ${e.labGate.trav} -> ${e.trav}`).join('; '));
+}
+
 // ---------- 6. nodes out ----------
 const nodesOut = nodes.map(nd => { const z = elev(...nd.pt); return [r1(nd.pt[0]), r1(nd.pt[1]), z == null ? null : r1(z)]; });
 
@@ -823,6 +867,8 @@ const network = {
       fireZoneSrc: { category: 'model rule', source: 'Outside Berkeley the City fire zones do not apply; OSM streets whose midpoint is at 90 m elevation or higher (DEM) get fireZone 2, so the hill rules for lanes, speed and parking apply (proxy:elevation>=90m). Same threshold fire.js uses for hill residential land outside the city.' },
       trav: { category: 'sourced', source: 'County TRVLWAY: B both ways, FT one-way in the digitized direction, TF against it, NT no vehicle travel. FT/TF meaning checked against the right-hand rule on 100 divided-street pairs (97 agree).' },
       mode: { category: 'derived', source: 'path = SFEATYP PA/WK or names with STEPS/PATH/WALK; restricted = TRVLWAY NT; else vehicle' },
+      labPrivate: { category: 'sourced', source: 'Lawrence Berkeley National Laboratory street: a County street in an LBL zone, or an OpenStreetMap way there tagged access=private (the County file does not code access).' },
+      labGate: { category: 'model rule', source: 'data/assumptions.json network.labGatesExitOnly: the Lab street lost the direction that enters it from a public street, or (approach: true) it is an approach lane that leads only to a gate now closed to cars entering; labGate holds trav and lanes before. Cars leave the Lab by any of its three gates and none drive through it; engines pass.' },
       correction: { category: 'sourced', source: 'County record corrected by data/assumptions.json network.segmentCorrections (travSrc says so): correction.county holds the County values replaced, correction.osmWay the OpenStreetMap way that, with the City layers and reports named in the note, shows the County coding is wrong. meta.segmentCorrections lists every correction with its reason. SOURCE_NOTES K1-K6.' },
       z: { category: 'derived', source: 'Elevation at segment ends, bilinear from data/terrain/dem.i16 (USGS 3DEP 1 m lidar DEM, 4 m overview)' },
       grade: { category: 'derived', source: 'Net grade % along digitized direction from DEM endpoint elevations' },
