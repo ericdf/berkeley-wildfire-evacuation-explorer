@@ -136,7 +136,7 @@ add any parking-removal bonus.
 | `data/terrain/dem.i16`, `dem.json` | Elevation grid, built by `tools/fetch-dem.mjs` |
 | `data/field/` | Field and aerial observations (counts only), e.g. parked cars on 22 hill blocks |
 | `data/raw/` | Downloaded source data (reproducible, large; City layers and report PDFs are not in git) |
-| `correspondence/` | Drafts of data requests to the City |
+| `correspondence/` | Drafts of letters, such as the informal question to Berkeley Fire |
 | `tools/` | Data pipeline (Node 18+, no npm packages) |
 | `tests/headless.mjs` | Runs every scenario × two plans in Node and prints summaries |
 

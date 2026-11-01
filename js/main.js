@@ -1,6 +1,6 @@
 import { loadData } from './data.js';
 import { buildFireGrid, runFire, cellOf, demAt, FUEL, LB_MAX, CELL } from './fire.js';
-import { makeScenarios, SEVERITY, SEVERITY_NOTE, TIME_OF_DAY, TIME_NOTE } from './scenarios.js';
+import { makeScenarios, SEVERITY, SEVERITY_NOTE, TIME_OF_DAY, TIME_NOTE, ETE_TARGETS } from './scenarios.js';
 import { Evacuation, DEFAULT_PLAN, titleCase } from './sim.js';
 import { PARKING_PLANS } from './parking.js';
 import { MapView, STREET_MODES } from './map.js';
@@ -156,6 +156,7 @@ function update(full) {
     </div>
     <table class="kv" style="margin-top:8px">
       <tr><td>Evacuation time after the first order (Time Study ETE): 50% / 90% / all vehicles out</td><td class="num">${mins(S.clearP50)} / ${mins(S.clearP90)} / ${S.clearP100 == null ? 'not yet' : mins(S.clearP100)}</td></tr>
+      ${studyRow(sc)}
       <tr><td>Last household with a car out (after the first order)</td><td class="num">${S.lastHousehold == null ? 'not yet' : mins(S.lastHousehold)}</td></tr>
       <tr><td>Vehicles on roads now · peak queued</td><td class="num">${fmt(S.vehiclesOnRoad)} · ${fmt(S.peakQueued)}</td></tr>
       <tr><td>Fire-engine travel to the fire edge: at ignition → now (City standard: ${data.A.access.engineServiceMin} min)</td><td class="num">${S.responderFree === Infinity ? '<b style="color:#b91c1c">blocked by parked cars</b>' : mins(S.responderFree)} → ${S.responderBlocked ? '<b style="color:#b91c1c">blocked</b>' : mins(S.responderEta)}</td></tr>
@@ -171,6 +172,16 @@ function update(full) {
   spark(sim);
   $('events').innerHTML = sim.events.map(e => `<li class="k-${e.kind}"><span class="t">t+${hm(e.t)}</span>${esc(e.text)}</li>`).join('');
   if (map.selected) inspect(map.selected, true);
+}
+// The Time Study's 90% time for the same region and time of day, so users can see how far off the
+// game runs. The gap comes mostly from signal timing and non-resident parking, which we lack.
+function studyRow(sc) {
+  const T = ETE_TARGETS[sc.id === 'eastWindDay' ? 'eastWind' : sc.id], tk = $('tod').value;
+  if (!T?.p90[tk]) return '';
+  const weekday = tk === 'S1' || tk === 'S4';
+  return `<tr><td>For scale: the 2025 Evacuation Time Study's 90% time for ${esc(T.region)}, ${esc(TIME_OF_DAY[tk].label)} (status quo, no fire) ${badge('sourced')}<div class="small muted">${weekday && sc.id !== 'panoramic'
+    ? 'On weekdays the game runs 35–80 min faster than the study here, probably because it lacks the City\'s signal timing and where commuters and students park. Treat its times as a lower bound.'
+    : sc.id === 'panoramic' ? 'The game runs within 10 min of the study here.' : 'At night and on weekends the game runs 15–25 min faster than the study here.'} See Assumptions &amp; limits.</div></td><td class="num">${mins(T.p90[tk])}</td></tr>`;
 }
 function spark(sim) {
   const cv = $('spark'); if (!cv) return; const ctx = cv.getContext('2d'), s = sim.series;
@@ -352,12 +363,22 @@ $('btn-assumptions').onclick = () => {
     <li>Gridlock relief: a vehicle stuck ${data.A.capacity.gridlockReliefS} s at the head of a queue squeezes forward. Without it the queue model can lock up for good in rings such as traffic circles.</li>
     <li>Engines travel from the nearest station to the road point nearest the ignition that the fire has not yet reached. They cannot pass segments narrower than an engine (with parked cars), and are delayed by oncoming evacuees where only one lane is clear.</li>
   </ul>
+  <h3>Information gaps and how far off they make the game</h3>
+  <ul class="small">
+    <li><b>Traffic signal timing ${badge('assumption')}.</b> The City has not published its signal timings, so every junction gets a typical delay and a capacity by road class (<code>intersections</code> above). The 2025 Time Study used the City's timings and found intersections to be the main constraint. The game therefore clears traffic too fast when roads are busy. Measured against the study (90% of order-zone vehicles out, no fire, median of 3 seeds):
+      <ul>
+        <li>Panoramic Hill: within 10 min of the study at all times of day.</li>
+        <li>1923 repeat and Fire Zones 2–3, nights and weekends: 15–25 min too fast (study 1 h 45 min to 1 h 55 min; game about 1 h 30 min).</li>
+        <li>Same regions on weekdays: 35–80 min too fast. On a fall weekday the study takes 2 h 55 min for the 1923 region; the game takes about 1 h 35 min.</li>
+      </ul>
+      Read weekday clearance times for the large regions as a lower bound: the study's times run up to 1.8 times the game's. Part of the gap also comes from where employees and students park, which the game places by area. Differences between two plans are more reliable than either plan's clock time, but a plan that sends more traffic through signals the study found congested (around the UC campus, and the pre-timed signal at Cedar St and MLK Jr Way) can look better in the game than it would on the street. The results panel shows the study's time for the same case.</li>
+  </ul>
   <h3>What Phase 1 does not do</h3>
   <ul class="small">
     <li>No buildings yet, so no structures exposed or lost; no home hardening or vegetation effects.</li>
     <li>No stairway or steep-path access time between homes and the street, and no assistance for people who need help (Phase 2).</li>
-    <li>Employees, students, visitors and I-80 through traffic use the Time Study's vehicle counts, placed by area (an approximation). Junctions have a typical delay and a capacity by road class, not real signal timing. Compared with the study (90% of order-zone vehicles out): Panoramic Hill matches; the 1923 repeat and Fire Zones 2–3 are about 15 min fast at night and 35–80 min fast on weekdays (1923 fall weekday: game 1 h 36 min vs study 2 h 55 min).</li>
-    <li>Intersection capacities are illustrative per road class; the study models each signal and stop sign. Traffic circles and diverters are missing from the street file.</li>
+    <li>Employees, students, visitors and I-80 through traffic use the Time Study's vehicle counts, placed by area (an approximation).</li>
+    <li>Traffic circles (900 vehicles per hour, Time Study) and diverters come from OpenStreetMap, not from a City list.</li>
     <li>Contraflow, traffic control and road closures beyond fire-blocked segments are not modeled.</li>
     <li>The County street file covers Berkeley only, so traffic leaving through Oakland, Albany or Kensington ends at the city edge, and zone population outside Berkeley is dropped.</li>
   </ul>`);
