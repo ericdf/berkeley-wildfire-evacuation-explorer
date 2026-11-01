@@ -6,9 +6,7 @@
 // 3. candidates, screening, access effect and costs (tools/egress-candidates.mjs)
 // 4. simulator runs with and without each tested link (tools/egress-sim.mjs, about 15–30 min on 8 cores)
 // 5. the report (tools/egress-report.mjs: docs/egress-candidates.md)
-// Rerun after any network rebuild, for example once County edge 2322 (Panoramic Way to Prospect St)
-// is made drivable in tools/build-network.mjs: the "panoramicExit" variant then matches the network
-// as it stands, and the comparison in the report shows it.
+// Rerun after any network rebuild: area ids, and the candidate ids built from them, change with the network.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';

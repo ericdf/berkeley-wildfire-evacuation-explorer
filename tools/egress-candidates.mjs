@@ -73,14 +73,16 @@ export const COST = {
   note: 'Low: the FDOT flat-terrain urban two-lane figure; high: 3 times it for hillside retaining walls, grading and drainage (assumption). Fire roads and tracks start from the Cambria gravel-road figure. Steep links are priced at the length a 15% road would need. Acquisition: each building in the corridor taken whole at the block group median home value (± the ACS margin of error); each other parcel crossed is a partial take at 10–25% of that value (assumption). Relocation, engineering, environmental review and legal costs are left out.',
 };
 
-// ---------- 1. the access analysis as the network stands and with the Panoramic exit opened ----------
+// ---------- 1. the access analysis as the network stands ----------
 const exec = promisify(execFile);
 async function access(args) {
   const out = path.join(TMP, `ac-${Math.random().toString(36).slice(2)}.json`);
   await exec(process.execPath, [path.join(R, 'tools/access-constraints.mjs'), ...args, '--json', out], { maxBuffer: 1 << 26 });
   const j = JSON.parse(fs.readFileSync(out, 'utf8')); fs.unlinkSync(out); return j;
 }
-export const VARIANTS = { asIs: [], panoramicExit: [2322] }; // AC3: County edge 2322 "BANCROFT STEPS WY", coded no-vehicle
+// Network variants: segment ids opened on top of the network as it stands. The "panoramicExit" variant of the
+// first run (County edge 2322 opened) is gone: the network builder now opens it (SOURCE_NOTES AC13).
+export const VARIANTS = { asIs: [] };
 const openArgs = ids => ids.length ? ['--open', ids.join(',')] : [];
 console.log('access analysis…');
 const [base, quick] = await Promise.all([access([]), Promise.all(Object.values(VARIANTS).map(ids => access(['--quick', ...openArgs(ids)])))]);
@@ -431,12 +433,8 @@ function effect(c, variant) {
 const NPAR = Math.max(2, os.cpus().length - 2);
 const asIsEff = await pool_(kept, NPAR, c => effect(c, 'asIs')());
 kept.forEach((c, i) => { c.access = { asIs: asIsEff[i] }; });
-// Every link that changes Panoramic Hill is also run with the Panoramic exit opened (County edge 2322, SOURCE_NOTES AC3).
 const touchesPanoramic = c => PANORAMIC.has(c.area) || c.access.asIs.areasAffected.some(x => PANORAMIC.has(x.id));
-const panK = kept.filter(touchesPanoramic);
-const panEff = await pool_(panK, NPAR, c => effect(c, 'panoramicExit')());
-panK.forEach((c, i) => { c.access.panoramicExit = panEff[i]; });
-console.log(`access what-ifs: ${kept.length + panK.length}`);
+console.log(`access what-ifs: ${kept.length}`);
 // The area whose residents the simulator runs measure: of the chosen areas this link changes, the one
 // with the most residents behind a choke today (for a link into Panoramic Hill, all of Panoramic Hill).
 for (const c of kept) {

@@ -300,6 +300,30 @@
     "population.overrides": {
       "category": "assumption",
       "note": "Eric, 2026-11-01: OKL-003 (Claremont Canyon, an R04 Panoramic Hill order zone) uses the 2020 Census count (307 people in the blocks whose interior point lies in the zone; Census TIGERweb, POP100) instead of the Genasys estimate (27). Per zone: \"census2020\" replaces the Genasys estimate with the Census count. SOURCE_NOTES X6."
+    },
+    "network.osmAdditions": {
+      "category": "sourced",
+      "note": "Roads added from OpenStreetMap that the street extract leaves out because OSM tags them highway=service (Overpass API, 2026-11-01; © OpenStreetMap contributors, ODbL; query in data/raw/osm/lbnl-gate-roads.overpassql). The County street file stops the Lawrence Berkeley National Laboratory's streets at the city line, so the model's Lab had one way out, Cyclotron Rd to Hearst Av (the Blackberry Canyon Entrance). OSM continues McMillan Road to the Grizzly Peak Gate and Lawrence Road to the Strawberry Canyon Gate, both on Centennial Dr. Geometry, names and one-way tags are sourced; using the gates as exits is a model rule: the Lab's gates are staffed and private (access=private), and the simulator opens all three to cars leaving the Lab, the same rule it already applied to the two Grizzly Peak Gate pieces in the street extract (meta.barrierSites, keptOpen). Each entry is matched by way and node ids; the builder stops if they no longer exist. Edges carry src.added. SOURCE_NOTES Z5."
+    },
+    "network.labGatesExitOnly": {
+      "category": "model rule",
+      "note": "The Lawrence Berkeley National Laboratory's streets are private (OpenStreetMap access=private) and its three gates (Blackberry Canyon Entrance on Cyclotron Rd, Grizzly Peak Gate and Strawberry Canyon Gate on Centennial Dr) are staffed. In an evacuation the simulator lets cars leave the Lab by any gate and lets none drive in, so no outside traffic cuts through the Lab between Hearst Av and Centennial Dr (with the gates open both ways, 24 Northside cars did in the 1923 repeat, weekday S4, seed 1). Engines still pass. How the Lab actually runs its gates in an evacuation is an information gap. SOURCE_NOTES Z5."
+    },
+    "growth.options": {
+      "category": "assumption",
+      "note": "Future growth (Scenario, shared by both plans). Unit counts are the Time Study's (sourced) except the moderate case (assumption). Each added unit is a synthetic household drawn like today's: 2.37 persons (the Time Study's figure for ADUs too) and the same vehicle shares, about 1.12 vehicles per unit against the study's 1.14 (30,848 ÷ 27,060). Parked cars do not change with growth."
+    },
+    "growth.allocation": {
+      "category": "assumption",
+      "note": "The Time Study gives one Hillside Overlay total, with no split by region or street. Units go to Berkeley's Fire Zones 2–3 (standing in for the Hillside Overlay, which the study says encompasses the Very High Fire Hazard Severity Zone; no City GIS layer of the overlay was found) in proportion to each street's share of today's households, since eligible parcels are existing homes. Placement depends on the seed only, so both plans see the same added homes."
+    },
+    "growth.r0Areas": {
+      "category": "model rule",
+      "note": "R0 (plan setting, Eric 2026-11-01): no added units in a chosen area. It removes only the growth placed there and does not count homes lost to fire as people moving out. Legal status per SOURCE_NOTES L1–L9."
+    },
+    "network.segmentCorrections": {
+      "category": "sourced",
+      "note": "County street-file records corrected where other sources agree the County coding is wrong; each is matched by SEGID and OBJECTID, sets the listed County fields before the network is built, and is listed in network.meta.segmentCorrections and on the edge (correction). Eric, 2026-11-01: the 45 m link from the foot of Panoramic Way to Prospect St / Canyon Rd (County OBJECTID 25386, SEGID 181025458, \"BANCROFT STEPS WY\", TRVLWAY NT) is a two-way street. OpenStreetMap maps it as Bancroft Way (way 24025453, highway=tertiary, lanes=2, no access or oneway tags, checked 2026-11-01); the City Street_Centerline layer has it as pavement section 627042086 (Seg-00193, Prospect St to Panoramic Way, 30 ft, 2 lanes, two-way); the City's AB 747 street layer gives it a capacity of 1,125 vehicles/h; the SB 99 report (KLD, Rev. 3, p. 4) puts Panoramic Hill's single access point at \"Panoramic Way and Prospect St/Canyon Rd\". The Bancroft Steps stairway is a separate feature (OSM ways 311861379-311861382 and 24025452, motor_vehicle=no, Warring St to Prospect St) and is not in the County file. SOURCE_NOTES K1-K6."
     }
   },
   "sharedLane": {
@@ -388,5 +412,95 @@
     "overrides": {
       "OKL-003": "census2020"
     }
+  },
+  "growth": {
+    "options": {
+      "none": {
+        "label": "None (today's population)",
+        "units": 0,
+        "category": "sourced",
+        "note": "Residents as today: Genasys zone estimates (2020 Census where Genasys has none)."
+      },
+      "middle": {
+        "label": "Middle housing only (Time Study: 870 units)",
+        "units": 870,
+        "category": "sourced",
+        "note": "Time Study §10.5.3 and Table 10-11 (pp. 10-7, 10-17): 6,440 Hillside Overlay parcels × 4.5% likely to develop by 2031 × 3 units = 870 units (2,062 people, 992 vehicles), under the middle-housing zoning the study evaluated. Whether Berkeley's adopted middle-housing rules apply in the Hillside Overlay was not checked."
+      },
+      "moderate": {
+        "label": "Moderate ADU growth (assumption: 2,706 units, 10% of the maximum)",
+        "units": 2706,
+        "category": "assumption",
+        "note": "Assumption: 10% of the Time Study's maximum. Berkeley permitted 95 to 123 ADUs a year citywide in 2021 and 2023 to 2025 (Housing Element Annual Progress Reports to HCD; no count for the hills alone was found), so 2,706 units is about 25 years of the citywide pace even if every ADU were built in the hills."
+      },
+      "max": {
+        "label": "Maximum ADU build-out (Time Study: 27,060 units)",
+        "units": 27060,
+        "category": "sourced",
+        "note": "Time Study §10.5.2 and Table 10-11 (pp. 10-6, 10-17): about 9,020 eligible Hillside Overlay parcels × (2 ADUs + 1 JADU) = 27,060 units, 64,132 people, 30,848 vehicles. The study calls it the maximum theoretical build-out under HCD's reading of state law; it is not a forecast."
+      }
+    },
+    "allocation": "Berkeley Fire Zones 2–3, by each street's share of today's households",
+    "r0Areas": [
+      "none",
+      "lez",
+      "fz23",
+      "access"
+    ],
+    "r0": {
+      "none": "R0 is off: added homes are built wherever Future growth (Scenario) puts them.",
+      "areas": {
+        "lez": "No added homes in the City's 10 Leave Early Zones (Upper Hills, Panoramic Hill), about 29% of the modeled build-out. Growth elsewhere in the hills goes ahead; none moves.",
+        "fz23": "No added homes in Berkeley's Fire Zones 2–3. All modeled growth sits there, so this removes all of it.",
+        "access": "No added homes on streets behind a choke point (a street or one-way piece whose loss cuts them off from every exit; tools/access-constraints.mjs), about 11% of the modeled build-out."
+      },
+      "legal": "Current law lets Berkeley bar ADUs beyond the state's by-right minimum in designated areas, with ADU-specific findings on traffic and public safety (Gov. Code §66314(a); HCD ADU Handbook, March 2026, pp. 42–43), and deny single SB 9 projects case by case (§65852.21(d)). Each single-family lot keeps a by-right conversion ADU, an 800 sq ft detached ADU and a JADU (§66323), which is all of the Time Study's maximum, so barring those units or SB 9 across an area would need a change in state law or an HCD-approved moratorium on an imminent-threat finding (§66300(b)(1)(B)).",
+      "provenance": "Model rule: R0 removes the added homes on streets in the chosen area and moves none elsewhere. Areas: Leave Early Zones and Fire Zones 2–3 from City sources; access-constrained areas derived from the street network. Legal status: sourced from the Government Code, HCD's ADU Handbook and HCD's letters to Berkeley (2022, 2026); which units are by-right is our reading of §66323 (SOURCE_NOTES L1–L9)."
+    }
+  },
+  "network": {
+    "segmentCorrections": [
+      {
+        "OBJECTID": 25386,
+        "SEGID": 181025458,
+        "county": {
+          "STREET": "BANCROFT STEPS WY",
+          "TRVLWAY": "NT"
+        },
+        "set": {
+          "STREET": "BANCROFT WY",
+          "TRVLWAY": "B"
+        },
+        "osmWay": 24025453,
+        "why": "Drivable two-way link from the foot of Panoramic Way to Prospect St / Canyon Rd, Panoramic Hill's single exit (SB 99, p. 4). OSM: Bancroft Way, tertiary, 2 lanes, no access restriction; City Street_Centerline Seg-00193: 30 ft, 2 lanes, two-way. The County record codes it no vehicle travel and names it after the Bancroft Steps stairway, which runs from Warring St to Prospect St and is a separate feature."
+      }
+    ],
+    "labGatesExitOnly": true,
+    "osmAdditions": [
+      {
+        "file": "data/raw/osm/lbnl-gate-roads.json",
+        "osmWay": 38895987,
+        "from": 760710181,
+        "to": 5483071577,
+        "why": "McMillan Road from the County file's end of McMillian Rd (County node at -122.24513, 37.87698) to the Grizzly Peak Gate pair (OSM gate nodes 462036035 and 5843474846) that leads to Centennial Dr. About 90 m; OSM highway=service, access=private."
+      },
+      {
+        "file": "data/raw/osm/lbnl-gate-roads.json",
+        "osmWay": 8013488,
+        "from": 59942829,
+        "to": 462036066,
+        "why": "Lawrence Road from the County file's end of Lee Rd (-122.24597, 37.87522) east to the Strawberry Canyon Gate on Centennial Dr. About 700 m; OSM highway=service, access=private, bus=yes."
+      },
+      {
+        "file": "data/raw/osm/lbnl-gate-roads.json",
+        "osmWay": 833678272,
+        "why": "Strawberry Canyon Gate, outbound: one-way from Lawrence Road to Centennial Dr (OSM gate node 7782319497)."
+      },
+      {
+        "file": "data/raw/osm/lbnl-gate-roads.json",
+        "osmWay": 833436832,
+        "why": "Strawberry Canyon Gate, inbound: one-way from Centennial Dr to Lawrence Road (OSM gate node 7782302882)."
+      }
+    ]
   }
 }

@@ -13,8 +13,6 @@
 //
 // Variants (model rules for this harness):
 //   asIs            the network as it stands
-//   panoramicExit   County edge 2322 (Bancroft Steps Wy, Panoramic Way to Prospect St) opened as a
-//                   two-way street in both arms (SOURCE_NOTES AC3), for Panoramic Hill candidates
 //   order delay     plan.orderDelayMin 10 (the simulator default) and 20 (a later order)
 //   urgent          every mobilization curve replaced by an even spread over 30 minutes, the Time
 //                   Study's "urgent mobilization" (§10.4), for the Panoramic Hill benchmark only
@@ -39,7 +37,7 @@ const load = async (p, k) => { const b = fs.readFileSync(path.join(R, p)); retur
 
 const FIRES = ['panoramic', 'ref1923', 'eastWind'];
 const SEVS = ['low', 'central', 'high'];
-const VARIANT_OPEN = { asIs: [], panoramicExit: [2322] };
+const VARIANT_OPEN = { asIs: [] }; // segments opened on top of the network as it stands (none since edge 2322 was opened in the builder)
 const URGENT_HIST = [50, 50]; // % per 15 minutes: everyone ready within 30 minutes
 
 const median = a => { const s = a.filter(v => v != null && Number.isFinite(v)).sort((x, y) => x - y); return s.length ? (s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2) : null; };
@@ -171,10 +169,7 @@ const addPair = (c, variant, mob, fire, delay) => {
 };
 for (const c of tested) for (const { fire } of threat[c.measureArea]) {
   for (const delay of [10, 20]) addPair(c, 'asIs', 'normal', fire, delay);
-  if (c.panoramic) {
-    for (const delay of [10, 20]) addPair(c, 'panoramicExit', 'normal', fire, delay);
-    if (fire !== 'eastWind') { addPair(c, 'asIs', 'urgent', fire, 10); addPair(c, 'panoramicExit', 'urgent', fire, 10); }
-  }
+  if (c.panoramic && fire !== 'eastWind') addPair(c, 'asIs', 'urgent', fire, 10);
 }
 console.log(`${jobs.length} runs on ${WORKERS} workers`);
 // group by network so each worker builds few variants
