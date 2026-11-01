@@ -78,13 +78,15 @@ export class Evacuation {
     this.zoneHill = Array.from(zones, (_, z) => zoneCells[z] && zoneHill[z] / zoneCells[z] > 0.3);
     if (plan.hillsOrderMin != null) zones.forEach((_, z) => { if (this.zoneHill[z]) this.orderT[z] = Math.min(this.orderT[z], plan.hillsOrderMin * 60); });
     const decided = plan.orderDelayMin * 60;
+    // Orders and warnings from the scenario alone, without what the plan adds (see buildHouseholds).
+    const scenOrd = new Uint8Array(zones.length), scenWarn = new Uint8Array(zones.length);
     if (scenario.orders) {
       const norm = id => id.replace(/^OAK-/, 'OKL-');
       const ord = new Set(scenario.orders.order.map(norm)), warn = new Set((scenario.orders.warning || []).map(norm));
       zones.forEach((z, i) => {
         const k = z.zoneId.replace('US-CA-XAL-', '');
-        if (ord.has(k)) this.orderT[i] = Math.min(this.orderT[i], decided);
-        else if (warn.has(k)) this.warnT[i] = decided;
+        if (ord.has(k)) { this.orderT[i] = Math.min(this.orderT[i], decided); scenOrd[i] = 1; }
+        else if (warn.has(k)) { this.warnT[i] = decided; scenWarn[i] = 1; }
       });
     } else if (scenario.orderRegion) {
       // a region can be several polygons (MultiPolygon parts are stored separately)
@@ -95,13 +97,17 @@ export class Evacuation {
         const x = (i % grid.W + 0.5) * CELL, y = (Math.floor(i / grid.W) + 0.5) * CELL;
         if (parts.some(q => inBB(q.bb, x, y) && inPoly(x, y, q.rings))) inside[z]++;
       }
-      zones.forEach((_, z) => { if (zoneCells[z] && inside[z] / zoneCells[z] >= 0.3) this.orderT[z] = Math.min(this.orderT[z], decided); });
+      zones.forEach((_, z) => { if (zoneCells[z] && inside[z] / zoneCells[z] >= 0.3) { this.orderT[z] = Math.min(this.orderT[z], decided); scenOrd[z] = 1; } });
     }
     for (let z = 0; z < zones.length; z++) {
       if (this.orderT[z] > this.end) this.orderT[z] = Infinity;
       if (this.orderT[z] < Infinity || this.warnT[z] > this.end) this.warnT[z] = Infinity;
     }
     this.firstOrderT = Math.min(...this.orderT, ...this.warnT);
+    // 0 not told, 1 ordered, 2 warned, under the scenario's orders alone: the pattern in which
+    // buildHouseholds takes draws from the shared stream, so that pattern is the same for every plan.
+    this.scenTold = Array.from(zones, (_, z) => scenOrd[z] ? 1 : scenWarn[z] ? 2 : 0);
+    this.scenAny = this.scenTold.some(k => k > 0);
     // Share of each zone's population inside the modeled area (the DEM extent), from the network builder.
     this.zoneModeledShare = Array.from(zones, z => z.pop ? (z.popModeled ?? z.pop) / z.pop : 0);
 
@@ -191,6 +197,18 @@ export class Evacuation {
   buildHouseholds() {
     const { data, plan, tod } = this, A = data.A, D = A.demand, net = data.net, zones = data.layers.evacZones;
     const rand = this.rand;
+    // Plan A and Plan B must see the same households for a seed. Draws from the shared stream
+    // (this.rand) are taken in a pattern that depends on the scenario's orders
+    // (this.scenTold), never on the plan: a household or non-resident car draws the same numbers
+    // whether the plan orders its zone sooner, adds zones or sends it out early. Where a plan needs
+    // a number that pattern did not draw (a zone the plan orders but the scenario does not), it
+    // comes from that household's or car's supplementary stream, keyed by seed and index, with a
+    // fixed slot per decision. Under the scenario's orders alone (DEFAULT_PLAN) the shared stream
+    // is drawn exactly as before this rule, so baseline runs did not change.
+    const seed = this.seed;
+    const extra = (salt, i) => { const r = mulberry32((Math.imul(seed, 0x9E3779B1) ^ Math.imul(salt, 0x85EBCA77) ^ Math.imul(i + 1, 0xC2B2AE3D)) >>> 0); return Array.from({ length: 9 }, () => r()); };
+    // Leave-early decision: a separate stream, one draw per household whether or not the plan uses it.
+    const earlyRand = mulberry32(seed * 15485863 + 11);
     const byZone = new Map();
     for (const e of net.edges) {
       if (e.mode !== 'vehicle' || e.disconnected || e.barrier?.closed || e.evacZone == null || CLASS_RANK[e.cls] === 3) continue;
@@ -218,7 +236,8 @@ export class Evacuation {
         for (let k = 0; k < n; k++) {
           hhEdge.push(eid); hhZone.push(zoneIdx.get(z.id));
           hhVeh.push(rand() < D.householdsWithoutVehicleShare ? 0 : drawVehicles());
-          hhEarly.push(eligible && plan.earlyShare > 0 && rand() < plan.earlyShare ? 1 : 0);
+          const uEarly = earlyRand();
+          hhEarly.push(eligible && uEarly < plan.earlyShare ? 1 : 0);
         }
       }
     }
@@ -233,42 +252,68 @@ export class Evacuation {
     // Who leaves and when (Time Study: 100% of Order zones, 50% of Warning zones, 20% shadow
     // elsewhere in the city and its Shadow Region, here the whole model area; mobilization histograms by household type; SOURCE_NOTES E8, E9).
     const M = D.mobilization15min, C = D.compliance;
-    const vHH = [], vDep = [], vCls = [], donors = new Map();
+    const vHH = [], vDep = [], vCls = [], donors = new Map(), scenDonors = new Map();
+    const scenAny = this.scenAny, scenKind = new Uint8Array(nH);
+    // Draw slots: 0 warning compliance, 1 shadow, 2 commuter, 3 child pickup, 4 commuter leaves
+    // work, 5 return drive, 6 mobilization time, 7 rideshare, 8 which neighbor.
+    // Shared-stream draws for the decision to leave, in the scenario pattern; returns the kind
+    // the scenario alone would give (0 stays, 1 ordered, 2 warned and leaving, 3 shadow).
+    const scenLeave = (z, u) => {
+      const st = this.scenTold[z];
+      if (st === 2) { u[0] = rand(); if (u[0] >= C.warning) u[1] = rand(); }
+      else if (st === 0 && scenAny) u[1] = rand();
+      return st === 1 ? 1 : st === 2 && u[0] < C.warning ? 2 : u[1] < C.shadow ? 3 : 0;
+    };
     for (let h = 0; h < nH; h++) {
       const z = hh.zone[h];
+      const u = new Array(9).fill(NaN); let x = null;
+      const g = i => Number.isNaN(u[i]) ? (x || (x = extra(1, h)))[i] : u[i];
+      const sk = scenKind[h] = scenLeave(z, u);
+      if (sk === 1 || sk === 2) { u[2] = rand(); u[3] = rand(); if (u[2] < tod.commuterShare && hh.veh[h]) { u[4] = rand(); u[5] = rand(); } }
+      if (sk) u[6] = rand();
+      if (hh.veh[h] && (sk === 1 || sk === 2)) { if (!scenDonors.has(hh.edge[h])) scenDonors.set(hh.edge[h], []); scenDonors.get(hh.edge[h]).push(h); }
       let T, kind;
       if (this.orderT[z] < Infinity) { T = this.orderT[z]; kind = 1; }
-      else if (this.warnT[z] < Infinity && rand() < C.warning) { T = this.warnT[z]; kind = 2; }
-      else if (this.firstOrderT < Infinity && rand() < C.shadow) { T = this.firstOrderT; kind = 3; }
+      else if (this.warnT[z] < Infinity && g(0) < C.warning) { T = this.warnT[z]; kind = 2; }
+      else if (this.firstOrderT < Infinity && g(1) < C.shadow) { T = this.firstOrderT; kind = 3; }
       else continue;
       hh.kind[h] = kind;
       if (hh.early[h]) continue;
       let curve;
       if (kind === 3) curve = M.C;
       else {
-        const commuter = rand() < tod.commuterShare, kids = rand() < D.childPickupShare * tod.schoolInSession;
+        const commuter = g(2) < tod.commuterShare, kids = g(3) < D.childPickupShare * tod.schoolInSession;
         curve = commuter ? (kids ? M.E : M.C) : (kids ? M.F : M.D);
         // The commuter drives home into the evacuating area before the household leaves
         // (Time Study: households awaiting a returning commuter). They leave work on the
         // employee curve (Table 5-9 A), then drive returnDriveMin to reach the area's edge.
-        if (commuter && hh.veh[h] && !hh.early[h]) {
-          const entry = T + 60 * (sampleHist(M.A, rand) + D.returnDriveMin[0] + rand() * (D.returnDriveMin[1] - D.returnDriveMin[0]));
+        if (commuter && hh.veh[h]) {
+          const entry = T + 60 * (sampleHist(M.A, () => g(4)) + D.returnDriveMin[0] + g(5) * (D.returnDriveMin[1] - D.returnDriveMin[0]));
           if (entry < this.end) { hh.commuter[h] = 1; vHH.push(h); vDep.push(entry); vCls.push(2); }
         }
       }
-      const dep = T + 60 * sampleHist(curve, rand);
+      const dep = T + 60 * sampleHist(curve, () => g(6));
       hh.depart[h] = dep;
       if (!hh.veh[h]) continue;
       if (kind !== 3) { if (!donors.has(hh.edge[h])) donors.set(hh.edge[h], []); donors.get(hh.edge[h]).push(h); }
       if (dep > this.end) continue;
       for (let k = 0; k < hh.veh[h]; k++) { vHH.push(h); vDep.push(dep + k * 20); vCls.push(kind === 3 ? 1 : 0); }
     }
-    // Carless households: most ride with a neighbor (Time Study: 86.9% rideshare, E7).
+    // Carless households: most ride with a neighbor (Time Study: 86.9% rideshare, E7). The
+    // neighbor is picked from those the scenario alone would send out; one who is gone under
+    // this plan (left early) is replaced by another neighbor still there.
     this.stranded = 0;
+    const isDonor = c => hh.veh[c] && (hh.kind[c] === 1 || hh.kind[c] === 2) && !hh.early[c];
     for (let h = 0; h < nH; h++) {
+      const sk = scenKind[h], sd = scenDonors.get(hh.edge[h]);
+      let u7 = NaN, u8 = NaN;
+      if (!hh.veh[h] && (sk === 1 || sk === 2) && sd) { u7 = rand(); if (u7 < D.carlessRideshareShare) u8 = rand(); }
       if (hh.veh[h] || !hh.kind[h] || hh.kind[h] === 3 || hh.early[h]) continue;
-      const d = donors.get(hh.edge[h]);
-      if (d && rand() < D.carlessRideshareShare) hh.ride[h] = d[Math.floor(rand() * d.length)];
+      const d = donors.get(hh.edge[h]); if (!d) continue;
+      if (Number.isNaN(u7)) { const x = extra(1, h); u7 = x[7]; u8 = x[8]; }
+      if (u7 >= D.carlessRideshareShare) continue;
+      const c = sd ? sd[Math.floor(u8 * sd.length)] : -1;
+      hh.ride[h] = c >= 0 && isDonor(c) ? c : d[Math.floor(u8 * d.length)];
     }
     // ---- non-resident vehicles: employees, students, visitors (Time Study §3.4-3.6, Table 6-5;
     // SOURCE_NOTES E32-E36). They park on streets in the study's areas, leave on the employee
@@ -276,21 +321,27 @@ export class Evacuation {
     const nRes = vHH.length, nrEdge = [];
     this.nonResident = {};
     const NR = A.nonResident, G = tod.groups || {}, areas = nonResidentAreas(this.data);
+    let nrIdx = 0;
     for (const [gk, g] of Object.entries(NR.groups)) {
       const f = G[g.factor] ?? 0;
       for (const [ak, n] of Object.entries(g.vehicles)) {
         const list = areas[ak]; if (!list || !list.total) continue;
         const count = Math.round(n * f); let made = 0;
         for (let k = 0; k < count; k++) {
+          const iv = nrIdx++;
           let u = rand() * list.total, j = 0; while (j < list.cum.length - 1 && list.cum[j] < u) j++;
           const eid = list.ids[j], zl = net.edges[eid].evacZone, z = zoneIdx.get(zl);
           if (z == null) continue;
+          // same rule as households: shared draws in the scenario pattern, slot 6 the departure time
+          const uu = new Array(9).fill(NaN); let x = null;
+          const g = i => Number.isNaN(uu[i]) ? (x || (x = extra(2, iv)))[i] : uu[i];
+          if (scenLeave(z, uu)) uu[6] = rand();
           let T, cls;
           if (this.orderT[z] < Infinity) { T = this.orderT[z]; cls = 0; }
-          else if (this.warnT[z] < Infinity && rand() < C.warning) { T = this.warnT[z]; cls = 0; }
-          else if (this.firstOrderT < Infinity && rand() < C.shadow) { T = this.firstOrderT; cls = 1; }
+          else if (this.warnT[z] < Infinity && g(0) < C.warning) { T = this.warnT[z]; cls = 0; }
+          else if (this.firstOrderT < Infinity && g(1) < C.shadow) { T = this.firstOrderT; cls = 1; }
           else continue;
-          const dep = T + 60 * sampleHist(M.A, rand);
+          const dep = T + 60 * sampleHist(M.A, () => g(6));
           if (dep > this.end) continue;
           vHH.push(-1); vDep.push(dep); vCls.push(cls); nrEdge.push(eid); made++;
         }
