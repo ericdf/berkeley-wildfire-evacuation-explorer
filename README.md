@@ -233,6 +233,7 @@ add any parking-removal bonus.
 | `data/assumptions.json` | **Editable** assumptions and model rules, each with a category and note |
 | `data/model/network.json`, `layers.json` | Built by `tools/build-network.mjs` (do not edit by hand) |
 | `data/model/access-constraints.json` | Built by `tools/access-constraints.mjs`; the simulator runs without it |
+| `data/model/retreat.json` | Built by `tools/retreat-sim.mjs` (managed retreat: block ranking, buyout runs, costs); its report is `docs/managed-retreat.md` |
 | `data/terrain/dem.i16`, `dem.json` | Elevation grid, built by `tools/fetch-dem.mjs` |
 | `data/field/` | Field and aerial observations (counts only), e.g. parked cars on 22 hill blocks |
 | `data/raw/` | Downloaded source data (reproducible, large; City layers and report PDFs are not in git). `osm/east-bay-roads.json` (OSM streets), `osm/lbnl-gate-roads.json` (the Lab's gate roads), `genasys/zones.json` (zone outlines), `census/` (2020 block counts) each have a retrieval note |
@@ -242,6 +243,7 @@ add any parking-removal bonus.
 | `tests/calibration.mjs`, `tests/stuck.mjs`, `tests/leftover.mjs` | Compare with the Time Study (fire off); list jammed links; list order-zone vehicles that never leave |
 | `tests/plan-draws.mjs` | Checks that Plan A and Plan B of every Simple-view question see the same households for a seed (each fire, seeds 1–3), the same with maximum growth under each R0 area, and that growth leaves today's households and the shared random stream unchanged |
 | `tests/growth.mjs` | Future growth and R0 with the fire on, seeds 1–5 (`SOURCE_NOTES.md` R4, R5); `GROWTH=max node tests/calibration.mjs` gives R3 |
+| `tests/retreat-draws.mjs` | Checks that a managed-retreat buyout (`world.retreat`) leaves every other household, every non-resident car and the shared random stream unchanged |
 
 ## Replacing datasets
 
@@ -325,3 +327,13 @@ Rerun it after `tools/build-network.mjs`.
 - A hatched, dashed box with "⚠ population placement artifact" around areas with an `allocationWarning` (Albany Hill, AC-315: zone ALB-011's 2,535 residents all land on one 221 m segment).
 
 Clicking a street in an area, with the layer on, outlines the innermost area in yellow and puts an "Access-constrained area" card above the street card: entrance, type, streets, residents, households and vehicles (synthetic), evacuation zones, nesting with the enclosing areas, clear width and engine fit at the entrance, steepest grade, fire-zone mix, nearest other street, existing path, and the constraint score with its components, each with its provenance badge and source note. With the layer off, the street card names the area in one row. Below the layer list, a line gives hill residents behind a choke point (5,749 of 41,475; Berkeley and LBNL 3,149 of 27,840) and opens a sortable table of the union of the two top-50 rankings (68 areas), with the score and its components labeled a model rule; clicking an area zooms to it. None of this appears in Simple view.
+
+## Managed retreat (voluntary buyouts)
+
+`tools/retreat-sim.mjs` asks which hill blocks (street segments) a voluntary buyout would target and what removing their households would change. It scores 1,803 hill blocks over 60 fire runs (share of runs with households still home when the fire front or embers arrived, cars cut off, no engine within 5 minutes, chokes in series, crowding at the choke; the weights are a model rule), then reruns the simulator with and without buyouts of the top blocks and of Panoramic Hill, same seed, and prices them from Census block-group home values and Uniform Relocation Act figures as a screening estimate. Buyouts are a harness setting (`world.retreat` in `js/sim.js`), not a plan option on the page: the bought-out households take their random draws and then make no trip, so every other household and car is the same draw. In these runs the benefit is almost entirely the people bought out; the neighbors who stay behind the same choke leave home at the same times and gain little on the road. Method, ranked blocks, results, costs and the comparison with second ways out are in `docs/managed-retreat.md`; findings are in `SOURCE_NOTES.md` RT1–RT11. Not a prediction, not an official evacuation plan and not a buyout proposal.
+
+```
+node tools/retreat-sim.mjs                 # about 20 min on 7 workers; writes data/model/retreat.json and docs/managed-retreat.md
+node tools/retreat-sim.mjs --report-only   # rebuilds the report from data/model/retreat.json
+node tests/retreat-draws.mjs               # bought-out households leave every other draw unchanged
+```
