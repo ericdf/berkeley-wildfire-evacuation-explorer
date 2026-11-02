@@ -7,7 +7,8 @@
 // a link passes at most its capacity, holds at most its storage, and every
 // intersection passes at most its capacity. Vehicles route toward the nearest
 // node outside the scenario's ordered zones and ember area, re-planning every minute
-// with current queues. All streets can be used.
+// with current queues. All streets can be used. Other driver information and routing
+// options (plan setting, off by default) are in js/guidance.js.
 //
 // Responder ingress is modeled separately: an engine's travel time from the
 // nearest fire station to the ignition area, slowed by oncoming evacuees on
@@ -19,6 +20,7 @@ import { toUTM } from '../tools/utm.mjs';
 import { parkingState, PARKING_PLANS } from './parking.js';
 import { LEAVE_EARLY_ZONES } from './scenarios.js';
 import { minFilter, cellOf, MinHeap, inPoly, bbox, inBB, CELL } from './fire.js';
+import { makeGuidance, householdOutcomes } from './guidance.js';
 import { opsActive, setupOperations, stepOperations, markPriority } from './operations.js';
 
 // Sample minutes from a histogram of % per 15-minute period (Time Study Table 5-9 format).
@@ -193,6 +195,7 @@ export class Evacuation {
 
     // ---- households ----
     this.buildHouseholds();
+    this.guidance = makeGuidance(this); // driver information and routing (js/guidance.js); null for Today's model
     this.dist = [new Float64Array(nN), new Float64Array(nN)];
     this.next = [new Array(nN), new Array(nN)];
     this.route();
@@ -441,6 +444,7 @@ export class Evacuation {
       }
     }
     this.linkCost = cost;
+    if (this.guidance) this.guidance.route();
     if (this.ops?.prio) markPriority(this);
     // Inbound commuters: forward tree from every node outside the evacuating area.
     const din = this.inDist || (this.inDist = new Float64Array(nN)), prevL = this.inPrev || (this.inPrev = new Int32Array(nN));
@@ -517,12 +521,17 @@ export class Evacuation {
         if (v.exit[i] === Infinity && !this.nodeOrdered[L.to]) v.exit[i] = t;
         if (this.safe[k][L.to]) { L.q.shift(); L.lastOut = t; B.budget--; if (L.share) L.share.used[L.dir]++; this.arrive(i); continue; }
         if (nb[L.to] < 1) break;
-        let opts = this.next[k][L.to]; if (!opts) break;
+        const tr = this.guidance?.tree(i, k, L.e); // null: Today's tree
+        let opts = tr ? tr.at(L.to, L.from) : this.next[k][L.to]; if (!opts) break;
         // No U-turns back down the street just driven, unless it is a dead end: take the best
         // other street with a route instead (re-routing otherwise sends cars back and forth
         // around hill loops such as Orchard Ln / Arden Rd).
+        let tu = tr;
+        // Guidance offers only checked routes: if every one turns back, it declines here and the
+        // driver does what they would do themselves (their Habit route, and its U-turn rule).
+        if (tr?.pick && opts.every(o => links[o].to === L.from)) { tu = this.guidance.habitOf(i, k); opts = tu.at(L.to) || opts; }
         if (opts.every(o => links[o].to === L.from)) {
-          const dist = this.dist[k], cost = this.linkCost;
+          const dist = tu ? tu.dist : this.dist[k], cost = tu ? tu.cost : this.linkCost;
           const alt = this.outL[L.to].filter(o => links[o].to !== L.from && cost[o] < Infinity && dist[links[o].to] < Infinity)
             .sort((a, b) => cost[a] + dist[links[a].to] - cost[b] - dist[links[b].to]);
           if (alt.length) opts = alt.slice(0, 2);
@@ -551,9 +560,9 @@ export class Evacuation {
     const h = v.hh[i], eid = v.edge[i];
     const cand = (this.edgeLinks.get(eid) || []).filter(l => links[l].q.length < links[l].storage && !links[l].closed);
     if (!cand.length) return false;
-    const dist = this.dist[v.cls[i]];
-    cand.sort((a, b) => dist[links[a].to] - dist[links[b].to]);
-    const L = links[cand[0]];
+    let L;
+    if (this.guidance) L = links[this.guidance.departOrder(i, v.cls[i], eid, cand)[0]]; // js/guidance.js: checked against the Habit departure
+    else { const dist = this.dist[v.cls[i]]; cand.sort((a, b) => dist[links[a].to] - dist[links[b].to]); L = links[cand[0]]; }
     L.q.push(i); v.link[i] = L.id; v.enter[i] = this.t - L.ff * this.rand(); v.state[i] = 1; this.active.add(L.id);
     if (h >= 0 && this.t < hh.leftHome[h]) hh.leftHome[h] = this.t;
     return true;
@@ -567,7 +576,7 @@ export class Evacuation {
     const i = L.q[0], v = this.v, k = v.cls[i];
     if (k !== 2 && this.safe[k][L.to]) return false;
     if (k === 2) { const nl = this.paths.get(i)?.[v.pidx[i]]; return nl != null && L.e !== this.hh.edge[v.hh[i]] && L.to !== v.dest[i] && this.links[nl].q.length >= this.links[nl].storage; }
-    const opts = this.next[k][L.to];
+    const tr = this.guidance?.tree(i, k, L.e), opts = tr ? tr.at(L.to, L.from) : this.next[k][L.to];
     if (!opts) return true;
     return opts.every(nl => nl == null || this.links[nl].q.length >= this.links[nl].storage);
   }
@@ -873,10 +882,13 @@ export class Evacuation {
     S.zonesOrdered = this.orderT.filter(T => T <= t).length;
     S.zonesWarned = this.warnT.filter(T => T <= t).length;
     S.t = t / 60;
+    if (this.guidance) S.routing = this.guidance.stats;
     return S;
   }
 
   runToEnd() { while (this.t < this.end) this.step(); return this.summary(); }
+  // Per-household outcome, for pairing runs that differ only in routing (js/guidance.js worseOff).
+  householdOutcomes() { return householdOutcomes(this); }
 }
 
 // Streets where each zone's residents live (model rule): drivable, not freeway or ramp, weighted
