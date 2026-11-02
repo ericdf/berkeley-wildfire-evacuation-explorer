@@ -12,6 +12,8 @@
 // lanes only where the clear width between this plan's parked cars is at least 2 × access.movingLaneM
 // (20 ft); elsewhere it stays two-way. The reversed lane carries contraflow.reversedLaneFactor of a
 // normal lane's capacity; storage counts both lanes. Junction capacity is unchanged.
+// A segment runs only while its zone is ordered or warned: segments in zones the run never tells stay
+// two-way, and segments start together only when their zones are told at the same time (CF12).
 // Entry points: junctions at the outbound end of a contraflow street, or along it, where another
 // street meets it, i.e. where a driver could turn into the closed direction. Each needs an officer
 // (officer-staffed) or a sign and gate (pre-installed).
@@ -91,18 +93,29 @@ export function setupOperations(sim) {
       if (cw < lanes * A.access.movingLaneM) { s.reason = `clear width ${(cw / 0.3048).toFixed(0)} ft between parked cars, under the ${(lanes * A.access.movingLaneM / 0.3048).toFixed(0)} ft two outbound lanes need`; continue; }
       s.ok = true; s.out = out; s.inn = inn; s.lanes = lanes; ok.push(id);
     }
-    const comps = components(ok, edges).map(ids => {
+    // Entry points of a piece: the outbound end of each segment where a street outside the piece meets it.
+    const entriesOf = ids => {
       const set = new Set(ids), entries = new Set();
       for (const id of ids) { const e = edges[id], head = status.get(id).dir === 0 ? e.b : e.a; if (data.nodeEdges[head].some(o => !set.has(o) && edges[o].mode === 'vehicle' && !edges[o].disconnected)) entries.add(head); }
-      const told = Math.min(...ids.map(id => toldT(edges[id])));
-      return { ids, entries: [...entries], told, use: Math.max(...ids.map(id => edgeUse[id])), name: [...new Set(ids.map(id => edges[id].name))].slice(0, 2).join(' / ') };
-    }).sort((a, b) => b.use - a.use);
+      return [...entries];
+    };
+    // A segment runs contraflow only while its zone is ordered or warned (CF12): segments in zones this run
+    // never orders or warns are left out, and pieces are formed among segments whose zones are told at the
+    // same time, so no segment reverses, closes its inbound lane or holds back engines before its zone is told.
+    const byT = new Map(); let never = 0;
+    for (const id of ok) {
+      const t = toldT(edges[id]);
+      if (t === Infinity) { status.get(id).note = 'its zone is not ordered or warned in this run'; never++; continue; }
+      if (!byT.has(t)) byT.set(t, []); byT.get(t).push(id);
+    }
+    const comps = [...byT].flatMap(([told, ids]) => components(ids, edges).map(ids => ({ ids, entries: entriesOf(ids), told, use: Math.max(...ids.map(id => edgeUse[id])), name: [...new Set(ids.map(id => edges[id].name))].slice(0, 2).join(' / ') })))
+      .sort((a, b) => b.use - a.use);
+    const installedEntries = components(ok, edges).reduce((s, ids) => s + entriesOf(ids).length, 0);
     const hillNode = new Uint8Array(nN); for (const e of edges) if (e.fireZone >= 2) { hillNode[e.a] = 1; hillNode[e.b] = 1; }
     const signs = plan.contraflowMode === 'signs', power = plan.contraflowPower || 'battery', fallback = plan.contraflowFallback || 'officers';
-    const cf = ops.cf = { status, comps, entries: 0, active: 0, segments: 0, failedSigns: 0, failedPower: 0, failedFire: 0, short: 0, mode: signs ? 'signs' : 'officers', planned: comps.length, plannedEntries: comps.reduce((s, c) => s + c.entries.length, 0) };
+    const cf = ops.cf = { status, comps, entries: 0, active: 0, segments: 0, failedSigns: 0, failedPower: 0, failedFire: 0, short: 0, mode: signs ? 'signs' : 'officers', planned: comps.length, plannedEntries: comps.reduce((s, c) => s + c.entries.length, 0), installedEntries, outside: never };
     comps.forEach((c, k) => {
       c.k = k; for (const id of c.ids) status.get(id).comp = k;
-      if (c.told === Infinity) { c.state = 'outside the ordered and warned zones'; return; }
       const signT = c.told + (C.signDelayMin + (power === 'mechanical' ? C.mechanicalExtraMin : 0)) * 60;
       let ready = signs ? signT : Math.max(c.told, officerT), officers = 0, failed = false, why = '';
       for (const n of c.entries) {
@@ -128,8 +141,8 @@ export function setupOperations(sim) {
     });
     cf.blocked = new Int8Array(edges.length).fill(-1); // closed direction per edge once active (engines)
     const narrow = [...status.values()].filter(s => !s.ok).length;
-    ops.log.push([0, `Contraflow plan (${CONTRAFLOW_SETS[plan.contraflow]}, ${signs ? `pre-installed signs and gates, ${{ grid: 'grid power only', battery: 'battery backup', mechanical: 'mechanical fallback' }[power]}` : 'officer-staffed'}): ${ok.length} of ${cand.length} street segments are wide enough for two outbound lanes with this plan's parked cars; ${narrow} are not and stay two-way. ${comps.length} contraflow pieces with ${cf.plannedEntries} entry points${signs ? C.costPerEntryUSD[power] ? ` (signs about $${fmtK(cf.plannedEntries * C.costPerEntryUSD[power][0])}–$${fmtK(cf.plannedEntries * C.costPerEntryUSD[power][1])}; gates not costed)` : ' (no public unit cost found for mechanical signs and gates)' : ''}.`, 'plan']);
-    const notRunning = comps.filter(c => c.state !== 'scheduled' && c.told < Infinity);
+    ops.log.push([0, `Contraflow plan (${CONTRAFLOW_SETS[plan.contraflow]}, ${signs ? `pre-installed signs and gates, ${{ grid: 'grid power only', battery: 'battery backup', mechanical: 'mechanical fallback' }[power]}` : 'officer-staffed'}): ${ok.length} of ${cand.length} street segments are wide enough for two outbound lanes with this plan's parked cars; ${narrow} are not and stay two-way. ${signs ? `Signs and gates go at all ${installedEntries} entry points on the wide-enough segments${C.costPerEntryUSD[power] ? ` (about $${fmtK(installedEntries * C.costPerEntryUSD[power][0])}–$${fmtK(installedEntries * C.costPerEntryUSD[power][1])}; gates not costed)` : ' (no public unit cost found for mechanical signs and gates)'}. ` : ''}${comps.length} contraflow pieces with ${cf.plannedEntries} entry points lie in zones this run orders or warns${never ? `; ${never} wide-enough segment${never > 1 ? 's lie' : ' lies'} in zones it never orders or warns and stay${never > 1 ? '' : 's'} two-way` : ''}.`, 'plan']);
+    const notRunning = comps.filter(c => c.state !== 'scheduled');
     if (notRunning.length) ops.log.push([0, `Contraflow will not run on ${notRunning.length} of the pieces in the order area: ${[...new Set(notRunning.map(c => c.state.replace('not running: ', '')))].slice(0, 3).join('; ')}.`, 'warn']);
   }
 
