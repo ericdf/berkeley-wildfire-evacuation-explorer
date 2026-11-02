@@ -18,7 +18,7 @@ export const FIRES = [
   { id: 'northHills', title: 'North hills, from Tilden', line: 'Starts in Tilden east of Grizzly Peak Blvd at Spruce St. Ordered out: the north hills, from the Albany and Kensington line to Hearst Ave (about 22,600 people).' },
 ];
 
-const PANORAMIC_UNORDERED = 'Most of those still there live in zones this fire never orders (about 9,000), since the order covers only Panoramic Hill\'s 7 zones.';
+const PANORAMIC_UNORDERED = 'Most of those still there live in Berkeley zones this fire never orders (about 9,000): the City\'s order covers only Panoramic Hill\'s 7 zones, while Oakland orders its own zones as the fire comes within 2 km.';
 
 export const PRESETS = [
   {

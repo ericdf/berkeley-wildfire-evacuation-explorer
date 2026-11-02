@@ -878,7 +878,8 @@ export class Evacuation {
       if (tf <= t && hh.leftHome[e] > tf && !hh.early[h]) S.fireFrontHome += pph;
       if (k === 3 && hh.leftHome[h] <= t) S.shadowLeaving += pph;
       if (!told) { if (exposedAtHome) S.notOrderedExposed += pph; continue; }
-      if (k === 1) { S.orderedPeople += pph; if (this.otherCityOrder[z] && !this.cityOrdered[z]) S.otherCityOrderedPeople += pph; } else S.warnedLeaving += pph;
+      // a household that left on a warning counts as ordered once its zone's order is out
+      if (k === 1 || this.orderT[z] <= t) { S.orderedPeople += pph; if (this.otherCityOrder[z] && !this.cityOrdered[z]) S.otherCityOrderedPeople += pph; } else S.warnedLeaving += pph;
       if (hh.early[h]) { S.leftEarly += pph; continue; }
       if (!hh.veh[h] && hh.ride[h] < 0) { S.noVehicle += pph; if (exposedAtHome) S.exposedNoVehicle += pph; continue; }
       if (hh.ride[h] >= 0) S.riders += pph;
