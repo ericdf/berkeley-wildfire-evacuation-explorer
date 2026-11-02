@@ -1,6 +1,6 @@
 # Agent instructions: Berkeley Wildfire Evacuation Simulator
 
-This file is for Codex and any other agent that reviews or contributes to this repository. `CLAUDE.md` holds the working instructions; where the two disagree, `CLAUDE.md` governs. `specfication.md` is the design brief. Every insight and its source is in `SOURCE_NOTES.md`; `README.md` explains how the simulator works.
+This file is for Codex and any other agent that reviews or contributes to this repository. `CLAUDE.md` holds the working instructions; where the two disagree, `CLAUDE.md` governs. `specification.md` is the design brief. Every insight and its source is in `SOURCE_NOTES.md`; `README.md` explains how the simulator works.
 
 The simulator is a browser-based educational tool for comparing wildfire evacuation choices in the Berkeley Hills on real streets and terrain. It is a comparison tool, never a prediction and never an official evacuation plan. Its value is that every number says where it came from: sourced, derived, assumption, model rule or synthetic. A review succeeds when it catches a number, claim or label that would mislead a resident or would not survive someone checking the source.
 

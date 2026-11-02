@@ -1,6 +1,6 @@
 # Berkeley Wildfire Evacuation Simulator
 
-Browser-based educational simulator for exploring wildfire evacuation tradeoffs in the Berkeley Hills. The design brief is `specfication.md`; how to run, build data and test is in `README.md`.
+Browser-based educational simulator for exploring wildfire evacuation tradeoffs in the Berkeley Hills. The design brief is `specification.md`; how to run, build data and test is in `README.md`.
 
 ## Writing style
 
