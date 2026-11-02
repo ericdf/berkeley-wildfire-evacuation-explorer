@@ -237,7 +237,8 @@ const PACE = {
 };
 state.pace = PACE[localStorage.getItem('bhe-pace')] ? localStorage.getItem('bhe-pace') : 'central';
 const paceHTML = () => `<div class="pace"><span class="small"><b>How fast the fire moves:</b></span> ${Object.entries(PACE).map(([k, v]) => `<button class="pace-pick${state.pace === k ? ' on' : ''}" data-pace="${k}" title="${esc(v.tip)}">${esc(v.label)}</button>`).join('')}
-  <div class="small muted">Both paces have happened in these hills. Neither is a forecast. Hover for what each means in the model.</div></div>`;
+  <div class="small muted">Both paces have happened in these hills. Neither is a forecast. Hover for what each means in the model.</div>
+  <div class="small muted"><b>Fire crews:</b> both paces come from real fires (1923, 1991), so they include what firefighters achieved against the fire's front in those fires. In a wind-driven fire, the Fire Department expects crews to focus on helping people evacuate.</div></div>`;
 function setPace(k) {
   state.pace = k; localStorage.setItem('bhe-pace', k);
   $('severity').value = k; newRun(); renderSimple();
@@ -939,6 +940,7 @@ $('btn-assumptions').onclick = () => {
   <h3>Street network fields</h3>
   <table>${Object.entries(F).map(([k, m]) => `<tr><td><code>${k}</code></td><td>${badge(m.category)} ${esc(m.source)}${m.note ? ' ' + esc(m.note) : ''}</td></tr>`).join('')}</table>
   <h3>Fire and ember overlay ${badge('model rule')}</h3>
+  <p class="small"><b>Fire crews.</b> The fire's pace comes from real fires and the City's repeat of 1923 (Simple view: "Like 1923" and "Like 1991"), so it includes the firefighting effort seen in those fires. In a wind-driven fire the Fire Department expects crews to focus on supporting evacuation, and aircraft are grounded in high wind (SOURCE_NOTES FS14). The simulator does not add crews holding the fire's sides, or the fire stopping when the wind changes, as both 1923 and 1991 did (FS15). Late in a run and at its sides, the fire may spread farther than a real one. Engines in the simulator only drive, to measure whether they could reach homes.</p>
   <p class="small">${esc(SEVERITY_NOTE)} Spread runs on ${CELL} m cells: wind sets an elliptical shape (Anderson 1983 length-to-breadth, capped at ${LB_MAX}); uphill is faster and downhill slower; a proxy fuel factor comes from the City fire zones (${Object.entries(FUEL).map(([k, v]) => `${k} ${v}`).join(', ')}), not from vegetation data. Spot fires are random, so seeds differ. A cell is "ember-exposed" once any burning cell lies within the ember distance upwind. The 1923 reference fire is confined to the City's archival boundary.</p>
   <table><tr><th>Severity</th><th>Head spread (m/min)</th><th>Wind ×</th><th>Ember distance (m)</th><th>Spot probability</th></tr>${Object.values(SEVERITY).map(s => `<tr><td>${s.label}</td><td>${s.rosMpm}</td><td>${s.windFactor}</td><td>${s.emberM}</td><td>${s.spotProb}</td></tr>`).join('')}</table>
   <h3>Time of day ${badge('assumption')}</h3><p class="small">${esc(TIME_NOTE)}</p>
