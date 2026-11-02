@@ -257,6 +257,7 @@ function pickFire(id) {
 function applyPreset(idOrPreset) {
   const p = typeof idOrPreset === 'string' ? PRESETS.find(q => q.id === idOrPreset) : idOrPreset;
   if (!p.always && !p.on[state.fire]) return; // withheld on this fire
+  cancelCompare(); // a comparison still running belongs to the previous plans
   state.preset = p;
   $('scenario').value = state.fire; showScenario();
   $('tod').value = p.tod; todNote(); $('severity').value = 'central'; $('seed').value = 1;
@@ -500,6 +501,11 @@ function legend() {
 }
 
 // ---------- comparison ----------
+function cancelCompare() {
+  if (state.compareBatch == null) return;
+  worker.postMessage({ cancel: state.compareBatch }); state.compareBatch = null;
+  $('sim-banner').hidden = true; if ($('simple-compare')) $('simple-compare').disabled = false;
+}
 $('compare').onclick = () => {
   readPlan();
   const scope = $('cmp-scope').value, seeds = [1, 2, 3], sc = scenario();
@@ -507,17 +513,18 @@ $('compare').onclick = () => {
     : scenarios.flatMap(s => seeds.map(seed => ({ scenarioId: s.id, sev: 'central', seed, tod: s.timeOfDay })));
   const W = world(), jobs = ['A', 'B'].flatMap(p => cases.map(c => ({ ...c, tod: state.preset?.tods?.[p] ?? c.tod, planKey: p, plan: { ...state.plans[p] }, world: W })));
   if (routingDiffers()) { for (const j of jobs) j.outcomes = true; jobs.push(...jobs.filter(j => j.planKey === 'A' || j.planKey === 'B').map(j => ({ ...j, planKey: j.planKey + '2', reshuffle: true }))); } // households worse off (js/guidance.js)
-  const batch = ++state.batch, results = [];
+  const batch = ++state.batch, results = []; state.compareBatch = batch;
   // Progress goes in a small banner above the map (Eric, 2026-11-01), visible from either panel.
   const progress = (t, done = 0) => { $('sim-banner').hidden = !t; $('sim-banner-text').textContent = t; $('sim-banner-bar').style.width = `${Math.round(100 * done / jobs.length)}%`; };
   if ($('simple-compare')) $('simple-compare').disabled = true;
   progress(`Comparing Plan A and Plan B: running ${jobs.length} simulations on the same fires and households. This takes a few minutes…`);
   worker.onmessage = ev => {
-    const m = ev.data; if (m.batch !== batch) return;
+    const m = ev.data; if (m.batch !== batch || state.compareBatch !== batch) return; // a closed comparison renders nothing
     if (m.done) {
+      state.compareBatch = null;
       progress(''); renderCompare(results, scope);
       if ($('simple-compare')) $('simple-compare').disabled = false;
-      if (document.body.classList.contains('simple')) {
+      if (document.body.classList.contains('simple') && $('simple-result')) {
         $('simple-result').innerHTML = takeaway(results, scope) + '<p class="small muted">The full table is in the right-hand panel.</p>';
         $('compare-out').scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
