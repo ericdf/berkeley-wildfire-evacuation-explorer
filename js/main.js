@@ -215,7 +215,7 @@ $('nbhd').onchange = e => {
 // ---------- simple view ----------
 // Two tabs (Eric, 2026-11-02). "Watch a fire": pick a fire and watch today's plan; every number on
 // screen comes from the run the user started. When it ends, the page invites them to explore changes.
-// "Try changes": stack changes and compare them with today's plan in 15 passes (a pass runs both plans on the same fire and households). The
+// "Change the plan": stack changes and compare them with today's plan in 15 passes (a pass runs both plans on the same fire and households). The
 // stored mitigation table is never shown as an answer: it only greys out changes that did not
 // reliably help on this fire (js/mitigate.js stored), so people see they were considered.
 // A single pass can point the wrong way, so a comparison always runs all 15 passes and only the full
@@ -226,7 +226,7 @@ const pickedLevers = () => [...state.picked].map(leverById).filter(Boolean);
 const simDone = () => state.sim && state.sim.t >= state.sim.end;
 
 function renderSimple() {
-  const tabs = `<div class="tabs"><button data-tab="watch" class="${state.tab === 'watch' ? 'on' : ''}">Watch a fire</button><button data-tab="try" class="${state.tab === 'try' ? 'on' : ''}">Try changes</button></div>`;
+  const tabs = `<div class="tabs"><button data-tab="watch" class="${state.tab === 'watch' ? 'on' : ''}">Watch a fire</button><button data-tab="try" class="${state.tab === 'try' ? 'on' : ''}">Change the plan</button></div>`;
   $('simple').innerHTML = tabs + (state.tab === 'watch' ? watchHTML() : tryHTML());
   $('simple').querySelectorAll('[data-tab]').forEach(b => b.onclick = () => showTab(b.dataset.tab));
   $('simple').querySelectorAll('.fire-pick').forEach(b => b.onclick = () => pickFire(b.dataset.fire));
@@ -271,7 +271,7 @@ function watchHTML() {
     <div class="btns"><button id="watch-today" class="primary">▶ Watch today's plan</button></div>
     ${done ? `<div class="nudge"><b>Explore changes that would mitigate damage and loss of life.</b>
       <p class="small">Leave earlier, clear a curb, add a road, buy out the most exposed blocks: try changes alone or together, and compare them with today's plan on this fire.</p>
-      <button id="go-try" class="primary">Try changes →</button></div>` : `<p class="small muted">When the run ends, you can explore changes that would mitigate damage and loss of life, under <b>Try changes</b>.</p>`}`;
+      <button id="go-try" class="primary">Change the plan →</button></div>` : `<p class="small muted">When the run ends, you can explore changes that would mitigate damage and loss of life, under <b>Change the plan</b>.</p>`}`;
 }
 
 function leverItem(l) {
@@ -447,7 +447,7 @@ function setMode(m) {
   document.body.classList.toggle('simple', m === 'simple'); document.body.classList.toggle('expert', m === 'expert');
   document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
   localStorage.setItem('bhe-mode', m);
-  if (m !== 'simple') { map.marks = []; map.draw(); } // Try-changes outlines belong to the Simple view
+  if (m !== 'simple') { map.marks = []; map.draw(); } // Change-the-plan outlines belong to the Simple view
   // Street, road and buyout changes run only in the Simple view (Expert's controls and Compare carry plan
   // settings only), so leaving it drops the stack: Plan B keeps its plan settings under a name that says so.
   const dropStack = m !== 'simple' && !!state.preset?.stack;
@@ -467,7 +467,7 @@ function getFire(sc, sev, seed) {
 }
 function newRun() {
   const sc = scenario(), sev = $('severity').value, seed = +$('seed').value || 1;
-  // Your plan in Try changes (Plan B) can change streets, add roads and buy out blocks (js/levers.js); Expert view runs plans only.
+  // Your plan in Change the plan (Plan B) can change streets, add roads and buy out blocks (js/levers.js); Expert view runs plans only.
   const st = document.body.classList.contains('simple') && state.editing === 'B' ? state.preset?.stack : null, d = st ? dataFor(data, st.net) : data;
   state.sim = new Evacuation(d, grid, getFire(sc, sev, seed), sc, sev, { ...state.plans[state.editing] }, seed, TIME_OF_DAY[$('tod').value], { ...world(), ...(st?.world || {}) });
   map.data = d; map.sim = state.sim;
@@ -578,10 +578,10 @@ function inspect(sel, quiet) {
   const row = (k, v, cat, note) => `<tr><td>${k}</td><td>${v}${badge(cat, note)}</td></tr>`;
   if (sel.kind === 'edge') {
     const e = net.edges[sel.id];
-    // A hypothetical road from Try changes (tools/egress-link.mjs): not a County record; every value is an assumption, derived or a model rule.
+    // A hypothetical road from Change the plan (tools/egress-link.mjs): not a County record; every value is an assumption, derived or a model rule.
     if (e.newLink || e.opened) {
       const P = LINK_PROVENANCE, cat = s => s.split(':')[0];
-      box.innerHTML = `<h2>Hypothetical new road ${badge('assumption', 'Not a County street record: added for Try changes by tools/egress-link.mjs. Not a design.')}</h2><table class="kv">
+      box.innerHTML = `<h2>Hypothetical new road ${badge('assumption', 'Not a County street record: added for Change the plan by tools/egress-link.mjs. Not a design.')}</h2><table class="kv">
         ${row('Connection', esc(e.opened ? titleCase(e.name) + ' (an existing path opened to cars)' : mit()?.levers.find(l => l.delta?.link?.id === e.src?.egressCandidate)?.delta.link.street || e.name), 'derived', P.geom)}
         ${row('Lanes [forward, back]', e.lanes.join(', '), cat(P.lanes), P.lanes)}
         ${row('Pavement width', `${fmt(e.widthM, 1)} m (${fmt(e.widthM / 0.3048)} ft), no parking`, cat(P.widthM), P.widthM)}
@@ -875,7 +875,7 @@ function intro() {
   modal(`<div class="intro"><h2>Berkeley Hills Wildfire Evacuation: Scenario Explorer</h2>
   <p>Run a wildfire on Berkeley's real streets and watch residents' cars, parked cars and fire engines compete for the same narrow roads. Compare two ways of running an evacuation on the same fire and the same households.</p>
   <p class="note">This is a teaching tool, not a prediction and not an official evacuation plan. The households are synthetic and the fire is illustrative. For real instructions see the <a href="https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation" target="_blank" rel="noopener">City's fire weather and evacuation page</a>.</p>
-  <div class="steps"><div><b>Watch a fire</b>Pick one of three illustrative fires and watch it with today's plan: fire is orange, embers amber, cars blue, queues red. The outcomes on the right are the run you watched.</div><div><b>Try changes</b>Explore changes that would mitigate damage and loss of life: leave earlier, clear a curb, add a road, buy out the most exposed blocks. Stack them and compare your plan with today's plan in 15 passes; each pass runs both plans on the same fire and households.</div><div><b>Trust what holds</b>One pass can point the wrong way. A difference counts only where it shows up in every pass. Each change says what the simulator can't tell you about it.</div></div>
+  <div class="steps"><div><b>Watch a fire</b>Pick one of three illustrative fires and watch it with today's plan: fire is orange, embers amber, cars blue, queues red. The outcomes on the right are the run you watched.</div><div><b>Change the plan</b>Explore changes that would mitigate damage and loss of life: leave earlier, clear a curb, add a road, buy out the most exposed blocks. Stack them and compare your plan with today's plan in 15 passes; each pass runs both plans on the same fire and households.</div><div><b>Trust what holds</b>One pass can point the wrong way. A difference counts only where it shows up in every pass. Each change says what the simulator can't tell you about it.</div></div>
   <h3>The inputs and what they change</h3>
   <table><tr><th>Input</th><th>What it sets</th><th>What to watch</th></tr>${INPUTS.map(r => `<tr><td><b>${r[0]}</b></td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`).join('')}</table>
   <h3>Reading the outcomes</h3>

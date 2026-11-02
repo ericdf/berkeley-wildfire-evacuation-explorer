@@ -30,7 +30,7 @@ export class MapView {
       cityBoundary: true, stations: true, noParking: false, tightTurns: false, access: false, fire: true, vehicles: true, queues: true, responder: true };
     this.streetMode = 'class';
     this.sim = null; this.selected = null; this.hover = null;
-    this.marks = []; // Simple view, Try changes: [{ geom, kind: 'street' | 'link' | 'buyout', focus }] for the picked changes
+    this.marks = []; // Simple view, Change the plan: [{ geom, kind: 'street' | 'link' | 'buyout', focus }] for the picked changes
     this.zoneShapes = data.layers.evacZones.map((z, i) => ({ i, rings: z.rings, bb: bbox(z.rings) }));
     this.resize();
     this.fit();

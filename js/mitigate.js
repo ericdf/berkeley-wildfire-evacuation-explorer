@@ -1,4 +1,4 @@
-// Simple view, "Try changes": the catalog of changes a user can stack, and the measures a
+// Simple view, "Change the plan": the catalog of changes a user can stack, and the measures a
 // comparison reports. Reads data/model/mitigations.json (tools/mitigations.mjs; SOURCE_NOTES MS1–MS11).
 // The stored results are not shown as answers (Eric, 2026-11-02: people should explore, not be told).
 // They are used for one thing only: a change that did not reliably help on the chosen fire in the
