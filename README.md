@@ -437,7 +437,7 @@ node tests/retreat-draws.mjs               # bought-out households leave every o
 
 ## License
 
-- **Code** (`js/`, `tools/`, `tests/`, `css/`, `index.html`, including the text the simulator shows on screen): MIT License, `LICENSE`. Copyright (c) 2026 Eric Friedman. Keep the copyright notice in any copy.
-- **Writing** (this README, `SOURCE_NOTES.md`, `HANDOFF.md`, `DATA_INVENTORY.md`, `AGENTS.md`, `CLAUDE.md`, `specfication.md`, `docs/`, `correspondence/`): Creative Commons Attribution 4.0 (CC BY 4.0), `LICENSE-TEXT.md`. Credit "Berkeley Wildfire Evacuation Simulator by Eric Friedman" with a link to this repository and the license.
+- **Code** (the program logic, markup and styles in `js/`, `tools/`, `tests/`, `css/`, `index.html`): MIT License, `LICENSE`. Copyright (c) 2026 Eric Friedman. Keep the copyright notice in any copy.
+- **Writing** (this README, `SOURCE_NOTES.md`, `HANDOFF.md`, `DATA_INVENTORY.md`, `AGENTS.md`, `CLAUDE.md`, `specfication.md`, `docs/`, `correspondence/`, and the text the simulator shows on screen, including the strings in `js/` and `index.html` and the notes in `data/assumptions.json`): Creative Commons Attribution 4.0 (CC BY 4.0), `LICENSE-TEXT.md`. Credit "Berkeley Wildfire Evacuation Simulator by Eric Friedman" with a link to this repository and the license.
 - **Data** keeps its publishers' terms. Streets outside Berkeley, diverter shapes and barriers come from OpenStreetMap (© OpenStreetMap contributors, Open Database License, https://www.openstreetmap.org/copyright); `data/model/network.json` and files built from it contain that data, and the ODbL's attribution and share-alike terms apply to it. The City of Berkeley, Alameda County, the U.S. Census Bureau, USGS 3DEP and the other sources listed under Data sources on the page publish the rest under their own terms. Quotations keep their authors' terms.
 
