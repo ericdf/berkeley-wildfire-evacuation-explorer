@@ -157,7 +157,7 @@ export function setupOperations(sim) {
       if (nodeFireT[j.node] <= officerT) continue;
       ops.officers.used += P.officersPerJunction; ops.officers.signals += P.officersPerJunction; chosen.push(j);
     }
-    ops.police = { targets: targets.length, controlled: chosen.length, nodes: chosen.map(j => j.node), t: officerT, unused: J.filter(j => plan.police === 'all' || j.control === 'pretimed' || (plan.police === 'pretimedAppF' && j.appF)).length - targets.length };
+    ops.police = { targets: targets.length, planned: chosen.length, controlled: 0, nodes: chosen.map(j => j.node), t: officerT, unused: J.filter(j => plan.police === 'all' || j.control === 'pretimed' || (plan.police === 'pretimedAppF' && j.appF)).length - targets.length };
     if (chosen.length) ops.pending.push({ kind: 'police', t: officerT, nodes: chosen.map(j => j.node) });
     ops.log.push([0, `Police control: ${ops.officers.pool} officers. ${ops.officers.cf ? `${ops.officers.cf} staff contraflow entry points; ` : ''}${chosen.length} of ${targets.length} target junctions on evacuation routes get ${P.officersPerJunction} officer${P.officersPerJunction > 1 ? 's' : ''} each from t+${hm(officerT)}${chosen.length ? `, busiest first: ${chosen.slice(0, 3).map(j => j.name).join('; ')}` : ''}.${chosen.length < targets.length ? ` ${targets.length - chosen.length} go unstaffed.` : ''}`, 'plan']);
   }
@@ -187,6 +187,7 @@ export function stepOperations(sim) {
       (started ||= []).push([c, n]);
     } else if (ev.kind === 'police') {
       const P = sim.data.A.operations.police; ops.prio = new Uint8Array(sim.data.net.nodes.length);
+      ops.police.controlled = ev.nodes.length; // junctions count as controlled once officers arrive
       for (const n of ev.nodes) { const base = ops.baseCap?.get(n) ?? sim.nodeCap[n]; if (base === Infinity) continue; sim.nodeCap[n] = base * (1 + P.capacityUplift); ops.prio[n] = 1; }
       markPriority(sim);
       sim.log(`Officers take over ${ev.nodes.length} junctions: each passes ${Math.round(P.capacityUplift * 100)}% more vehicles than its model capacity and lets traffic heading out go first.`, 'plan', ev.nodes[0]);
