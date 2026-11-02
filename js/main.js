@@ -191,7 +191,7 @@ $('growth').onchange = () => { growthNote(); r0Note(); newRun(); };
 ['severity', 'seed', 'tod'].forEach(id => $(id).onchange = () => { todNote(); newRun(); });
 $('street-mode').onchange = e => { map.streetMode = e.target.value; map.draw(); legend(); };
 $('speed').onchange = e => state.speed = +e.target.value;
-$('run').onclick = () => { if (state.sim.t >= state.sim.end) newRun(); state.playing = !state.playing; runLabel(state.playing ? '❚❚ Pause' : '▶ Play'); update(false); };
+$('run').onclick = () => { if (state.sim.t >= state.sim.end) newRun(); state.playing = !state.playing; runLabel(state.playing ? '❚❚ Pause' : '▶ Run'); update(false); };
 $('reset').onclick = () => newRun();
 $('map-run').onclick = () => $('run').click();
 $('map-reset').onclick = () => newRun();
@@ -213,12 +213,12 @@ $('nbhd').onchange = e => {
 };
 
 // ---------- simple view ----------
-// Two tabs (Eric, 2026-11-02). "Watch a fire": pick a fire and watch today's plan; every number on
+// Two tabs (Eric, 2026-11-02). "Today's plan": pick a fire and watch today's plan (only today's plan); every number on
 // screen comes from the run the user started. When it ends, the page invites them to explore changes.
-// "Try changes": stack changes and compare them with today's plan over 15 same-household runs. The
+// "Change the plan": stack changes and compare them with today's plan in 15 passes (a pass runs both plans on the same fire and households). The
 // stored mitigation table is never shown as an answer: it only greys out changes that did not
 // reliably help on this fire (js/mitigate.js stored), so people see they were considered.
-// A single run can point the wrong way, so a comparison always runs all 15 pairs and only the full
+// A single pass can point the wrong way, so a comparison always runs all 15 passes and only the full
 // set earns a verdict; a run watched on the map is labeled as one run.
 Object.assign(state, { tab: 'watch', picked: new Set(), todayCache: new Map(), tries: [], tryBatch: null });
 const leverById = id => mit()?.levers.find(l => l.id === id);
@@ -226,17 +226,31 @@ const pickedLevers = () => [...state.picked].map(leverById).filter(Boolean);
 const simDone = () => state.sim && state.sim.t >= state.sim.end;
 
 function renderSimple() {
-  const tabs = `<div class="tabs"><button data-tab="watch" class="${state.tab === 'watch' ? 'on' : ''}">Watch a fire</button><button data-tab="try" class="${state.tab === 'try' ? 'on' : ''}">Try changes</button></div>`;
+  homePlayback(); // out of #simple before it is rebuilt; moved back into the tab below
+  const tabs = `<div class="tabs"><button data-tab="watch" class="${state.tab === 'watch' ? 'on' : ''}">Today's plan</button><button data-tab="try" class="${state.tab === 'try' ? 'on' : ''}">Change the plan</button></div>`;
   $('simple').innerHTML = tabs + (state.tab === 'watch' ? watchHTML() : tryHTML());
   $('simple').querySelectorAll('[data-tab]').forEach(b => b.onclick = () => showTab(b.dataset.tab));
   $('simple').querySelectorAll('.fire-pick').forEach(b => b.onclick = () => pickFire(b.dataset.fire));
   if ($('try-fire')) $('try-fire').onchange = e => pickFire(e.target.value);
-  if ($('watch-today')) $('watch-today').onclick = () => watch('today');
   if ($('go-try')) $('go-try').onclick = () => showTab('try');
   if (state.tab === 'try') wireTry();
-  showMarks();
+  if ($('pb-slot') && document.body.classList.contains('simple')) $('pb-slot').replaceWith($('playback')); // Expert keeps them in its Run section
+  $('playback').classList.toggle('today', state.tab === 'watch');
+  showMarks(); renderTries();
 }
-function showTab(t) { state.tab = t; renderSimple(); $('simple').scrollTop = 0; }
+// Comparisons go at the top of the right-hand panel, where results are read (Eric, 2026-11-02).
+function renderTries() {
+  const show = state.tab === 'try';
+  $('try-out').innerHTML = (show && state.presetOut ? `<h2>Ready-made comparison</h2>${state.presetOut}` : '') + (show && state.tries.length ? `<h2>Your plan compared with today's plan</h2>${triesHTML()}` : '');
+}
+// The playback controls' home is Expert view's Run section (index.html #playback).
+const homePlayback = () => $('run-section').querySelector('h2').after($('playback'));
+function showTab(t) {
+  state.tab = t;
+  if (t === 'watch' && state.preset?.id !== 'today') applyPreset(todayPreset()); // the Today's plan tab plays today's plan only
+  else renderSimple();
+  $('simple').scrollTop = 0;
+}
 
 // Map outlines for a change: the street segments it rewrites or buys out, or its new road.
 function marksOf(l, focus = false) {
@@ -258,14 +272,16 @@ function zoomToLever(l) {
 
 function watchHTML() {
   const today = !state.preset || state.preset.id === 'today', done = today && simDone();
-  return `<h2><span class="step">1</span> Pick a fire</h2>
+  return `<h2><span class="step">1</span> Pick a fire scenario</h2>
+    <p class="small muted"><b>Fire scenario:</b> what Berkeley doesn't control (where the fire starts, the wind, the time of day). <b>Plan:</b> what it does control, what is built or changed beforehand and how it responds on the day. Each run tests a plan against a fire scenario.</p>
     <div class="fires">${FIRES.map(f => `<button class="fire-pick${f.id === state.fire ? ' on' : ''}" data-fire="${f.id}"><b>${esc(f.title)}</b><span>${esc(f.line)}</span></button>`).join('')}</div>
     <h2><span class="step">2</span> Watch it with today's plan</h2>
-    <p class="small">Today's plan: the first evacuation order 10 minutes after the fire starts, today's street parking, a fall night, central severity. The map shows one run with synthetic households; the numbers on the right are that run's, not a prediction.</p>
-    <div class="btns"><button id="watch-today" class="primary">▶ Watch today's plan</button></div>
+    <p class="small">Today's plan assumes <b>the first evacuation order 10 minutes after the fire starts</b> and <b>today's street parking</b>; the fire scenario here is <b>a fall night</b> at <b title="Calibrated to the City StoryMap 1923 present-day repeat: about 5 h from the eastern edge to Shattuck Ave. Low and high are half and double the spread rate.">medium severity</b> (change these in Expert mode).</p>
+    <p class="small muted"><b>Run:</b> one simulation of a plan against the fire scenario, from ignition to ${hm(scenario().durationMin * 60)} (h:mm) later, with one draw of the fire and one set of synthetic households. Another draw can turn out differently, which is why Change the plan compares many. The outcomes on the right are this run's, not a prediction. Restart starts again from ignition; drag the <b>time since ignition</b> slider below the buttons to jump to a moment.</p>
+    <div id="pb-slot"></div>
     ${done ? `<div class="nudge"><b>Explore changes that would mitigate damage and loss of life.</b>
       <p class="small">Leave earlier, clear a curb, add a road, buy out the most exposed blocks: try changes alone or together, and compare them with today's plan on this fire.</p>
-      <button id="go-try" class="primary">Try changes →</button></div>` : `<p class="small muted">When the run ends, you can explore changes that would mitigate damage and loss of life, under <b>Try changes</b>.</p>`}`;
+      <button id="go-try" class="primary">Change the plan →</button></div>` : ''}`;
 }
 
 function leverItem(l) {
@@ -276,7 +292,7 @@ function leverItem(l) {
   return `<div class="lever pick${on ? ' on' : ''}${grey ? ' grey' : ''}">
     <div class="lever-h"><label><input type="checkbox" data-lever="${esc(l.id)}"${on ? ' checked' : ''}${grey || clash ? ' disabled' : ''}> <b>${esc(l.title)}</b></label><span class="cost">${esc(costText(l.cost))} ${costBadge(l.cost)}</span></div>
     ${l.what ? `<div class="small">${esc(l.what[0].toUpperCase() + l.what.slice(1))}.</div>` : ''}
-    ${grey ? `<div class="small greynote">Tested on this fire in ${st.runs} runs against today's plan: it did not reliably help.${harm} Shown so you can see it was considered.</div>` : ''}
+    ${grey ? `<div class="small greynote">Tested on this fire in ${st.runs} passes against today's plan: it did not reliably help.${harm} Shown so you can see it was considered.</div>` : ''}
     ${clash ? `<div class="small muted">Can't add with “${esc(clash.p.title)}”: ${esc(clash.why)}.</div>` : ''}
     ${marksOf(l).length ? `<button class="linkish" data-show="${esc(l.id)}">Show on map</button>` : ''}
     ${l.cannotMeasure ? `<details class="cant"><summary>What the simulator can't tell you</summary>${esc(l.cannotMeasure)}</details>` : ''}
@@ -288,27 +304,29 @@ function tryHTML() {
   if (!M) return '<p class="small muted">The list of changes (data/model/mitigations.json) did not load.</p>';
   const all = M.levers.filter(stackable), picked = pickedLevers(), p = state.preset, n = M.meta.severities.length * M.meta.seeds.length;
   const running = state.tryBatch != null;
-  return `<h2>Try changes on <select id="try-fire">${FIRES.map(f => `<option value="${f.id}"${f.id === state.fire ? ' selected' : ''}>${esc(f.title)}</option>`).join('')}</select></h2>
-    <p class="small">Pick changes, alone or together, then compare your plan with today's plan on this fire. A comparison uses the same synthetic households in ${n} runs (low, central and high severity × ${M.meta.seeds.length} random seeds), because one run can point the wrong way.</p>
+  return `<h2>Fire scenario: <select id="try-fire">${FIRES.map(f => `<option value="${f.id}"${f.id === state.fire ? ' selected' : ''}>${esc(f.title)}</option>`).join('')}</select></h2>
+    <p class="small">Build your plan from today's plan by picking changes, alone or together: changes made before the fire, and how Berkeley responds on the day. Then compare it with today's plan against this fire scenario. A comparison makes ${n} passes (low, medium and high severity × ${M.meta.seeds.length} random seeds); each pass runs both plans on the same fire and the same synthetic households. One pass can point the wrong way. Outcomes appear at the top of the right-hand panel.</p>
     <div class="yourplan"><b>Your plan:</b> today's plan${picked.length ? ' + ' + picked.map(l => esc(l.title)).join(' + ') : ', nothing changed yet'}
-      <div class="btns"><button id="try-compare" class="primary"${picked.length && !running ? '' : ' disabled'}>Compare with today's plan (${n} runs)</button>
-      <button id="watch-mine"${picked.length ? '' : ' disabled'}>▶ Watch your plan</button><button id="watch-today2">▶ Watch today's plan</button>${picked.length ? ' <button id="try-clear">Clear</button>' : ''}</div>
-      <p class="small muted">Watching shows one run on the map (central severity, seed 1). The next run could go differently; the comparison is what to trust.</p>
+      <div class="btns"><button id="watch-today2">▶ Watch today's plan</button><button id="watch-mine"${picked.length ? '' : ' disabled'}>▶ Watch your plan</button>
+      <button id="try-compare" class="primary"${picked.length && !running ? '' : ' disabled'}>Compare with today's plan (${n} passes)</button>${picked.length ? ' <button id="try-clear">Clear</button>' : ''}</div>
+      ${picked.length ? '' : '<p class="small muted">Pick at least one change below to make your plan.</p>'}
+      <div id="pb-slot"></div>
+      <p class="small muted">Watching makes a single run of a plan against the fire scenario. Compare uses multiple passes to achieve a useful comparison.</p>
       <p class="small muted">On the map: <span class="mk" style="background:#15803d"></span>street changed, <span class="mk" style="background:repeating-linear-gradient(90deg,#15803d 0 4px,transparent 4px 7px)"></span>new road, <span class="mk" style="background:#7e22ce"></span>bought out. Point at a change to see where it is.</p></div>
-    <div id="try-result">${triesHTML()}</div>
-    ${GROUPS.map(([title, groups]) => { const ls = all.filter(l => groups.includes(l.group)); return ls.length ? `<h3>${esc(title)}</h3>${ls.map(leverItem).join('')}` : ''; }).join('')}
+    ${state.tries.length ? '<p class="small"><b>Your comparisons are at the top of the right-hand panel →</b></p>' : ''}
+    ${GROUPS.map(([phase, sub]) => `<h3 class="phase">${esc(phase)}</h3>` + sub.map(([title, groups]) => { const ls = all.filter(l => groups.includes(l.group)); return ls.length ? `<h4>${esc(title)}</h4>${ls.map(leverItem).join('')}` : ''; }).join('')).join('')}
     <details${p && !['today', 'try'].includes(p.id) ? ' open' : ''}><summary>Ready-made comparisons</summary>${presetsHTML()}</details>`;
 }
 
 function presetsHTML() {
   const p = state.preset, fire = FIRES.find(f => f.id === state.fire);
   return `${p && !['today', 'try'].includes(p.id) ? `<div class="chosen"><div class="plans-ab"><div><b>Plan A</b> ${esc(p.A.name.replace(/^A: /, ''))}</div><div><b>Plan B</b> ${esc(p.B.name.replace(/^B: /, ''))}</div>
-      <div class="small muted">${esc(scenario().name)} · ${p.tods ? 'time of day as set' : esc(TIME_OF_DAY[p.tod].label)} · central severity</div></div>
+      <div class="small muted">${esc(scenario().name)} · ${p.tods ? 'time of day as set' : esc(TIME_OF_DAY[p.tod].label)} · medium severity</div></div>
       <div class="watch"><b>What to look for.</b> ${esc(p.on[state.fire])}</div>
       <div class="btns"><button data-watch="A" class="${state.editing === 'A' ? 'on' : ''}">▶ Watch Plan A</button><button data-watch="B" class="${state.editing === 'B' ? 'on' : ''}">▶ Watch Plan B</button>
-      <button class="primary" id="simple-compare">Compare A and B on 9 fires</button> <button id="simple-close">✕ Close</button></div>
-      <div id="simple-result"></div>
-      <p class="small muted">Compare runs both plans on the same 9 fires (low, central and high severity, 3 random seeds each) and the same households, takes a few minutes, and shows the answer here. Trust a difference that shows up in every run.</p></div>` : ''}
+      <button class="primary" id="simple-compare">Compare A and B (9 passes)</button> <button id="simple-close">✕ Close</button></div>
+      ${state.presetOut ? '<p class="small"><b>The answer is at the top of the right-hand panel →</b></p>' : ''}
+      <p class="small muted">Compare makes 9 passes (low, medium and high severity, 3 random seeds each); each pass runs both plans on the same fire and households. It takes a few minutes and puts the answer at the top of the right-hand panel. Trust a difference that shows up in every pass.</p></div>` : ''}
     <div class="presets">${PRESETS.map(q => { const ok = q.on[state.fire]; return `<button class="preset${p?.id === q.id ? ' on' : ''}" data-id="${q.id}"${ok ? '' : ' disabled'}><b>${esc(q.title)}</b><span>${esc(q.question)}</span>${ok ? '' : `<span class="why">Not offered on ${esc(fire.title)}: ${esc(q.off[state.fire])}</span>`}</button>`; }).join('')}</div>
     <p class="small muted">These questions use their own Plan A and time of day. The Expert switch at the top lets you set everything yourself.</p>`;
 }
@@ -365,22 +383,25 @@ function compareStack() {
   state.tries.unshift(T); state.tries.length = Math.min(state.tries.length, 6);
   const batch = ++state.batch; state.tryBatch = batch;
   const ws = workers(), parts = ws.map(() => []); jobs.forEach((j, i) => parts[i % ws.length].push(j));
-  let got = 0, finished = 0;
-  const progress = () => { $('sim-banner').hidden = false; $('sim-banner-text').textContent = `Comparing your plan with today's plan: ${got} of ${jobs.length} runs done…`; $('sim-banner-bar').style.width = `${Math.round(100 * got / jobs.length)}%`; };
-  progress(); renderSimple();
+  let passes = cases.filter(c => T.A[c.key] && T.B[c.key]).length, finished = 0;
+  const progress = () => { $('sim-banner').hidden = false; $('sim-banner-text').textContent = `Comparing your plan with today's plan: ${passes} of ${cases.length} passes done (each pass runs both plans)…`; $('sim-banner-bar').style.width = `${Math.round(100 * passes / cases.length)}%`; };
+  progress(); renderSimple(); $('try-out').scrollIntoView({ behavior: 'smooth', block: 'start' });
   ws.forEach((w, i) => {
     w.onmessage = ev => {
       const m = ev.data; if (m.batch !== batch || state.tryBatch !== batch) return;
       if (m.done) { if (++finished === ws.length) { T.done = true; state.tryBatch = null; $('sim-banner').hidden = true; renderSimple(); } return; }
       const v = Object.fromEntries(Object.entries(MEASURES).map(([k, d]) => [k, d.f(m.summary)]));
       T[m.job.side][m.job.key] = v; if (m.job.side === 'A') state.todayCache.set(m.job.key, v);
-      got++; progress(); if ($('try-result')) $('try-result').innerHTML = triesHTML();
+      if (T.A[m.job.key] && T.B[m.job.key]) passes++; progress(); renderTries();
     };
     w.postMessage({ batch, jobs: parts[i] });
   });
 }
 
-const tolSame = (a, b) => a === b || (a != null && b != null && Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b)));
+// A pass counts as better or worse only when the two scenarios differ by more than 1% (Eric, 2026-11-02:
+// "tiny differences can be noise"). A run that never reaches 90% clearance (null) differs from one that does.
+const NOISE = 0.01;
+const tolSame = (a, b) => a === b || (a != null && b != null && Math.abs(a - b) <= NOISE * Math.max(Math.abs(a), Math.abs(b)));
 const asNum = x => x == null ? Infinity : x;
 const median = xs => { const s = xs.map(asNum).sort((a, b) => a - b), n = s.length; if (!n) return null; const v = n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2; return Number.isFinite(v) ? v : null; };
 function triesHTML() {
@@ -392,17 +413,18 @@ function triesHTML() {
       for (const key of keys) { const a = T.A[key][m], b = T.B[key][m]; if (tolSame(a, b)) continue; asNum(b) < asNum(a) ? better++ : worse++; }
       const same = k - better - worse;
       const v = x => x == null ? (k ? (d.time ? 'not reached' : '—') : '…') : d.time ? `${Math.round(x)} min` : fmt(x);
-      const verdict = !T.done ? `<span class="muted">${better} better, ${worse} worse so far (${k} of ${T.n})</span>`
-        : better === k ? `<span class="good">Better in every run (${k} of ${k})</span>` : worse === k ? `<span class="bad">Worse in every run (${k} of ${k})</span>`
-        : same === k ? '<span class="muted">No difference in any run</span>'
-        : worse === 0 ? `Better in ${better} of ${k}, never worse` : better === 0 ? `<span class="bad">Worse in ${worse} of ${k}, never better</span>`
-        : `<span class="mixed">Mixed: better in ${better}, worse in ${worse} of ${k}</span>`;
+      const noise = same ? `, within 1% in ${same}` : '';
+      const verdict = !T.done ? `<span class="muted">${better} better, ${worse} worse${noise} so far (${k} of ${T.n} passes)</span>`
+        : better === k ? `<span class="good">Better in every pass (${k} of ${k})</span>` : worse === k ? `<span class="bad">Worse in every pass (${k} of ${k})</span>`
+        : same === k ? '<span class="muted">No real difference: within 1% in every pass</span>'
+        : worse === 0 ? `Better in ${better} of ${k} passes, never worse${noise}` : better === 0 ? `<span class="bad">Worse in ${worse} of ${k} passes, never better${noise}</span>`
+        : `<span class="mixed">Mixed: better in ${better}, worse in ${worse}${noise} of ${k} passes</span>`;
       return `<tr title="${esc(d.tip)}"><td>${esc(d.label)} <span class="tip">ⓘ</span></td><td class="num">${v(median(keys.map(x => T.A[x][m])))}</td><td class="num">${v(median(keys.map(x => T.B[x][m])))}</td><td>${verdict}</td></tr>`;
     }).join('');
     const cant = T.ids.map(leverById).filter(l => l?.cannotMeasure);
-    return `<div class="tryres${i ? ' old' : ''}"><div><b>Today's plan + ${T.titles.map(esc).join(' + ')}</b> · ${esc(fire.title)} · ${T.done ? `${T.n} runs` : `running, ${k} of ${T.n} runs so far`}</div>
-      ${i ? '' : `<table class="cmp"><tr><th></th><th>Today's plan</th><th>Your plan</th><th>Your plan, run by run</th></tr>${rows}</table>
-      <p class="small muted">Middle value of the runs so far for each plan. Synthetic households on an illustrative fire: compare the plans, don't read the numbers as predictions.${T.done ? ' Where a line is mixed, the change helped in some runs and hurt in others; don\'t rely on it.' : ' Wait for every run before trusting a difference.'}</p>
+    return `<div class="tryres${i ? ' old' : ''}"><div><b>Today's plan + ${T.titles.map(esc).join(' + ')}</b> · ${esc(fire.title)} · ${T.done ? `${T.n} passes` : `running, ${k} of ${T.n} passes so far`}</div>
+      ${i ? '' : `<table class="cmp"><tr><th></th><th>Today's plan</th><th>Your plan</th><th>Your plan, pass by pass</th></tr>${rows}</table>
+      <p class="small muted">Middle value of the passes so far for each plan. A pass counts as better or worse only when the two plans differ by more than 1%; smaller differences are treated as noise. Synthetic households on an illustrative fire: compare the plans, don't read the numbers as predictions.${T.done ? ' Where a line is mixed, your plan did better in some passes and worse in others; don\'t rely on it.' : ' Wait for every pass before trusting a difference.'}</p>
       ${T.done ? `<p class="small"><b>Keep exploring:</b> take one change away to see which one did the work, or add another.</p>` : ''}
       ${cant.length ? `<details class="cant"><summary>What the simulator can't tell you about these changes</summary><ul class="small">${cant.map(l => `<li><b>${esc(l.title)}:</b> ${esc(l.cannotMeasure)}</li>`).join('')}</ul></details>` : ''}`}
       ${i ? `<table class="cmp small">${rows}</table>` : ''}</div>`;
@@ -424,7 +446,7 @@ function applyPreset(idOrPreset) {
   const p = typeof idOrPreset === 'string' ? PRESETS.find(q => q.id === idOrPreset) : idOrPreset;
   if (!p.always && !p.on[state.fire]) return; // withheld on this fire
   cancelCompare(); // a comparison still running belongs to the previous plans
-  state.preset = p;
+  state.preset = p; state.presetOut = null;
   $('scenario').value = state.fire; showScenario();
   $('tod').value = p.tod; todNote(); $('severity').value = 'central'; $('seed').value = 1;
   state.plans.A = { ...p.A }; state.plans.B = { ...p.B }; state.editing = 'A'; showPlan();
@@ -436,7 +458,7 @@ function setMode(m) {
   document.body.classList.toggle('simple', m === 'simple'); document.body.classList.toggle('expert', m === 'expert');
   document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
   localStorage.setItem('bhe-mode', m);
-  if (m !== 'simple') { map.marks = []; map.draw(); } // Try-changes outlines belong to the Simple view
+  if (m !== 'simple') { map.marks = []; map.draw(); homePlayback(); } // Change-the-plan outlines and the moved playback controls belong to the Simple view
   // Street, road and buyout changes run only in the Simple view (Expert's controls and Compare carry plan
   // settings only), so leaving it drops the stack: Plan B keeps its plan settings under a name that says so.
   const dropStack = m !== 'simple' && !!state.preset?.stack;
@@ -456,11 +478,11 @@ function getFire(sc, sev, seed) {
 }
 function newRun() {
   const sc = scenario(), sev = $('severity').value, seed = +$('seed').value || 1;
-  // Your plan in Try changes (Plan B) can change streets, add roads and buy out blocks (js/levers.js); Expert view runs plans only.
+  // Your plan in Change the plan (Plan B) can change streets, add roads and buy out blocks (js/levers.js); Expert view runs plans only.
   const st = document.body.classList.contains('simple') && state.editing === 'B' ? state.preset?.stack : null, d = st ? dataFor(data, st.net) : data;
   state.sim = new Evacuation(d, grid, getFire(sc, sev, seed), sc, sev, { ...state.plans[state.editing] }, seed, TIME_OF_DAY[$('tod').value], { ...world(), ...(st?.world || {}) });
   map.data = d; map.sim = state.sim;
-  state.playing = false; runLabel('▶ Play'); $('scrub').value = 0;
+  state.playing = false; runLabel('▶ Run'); $('scrub').value = 0;
   if (map.selected?.kind === 'edge' && !d.net.edges[map.selected.id]) { map.selected = null; inspect(null); } // a new road from the previous network
   $('run-plan').textContent = `Plan ${state.editing}${state.preset ? ': ' + state.plans[state.editing].name.replace(/^[AB]: /, '') : ''}`;
   update(true); map.draw();
@@ -477,7 +499,7 @@ function loop(now) {
   if (state.playing && sim) {
     let steps = Math.min(400, Math.round(state.speed * dt / sim.dt));
     while (steps-- > 0 && sim.t < sim.end) sim.step();
-    if (sim.t >= sim.end) { state.playing = false; runLabel('▶ Play again'); update(true); map.draw(); if (document.body.classList.contains('simple')) renderSimple(); requestAnimationFrame(loop); return; }
+    if (sim.t >= sim.end) { state.playing = false; runLabel('▶ Run again'); update(true); map.draw(); if (document.body.classList.contains('simple')) renderSimple(); requestAnimationFrame(loop); return; }
     $('scrub').value = Math.floor(sim.t / 60);
     map.draw();
     if (now - lastUi > 300) { update(false); lastUi = now; }
@@ -490,12 +512,13 @@ function update(full) {
   const sim = state.sim, S = sim.summary(), sc = sim.scenario;
   const done = sim.t >= sim.end;
   $('clock').classList.toggle('done', done);
-  $('clock').innerHTML = `${done ? '<span class="done-tag">✓ Run complete</span> ' : ''}t + ${hm(sim.t)} <span class="of">of ${hm(sim.end)}${done ? '' : state.playing ? ' · playing' : sim.t > 0 ? ' · paused' : ''}</span> <span class="sub">${esc(sc.name)} · ${SEVERITY[sim.sevKey].label} severity · seed ${sim.seed} · ${esc(sim.plan.name)}</span>`;
+  $('scrub-t').textContent = hm(sim.t);
+  $('clock').innerHTML = `${done ? '<span class="done-tag">✓ Run complete</span> ' : ''}t + ${hm(sim.t)} <span class="of">of ${hm(sim.end)}${done ? '' : state.playing ? ' · running' : sim.t > 0 ? ' · paused' : ''}</span> <span class="sub">${esc(sc.name)} · ${SEVERITY[sim.sevKey].label} severity · seed ${sim.seed} · ${esc(sim.plan.name)}</span>`;
   const c = (k, v, cls = '', tip = '') => `<div class="card ${cls}" title="${esc(tip)}"><div class="v">${v}</div><div class="k">${k}${tip ? ' <span class="tip">ⓘ</span>' : ''}</div></div>`;
   const tr = (label, value, tip) => `<tr title="${esc(tip)}"><td>${label} <span class="tip">ⓘ</span></td><td class="num">${value}</td></tr>`;
   const exposed = S.exposedHome + S.exposedRoad + S.exposedNoVehicle + S.notOrderedExposed;
-  if ($('run-status')) $('run-status').innerHTML = done ? `<b>✓ Run complete.</b> ${esc(sim.plan.name)} ran the full ${hm(sim.end)} (h:mm) after ignition. The results on the right are final for this run; Play again restarts it.` : '';
-  $('results').innerHTML = `<h2>${done ? 'Results at the end of the run' : 'Results so far'} ${badge('synthetic')}</h2>
+  if ($('run-status')) $('run-status').innerHTML = done ? `<b>✓ Run complete.</b> ${esc(sim.plan.name)} ran the full ${hm(sim.end)} (h:mm) after ignition. The outcomes on the right are final for this run; Run again restarts it.` : '';
+  $('results').innerHTML = `<h2>${done ? 'Outcomes at the end of the run' : 'Outcomes so far'} ${badge('synthetic')}</h2>
     <p class="small muted">People are synthetic households placed from Genasys zone population estimates (2020 Census blocks where Genasys publishes none); the fire is an illustrative overlay. Compare plans on the same scenario and seed; do not read the numbers as predictions.</p>
     <div class="cards">
       ${c('people in ordered zones', fmt(S.orderedPeople), '', 'Residents of zones under an evacuation order so far. An order means leave now; the 2025 Evacuation Time Study assumes everyone in an order zone leaves.')}
@@ -569,10 +592,10 @@ function inspect(sel, quiet) {
   const row = (k, v, cat, note) => `<tr><td>${k}</td><td>${v}${badge(cat, note)}</td></tr>`;
   if (sel.kind === 'edge') {
     const e = net.edges[sel.id];
-    // A hypothetical road from Try changes (tools/egress-link.mjs): not a County record; every value is an assumption, derived or a model rule.
+    // A hypothetical road from Change the plan (tools/egress-link.mjs): not a County record; every value is an assumption, derived or a model rule.
     if (e.newLink || e.opened) {
       const P = LINK_PROVENANCE, cat = s => s.split(':')[0];
-      box.innerHTML = `<h2>Hypothetical new road ${badge('assumption', 'Not a County street record: added for Try changes by tools/egress-link.mjs. Not a design.')}</h2><table class="kv">
+      box.innerHTML = `<h2>Hypothetical new road ${badge('assumption', 'Not a County street record: added for Change the plan by tools/egress-link.mjs. Not a design.')}</h2><table class="kv">
         ${row('Connection', esc(e.opened ? titleCase(e.name) + ' (an existing path opened to cars)' : mit()?.levers.find(l => l.delta?.link?.id === e.src?.egressCandidate)?.delta.link.street || e.name), 'derived', P.geom)}
         ${row('Lanes [forward, back]', e.lanes.join(', '), cat(P.lanes), P.lanes)}
         ${row('Pavement width', `${fmt(e.widthM, 1)} m (${fmt(e.widthM / 0.3048)} ft), no parking`, cat(P.widthM), P.widthM)}
@@ -715,9 +738,9 @@ $('compare').onclick = () => {
       state.compareBatch = null;
       progress(''); renderCompare(results, scope);
       if ($('simple-compare')) $('simple-compare').disabled = false;
-      if (document.body.classList.contains('simple') && $('simple-result')) {
-        $('simple-result').innerHTML = takeaway(results, scope) + '<p class="small muted">The full table is in the right-hand panel.</p>';
-        $('compare-out').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (document.body.classList.contains('simple')) {
+        state.presetOut = takeaway(results, scope) + '<p class="small muted">The full table is below the run results in this panel.</p>'; renderSimple();
+        $('try-out').scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
       return;
     }
@@ -776,7 +799,7 @@ function renderCompare(results, scope) {
     }
     html += '</table>' + householdTable(results, g, scope);
   }
-  html += `<h3>Why the results differ (Plan B, first seed)</h3><ul class="small">${explain(results, groups[Math.floor(groups.length / 2)], scope)}</ul>`;
+  html += `<h3>Why the outcomes differ (Plan B, first seed)</h3><ul class="small">${explain(results, groups[Math.floor(groups.length / 2)], scope)}</ul>`;
   $('compare-out').innerHTML = html;
 }
 // One plain sentence on the preset's headline metric: medians and in how many runs B beat A.
@@ -849,7 +872,7 @@ function modal(html, cls = '') { $('modal').className = cls; $('modal-body').inn
 const INPUTS = [
   ['Fire scenario', 'Where the fire starts and how the wind blows, and so which zones the City orders out.', 'Which neighborhoods are under order; how fast embers reach homes.'],
   ['Time of day', 'Who is home, commuters driving home against the outbound traffic, and employees, students and visitors (Evacuation Time Study cases).', 'Evacuation time: weekdays are slower than nights.'],
-  ['Severity', 'Fire spread speed and ember distance: half or double the central case.', 'People still there when embers or the fire front arrived.'],
+  ['Severity', 'Fire spread speed and ember distance: half or double the medium case.', 'People still there when embers or the fire front arrived.'],
   ['Random seed', 'Which households live where, where cars are parked, and random spot fires.', 'Small differences. Trust a difference that holds across seeds.'],
   ['Decision delay', 'Minutes from ignition to the first evacuation order.', 'Households still home when embers arrive.'],
   ['Zones ordered', 'Only the City\'s pre-defined zones, or also zones within 1–3 km of the fire, or all hill zones at once.', 'Exposure falls; more cars on the road at once.'],
@@ -866,17 +889,17 @@ function intro() {
   modal(`<div class="intro"><h2>Berkeley Hills Wildfire Evacuation: Scenario Explorer</h2>
   <p>Run a wildfire on Berkeley's real streets and watch residents' cars, parked cars and fire engines compete for the same narrow roads. Compare two ways of running an evacuation on the same fire and the same households.</p>
   <p class="note">This is a teaching tool, not a prediction and not an official evacuation plan. The households are synthetic and the fire is illustrative. For real instructions see the <a href="https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation" target="_blank" rel="noopener">City's fire weather and evacuation page</a>.</p>
-  <div class="steps"><div><b>Watch a fire</b>Pick one of three illustrative fires and watch it with today's plan: fire is orange, embers amber, cars blue, queues red. The numbers on the right are the run you watched.</div><div><b>Try changes</b>Explore changes that would mitigate damage and loss of life: leave earlier, clear a curb, add a road, buy out the most exposed blocks. Stack them and compare your plan with today's plan in 15 runs with the same households.</div><div><b>Trust what holds</b>One run can point the wrong way. A difference counts only where it shows up in every run. Each change says what the simulator can't tell you about it.</div></div>
+  <div class="steps"><div><b>Today's plan</b>Pick one of three illustrative fires and watch it with today's plan: fire is orange, embers amber, cars blue, queues red. The outcomes on the right are the run you watched.</div><div><b>Change the plan</b>Explore changes that would mitigate damage and loss of life: leave earlier, clear a curb, add a road, buy out the most exposed blocks. Stack them and compare your plan with today's plan in 15 passes; each pass runs both plans on the same fire and households.</div><div><b>Trust what holds</b>One pass can point the wrong way. A difference counts only where it shows up in every pass. Each change says what the simulator can't tell you about it.</div></div>
   <h3>The inputs and what they change</h3>
   <table><tr><th>Input</th><th>What it sets</th><th>What to watch</th></tr>${INPUTS.map(r => `<tr><td><b>${r[0]}</b></td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`).join('')}</table>
-  <h3>Reading the results</h3>
+  <h3>Reading the outcomes</h3>
   <ul class="small">
     <li><b>People still there when embers arrived</b>: still at home or on the road when embers first reached their street, split into those with a car, on the road, without a car, and in zones with no order. <b>…when the fire front arrived</b> is the harsher version. Neither is a count of deaths or injuries: the simulator does not model whether a house survives, whether people can shelter, or smoke. Use them to compare plans.</li>
     <li><b>Evacuation time</b>: minutes after the first order until 90% of cars have left the order area, with the 2025 Evacuation Time Study's figure next to it for scale. The simulator lacks the City's signal timing, so on weekdays its times run 25–80 min short of the study's.</li>
     <li><b>Fire-engine travel</b> from the nearest station to the fire edge, and streets where parked cars leave less than an engine's width.</li>
     <li><b>Hill homes an engine can reach within 5 minutes</b>: the share of residents of Berkeley's Fire Zones 2–3 whose street an engine can reach from the nearest station within the City's 5-minute standard, given the plan's parked cars, before traffic and fire. It measures access only: engines do not fight the fire in this simulator.</li>
   </ul>
-  <p class="small muted">In Simple view, changes that did not reliably help on the chosen fire in earlier test runs (15 per fire) are shown greyed out with that explanation, so you can see they were considered. Expert view (the Simple / Expert switch at the top right of the page) opens every control: scenario, severity, seed, time of day and both plans. Every number shows whether it is sourced, derived, an assumption, a model rule or synthetic; see Assumptions &amp; limits and Data sources. Streets and residents beyond Berkeley (Oakland, Albany, Kensington, El Cerrito) are included up to the edge of the elevation data; north Kensington and Oakland south of about 37.84° N are not.</p>
+  <p class="small muted">In Simple view, changes that did not reliably help on the chosen fire in earlier tests (15 passes per fire) are shown greyed out with that explanation, so you can see they were considered. Expert view (the Simple / Expert switch at the top right of the page) opens every control: scenario, severity, seed, time of day and both plans. Every number shows whether it is sourced, derived, an assumption, a model rule or synthetic; see Assumptions &amp; limits and Data sources. Streets and residents beyond Berkeley (Oakland, Albany, Kensington, El Cerrito) are included up to the edge of the elevation data; north Kensington and Oakland south of about 37.84° N are not.</p>
   <div class="start"><button id="intro-expert">Open expert view</button><button class="primary" id="intro-simple">Start: pick a fire</button></div></div>`, 'intro');
   const go = m => { localStorage.setItem('bhe-intro-seen', '1'); $('modal').close(); setMode(m); };
   $('intro-simple').onclick = () => go('simple'); $('intro-expert').onclick = () => go('expert');
@@ -920,7 +943,7 @@ $('btn-assumptions').onclick = () => {
   <ul class="small">${Object.values(ROUTING).map(o => `<li><b>${esc(o.label)}</b> ${badge(o.category)}: ${esc(o.note)}</li>`).join('')}
     <li><b>Share of drivers who follow</b> ${badge('assumption')}: 100%, 65%, 50% or 15%. 15%: after the 2017 Northern and Southern California fires, 18–19% of surveyed evacuees used GPS and followed its route, and 7.5% after the 2018 Carr fire (Wong, Broader and Shaheen 2020, UC Institute of Transportation Studies, Table 10). 65%: in a 2024 evacuation drill in Roxborough Park, Colorado, 78 of 122 answers said the driver followed the route instructions (Dugstad et al. 2026). No real wildfire has measured compliance with official route guidance. The share stands in for everything the simulator cannot show: phone networks down or overloaded, people who distrust or ignore instructions, and agencies unwilling to direct people because of liability.</li>
     <li><b>Constrained guidance, settings</b>: forecast margin ${data.A.routing.forecastMarginMin} min ${badge('assumption')}; time tolerance ${data.A.routing.timeToleranceS} s ${badge('assumption')}; one second in the forecast ember area counts as ${data.A.routing.emberSecondWeight} s of driving ${badge('model rule')}; load balancing counts each car's queue delay ${1 + data.A.routing.systemQueueWeight} times ${badge('model rule')}. A street counts as in the forecast ember or fire area if embers or the front are forecast there by the time the driver would leave it, plus the margin. The forecast is the simulator's own fire, so it is never wrong; a real forecast would be uncertain, and the margin stands in for that. The comparison is the route the driver would take on their own (by habit). The time check uses current queues, and every following car at a junction gets the same route, so "never worse off" holds when the route is offered, not after the cars it sends together have built new queues. A route that is strictly safer under the forecast may be slower: with a perfect forecast the margin buys no safety in the simulator and only costs time, so some guided households reach safety later than by habit (see Households worse off below).</li>
-    <li><b>Households worse off</b> ${badge('model rule')} (Compare, when the plans differ in routing; results panel, against Habit or Today's model): a household is worse off under Plan B if it is still there when embers or the fire front reach it, or cut off, where it was not under Plan A, or reaches safety more than ${data.A.routing.worseOffDelayMin} min later, or not at all. Runs are paired by seed, households by identity. Which car reaches a junction first is partly chance, and changing only that order moves hundreds to thousands of households by more than ${data.A.routing.worseOffDelayMin} min, so Compare runs each plan a second time with another serving order and counts households worse off under both B runs than under both A runs ("beyond chance"). In test runs on three fires (SOURCE_NOTES DG23), every option, constrained guidance included, left some households worse off than Habit beyond chance in nearly every run, while leaving thousands better off.</li>
+    <li><b>Households worse off</b> ${badge('model rule')} (Compare, when the plans differ in routing; outcomes panel, against Habit or Today's model): a household is worse off under Plan B if it is still there when embers or the fire front reach it, or cut off, where it was not under Plan A, or reaches safety more than ${data.A.routing.worseOffDelayMin} min later, or not at all. Runs are paired by seed, households by identity. Which car reaches a junction first is partly chance, and changing only that order moves hundreds to thousands of households by more than ${data.A.routing.worseOffDelayMin} min, so Compare runs each plan a second time with another serving order and counts households worse off under both B runs than under both A runs ("beyond chance"). In test runs on three fires (SOURCE_NOTES DG23), every option, constrained guidance included, left some households worse off than Habit beyond chance in nearly every run, while leaving thousands better off.</li>
     <li><b>What no simulator run can justify.</b> These runs compare designs on synthetic households and an illustrative fire. None of them justifies deploying route guidance in an evacuation; at most they help decide whether a carefully constrained pilot study is worth designing. The simulator does not model the liability of telling people which way to go, how people respond to an instruction they do not trust, or what happens when the guidance itself is wrong.</li>
   <h3>Contraflow, police control and power shutoff ${badge('model rule')} ${badge('assumption')}</h3>
   <ul class="small">
@@ -937,7 +960,7 @@ $('btn-assumptions').onclick = () => {
         <li>Same regions on weekdays: 25–80 min too fast. On a fall weekday the study takes 2 h 55 min for the 1923 region; the simulator takes about 1 h 35 min.</li>
         <li>North Berkeley Hills (the north-hills fire): 13–29 min too fast at night and on weekends, 19–30 min on weekdays (fall weekday: study 2 h 5 min, simulator about 1 h 46 min).</li>
       </ul>
-      Read weekday clearance times for the large regions as a lower bound: the study's times run up to 1.8 times the simulator's. Part of the gap also comes from where employees and students park, which the simulator places by area. Differences between two plans are more reliable than either plan's clock time, but a plan that sends more traffic through signals the study found congested (around the UC campus, and the pre-timed signal at Cedar St and MLK Jr Way) can look better in the simulator than it would on the street. The results panel shows the study's time for the same case.</li>
+      Read weekday clearance times for the large regions as a lower bound: the study's times run up to 1.8 times the simulator's. Part of the gap also comes from where employees and students park, which the simulator places by area. Differences between two plans are more reliable than either plan's clock time, but a plan that sends more traffic through signals the study found congested (around the UC campus, and the pre-timed signal at Cedar St and MLK Jr Way) can look better in the simulator than it would on the street. The outcomes panel shows the study's time for the same case.</li>
   </ul>
   <h3>What Phase 1 does not do</h3>
   <ul class="small">

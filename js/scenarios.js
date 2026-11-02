@@ -8,10 +8,10 @@ export const LEAVE_EARLY_ZONES = ['BER-006', 'BER-007', 'BER-008', 'BER-015', 'B
 
 export const SEVERITY = {
   low:     { label: 'Low',     rosMpm: 7,  windFactor: 0.75, emberM: 300,  spotProb: 0.004, spotDelayMin: 4 },
-  central: { label: 'Central', rosMpm: 14, windFactor: 1.0,  emberM: 800,  spotProb: 0.012, spotDelayMin: 3 },
+  central: { label: 'Medium', rosMpm: 14, windFactor: 1.0,  emberM: 800,  spotProb: 0.012, spotDelayMin: 3 },
   high:    { label: 'High',    rosMpm: 28, windFactor: 1.3,  emberM: 1500, spotProb: 0.03,  spotDelayMin: 2 },
 };
-export const SEVERITY_NOTE = 'Central head spread rate is calibrated to the City StoryMap\'s 1923 present-day repeat (about 5 h from the eastern edge to Shattuck; SOURCE_NOTES S11); low and high are half and double. Ember distance and spot-fire probability are illustrative. The Evacuation Time Study contains no fire modeling (E31). This is not a fire-behavior model.';
+export const SEVERITY_NOTE = 'Medium severity ("central" in the code and data files): its head spread rate is calibrated to the City StoryMap\'s 1923 present-day repeat (about 5 h from the eastern edge to Shattuck; SOURCE_NOTES S11); low and high are half and double. Ember distance and spot-fire probability are illustrative. The Evacuation Time Study contains no fire modeling (E31). This is not a fire-behavior model.';
 
 // The Evacuation Time Study's six scenarios (Table 6-5, p. 6-11; SOURCE_NOTES E11).
 // Residents are never reduced. commuterShare = households waiting for a returning commuter
@@ -69,7 +69,7 @@ export function makeScenarios(data) {
       ignition: [ne[0] + SHIFT * 0.97, ne[1] + SHIFT * 0.97], ignitionLabel: 'Present-day eastern edge, 1.3 km uphill of the 1923 entry point',
       windFrom: 45, windMph: 32, durationMin: 360, timeOfDay: 'S4', clip: footprint,
       orders: R02,
-      calibration: 'Central head spread rate (14 m/min in wildland, all scenarios) is tuned so the fire reaches the west end of the 1923 footprint (Shattuck) in about 4-5 h (240-302 min over seeds 1-3; StoryMap: about 5 h). Known mismatch: it reaches the 1923 entry point in 38-108 min, earlier than the StoryMap 2.5 h, because the model spreads faster in the hills than in the flats.',
+      calibration: 'Medium-severity head spread rate (14 m/min in wildland, all scenarios) is tuned so the fire reaches the west end of the 1923 footprint (Shattuck) in about 4-5 h (240-302 min over seeds 1-3; StoryMap: about 5 h). Known mismatch: it reaches the 1923 entry point in 38-108 min, earlier than the StoryMap 2.5 h, because the model spreads faster in the hills than in the flats.',
       sources: ['Footprint: City 1923_Archival_Boundary_COB, extended 1.3 km uphill per the City Evacuation StoryMap (July 2025) §3.2',
         'Timing: StoryMap §3.2, about 2.5 h from the eastern edge to Codornices Park, 5 h to Shattuck Ave; 1923 winds were Diablo, 25-40 mph',
         'Orders and warnings: Evacuation Time Study region R02 zone lists (p. 6-6). Default time: S4, fall midweek midday, as in the StoryMap\'s combined fire/traffic run'],

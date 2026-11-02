@@ -159,3 +159,12 @@ table.cmp td.num { text-align: right; white-space: nowrap; }
 .tryres .good { color: #15803d; font-weight: 600; } .tryres .bad { color: #b91c1c; font-weight: 600; } .tryres .mixed { color: #92400e; }
 button.linkish { background: none; border: none; padding: 0; color: #9a3412; text-decoration: underline; font-size: 11px; cursor: pointer; margin-top: 2px; }
 .mk { display: inline-block; width: 14px; height: 4px; vertical-align: 2px; margin: 0 2px; }
+/* Disabled buttons look disabled (Eric, 2026-11-02: Compare looked usable before any change was picked) */
+button:disabled, button.primary:disabled { background: #e7e5e0; color: #9a948a; border-color: #d6d3cc; cursor: not-allowed; box-shadow: none; }
+#simple h3.phase { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: #7c2d12; border-bottom: 1px solid var(--line); padding-bottom: 2px; margin-top: 12px; }
+#simple h4 { font-size: 12px; margin: 8px 0 3px; color: #4b3a2a; }
+/* Simple view: the playback controls live in the open tab (#pb-slot); the Run section is Expert only */
+body.simple #run-section { display: none; }
+#playback.today .onmap { display: none; }
+#playback { margin: 6px 0; }
+.scrub-label { display: block; font-size: 11px; color: #6b5d50; margin: 6px 0 0; }
