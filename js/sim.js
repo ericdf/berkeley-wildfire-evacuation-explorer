@@ -522,7 +522,7 @@ export class Evacuation {
         if (this.safe[k][L.to]) { L.q.shift(); L.lastOut = t; B.budget--; if (L.share) L.share.used[L.dir]++; this.arrive(i); continue; }
         if (nb[L.to] < 1) break;
         const tr = this.guidance?.tree(i, k, L.e); // null: Today's tree
-        let opts = tr ? tr.at(L.to) : this.next[k][L.to]; if (!opts) break;
+        let opts = tr ? tr.at(L.to, L.from) : this.next[k][L.to]; if (!opts) break;
         // No U-turns back down the street just driven, unless it is a dead end: take the best
         // other street with a route instead (re-routing otherwise sends cars back and forth
         // around hill loops such as Orchard Ln / Arden Rd).
@@ -576,7 +576,7 @@ export class Evacuation {
     const i = L.q[0], v = this.v, k = v.cls[i];
     if (k !== 2 && this.safe[k][L.to]) return false;
     if (k === 2) { const nl = this.paths.get(i)?.[v.pidx[i]]; return nl != null && L.e !== this.hh.edge[v.hh[i]] && L.to !== v.dest[i] && this.links[nl].q.length >= this.links[nl].storage; }
-    const tr = this.guidance?.tree(i, k, L.e), opts = tr ? tr.at(L.to) : this.next[k][L.to];
+    const tr = this.guidance?.tree(i, k, L.e), opts = tr ? tr.at(L.to, L.from) : this.next[k][L.to];
     if (!opts) return true;
     return opts.every(nl => nl == null || this.links[nl].q.length >= this.links[nl].storage);
   }

@@ -38,7 +38,16 @@ export function makeGuidance(sim) {
 // (via), and the options at a node (up to three, as in sim.route()), computed when first asked.
 class Tree {
   constructor(sim, nN, nL) { this.sim = sim; this.dist = new Float64Array(nN); this.via = new Int32Array(nN); this.cost = new Float64Array(nL); this.opts = new Array(nN); this.stamp = new Int32Array(nN).fill(-1); this.version = 0; }
-  at(n) {
+  // from: the node the car arrives from. Guided trees judge the driver's own Habit route as movement
+  // would take it (no U-turn back to from while a forward street has a route), so their options are
+  // cached per approach; other trees ignore it.
+  at(n, from = -1) {
+    if (this.pick) {
+      if (this.mver !== this.version) { this.mver = this.version; this.mcache = new Map(); }
+      const key = n * 1048576 + (from + 1); let o = this.mcache.get(key);
+      if (o === undefined) { o = this.pick(n, from); this.mcache.set(key, o); }
+      return o;
+    }
     if (this.stamp[n] === this.version) return this.opts[n];
     this.stamp[n] = this.version;
     return (this.opts[n] = this.pick ? this.pick(n) : options(this.sim, this, n));
@@ -78,7 +87,7 @@ class Guidance {
     if (mode === 'guided') {
       // Guided followers are measured against the Habit route they would take themselves: the
       // ember-aware one once they have met embers on their street (guidedEmber).
-      for (const k of [0, 1]) { this.T.guided[k].pick = n => this.pickGuided(k, n, this.T.habit[k]); this.T.guidedEmber[k].pick = n => this.pickGuided(k, n, this.T.habitEmber[k]); }
+      for (const k of [0, 1]) { this.T.guided[k].pick = (n, from) => this.pickGuided(k, n, this.T.habit[k], from); this.T.guidedEmber[k].pick = (n, from) => this.pickGuided(k, n, this.T.habitEmber[k], from); }
       // forward search from a junction: cost, time, risk and first link per node, reset by generation
       this.F = { c: new Float64Array(nN), tm: new Float64Array(nN), r: new Float64Array(nN), first: new Int32Array(nN), gen: new Int32Array(nN), g: 0 };
     }
@@ -179,19 +188,31 @@ class Guidance {
   // route is preferred only when it is as safe as the safest route. If neither passes, guidance
   // offers nothing and the driver keeps their own route. Fallbacks for a full street: the driver's
   // own Habit options.
-  pickGuided(k, n, hab) {
-    const own = this.T.own[k], so = this.T.so[k], eps = 1e-6;
-    const h = this.walk(hab, n, k), base = own.at(n);
-    if (!h || !base) return hab.at(n);
-    const ok = c => c && c.R <= h.R + eps && (c.T <= h.T + this.tolS || c.R < h.R - eps);
-    const best = this.safest(n, k), lbFirst = so.via[n], lb = lbFirst >= 0 ? this.walk(so, n, k) : null;
+  pickGuided(k, n, hab, from = -1) {
+    const own = this.T.own[k], so = this.T.so[k], eps = 1e-6, links = this.sim.links;
+    const hopts = hab.at(n), base = own.at(n);
+    if (!hopts || !base) return hopts;
+    // The driver's own route is the Habit option movement would actually take: the first one that
+    // does not turn back to `from`, if there is one (Evacuation.step()'s no-U-turn rule).
+    const fwd = hopts.some(l => links[l].to !== from), hFirst = hopts.find(l => links[l].to !== from) ?? hopts[0];
+    const h = this.along(hFirst, hab, k);
+    if (!h) return hopts;
+    const uturn = l => fwd && links[l].to === from; // movement would skip it, so guidance offers nothing there
+    const ok = c => c && !uturn(c.first) && c.R <= h.R + eps && (c.T <= h.T + this.tolS || c.R < h.R - eps);
+    const best = this.safest(n, k), lbFirst = so.via[n], lb = lbFirst >= 0 ? { ...this.walk(so, n, k), first: lbFirst } : null;
     // Fallbacks for a full street are the driver's own Habit options, not unvalidated alternatives:
     // only the first street is guidance.
     const pick = first => [first, ...hab.at(n).filter(l => l !== first)].slice(0, 3);
-    if (lb && best && lbFirst !== best.first && lb.R <= best.R + eps && ok(lb)) { this.stats.offered++; return pick(lbFirst); }
+    if (lb && lb.T != null && best && lbFirst !== best.first && lb.R <= best.R + eps && ok(lb)) { this.stats.offered++; return pick(lbFirst); }
     if (best && ok(best)) { if (best.R < h.R - eps) this.stats.safety++; else this.stats.faster++; return pick(best.first); }
     this.stats.declined++;
-    return hab.at(n);
+    return hopts;
+  }
+  // Time to safety and forecast risk of driving link l now and then following tree to safety.
+  along(l, tree, k) {
+    if (this.time[l] === Infinity) return null;
+    const w = this.walk(tree, this.sim.links[l].to, k, this.time[l]);
+    return w && { T: this.time[l] + w.T, R: this.riskAt(l, 0) + w.R, first: l };
   }
 
   // Reverse Dijkstra from class k's safe nodes on tree.cost, as in sim.route(). Records the best link
@@ -218,8 +239,7 @@ class Guidance {
     if (this.mode !== 'guided' || !this.follow[i]) return by(tr.dist);
     const hab = this.habitOf(i, k), hOrder = by(hab.dist), gOrder = by(tr.dist);
     if (gOrder[0] === hOrder[0]) return gOrder;
-    const via = (l, tree) => { if (this.time[l] === Infinity) return null; const w = this.walk(tree, links[l].to, k, this.time[l]); return w && { T: this.time[l] + w.T, R: this.riskAt(l, 0) + w.R }; };
-    const h = via(hOrder[0], hab), c = via(gOrder[0], this.T.own[k]), eps = 1e-6;
+        const h = this.along(hOrder[0], hab, k), c = this.along(gOrder[0], this.T.own[k], k), eps = 1e-6;
     if (h && c && c.R <= h.R + eps && (c.T <= h.T + this.tolS || c.R < h.R - eps)) return gOrder;
     return hOrder;
   }
