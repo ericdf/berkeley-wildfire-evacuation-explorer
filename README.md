@@ -9,7 +9,7 @@ not an official evacuation plan, and must not guide real evacuation decisions.**
 For official information see the City's
 [Fire Weather and Evacuation page](https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation).
 
-The design brief is `specfication.md`. What is still missing is listed in `DATA_INVENTORY.md`. Every insight taken from a document (the City's 2025 Evacuation Time Study, SB 99 and AB 747 reports, StoryMap), with page references and what we did with it, is in `SOURCE_NOTES.md`.
+The design brief is `specification.md`. What is still missing is listed in `DATA_INVENTORY.md`. Every insight taken from a document (the City's 2025 Evacuation Time Study, SB 99 and AB 747 reports, StoryMap), with page references and what we did with it, is in `SOURCE_NOTES.md`.
 
 ## Run it
 
@@ -438,6 +438,6 @@ node tests/retreat-draws.mjs               # bought-out households leave every o
 ## License
 
 - **Code** (the program logic, markup and styles in `js/`, `tools/`, `tests/`, `css/`, `index.html`): MIT License, `LICENSE`. Copyright (c) 2026 Eric Friedman. Keep the copyright notice in any copy.
-- **Writing** (this README, `SOURCE_NOTES.md`, `HANDOFF.md`, `DATA_INVENTORY.md`, `AGENTS.md`, `CLAUDE.md`, `specfication.md`, `docs/`, `correspondence/`, and the text the simulator shows on screen, including the strings in `js/` and `index.html` and the notes in `data/assumptions.json`): Creative Commons Attribution 4.0 (CC BY 4.0), `LICENSE-TEXT.md`. Credit "Berkeley Wildfire Evacuation Simulator by Eric Friedman" with a link to this repository and the license.
+- **Writing** (this README, `SOURCE_NOTES.md`, `HANDOFF.md`, `DATA_INVENTORY.md`, `AGENTS.md`, `CLAUDE.md`, `specification.md`, `docs/`, `correspondence/`, and the text the simulator shows on screen, including the strings in `js/` and `index.html` and the notes in `data/assumptions.json`): Creative Commons Attribution 4.0 (CC BY 4.0), `LICENSE-TEXT.md`. Credit "Berkeley Wildfire Evacuation Simulator by Eric Friedman" with a link to this repository and the license.
 - **Data** keeps its publishers' terms. Streets outside Berkeley, diverter shapes and barriers come from OpenStreetMap (© OpenStreetMap contributors, Open Database License, https://www.openstreetmap.org/copyright); `data/model/network.json` and files built from it contain that data, and the ODbL's attribution and share-alike terms apply to it. The City of Berkeley, Alameda County, the U.S. Census Bureau, USGS 3DEP and the other sources listed under Data sources on the page publish the rest under their own terms. Quotations keep their authors' terms.
 

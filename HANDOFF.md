@@ -9,7 +9,7 @@
 Working rules Eric set for agents on this project: work on a branch, open a PR, request `@codex review`, fix findings, post a completion report (Produced / Verified by Codex / Verified locally / Uncertain / Needs your approval). Eric authorized merging to main without stopping in the 2026-11-02 session; confirm that still holds in a new session. Never put Eric's email in requests, commits, files or subagent briefs.
 
 
-Read this first, then `CLAUDE.md` (style and project rules), `specfication.md` (the design brief), `README.md` (how it works and how to run it) and `SOURCE_NOTES.md` (every insight with its source, the change log and the calibration history). `DATA_INVENTORY.md` lists data in hand and still needed.
+Read this first, then `CLAUDE.md` (style and project rules), `specification.md` (the design brief), `README.md` (how it works and how to run it) and `SOURCE_NOTES.md` (every insight with its source, the change log and the calibration history). `DATA_INVENTORY.md` lists data in hand and still needed.
 
 ## State
 
@@ -63,7 +63,7 @@ After the diverter rebuild and the OKL-003 Census override (2026-11-01) these mo
 
 ## Rename (done 2026-11-01)
 
-"Game" is now "simulator" everywhere except `specfication.md` (Eric's brief, left as written); the provenance category "game rule" is "model rule"; generated data lives in `data/model/`; the folder is `berkeley-wildfire-simulator`. Claude Code's project memory was copied to `~/.claude/projects/-Users-eric-prj-berkeley-wildfire-simulator/memory/`.
+"Game" is now "simulator" everywhere except `specification.md` (Eric's brief, left as written); the provenance category "game rule" is "model rule"; generated data lives in `data/model/`; the folder is `berkeley-wildfire-simulator`. Claude Code's project memory was copied to `~/.claude/projects/-Users-eric-prj-berkeley-wildfire-simulator/memory/`.
 
 ## Punch list
 
