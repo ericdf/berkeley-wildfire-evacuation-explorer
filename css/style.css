@@ -145,3 +145,4 @@ table.sortable td { font-size: 11.5px; }
 .chosen { border: 1px solid var(--accent); border-radius: 6px; padding: 6px 8px; background: #fff7ed; margin-bottom: 6px; }
 #simple details { margin: 6px 0; font-size: 12px; }
 #simple details > summary { cursor: pointer; color: #4b3a2a; }
+.lever li.worse { color: #991b1b; }

@@ -48,12 +48,16 @@ function effects(s) {
   }
   return out;
 }
+// Measures the lever makes worse in at least three of four runs and never better.
+function harms(s) {
+  return Object.keys(MEASURES).map(k => ({ k, m: s.measures[k] })).filter(({ m }) => m && m.better === 0 && m.worse >= Math.ceil(m.n * 0.75));
+}
 
 // The levers for one fire, grouped: holds on people or cars; helps engines; nothing reliable.
 export function leverGroups(fire) {
   if (!MIT) return null;
   const ran = MIT.levers.filter(l => l.ran && l.group !== 'check');
-  const rows = ran.map(l => ({ l, s: MIT.summaries.find(x => x.lever === l.id && x.fire === fire) })).filter(r => r.s).map(r => ({ ...r, eff: effects(r.s) }));
+  const rows = ran.map(l => ({ l, s: MIT.summaries.find(x => x.lever === l.id && x.fire === fire) })).filter(r => r.s).map(r => ({ ...r, eff: effects(r.s), harm: harms(r.s) }));
   const people = rows.filter(r => r.eff.some(e => e.every && PEOPLE.includes(e.k)))
     .sort((a, b) => (a.s.measures.ember.change ?? 0) - (b.s.measures.ember.change ?? 0));
   const engines = rows.filter(r => !people.includes(r) && r.eff.some(e => e.k === 'engine'))
@@ -68,12 +72,13 @@ export function leverGroups(fire) {
 export const tryable = l => !!(l.delta?.plan && !l.delta.edges && !l.delta.link && !l.delta.retreat);
 
 function card(r, fire) {
-  const { l, s, eff } = r, n = s.runs;
+  const { l, s, eff, harm } = r, n = s.runs;
+  const bad = harm.map(({ k, m }) => `<li class="worse" title="${esc(MEASURES[k].tip)}"><b>Worse — ${esc(MEASURES[k].label)}:</b> ${val(k, m.baselineCentral)} → ${val(k, m.leverCentral)} · worse in ${m.worse} of ${n}, never better</li>`).join('');
   const lines = eff.map(({ k, m, every }) => `<li title="${esc(MEASURES[k].tip)}"><b>${esc(MEASURES[k].label)}:</b> ${val(k, m.baselineCentral)} → ${val(k, m.leverCentral)} · ${every ? `better in all ${n} runs` : `better in ${m.better} of ${n}, never worse`}</li>`).join('');
   return `<div class="lever">
     <div class="lever-h"><b>${esc(l.title)}</b><span class="cost" title="${esc(l.cost?.note || '')}">${esc(costText(l.cost))}${l.cost?.note ? ' ⓘ' : ''}</span></div>
     ${l.what ? `<div class="small">${esc(l.what)}.</div>` : ''}
-    ${lines ? `<ul class="small">${lines}</ul>` : `<p class="small muted">No measure improved in every run on this fire.</p>`}
+    ${lines || bad ? `<ul class="small">${lines}${bad}</ul>` : ''}${lines ? '' : `<p class="small muted">No measure improved reliably on this fire.</p>`}
     ${l.cannotMeasure ? `<div class="cant"><b>What the simulator can't tell you:</b> ${esc(l.cannotMeasure)}</div>` : ''}
     ${tryable(l) ? `<button class="try" data-lever="${esc(l.id)}">Compare it with today's plan on the map</button>` : '<div class="small muted">A street, new-road or buyout change: tested offline on these fires; not adjustable on the map yet.</div>'}
   </div>`;
@@ -88,7 +93,7 @@ export function leversHTML(fire) {
     ${g.people.length ? g.people.map(r => card(r, fire)).join('') : '<p class="small muted">None of the tested changes did better in every run on this fire.</p>'}
     <h3>Lets fire engines reach more homes</h3>
     ${g.engines.length ? g.engines.map(r => card(r, fire)).join('') : '<p class="small muted">None on this fire.</p>'}
-    <details><summary>No reliable effect on this fire (${g.none.length})</summary>${g.none.map(r => card(r, fire)).join('')}</details>
+    <details${g.none.some(r => r.harm.length) ? ' open' : ''}><summary>No reliable benefit on this fire (${g.none.length}${g.none.some(r => r.harm.length) ? ', some make things worse' : ''})</summary>${g.none.map(r => card(r, fire)).join('')}</details>
     ${g.other.length ? `<details><summary>Not compared here (${g.other.length})</summary><ul class="small">${g.other.map(l => `<li><b>${esc(l.title)}:</b> ${esc(l.notComparable || l.pending || l.stopped || '')}</li>`).join('')}</ul></details>` : ''}`;
 }
 
@@ -96,7 +101,7 @@ export function leversHTML(fire) {
 // lever, fall night, with "What to look for" written from the stored runs.
 export function leverPreset(id, fire) {
   const l = MIT.levers.find(x => x.id === id), s = MIT.summaries.find(x => x.lever === id && x.fire === fire);
-  const eff = effects(s), first = eff.find(e => e.every) || eff[0];
+  const eff = effects(s), harm = harms(s), first = eff.find(e => e.every) || harm[0] || eff[0];
   const k = first?.k || 'ember', m = s.measures[k];
   const look = `${MEASURES[k].label}: about ${val(k, m.baselineCentral)} under Plan A and ${val(k, m.leverCentral)} under Plan B in the central case; Plan B did better in ${m.better} of ${s.runs} stored runs${m.worse ? ` and worse in ${m.worse}` : ''}. ${l.cannotMeasure ? `What the simulator can't tell you: ${l.cannotMeasure}` : ''}`;
   return {
