@@ -2,7 +2,7 @@
 // Mitigation synthesis, phase 1 (data only): every mitigation lever run against the same baseline on the
 // same fires, severities and seeds, with costs copied from earlier outputs and a robustness count.
 //
-//   node tools/mitigations.mjs [--seeds 5] [--workers N] [--report-only] [--fires a,b] [--levers a,b]
+//   node tools/mitigations.mjs [--seeds 5] [--workers N] [--report-only] [--from-runs] [--fires a,b] [--levers a,b]
 //        writes data/model/mitigations.json and docs/mitigations.md
 //
 // Baseline: DEFAULT_PLAN (js/sim.js), Time Study case S6 (fall night) for every fire, fires eastWind,
@@ -110,7 +110,10 @@ const CANNOT = {
 // ---------- small helpers ----------
 const median = a => { const s = a.filter(x => x != null && Number.isFinite(x)).sort((x, y) => x - y); return s.length ? (s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2) : null; };
 const medianTime = a => { const s = a.map(x => x == null || !Number.isFinite(x) ? Infinity : x).sort((x, y) => x - y); if (!s.length) return null; const m = s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2; return Number.isFinite(m) ? m : null; };
-const cmp = (a, b) => { const A_ = a ?? Infinity, B_ = b ?? Infinity; return A_ === B_ ? 0 : A_ < B_ ? -1 : 1; }; // lower is better; a missing clearance time is worst
+// Lower is better; a missing clearance time is worst. Differences within floating-point noise
+// (relative 1e-9; e.g. 981.18 against 981.1799999999967 from household counts × persons per
+// household) count as equal; a 5-second clearance change (about 1e-3 relative) does not.
+const cmp = (a, b) => { const A_ = a ?? Infinity, B_ = b ?? Infinity; if (A_ === B_) return 0; if (Number.isFinite(A_) && Number.isFinite(B_) && Math.abs(A_ - B_) <= 1e-9 * Math.max(1, Math.abs(A_), Math.abs(B_))) return 0; return A_ < B_ ? -1 : 1; };
 const r1 = x => x == null ? null : Math.round(x * 10) / 10;
 
 // ---------- worker ----------
@@ -272,7 +275,7 @@ function writeReport(D) {
   const PROSE_LEVERS = 'leaveEarly orderSooner parkingOneSide redCurbFoot link-CITY-1 link-AC-160-N3 link-AC-193-N1 widen-WP-001 widen-WP-007 retreat-footBlock retreat-top100 retreat-panoramicUpper';
   const full = n === 15 && D.meta.fires.length === 3 && ranLevers.map(l => l.id).join(' ') === PROSE_LEVERS;
   if (full) {
-  p(`- (Prose written for the full run of 2026-11-02; check it against the tables after any rerun.) Only the timing levers (leave early, decide faster) and buyouts on the Panoramic Hill fire lower the counts of people still there; parking, red curb, widening and new links move those counts by a few dozen people at most, either way, and hold on none of them. Of the street changes, only the City\'s Dwight Way–Dwight Place concept holds on an evacuation measure: cars cut off on the Panoramic Hill fire. The three buyouts tested are all on Panoramic Hill; the two larger ones hold on evacuation measures only on the Panoramic Hill fire (the upper-streets buyout also holds on engine reach on every fire, 1,541 → 981), and part of their drop is the bought-out people no longer counted.`);
+  p(`- (Prose written for the full run of 2026-11-02; check it against the tables after any rerun.) Only the timing levers (leave early, decide faster) and buyouts on the Panoramic Hill fire lower the counts of people still there; parking, red curb, widening and new links move those counts by a few dozen people at most, either way, and hold on none of them. Of the street changes, only the City\'s Dwight Way–Dwight Place concept holds on an evacuation measure: cars cut off on the Panoramic Hill fire. The three buyouts tested are all on Panoramic Hill; the two larger ones hold on evacuation measures only on the Panoramic Hill fire, and part of their drop is the bought-out people no longer counted.`);
   p(`- Parking, red curb, widening, the curb-clearing buyout and the two Panoramic Hill links all act through engine reach. A change at the foot of Panoramic Way is better in 12 of 15 pairs and equal in the other 3 (the seeds where no parked car blocks that block today), so it never "holds" under the 15-of-15 rule while never being worse. The new Panoramic Hill links also give engines a way around the foot, which step 2 did not measure.`);
   } else p('- This run is not the full experiment the prose was written for (different seeds, fires or levers); see the tables and the lines above. The written conclusions for the full run are in the committed `docs/mitigations.md`.');
   p('');
@@ -340,10 +343,12 @@ function writeReport(D) {
 if (argv.includes('--report-only')) { writeReport(JSON.parse(fs.readFileSync(OUT, 'utf8'))); process.exit(0); }
 
 // ---------- main: run ----------
-const NSEED = +arg('--seeds', 5), WORKERS = +arg('--workers', Math.max(1, os.cpus().length - 1));
+// --from-runs: recompute summaries and the report from the runs saved in the output (no simulation).
+const SAVED = argv.includes('--from-runs') ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : null;
+const NSEED = SAVED ? SAVED.meta.seeds.length : +arg('--seeds', 5), WORKERS = +arg('--workers', Math.max(1, os.cpus().length - 1));
 const seeds = Array.from({ length: NSEED }, (_, i) => i + 1);
-const fires = arg('--fires', null)?.split(',') ?? FIRES;
-const only = arg('--levers', null)?.split(',');
+const fires = SAVED ? SAVED.meta.fires : arg('--fires', null)?.split(',') ?? FIRES;
+const only = SAVED ? SAVED.levers.filter(l => l.ran).map(l => l.id) : arg('--levers', null)?.split(',');
 const levers = resolveLevers();
 for (const l of levers.filter(l => l.stopped)) console.log(`STOPPED ${l.id}: ${l.stopped}`);
 const runnable = levers.filter(l => !l.stopped && !l.pending && !l.notComparable && (!only || only.includes(l.id) || l.id === 'control'));
@@ -359,16 +364,19 @@ const chunks = Array.from({ length: WORKERS }, () => []);
 keys.forEach((k, i) => chunks[i % WORKERS].push(...jobs.filter(j => `${j.fire}|${j.sev}|${j.seed}` === k)));
 console.log(`${runnable.length} levers (incl. control), ${jobs.length} runs on ${WORKERS} workers`);
 const t0 = Date.now();
+let rows, wallMin;
+if (SAVED) { rows = SAVED.runs; wallMin = SAVED.meta.wallMin; console.log('summaries from saved runs'); } else {
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'mitigations-'));
-const rows = (await Promise.all(chunks.filter(c => c.length).map(async (chunk, w) => {
+rows = (await Promise.all(chunks.filter(c => c.length).map(async (chunk, w) => {
   const fin = path.join(TMP, `jobs-${w}.json`), fout = path.join(TMP, `out-${w}.json`);
   fs.writeFileSync(fin, JSON.stringify({ jobs: chunk, levers: byId }));
   await promisify(execFile)(process.execPath, ['--max-old-space-size=4096', SELF, '--worker', fin, fout], { maxBuffer: 1 << 26 });
   return JSON.parse(fs.readFileSync(fout, 'utf8'));
 }))).flat();
 fs.rmSync(TMP, { recursive: true, force: true });
-const wallMin = r1((Date.now() - t0) / 60000);
+wallMin = r1((Date.now() - t0) / 60000);
 console.log(`done in ${wallMin} min`);
+}
 
 // ---------- summaries ----------
 const keyOf = r => `${r.fire}|${r.sev}|${r.seed}`;
@@ -400,9 +408,9 @@ for (const l of runnable) for (const fire of fires) {
 }
 
 const D = {
-  meta: { built: new Date().toISOString().slice(0, 10), tool: 'tools/mitigations.mjs', report: 'docs/mitigations.md',
+  meta: { built: SAVED ? SAVED.meta.built : new Date().toISOString().slice(0, 10), workersNote: SAVED ? 'summaries recomputed from saved runs (--from-runs)' : undefined, tool: 'tools/mitigations.mjs', report: 'docs/mitigations.md',
     note: 'Educational comparison, not a prediction and not an official evacuation plan. Synthetic households, illustrative fires. "People still there when embers arrived" and "still home when the fire front arrived" count synthetic people at that moment; they are not casualty counts. Costs are screening ranges copied from earlier outputs (null = not priced, never zero).',
-    baseline: 'DEFAULT_PLAN (js/sim.js), Time Study case S6 (fall night) for every fire', plan: DEFAULT_PLAN, timeOfDay: TOD, fires, severities: SEVS, seeds, workers: WORKERS, runs: rows.length, wallMin,
+    baseline: 'DEFAULT_PLAN (js/sim.js), Time Study case S6 (fall night) for every fire', plan: DEFAULT_PLAN, timeOfDay: TOD, fires, severities: SEVS, seeds, workers: SAVED ? SAVED.meta.workers : WORKERS, runs: rows.length, wallMin,
     holdsRule: `better in every same-seed pair (${SEVS.length * seeds.length} of ${SEVS.length * seeds.length}), SOURCE_NOTES P19`, measures: Object.fromEntries(MKEYS.map(k => [k, { label: MEASURES[k].label, unit: MEASURES[k].unit, def: MEASURES[k].def }])) },
   check: { total: checks.length, ok: checks.length - mismatches.length, mismatches },
   control: { total: ctrl.length, identical: ctrlSame },
