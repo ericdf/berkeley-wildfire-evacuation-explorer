@@ -71,12 +71,14 @@ class Guidance {
     this.alerted = new Uint8Array(v.n); // habit drivers who have met embers on their street
     this.stats = { mode, share, drivers, followers, offered: 0, safety: 0, faster: 0, declined: 0 };
     const need = mode === 'habit' ? ['habit', 'habitEmber'] : mode === 'app' ? ['habit', 'habitEmber', 'app']
-      : mode === 'guided' ? ['habit', 'habitEmber', 'own', 'so', 'guided'] : ['habit', 'habitEmber', 'system'];
+      : mode === 'guided' ? ['habit', 'habitEmber', 'own', 'so', 'guided', 'guidedEmber'] : ['habit', 'habitEmber', 'system'];
     this.T = Object.fromEntries(need.map(k => [k, [new Tree(sim, nN, nL), new Tree(sim, nN, nL)]]));
     this.time = new Float64Array(nL); this.risk = new Float64Array(nL); this.queueTerm = new Float64Array(nL);
     this.lastBurn = -1; this.lastEmber = -1;
     if (mode === 'guided') {
-      for (const k of [0, 1]) this.T.guided[k].pick = n => this.pickGuided(k, n);
+      // Guided followers are measured against the Habit route they would take themselves: the
+      // ember-aware one once they have met embers on their street (guidedEmber).
+      for (const k of [0, 1]) { this.T.guided[k].pick = n => this.pickGuided(k, n, this.T.habit[k]); this.T.guidedEmber[k].pick = n => this.pickGuided(k, n, this.T.habitEmber[k]); }
       // forward search from a junction: cost, time, risk and first link per node, reset by generation
       this.F = { c: new Float64Array(nN), tm: new Float64Array(nN), r: new Float64Array(nN), first: new Int32Array(nN), gen: new Int32Array(nN), g: 0 };
     }
@@ -130,7 +132,7 @@ class Guidance {
         // Load balancing: the same safety terms, but each car also counts the delay it adds to the cars behind it.
         for (let l = 0; l < n; l++) so.cost[l] = time[l] === Infinity ? Infinity : links[l].ff + (1 + this.beta) * qt[l] + this.W * risk[l];
         this.build(so, k);
-        g.dist.set(own.dist); g.cost.set(own.cost); g.version++;
+        for (const G of [g, T.guidedEmber[k]]) { G.dist.set(own.dist); G.cost.set(own.cost); G.version++; }
       }
     }
   }
@@ -176,8 +178,8 @@ class Guidance {
   // route is preferred only when it is as safe as the safest route. If neither passes, guidance
   // offers nothing and the driver keeps their own route. Fallbacks for a full street: the driver's
   // own Habit options.
-  pickGuided(k, n) {
-    const own = this.T.own[k], so = this.T.so[k], hab = this.T.habit[k], eps = 1e-6;
+  pickGuided(k, n, hab) {
+    const own = this.T.own[k], so = this.T.so[k], eps = 1e-6;
     const h = this.walk(hab, n, k), base = own.at(n);
     if (!h || !base) return hab.at(n);
     const ok = c => c && c.R <= h.R + eps && (c.T <= h.T + this.tolS || c.R < h.R - eps);
@@ -208,8 +210,11 @@ class Guidance {
   tree(i, k, e) {
     const f = this.follow[i], T = this.T;
     if (this.mode === 'habit' && !f) return null;
-    if (this.mode !== 'habit' && f) return T[this.mode][k];
+    // Every driver, guided or not, notes embers on their street (guidance compares with the Habit
+    // route the driver would actually take).
     if (!this.alerted[i] && e >= 0 && this.sim.t >= this.sim.tEmber[e]) this.alerted[i] = 1;
+    if (this.mode === 'guided' && f) return this.alerted[i] ? T.guidedEmber[k] : T.guided[k];
+    if (this.mode !== 'habit' && f) return T[this.mode][k];
     return this.alerted[i] ? T.habitEmber[k] : T.habit[k];
   }
 }
