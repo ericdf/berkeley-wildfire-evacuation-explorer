@@ -402,7 +402,9 @@ function opsRows(e, sim, row) {
   for (const n of [e.a, e.b]) {
     const j = J.find(x => x.node === n); if (!j) continue;
     const ctl = sim.ops?.police?.nodes.includes(n), dark = sim.ops?.shutoff && j.signal && (sim.world.powerShutoff === 'all' || j.hills);
-    out += row(`Junction ${esc(j.name)}`, `${j.signal ? `${j.control === 'pretimed' ? 'pre-timed' : 'actuated'} signal (City layer)` : 'no signal'}${j.appF ? `; Time Study congestion point: ${esc(j.appF)}` : ''}${ctl ? `; officers take over at t+${hm(sim.ops.police.t)}` : ''}${dark && !ctl ? '; dark in the power shutoff: all-way stop' : ''}`, j.signal ? 'sourced' : 'derived', data.signals.meta.rule);
+    out += row(`Junction ${esc(j.name)}`, `${j.signal ? `${j.control === 'pretimed' ? 'pre-timed' : 'actuated'} signal (City layer)` : 'no signal'}${j.appF ? `; Time Study congestion point: ${esc(j.appF)}` : ''}`, j.signal ? 'sourced' : 'derived', data.signals.meta.rule);
+    if (ctl) out += row('Officer control (this plan)', sim.ops.police.controlled ? `officers in control since t+${hm(sim.ops.police.t)}` : `officers take over at t+${hm(sim.ops.police.t)}`, 'assumption', `Officers from the plan's pool arrive ${sim.plan.officerDelayMin ?? data.A.operations.police.delayMin} min after the first order; the junction then passes ${Math.round(data.A.operations.police.capacityUplift * 100)}% more vehicles and serves approaches heading toward safety first (SOURCE_NOTES CF7, CF8).`);
+    if (dark) out += row('Power shutoff (scenario)', ctl ? 'signal dark; all-way stop until officers arrive' : 'signal dark: all-way stop', 'model rule', `Signals ${sim.world.powerShutoff === 'all' ? 'across the city' : 'in and next to the hills'} go dark from the start and pass at most ${data.A.operations.powerShutoff.allWayStopVph} vehicles per hour (SOURCE_NOTES CF9, CF10). No source says which Berkeley signals went dark in past shutoffs.`);
   }
   return out;
 }
