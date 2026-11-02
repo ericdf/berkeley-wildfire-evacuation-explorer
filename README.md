@@ -29,23 +29,24 @@ Loading takes a few seconds: about 10 MB of terrain and 2 MB of street network.
 
 ## Playing
 
-**Simple view** (the default) works in three steps. **1. Pick a fire:** the east-wind fire near
+**Simple view** (the default) has two tabs. **Watch a fire:** pick the east-wind fire near
 Grizzly Peak Blvd (all of Fire Zones 2–3 ordered), the 1923 fire repeated today, or Panoramic
-Hill; the choice is remembered across visits. **2. See what it does** with today's plan (first
-order 10 minutes after ignition, today's parking, a fall night): people still there when embers
-arrived, people still home when the fire front arrived, cars cut off, hill residents an engine
-cannot reach within 5 minutes, and minutes until 90% of cars are out, as central-severity medians
-from `data/model/mitigations.json` (`tools/mitigations.mjs`, SOURCE_NOTES MS1–MS9). **3. Explore
-what would help:** every tested change, ranked for that fire. A change is listed as getting people
-out only if it did better in all 15 same-seed runs (3 severities × 5 seeds); engine-access changes
-are listed when they did better in every run or in at least three of four and never worse. Each
-card shows the cost (screening ranges from the earlier analyses), the before and after numbers, and
-what the simulator can't tell you about it. Changes that are plan settings open a Plan A / Plan B
-comparison: Watch plays one plan on the map; Compare runs both on 9 fires (3 severities × 3 seeds)
-and states how often B won. Street, new-road and buyout changes were tested offline and are not
-adjustable on the map yet. The earlier questions (`js/presets.js`, offered on a fire only where
-Plan B beat Plan A in all 15 test runs by 5% or more, SOURCE_NOTES P19–P22) are under "Other
-questions".
+Hill (remembered across visits), and watch it with today's plan (first order 10 minutes after
+ignition, today's parking, a fall night, central severity). No numbers appear until the user runs
+it; the results panel shows that run. When the run ends, the page invites the user to "explore
+changes that would mitigate damage and loss of life". **Try changes:** a checklist of changes
+(leave early, decide faster, parking, a red curb, widening, new roads, buyouts, traffic
+management), each with its cost, provenance and "What the simulator can't tell you", and a
+"Show on map" outline. Changes stack (`js/levers.js`); two settings of the same thing, or two
+rewrites of the same block, are alternatives. **Compare with today's plan** runs both plans on the
+same households in 15 runs (3 severities × 5 seeds) in background workers and reports, per
+measure, the middle value of each plan and how many runs went each way; only the full set earns a
+verdict ("better in every run", "mixed"), because one run can point the wrong way. Watching a plan
+on the map is labeled as one run. The stored results of `tools/mitigations.mjs` are not shown as
+answers: changes that did not reliably help on the chosen fire there (contraflow, police control,
+guided routing, the Buena Vista link) are greyed out with that explanation, so people see they
+were considered (SOURCE_NOTES MS11). Ready-made A/B questions (`js/presets.js`) sit under
+"Ready-made comparisons".
 
 **Expert view** opens every control:
 
@@ -294,7 +295,8 @@ add any parking-removal bonus.
 | `js/map.js`, `js/terrain.js` | Canvas map, hillshade and contours |
 | `js/fire.js`, `js/sim.js`, `js/parking.js`, `js/scenarios.js`, `js/rng.js` | Models and presets |
 | `js/presets.js` | Simple view: its fires, the "Other questions", per-fire "What to look for" text and the reasons a question is withheld |
-| `js/mitigate.js` | Simple view steps 2 and 3: reads `data/model/mitigations.json`, groups the changes for the chosen fire, and builds a Plan A / Plan B comparison from a plan-setting change |
+| `js/mitigate.js` | Simple view, Try changes: the change catalog from `data/model/mitigations.json`, the comparison measures, cost badges, and which changes the stored runs grey out |
+| `js/levers.js` | Stacks changes (plan settings, edge copies, new links, buyouts) into one run's plan, world and street network, without changing the base data; used by the page and the workers (`tests/stack.mjs`) |
 | `js/worker.js` | Runs comparison batches off the main thread |
 | `js/guidance.js` | Driver information and routing: Habit, Ordinary app, constrained guidance and system-optimal route trees; households worse off |
 | `js/access.js` | Access-constrained areas: inspector card, Expert-view summary, ranking table, map key |

@@ -72,7 +72,7 @@ const LEVERS = [
     how: 'js/presets.js leaveEarly Plan B delta', plan: presetDelta('leaveEarly'),
     costNote: 'Little capital cost: a warning and outreach the City already runs. The real costs are households\' time away from home on every Red Flag day, unpriced.',
     cannotMeasure: 'Whether half of hill households would actually leave on a real Red Flag day, and whether they keep doing it after Red Flag days with no fire (warning fatigue). The simulator places the early leavers out of the area before ignition.' },
-  { id: 'orderSooner', group: 'timing', title: 'Decide faster', what: 'first evacuation order 5 minutes after the fire starts instead of 10 (today\'s plan in this table)',
+  { id: 'orderSooner', group: 'timing', title: 'Decide faster', what: 'first evacuation order 5 minutes after the fire starts instead of 10, as in today\'s plan',
     how: 'js/presets.js orderSooner Plan B delta (the preset compares 20 → 5 min; here the baseline is DEFAULT_PLAN\'s 10)', plan: presetDelta('orderSooner'),
     costNote: 'Little capital cost: staffing and authority to issue an order on first report. Orders that turn out to be unnecessary have a social cost, unpriced.',
     cannotMeasure: 'Whether a fire can be confirmed and an order issued 5 minutes after ignition, and the cost of orders for fires that would have been caught. How fast alerts reach people is not modeled separately.' },
@@ -112,7 +112,7 @@ const LEVERS = [
   { id: 'egressGuidance', group: 'operations', title: 'Constrained egress guidance (hypothetical pilot), all drivers follow', what: 'drivers get a route only if it is no riskier than their own and at most a minute slower, or safer; nobody is told to wait',
     how: 'plan { routing: guided, compliance: 1 } (js/guidance.js, SOURCE_NOTES DG1–DG30)', plan: { routing: 'guided', compliance: 1 },
     costNote: 'Little capital cost in this table; a real system (data feeds, phones, liability) is unpriced.',
-    cannotMeasure: 'Today\'s plan in this table already gives every driver an idealized, well-informed route, so guidance has little to add here; against drivers who follow habit it does better in every run (SOURCE_NOTES DG30). Phone networks failing, distrust, and the households a real system would leave worse off are not shown here.' },
+    cannotMeasure: 'Today\'s plan already gives every driver an idealized, well-informed route, so guidance has little to add here; against drivers who follow habit it does better in every run (SOURCE_NOTES DG30). Phone networks failing, distrust, and the households a real system would leave worse off are not shown here.' },
 ];
 const CANNOT = {
   link: 'Environmental review, slope and land acquisition, and whether the link is itself in the fire\'s path on the day. Costs exclude engineering, environmental review and legal costs (egress-candidates.json meta.cost.note).',
@@ -429,7 +429,7 @@ const D = {
   check: { total: checks.length, ok: checks.length - mismatches.length, mismatches },
   control: { total: ctrl.length, identical: ctrlSame },
   levers: levers.map(l => ({ id: l.id, group: l.group, title: l.title, what: l.what ?? null, how: l.how ?? null, ran: !!byId[l.id],
-    delta: { plan: l.plan ?? null, edges: l.edges ? { variant: l.edges.variant, pinch: l.edges.pinch, edges: l.edges.edges } : null, link: l.link ? { id: l.link.id, a: l.link.a, b: l.link.b, lengthM: l.link.lengthM, street: l.link.street } : null,
+    delta: { plan: l.plan ?? null, edges: l.edges ? { variant: l.edges.variant, pinch: l.edges.pinch, edges: l.edges.edges } : null, link: l.link ? { id: l.link.id, a: l.link.a, b: l.link.b, lengthM: l.link.lengthM, street: l.link.street, geom: l.link.geom, fireZone: l.link.fireZone ?? null, open: l.link.open } : null,
       retreat: l.retreat ? { case: l.retreat.id, edges: l.retreat.edges, clearParking: !!l.clearParking } : null },
     cost: l.cost ?? null, cannotMeasure: l.cannotMeasure ?? null, stopped: l.stopped ?? null, pending: l.pending ?? null, notComparable: l.notComparable ?? null })),
   baseline, summaries, runs: rows,

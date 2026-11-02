@@ -30,6 +30,7 @@ export class MapView {
       cityBoundary: true, stations: true, noParking: false, tightTurns: false, access: false, fire: true, vehicles: true, queues: true, responder: true };
     this.streetMode = 'class';
     this.sim = null; this.selected = null; this.hover = null;
+    this.marks = []; // Simple view, Try changes: [{ geom, kind: 'street' | 'link' | 'buyout', focus }] for the picked changes
     this.zoneShapes = data.layers.evacZones.map((z, i) => ({ i, rings: z.rings, bb: bbox(z.rings) }));
     this.resize();
     this.fit();
@@ -123,10 +124,23 @@ export class MapView {
     if (L.noParking) this.drawPoints(data.layers.noParkingSigns, '#b0306a', 1.6);
     if (L.stations) this.drawStations();
     if (this.sim) this.drawIgnition();
+    this.drawMarks();
     this.drawSelection();
     this.drawScaleNorth();
   }
 
+  // The streets a picked change touches: a red curb or widening (green), a new road (dashed green),
+  // a bought-out block (purple). The change the user is looking at is drawn heavier.
+  drawMarks() {
+    const { ctx } = this; if (!this.marks.length) return;
+    const C = { street: '#15803d', link: '#15803d', buyout: '#7e22ce' };
+    ctx.save(); ctx.lineCap = 'round';
+    for (const m of this.marks) {
+      ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = m.focus ? 11 : 8; ctx.setLineDash([]); ctx.beginPath(); this.path(m.geom); ctx.stroke();
+      ctx.strokeStyle = C[m.kind]; ctx.lineWidth = m.focus ? 7 : 5; ctx.setLineDash(m.kind === 'link' ? [6, 5] : []); ctx.beginPath(); this.path(m.geom); ctx.stroke();
+    }
+    ctx.restore();
+  }
   path(pts) {
     const { ctx } = this; ctx.moveTo(this.sx(pts[0][0]), this.sy(pts[0][1]));
     for (let i = 1; i < pts.length; i++) ctx.lineTo(this.sx(pts[i][0]), this.sy(pts[i][1]));
