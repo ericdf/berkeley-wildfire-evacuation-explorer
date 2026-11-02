@@ -8,7 +8,11 @@ export async function loadData(load = browserLoad) {
   ]);
   // Optional: access-constrained areas (tools/access-constraints.mjs), for the map layer and the R0 plan setting. The simulator runs without them.
   const access = await Promise.resolve().then(() => load('data/model/access-constraints.json', 'json')).catch(() => null);
-  return prepare({ net, layers, dem, Z: new Int16Array(demBuf), A, access });
+  // Optional: signal junctions (tools/signals.mjs) and main hill exit streets (tools/contraflow-streets.mjs), for the
+  // police-control, power-shutoff and contraflow settings. Every setting is off by default.
+  const [signals, contraflow] = await Promise.all(['data/model/signals.json', 'data/model/contraflow-streets.json']
+    .map(p => Promise.resolve().then(() => load(p, 'json')).catch(() => null)));
+  return prepare({ net, layers, dem, Z: new Int16Array(demBuf), A, access, signals, contraflow });
 }
 
 async function browserLoad(path, kind) {
