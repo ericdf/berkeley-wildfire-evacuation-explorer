@@ -48,7 +48,8 @@ export const DEFAULT_PLAN = { name: 'Baseline', alertKm: 0, orderDelayMin: 10, h
 export class Evacuation {
   // world: settings shared by both plans, such as future growth ({ growth: 'none' | 'middle' | 'moderate' | 'max' }).
   // world.retreat (analysis harness only, tools/retreat-sim.mjs): { edges: street segment ids whose
-  // households are bought out, clearParking: also take the parked cars off those segments }.
+  // households are bought out, clearParking: also take the parked cars off those segments (true), or off
+  // the listed segments only }.
   constructor(data, grid, fire, scenario, sevKey, plan, seed, tod, world = {}) {
     Object.assign(this, { data, grid, fire, scenario, sevKey, plan, seed, tod, world });
     const A = data.A, net = data.net;
@@ -63,7 +64,9 @@ export class Evacuation {
     // Managed retreat (harness setting): with clearParking, bought-out segments keep no parked cars
     // (model rule). Applied after every parking draw, so the draws are unchanged.
     this.retreatEdges = world.retreat?.edges ? new Set(world.retreat.edges) : null;
-    if (this.retreatEdges && world.retreat.clearParking) for (const eid of this.retreatEdges) {
+    // clearParking: true clears every bought-out segment; a list clears only those (stacked buyouts, js/levers.js).
+    const clearIds = !this.retreatEdges || !world.retreat.clearParking ? [] : Array.isArray(world.retreat.clearParking) ? world.retreat.clearParking : [...this.retreatEdges];
+    for (const eid of clearIds) {
       const W = edges[eid]?.widthM; if (W == null || Number.isNaN(P.clear[eid])) continue;
       P.clear[eid] = W; P.eff[eid] = W >= 2 * A.access.movingLaneM ? 2 : W >= A.access.movingLaneM ? 1 : 0; P.engineOK[eid] = W >= A.access.engineClearM ? 1 : 0;
     }

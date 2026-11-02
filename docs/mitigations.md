@@ -113,7 +113,7 @@ Half of hill households (Fire Zones 2–3) leave on the Red Flag warning, before
 
 ### Decide faster
 
-First evacuation order 5 minutes after the fire starts instead of 10 (today's plan in this table). Applied with js/presets.js orderSooner Plan B delta (the preset compares 20 → 5 min; here the baseline is DEFAULT_PLAN's 10).
+First evacuation order 5 minutes after the fire starts instead of 10, as in today's plan. Applied with js/presets.js orderSooner Plan B delta (the preset compares 20 → 5 min; here the baseline is DEFAULT_PLAN's 10).
 
 - **Holds on:** eastWind: people still there when embers arrived; ref1923: people still there when embers arrived, people still home when the fire front arrived; panoramic: people still there when embers arrived, people still home when the fire front arrived, cars cut off by fire.
 - **Better in most pairs and never worse:** eastWind: people still home when the fire front arrived (14 better, 1 equal), cars cut off by fire (11 better, 4 equal); ref1923: cars cut off by fire (13 better, 2 equal).
@@ -238,7 +238,7 @@ Drivers get a route only if it is no riskier than their own and at most a minute
 
 - **Holds on:** eastWind: none; ref1923: none; panoramic: none.
 - **Cost:** little capital cost; not priced. Little capital cost in this table; a real system (data feeds, phones, liability) is unpriced.
-- **What the simulator can't measure:** Today's plan in this table already gives every driver an idealized, well-informed route, so guidance has little to add here; against drivers who follow habit it does better in every run (SOURCE_NOTES DG30). Phone networks failing, distrust, and the households a real system would leave worse off are not shown here.
+- **What the simulator can't measure:** Today's plan already gives every driver an idealized, well-informed route, so guidance has little to add here; against drivers who follow habit it does better in every run (SOURCE_NOTES DG30). Phone networks failing, distrust, and the households a real system would leave worse off are not shown here.
 
 ## Not run
 

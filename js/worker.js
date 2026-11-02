@@ -5,6 +5,7 @@ import { buildFireGrid, runFire } from './fire.js';
 import { makeScenarios, SEVERITY, TIME_OF_DAY } from './scenarios.js';
 import { Evacuation } from './sim.js';
 import { reshuffle } from './guidance.js';
+import { dataFor } from './levers.js';
 
 let data, grid, scenarios;
 const ready = (async () => { data = await loadData(); grid = buildFireGrid(data); scenarios = makeScenarios(data); })();
@@ -22,7 +23,8 @@ self.onmessage = async ev => {
     const sc = scenarios.find(s => s.id === j.scenarioId);
     const key = `${sc.id}|${j.sev}|${j.seed}`;
     if (!fires.has(key)) fires.set(key, runFire(grid, sc, SEVERITY[j.sev], j.seed));
-    const sim = new Evacuation(data, grid, fires.get(key), sc, j.sev, j.plan, j.seed, TIME_OF_DAY[j.tod || sc.timeOfDay], j.world);
+    // j.net: a stacked street network (js/levers.js stackOf), built from this worker's own copy of the data.
+    const sim = new Evacuation(dataFor(data, j.net), grid, fires.get(key), sc, j.sev, j.plan, j.seed, TIME_OF_DAY[j.tod || sc.timeOfDay], j.world);
     if (j.reshuffle) reshuffle(sim); // households worse off: the same run with another junction serving order (js/guidance.js)
     const summary = sim.runToEnd();
     self.postMessage({ batch, k, job: j, summary, events: sim.events.slice(0, 40), outcomes: j.outcomes ? sim.householdOutcomes() : undefined });
