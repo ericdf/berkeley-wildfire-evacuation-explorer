@@ -238,7 +238,7 @@ export function householdOutcomes(sim) {
   for (let h = 0; h < n; h++) {
     const e = hh.ride[h] >= 0 ? hh.ride[h] : h;
     key = (Math.imul(key, 31) + hh.edge[h] * 7 + hh.zone[h] * 3 + hh.kind[h]) | 0; // fixed at setup (hh.veh can drop during a run)
-    if (hh.early[h]) continue;
+    if (hh.early[h]) { arrive[h] = 0; trip[h] = 1; continue; } // left before ignition: safe from the start
     let x = vLevel[e];
     const tf = sim.tFire[hh.edge[h]], te = sim.tEmber[hh.edge[h]];
     if (tf <= t && hh.leftHome[e] > tf) x = Math.max(x, 2); else if (te <= t && hh.leftHome[e] > te) x = Math.max(x, 1);
