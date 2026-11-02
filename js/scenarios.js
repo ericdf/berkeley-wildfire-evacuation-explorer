@@ -114,6 +114,71 @@ export function makeScenarios(data) {
   ];
 }
 
+// ---- Fire families (opt-in, Simple view "Change the plan" and Expert Compare; docs/design/fire-families.md) ----
+// A member is one ignition point × one wind direction; speed, severity, time of day, duration and
+// orders stay the fire's. Winds 30°, 45° and 60°: the core of dry, windy hours at the Oakland North
+// weather station (20–70° held 71.8% of them, SOURCE_NOTES FF4) and the spread within one Diablo
+// event (FF6). Points are tied to historic origins and entry corridors (FF2, FF9–FF11, FF15). Every
+// new point is our assumption anchored to the sources named: no source says where the next fire will
+// start, and the members are not weighted (there is no source for weights). Coordinates (WGS84) were
+// placed on a road or landmark named by the source and checked to lie on a wildland cell of the fire
+// grid (fuel ≥ 0.7, js/fire.js buildFireGrid; tests/families.mjs). SOURCE_NOTES FF16.
+export const FAMILY_WINDS = [30, 45, 60];
+const FAMILY_POINTS = {
+  ref1923: [{ id: 'city', current: true, at: 'at the City\'s starting point', label: 'The City\'s 1923 repeat starting point (unchanged; only the wind varies, since the fire reproduces the City\'s scenario, SOURCE_NOTES S11)' }],
+  northHills: [
+    { id: 'tilden', current: true, at: 'in Tilden east of the Summit', label: 'Tilden Regional Park, about 1.2 km east of Grizzly Peak Blvd at Spruce St (the fire\'s usual start)' },
+    { id: 'anza', lonlat: [-122.2470, 37.8981], at: 'on Wildcat Canyon Rd near Lake Anza', label: 'Wildcat Canyon Rd about 150 m north-east of the shore of Lake Anza',
+      source: 'SOURCE_NOTES FF9 (1923 and 1980 fires started in Wildcat Canyon; USFA-TR-060 PDF p. 22, Oakland Draft VMP Table 6) and FF11 (WFIGS "Wildcat" incidents)' },
+    { id: 'centennial', lonlat: [-122.2458, 37.8830], at: 'on Grizzly Peak Blvd at Centennial Dr', label: 'Grizzly Peak Blvd at Centennial Dr',
+      source: 'SOURCE_NOTES FF11 (WFIGS "Grizzly" incident near Centennial Dr, 2024-07-02 UTC; a 2-acre fireworks fire reported there on July 1, 2024) and FF10 (roadside ignitions on Grizzly Peak Blvd)' },
+  ],
+  eastWind: [
+    { id: 'grizzly', current: true, at: 'in the wildland near Grizzly Peak Blvd', label: 'Wildland near Grizzly Peak Blvd, the turnout corridor (the fire\'s usual start)' },
+    { id: 'fishranch', lonlat: [-122.2168, 37.8637], at: 'on Fish Ranch Rd, east of the ridge', label: 'Fish Ranch Rd on the east slope, about 500 m below Grizzly Peak Blvd',
+      source: 'SOURCE_NOTES FF9 (the 1970 fire started "on the eastern slope of the hills near Fish Ranch Road", USFA-TR-060 PDF p. 22) and FF11 (five WFIGS "Fish" incidents)' },
+  ],
+  panoramic: [
+    { id: 'strawberry', current: true, at: 'above Panoramic Hill', label: 'Hillside above Panoramic Hill, upper Strawberry Canyon side (the fire\'s usual start)' },
+    { id: 'claremont', lonlat: [-122.2179, 37.8684], at: 'at Grizzly Peak Blvd and Claremont Ave', label: 'Upper Claremont Canyon at Grizzly Peak Blvd and Claremont Ave',
+      source: 'SOURCE_NOTES FF9 (the 1970 fire jumped Grizzly Peak Blvd into "the upper parts of Grandview and Claremont Canyons", USFA-TR-060 PDF p. 22) and FF2 (XyloPlan entry point in the Claremont Canyon area)' },
+  ],
+};
+FAMILY_POINTS.eastWindDay = FAMILY_POINTS.eastWind;
+
+// The family of a scenario from makeScenarios: [{ id, point, windFrom, ignition, label, at, isDefault }].
+// The default member is the fire as it is (its own ignition and wind).
+export function familyOf(sc, data) {
+  const pts = FAMILY_POINTS[sc.id]; if (!pts) return [{ id: 'default', point: 'default', windFrom: sc.windFrom, ignition: sc.ignition, label: sc.ignitionLabel, at: '', isDefault: true }];
+  const O = data.net.meta.origin;
+  const winds = FAMILY_WINDS.includes(sc.windFrom) ? FAMILY_WINDS : [...FAMILY_WINDS, sc.windFrom].sort((a, b) => a - b);
+  return pts.flatMap(p => {
+    const ignition = p.current ? sc.ignition : (([x, y]) => [x - O[0], y - O[1]])(toUTM(...p.lonlat));
+    return winds.filter(w => p.current || FAMILY_WINDS.includes(w)).map(w => ({ id: `${p.id}-${w}`, point: p.id, windFrom: w, ignition, label: p.label, at: p.at, lonlat: p.lonlat, source: p.source, isDefault: !!p.current && w === sc.windFrom }));
+  });
+}
+export const defaultMember = (sc, data) => familyOf(sc, data).find(m => m.isDefault).id;
+// The scenario a member runs: the fire with the member's ignition and wind. The default member (or
+// none) returns the scenario itself, so runs with families off are unchanged.
+export function memberScenario(sc, member, data) {
+  if (member == null) return sc;
+  const m = familyOf(sc, data).find(x => x.id === member);
+  if (!m) throw new Error(`no member ${member} in ${sc.id}`);
+  if (m.isDefault) return sc;
+  return { ...sc, ignition: m.ignition, windFrom: m.windFrom, ignitionLabel: `${m.label} (fire family member, our assumption)`, member: m.id };
+}
+
+// The passes of a comparison. Families off: the default member at every severity and seed given.
+// Families on: every member at every severity, with enough seeds (1, 2, …) that the total is at least
+// minPasses (ref1923 3×3×2 = 18, northHills 9×3×1 = 27, eastWind and panoramic 6×3×1 = 18).
+// key: `${fire}|${member}|${sev}|${seed}`; a stack's runs add the stack key after the member.
+export function comparisonCases(sc, data, { families = false, severities, seeds, minPasses = 15 }) {
+  const fam = familyOf(sc, data);
+  const ms = families ? fam : fam.filter(m => m.isDefault);
+  const ss = families ? Array.from({ length: Math.max(1, Math.ceil(minPasses / (ms.length * severities.length))) }, (_, i) => i + 1) : seeds;
+  return ms.flatMap(m => severities.flatMap(sev => ss.map(seed => ({ member: m.id, sev, seed, key: `${sc.id}|${m.id}|${sev}|${seed}` }))));
+}
+
 function convexHull(pts) {
   const P = [...pts].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
   const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
