@@ -1,6 +1,6 @@
 import { loadData } from './data.js';
 import { buildFireGrid, runFire, cellOf, demAt, FUEL, LB_MAX, CELL } from './fire.js';
-import { makeScenarios, SEVERITY, SEVERITY_NOTE, TIME_OF_DAY, TIME_NOTE, ETE_TARGETS } from './scenarios.js';
+import { makeScenarios, familyOf, comparisonCases, FAMILY_WINDS, SEVERITY, SEVERITY_NOTE, TIME_OF_DAY, TIME_NOTE, ETE_TARGETS } from './scenarios.js';
 import { Evacuation, DEFAULT_PLAN, titleCase } from './sim.js';
 import { PARKING_PLANS } from './parking.js';
 import { PRESETS, FIRES } from './presets.js';
@@ -184,6 +184,7 @@ function showScenario() {
   $('scenario-sources').innerHTML = sc.sources.map(s => `<li>${esc(s)}</li>`).join('') + (sc.calibration ? `<li><b>Calibration:</b> ${esc(sc.calibration)}</li>` : '') + `<li>Ignition: ${esc(sc.ignitionLabel)}; wind from ${sc.windFrom}° at ${sc.windMph} mph; runs ${sc.durationMin} min.</li>`;
   $('tod').value = sc.timeOfDay; todNote();
   $('scrub').max = sc.durationMin;
+  syncFamilies(); // the starting points shown on the map belong to this fire
 }
 $('scenario').onchange = () => { showScenario(); newRun(); };
 const todNote = () => { $('tod-note').textContent = TIME_OF_DAY[$('tod').value].note; };
@@ -220,8 +221,10 @@ $('nbhd').onchange = e => {
 // reliably help on this fire (js/mitigate.js stored), so people see they were considered.
 // A single pass can point the wrong way, so a comparison always runs all 15 passes and only the full
 // set earns a verdict; a run watched on the map is labeled as one run.
-Object.assign(state, { tab: 'watch', picked: new Set(), todayCache: new Map(), stackRuns: new Map(), tries: [], tryBatch: null });
-// stackRuns: measures of any stack of changes, keyed `${fire}|${stack key}|${severity}|${seed}` (Break down this plan reuses them).
+Object.assign(state, { tab: 'watch', picked: new Set(), todayCache: new Map(), stackRuns: new Map(), tries: [], tryBatch: null, families: false });
+// todayCache: today's plan, keyed `${fire}|${member}|${severity}|${seed}`; stackRuns: measures of any stack of changes, keyed
+// `${fire}|${member}|${stack key}|${severity}|${seed}` (Break down this plan reuses them). member is a fire family member
+// (js/scenarios.js familyOf); with families off every pass runs the fire's default member, which is the fire as it is.
 const leverById = id => mit()?.levers.find(l => l.id === id);
 const pickedLevers = () => [...state.picked].map(leverById).filter(Boolean);
 const simDone = () => state.sim && state.sim.t >= state.sim.end;
@@ -245,6 +248,44 @@ function setPace(k) {
   $('severity').value = k; newRun(); renderSimple();
 }
 
+// ---------- fire families (opt-in; docs/design/fire-families.md, SOURCE_NOTES FF1–FF18) ----------
+// Off by default. Checking the box opens the disclosure first; families take effect only after "Use them".
+// With families on, a comparison runs every member of the fire (ignition point × wind from 30°, 45°, 60°);
+// Today's plan tab still watches the fire as it is. Users never move a start or set a wind.
+const NOTES_URL = 'https://github.com/ericdf/berkeley-wildfire-simulator/blob/main/SOURCE_NOTES.md#ignition-points-and-wind-directions-for-fire-families-public-sources-2026-11-02';
+const scenById = id => scenarios.find(s => s.id === id);
+const familyPoints = sc => [...new Map(familyOf(sc, data).map(m => [m.point, m])).values()];
+const famHTML = () => `<label class="small famopt"><input type="checkbox" class="fam-box"${state.families ? ' checked' : ''}> Also test other likely starting points and wind directions</label>
+  ${state.families ? `<div class="small muted">On: a comparison tries this fire from ${famStarts(scenario())} and with wind from ${FAMILY_WINDS.map(w => `${w}°`).join(', ')}; red circles on the map mark the starts, with a line toward each wind. <button class="linkish fam-about">What this means</button></div>` : ''}`;
+const famStarts = sc => { const n = familyPoints(sc).length; return n > 1 ? `${n} starting points` : 'its usual starting point'; };
+function disclose(after) {
+  const sc = scenario(), pts = familyPoints(sc);
+  modal(`<h2>Other likely starting points and wind directions</h2>
+    <p>A fire won't start exactly where this scenario puts it, and the wind won't blow from exactly this direction. With this on, a comparison also tries the fire from ${famStarts(sc)} and from 30°, 45° and 60° (north-east winds: most dry, windy hours at the Oakland hills weather station blow from 20° to 70°). The starting points are places where fires here have started or where the County's fire-pathway study shows fire entering Berkeley. They are our choices, not probabilities: no source says where the next fire will start. A comparison takes longer.</p>
+    <p class="small"><b>${esc(FIRES.find(f => f.id === sc.id)?.title || sc.name)}</b> ${badge('assumption', 'Points and winds are this project\'s choices, anchored to the sources listed. Speed, severity, time of day, duration and evacuation orders stay the fire\'s.')}</p>
+    <ul class="small">${pts.map(p => `<li>${esc(p.label)}${p.source ? `. ${esc(p.source)}` : ''}</li>`).join('')}</ul>
+    <p class="small">The evacuation orders stay this fire's, so a fire that starts elsewhere can burn into zones nobody ordered; the comparison shows what each plan does then. Each start and wind counts equally: no source gives their likelihood. Today's plan tab still shows the fire as it is. Sources: <a href="${NOTES_URL}" target="_blank" rel="noopener">SOURCE_NOTES FF1–FF18</a>.</p>
+    <div class="btns">${after ? '<button id="fam-cancel">Cancel</button> <button class="primary" id="fam-use">Use them</button>' : '<button id="fam-cancel">Close</button>'}</div>`);
+  $('fam-cancel').onclick = () => { $('modal').close(); syncFamilies(); };
+  if ($('fam-use')) $('fam-use').onclick = () => { $('modal').close(); setFamilies(true); };
+}
+function setFamilies(on) {
+  if (state.families === on) return syncFamilies();
+  state.families = on; cancelTry(); syncFamilies();
+  if (document.body.classList.contains('simple')) renderSimple();
+}
+// The opt-in boxes (Simple view, Expert Scenario section) and the map marks follow state.families.
+function syncFamilies() {
+  document.querySelectorAll('.fam-box').forEach(b => b.checked = state.families);
+  $('families').checked = state.families;
+  $('families-note').innerHTML = state.families ? `On: Compare (this scenario, low / medium / high) tries this fire from ${famStarts(scenario())} and with wind from ${FAMILY_WINDS.map(w => `${w}°`).join(', ')}, one pass per start, wind and severity (seeds added until there are at least 15). <button class="linkish fam-about">What this means</button>` : '';
+  document.querySelectorAll('.fam-about').forEach(b => b.onclick = () => disclose(false));
+  map.family = state.families ? familyPoints(scenario()).map(p => ({ ignition: p.ignition, winds: FAMILY_WINDS })) : [];
+  map.draw();
+}
+const famBox = b => b.onchange = () => { if (b.checked) { b.checked = false; disclose(true); } else setFamilies(false); };
+famBox($('families'));
+
 function renderSimple() {
   homePlayback(); // out of #simple before it is rebuilt; moved back into the tab below
   const tabs = `<div class="tabs"><button data-tab="watch" class="${state.tab === 'watch' ? 'on' : ''}">Today's plan</button><button data-tab="try" class="${state.tab === 'try' ? 'on' : ''}">Change the plan</button></div>`;
@@ -255,6 +296,7 @@ function renderSimple() {
   if ($('try-fire')) $('try-fire').onchange = e => pickFire(e.target.value);
   if ($('go-try')) $('go-try').onclick = () => showTab('try');
   if (state.tab === 'try') wireTry();
+  $('simple').querySelectorAll('.fam-box').forEach(famBox); syncFamilies();
   if ($('pb-slot') && document.body.classList.contains('simple')) $('pb-slot').replaceWith($('playback')); // Expert keeps them in its Run section
   $('playback').classList.toggle('today', state.tab === 'watch');
   showMarks(); renderTries();
@@ -297,6 +339,7 @@ function watchHTML() {
   return `<h2><span class="step">1</span> Pick a fire scenario</h2>
     <p class="small muted"><b>Fire scenario:</b> what Berkeley doesn't control (where the fire starts, the wind, the time of day). <b>Plan:</b> what it does control, what is built or changed beforehand and how it responds on the day. Each run tests a plan against a fire scenario.</p>
     <div class="fires">${FIRES.map(f => `<button class="fire-pick${f.id === state.fire ? ' on' : ''}" data-fire="${f.id}"><b>${esc(f.title)}</b><span>${esc(f.line)}</span></button>`).join('')}</div>
+    ${famHTML()}
     ${paceHTML()}
     <h2><span class="step">2</span> Watch it with today's plan</h2>
     <p class="small">Today's plan assumes <b>the first evacuation order 10 minutes after the fire starts</b> and <b>today's street parking</b>; the fire scenario here is <b>a fall night</b> at <b title="${esc(PACE[state.pace].tip)}">${esc(PACE[state.pace].short)}</b> (change the pace above; the rest in Expert mode).</p>
@@ -315,7 +358,7 @@ function leverItem(l) {
   return `<div class="lever pick${on ? ' on' : ''}${grey ? ' grey' : ''}">
     <div class="lever-h"><label><input type="checkbox" data-lever="${esc(l.id)}"${on ? ' checked' : ''}${grey || clash ? ' disabled' : ''}> <b>${esc(l.title)}</b></label><span class="cost">${esc(costText(l.cost))} ${costBadge(l.cost)}</span></div>
     ${l.what ? `<div class="small">${esc(l.what[0].toUpperCase() + l.what.slice(1))}.</div>` : ''}
-    ${grey ? `<div class="small greynote">Tested on this fire in ${st.runs} passes against today's plan: it did not reliably help.${harm} Shown so you can see it was considered.</div>` : ''}
+    ${grey ? `<div class="small greynote">Tested on this fire in ${st.runs} passes against today's plan: it did not reliably help.${harm} Shown so you can see it was considered.${state.families ? ' Tested on this fire\'s usual start and wind.' : ''}</div>` : ''}
     ${clash ? `<div class="small muted">Can't add with “${esc(clash.p.title)}”: ${esc(clash.why)}.</div>` : ''}
     ${marksOf(l).length ? `<button class="linkish" data-show="${esc(l.id)}">Show on map</button>` : ''}
     ${l.cannotMeasure ? `<details class="cant"><summary>What the simulator can't tell you</summary>${esc(l.cannotMeasure)}</details>` : ''}
@@ -325,18 +368,19 @@ function leverItem(l) {
 function tryHTML() {
   const M = mit();
   if (!M) return '<p class="small muted">The list of changes (data/model/mitigations.json) did not load.</p>';
-  const all = M.levers.filter(stackable), picked = pickedLevers(), p = state.preset, n = M.meta.severities.length * M.meta.seeds.length;
+  const all = M.levers.filter(stackable), picked = pickedLevers(), p = state.preset, n = passesFor(state.fire).length;
   const running = state.tryBatch != null;
   return `<h2>Fire scenario: <select id="try-fire">${FIRES.map(f => `<option value="${f.id}"${f.id === state.fire ? ' selected' : ''}>${esc(f.title)}</option>`).join('')}</select></h2>
+    ${famHTML()}
     ${paceHTML()}
-    <p class="small">Build your plan from today's plan by picking changes, alone or together: changes made before the fire, and how Berkeley responds on the day. Then compare it with today's plan against this fire scenario. A comparison makes ${n} passes (low, medium and high severity × ${M.meta.seeds.length} random seeds); each pass runs both plans on the same fire and the same synthetic households. One pass can point the wrong way. Outcomes appear at the top of the right-hand panel.</p>
+    <p class="small">Build your plan from today's plan by picking changes, alone or together: changes made before the fire, and how Berkeley responds on the day. Then compare it with today's plan against this fire scenario. A comparison makes ${n} passes (${state.families ? passWords(state.fire) : `low, medium and high severity × ${M.meta.seeds.length} random seeds`}); each pass runs both plans on the same fire and the same synthetic households. One pass can point the wrong way. Outcomes appear at the top of the right-hand panel.</p>
     <div class="yourplan"><b>Your plan:</b> today's plan${picked.length ? ' + ' + picked.map(l => esc(l.title)).join(' + ') : ', nothing changed yet'}
       <div class="btns"><button id="watch-today2">▶ Watch today's plan</button><button id="watch-mine"${picked.length ? '' : ' disabled'}>▶ Watch your plan</button>
       <button id="try-compare" class="primary"${picked.length && !running ? '' : ' disabled'}>Compare with today's plan (${n} passes)</button>${picked.length ? ' <button id="try-clear">Clear</button>' : ''}</div>
       ${picked.length ? '' : '<p class="small muted">Pick at least one change below to make your plan.</p>'}
       <div id="pb-slot"></div>
       <p class="small muted">Watching makes a single run of a plan against the fire scenario. Compare uses multiple passes to achieve a useful comparison.</p>
-      <p class="small muted">On the map: <span class="mk" style="background:#15803d"></span>street changed, <span class="mk" style="background:repeating-linear-gradient(90deg,#15803d 0 4px,transparent 4px 7px)"></span>new road, <span class="mk" style="background:#7e22ce"></span>bought out. Point at a change to see where it is.</p></div>
+      <p class="small muted">On the map: <span class="mk" style="background:#15803d"></span>street changed, <span class="mk" style="background:repeating-linear-gradient(90deg,#15803d 0 4px,transparent 4px 7px)"></span>new road, <span class="mk" style="background:#7e22ce"></span>bought out. Point at a change to see where it is.${state.families ? ' Red circles mark the starting points the comparison tries, with lines for winds from 30°, 45° and 60°.' : ''}</p></div>
     ${state.tries.length ? '<p class="small"><b>Your comparisons are at the top of the right-hand panel →</b></p>' : ''}
     ${GROUPS.map(([phase, sub]) => `<h3 class="phase">${esc(phase)}</h3>` + sub.map(([title, groups]) => { const ls = all.filter(l => groups.includes(l.group)); return ls.length ? `<h4>${esc(title)}</h4>${ls.map(leverItem).join('')}` : ''; }).join('')).join('')}
     <details${p && !['today', 'try'].includes(p.id) ? ' open' : ''}><summary>Ready-made comparisons</summary>${presetsHTML()}</details>`;
@@ -395,16 +439,24 @@ function cancelTry() {
   state.tries = state.tries.filter(t => t.done); // an unfinished comparison earns no verdict
   for (const t of state.tries) if (t.bd?.running) delete t.bd; // nor does an unfinished breakdown
 }
+// The passes of a comparison on a fire (js/scenarios.js comparisonCases): severities × seeds of the stored
+// table with families off; every family member × severity, with seeds added to reach 15, with families on.
+const passesFor = (fire, families = state.families) => comparisonCases(scenById(fire), data, { families, severities: mit().meta.severities, seeds: mit().meta.seeds });
+function passWords(fire) {
+  const sc = scenById(fire), pts = familyPoints(sc).length, ms = familyOf(sc, data).length, seeds = passesFor(fire).length / ms / mit().meta.severities.length;
+  return `${pts > 1 ? `${pts} starting points × ` : ''}winds from ${FAMILY_WINDS.map(w => `${w}°`).join(', ')} × low, medium and high severity${seeds > 1 ? ` × ${seeds} random seeds` : ', one random seed'}`;
+}
+const secs = ms => { const s = Math.round(ms / 1000); return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${s % 60} s`; };
 function compareStack() {
   const M = mit(), levers = pickedLevers(); if (!levers.length) return;
   cancelTry(); cancelCompare();
   const st = stackOf(levers), fire = state.fire, W = world();
-  const cases = M.meta.severities.flatMap(sev => M.meta.seeds.map(seed => ({ sev, seed, key: `${fire}|${sev}|${seed}` })));
-  const T = { fire, titles: levers.map(l => l.title), ids: levers.map(l => l.id), n: cases.length, A: {}, B: {}, done: false, cases };
+  const cases = passesFor(fire);
+  const T = { fire, titles: levers.map(l => l.title), ids: levers.map(l => l.id), n: cases.length, A: {}, B: {}, done: false, cases, families: state.families, t0: performance.now() };
   for (const c of cases) if (state.todayCache.has(c.key)) T.A[c.key] = state.todayCache.get(c.key);
   const base = { scenarioId: fire, tod: 'S6' };
-  const jobs = [...cases.filter(c => !T.A[c.key]).map(c => ({ ...base, sev: c.sev, seed: c.seed, key: c.key, side: 'A', plan: { ...DEFAULT_PLAN, name: "A: today's plan" }, world: W })),
-    ...cases.map(c => ({ ...base, sev: c.sev, seed: c.seed, key: c.key, side: 'B', plan: { ...st.plan, name: 'B: your plan' }, world: { ...W, ...st.world }, net: st.net }))];
+  const jobs = [...cases.filter(c => !T.A[c.key]).map(c => ({ ...base, member: c.member, sev: c.sev, seed: c.seed, key: c.key, side: 'A', plan: { ...DEFAULT_PLAN, name: "A: today's plan" }, world: W })),
+    ...cases.map(c => ({ ...base, member: c.member, sev: c.sev, seed: c.seed, key: c.key, side: 'B', plan: { ...st.plan, name: 'B: your plan' }, world: { ...W, ...st.world }, net: st.net }))];
   state.tries.unshift(T); state.tries.length = Math.min(state.tries.length, 6);
   const batch = ++state.batch; state.tryBatch = batch;
   const ws = workers(), parts = ws.map(() => []); jobs.forEach((j, i) => parts[i % ws.length].push(j));
@@ -414,10 +466,10 @@ function compareStack() {
   ws.forEach((w, i) => {
     w.onmessage = ev => {
       const m = ev.data; if (m.batch !== batch || state.tryBatch !== batch) return;
-      if (m.done) { if (++finished === ws.length) { T.done = true; state.tryBatch = null; $('sim-banner').hidden = true; renderSimple(); } return; }
+      if (m.done) { if (++finished === ws.length) { T.done = true; T.ms = performance.now() - T.t0; state.tryBatch = null; $('sim-banner').hidden = true; renderSimple(); } return; }
       const v = Object.fromEntries(Object.entries(MEASURES).map(([k, d]) => [k, d.f(m.summary)]));
       T[m.job.side][m.job.key] = v; if (m.job.side === 'A') state.todayCache.set(m.job.key, v);
-      if (m.job.side === 'B') state.stackRuns.set(`${fire}|${st.key}|${m.job.sev}|${m.job.seed}`, v);
+      if (m.job.side === 'B') state.stackRuns.set(`${fire}|${m.job.member}|${st.key}|${m.job.sev}|${m.job.seed}`, v);
       if (T.A[m.job.key] && T.B[m.job.key]) passes++; progress(); renderTries();
     };
     w.postMessage({ batch, jobs: parts[i] });
@@ -441,12 +493,13 @@ const bdVariants = T => {
   for (const l of ls) { out.set(stackOf([l]).key, [l]); const rest = ls.filter(x => x !== l); out.set(stackOf(rest).key, rest); }
   return out;
 };
-const bdMissing = T => [...bdVariants(T)].flatMap(([vk, ls]) => T.cases.filter(c => !state.stackRuns.has(`${T.fire}|${vk}|${c.sev}|${c.seed}`)).map(c => ({ vk, ls, c })));
+const runKey = (T, vk, c) => `${T.fire}|${c.member}|${vk}|${c.sev}|${c.seed}`;
+const bdMissing = T => [...bdVariants(T)].flatMap(([vk, ls]) => T.cases.filter(c => !state.stackRuns.has(runKey(T, vk, c))).map(c => ({ vk, ls, c })));
 function breakdown(T) {
   cancelTry(); cancelCompare();
   const W = world(), base = { scenarioId: T.fire, tod: 'S6' };
   const jobs = bdMissing(T).map(({ vk, ls, c }) => { const st = stackOf(ls);
-    return { ...base, sev: c.sev, seed: c.seed, key: `${T.fire}|${vk}|${c.sev}|${c.seed}`, side: 'S', plan: { ...st.plan, name: 'B: part of your plan' }, world: { ...W, ...st.world }, net: st.net }; });
+    return { ...base, member: c.member, sev: c.sev, seed: c.seed, key: runKey(T, vk, c), side: 'S', plan: { ...st.plan, name: 'B: part of your plan' }, world: { ...W, ...st.world }, net: st.net }; });
   T.bd = { running: true, got: 0, total: jobs.length };
   const progress = () => { $('sim-banner').hidden = !T.bd?.running; $('sim-banner-text').textContent = `Breaking down your plan: ${T.bd?.got ?? 0} of ${jobs.length} simulations done…`; $('sim-banner-bar').style.width = `${Math.round(100 * (T.bd?.got ?? 0) / Math.max(1, jobs.length))}%`; };
   const finish = () => { T.bd.running = false; state.tryBatch = null; $('sim-banner').hidden = true; renderTries(); };
@@ -469,7 +522,7 @@ function tally(xs, ys) { let better = 0, worse = 0; for (let i = 0; i < xs.lengt
 const holds = t => t.better === t.n, mostly = t => t.worse === 0 && t.better >= Math.ceil(0.75 * t.n);
 function breakdownHTML(T) {
   const ls = T.ids.map(leverById), keys = T.cases.map(c => c.key);
-  const run = (vk, c) => state.stackRuns.get(`${T.fire}|${vk}|${c.sev}|${c.seed}`);
+  const run = (vk, c) => state.stackRuns.get(runKey(T, vk, c));
   const today = m => keys.map(k => T.A[k][m]), full = m => keys.map(k => T.B[k][m]);
   const v = (m, x) => x == null ? (MEASURES[m].time ? 'not reached' : '—') : MEASURES[m].time ? `${Math.round(x)} min` : fmt(x);
   const rows = ls.map(l => {
@@ -503,6 +556,28 @@ function bdButtonHTML(T) {
   const n = bdMissing(T).length;
   return `<div class="btns"><button id="bd-go">Break down this plan</button></div><p class="small muted">For each change: what it does alone, and what your plan loses without it, over the same ${T.n} passes${n ? ` (${n} more simulations)` : ''}.</p>`;
 }
+// Families on: under the verdicts, one line per measure when the change helps at some members and not
+// others ("Helps when the fire starts at X; no reliable effect when it starts at Y"). A member's verdict
+// uses the same rules over its own passes (3, or 6 on the 1923 fire). Members are listed in their fixed
+// order, never ranked (docs/design/fire-families.md).
+function memberLines(T) {
+  if (!T.families || !T.done) return '';
+  const fam = familyOf(scenById(T.fire), data), single = new Set(fam.map(m => m.point)).size === 1;
+  const where = ms => {
+    const by = new Map(); for (const m of ms) by.set(m.point, [...(by.get(m.point) || []), m.windFrom]);
+    return [...by].map(([p, ws]) => { const all = ws.length === fam.filter(f => f.point === p).length;
+      return single ? `with wind from ${ws.map(w => `${w}°`).join(' or ')}` : `${fam.find(f => f.point === p).at}${all ? '' : ` with wind from ${ws.map(w => `${w}°`).join(' or ')}`}`; }).join(', or ');
+  };
+  const lines = Object.entries(MEASURES).map(([m, d]) => {
+    const cls = fam.map(mem => { const ks = T.cases.filter(c => c.member === mem.id).map(c => c.key), t = tally(ks.map(k => T.B[k][m]), ks.map(k => T.A[k][m]));
+      return { mem, c: holds(t) || mostly(t) ? 'helps' : t.better === 0 && t.worse >= Math.ceil(0.75 * t.n) ? 'harms' : 'none' }; });
+    if (new Set(cls.map(x => x.c)).size < 2) return '';
+    const of = k => cls.filter(x => x.c === k).map(x => x.mem), lead = single ? '' : 'when the fire starts ', then = single ? '' : 'when it starts ';
+    const parts = [of('helps').length ? `Helps ${lead}${where(of('helps'))}` : '', of('none').length ? `${of('helps').length ? 'no' : 'No'} reliable effect ${of('helps').length ? then : lead}${where(of('none'))}` : '', of('harms').length ? `worse ${then}${where(of('harms'))}` : ''].filter(Boolean);
+    return `<li title="${esc(d.tip)}"><b>${esc(d.label)}:</b> ${parts.join('; ')}.</li>`;
+  }).filter(Boolean).join('');
+  return lines ? `<h3>Where the fire starts and how the wind blows</h3><ul class="small">${lines}</ul>` : `<p class="small muted">Every start and wind gave the same verdict on every measure.</p>`;
+}
 function triesHTML() {
   if (!state.tries.length) return '';
   return state.tries.map((T, i) => {
@@ -521,9 +596,11 @@ function triesHTML() {
       return `<tr title="${esc(d.tip)}"><td>${esc(d.label)} <span class="tip">ⓘ</span></td><td class="num">${v(median(keys.map(x => T.A[x][m])))}</td><td class="num">${v(median(keys.map(x => T.B[x][m])))}</td><td>${verdict}</td></tr>`;
     }).join('');
     const cant = T.ids.map(leverById).filter(l => l?.cannotMeasure);
-    return `<div class="tryres${i ? ' old' : ''}"><div><b>Today's plan + ${T.titles.map(esc).join(' + ')}</b> · ${esc(fire.title)} · ${T.done ? `${T.n} passes` : `running, ${k} of ${T.n} passes so far`}</div>
+    return `<div class="tryres${i ? ' old' : ''}"><div><b>Today's plan + ${T.titles.map(esc).join(' + ')}</b> · ${esc(fire.title)}${T.families ? ` · ${familyPoints(scenById(T.fire)).length > 1 ? 'other starts and winds' : 'other winds'}` : ''} · ${T.done ? `${T.n} passes${T.ms != null ? ` in ${secs(T.ms)}` : ''}` : `running, ${k} of ${T.n} passes so far`}</div>
       ${i ? '' : `<table class="cmp"><tr><th></th><th>Today's plan</th><th>Your plan</th><th>Your plan, pass by pass</th></tr>${rows}</table>
       <p class="small muted">Middle value of the passes so far for each plan. A pass counts as better or worse only when the two plans differ by more than 1%; smaller differences are treated as noise. Synthetic households on an illustrative fire: compare the plans, don't read the numbers as predictions.${T.done ? ' Where a line is mixed, your plan did better in some passes and worse in others; don\'t rely on it.' : ' Wait for every pass before trusting a difference.'}</p>
+      ${memberLines(T)}
+      ${T.families && T.done ? `<p class="small muted">Passes: ${esc(passWords(T.fire))}. The starts and winds are our choices, not probabilities, and count equally. Evacuation orders stay this fire's.</p>` : ''}
       ${T.done ? (T.ids.length >= 2 ? bdButtonHTML(T) : `<p class="small"><b>Keep exploring:</b> add another change to see whether it adds anything.</p>`) : ''}
       ${cant.length ? `<details class="cant"><summary>What the simulator can't tell you about these changes</summary><ul class="small">${cant.map(l => `<li><b>${esc(l.title)}:</b> ${esc(l.cannotMeasure)}</li>`).join('')}</ul></details>` : ''}`}
       ${i ? `<table class="cmp small">${rows}</table>` : ''}</div>`;
@@ -822,7 +899,10 @@ function cancelCompare() {
 $('compare').onclick = () => {
   readPlan();
   const scope = $('cmp-scope').value, seeds = [1, 2, 3], sc = scenario();
-  const cases = scope === 'severities' ? ['low', 'central', 'high'].flatMap(sev => seeds.map(seed => ({ scenarioId: sc.id, sev, seed, tod: $('tod').value })))
+  // Fire families on (Scenario section): this scenario's passes run every member (js/scenarios.js comparisonCases).
+  const fam = scope === 'severities' && state.families && !document.body.classList.contains('simple'); // Ready-made comparisons keep their 9 passes
+  const cases = fam ? comparisonCases(sc, data, { families: true, severities: ['low', 'central', 'high'] }).map(c => ({ scenarioId: sc.id, member: c.member, sev: c.sev, seed: c.seed, tod: $('tod').value }))
+    : scope === 'severities' ? ['low', 'central', 'high'].flatMap(sev => seeds.map(seed => ({ scenarioId: sc.id, sev, seed, tod: $('tod').value })))
     : scenarios.flatMap(s => seeds.map(seed => ({ scenarioId: s.id, sev: 'central', seed, tod: s.timeOfDay })));
   const W = world(), jobs = ['A', 'B'].flatMap(p => cases.map(c => ({ ...c, tod: state.preset?.tods?.[p] ?? c.tod, planKey: p, plan: { ...state.plans[p] }, world: W })));
   if (routingDiffers()) { for (const j of jobs) j.outcomes = true; jobs.push(...jobs.filter(j => j.planKey === 'A' || j.planKey === 'B').map(j => ({ ...j, planKey: j.planKey + '2', reshuffle: true }))); } // households worse off (js/guidance.js)
@@ -835,7 +915,7 @@ $('compare').onclick = () => {
     const m = ev.data; if (m.batch !== batch || state.compareBatch !== batch) return; // a closed comparison renders nothing
     if (m.done) {
       state.compareBatch = null;
-      progress(''); renderCompare(results, scope);
+      progress(''); renderCompare(results, scope, fam ? { n: cases.length, words: `${familyPoints(sc).length > 1 ? `${familyPoints(sc).length} starting points × ` : ''}winds from ${FAMILY_WINDS.join('°, ')}°` } : null);
       if ($('simple-compare')) $('simple-compare').disabled = false;
       if (document.body.classList.contains('simple')) {
         state.presetOut = takeaway(results, scope) + '<p class="small muted">The full table is below the run results in this panel.</p>'; renderSimple();
@@ -872,14 +952,14 @@ const METRICS = [
   ['Officers used (contraflow and junctions)', S => S.officersUsed, 0],
   ['Signals dark (power shutoff)', S => S.signalsDark, 0],
 ];
-function renderCompare(results, scope) {
+function renderCompare(results, scope, fam = null) {
   const groups = scope === 'severities' ? ['low', 'central', 'high'] : scenarios.map(s => s.id);
   const gname = g => scope === 'severities' ? SEVERITY[g].label + ' severity' : scenarios.find(s => s.id === g).name;
   const pick = (p, g) => results.filter(r => r.job.planKey === p && (scope === 'severities' ? r.job.sev === g : r.job.scenarioId === g)).map(r => r.summary);
   const med = a => { const s = a.filter(x => x != null && !Number.isNaN(x)).sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : null; };
   const range = a => { const s = a.filter(x => x != null && !Number.isNaN(x)); return s.length ? `${fmt(Math.min(...s))}–${fmt(Math.max(...s))}` : '—'; };
   let html = `<h2>Plan comparison ${badge('synthetic')}</h2>
-    <p class="small">Green or red means B is better or worse than A in every run, by at least 10%; gray means the change is smaller or points different ways across runs, so there is no clear difference. A: <b>${esc(state.plans.A.name)}</b> · B: <b>${esc(state.plans.B.name)}</b>.${results[0]?.job.world?.growth && results[0].job.world.growth !== 'none' ? ` Future growth for both: ${esc(data.A.growth.options[results[0].job.world.growth].label)}.` : ''} Both plans ran the same fires, households and random seeds (1–3). Values are the median of 3 seeds with the min–max range under it. A difference smaller than the range is not a robust result.</p>`;
+    <p class="small">Green or red means B is better or worse than A in every run, by at least 10%; gray means the change is smaller or points different ways across runs, so there is no clear difference. A: <b>${esc(state.plans.A.name)}</b> · B: <b>${esc(state.plans.B.name)}</b>.${results[0]?.job.world?.growth && results[0].job.world.growth !== 'none' ? ` Future growth for both: ${esc(data.A.growth.options[results[0].job.world.growth].label)}.` : ''} ${fam ? ` Fire families on: each severity ran ${esc(fam.words)} (${fam.n / 3} runs per plan per severity, our choices, counted equally; orders stay the scenario's). Both plans ran the same fires, households and seeds. Values are the median of those runs with the min–max range under it.` : ' Both plans ran the same fires, households and random seeds (1–3). Values are the median of 3 seeds with the min–max range under it.'} A difference smaller than the range is not a robust result.</p>`;
   html += takeaway(results, scope) + householdTakeaway(results, scope);
   for (const g of groups) {
     const A = pick('A', g), B = pick('B', g);
@@ -905,7 +985,8 @@ function renderCompare(results, scope) {
 function takeaway(results, scope) {
   const p = state.preset; if (!p?.headline || scope !== 'severities') return '';
   const { label, f, dir } = p.headline;
-  const pairs = results.filter(r => r.job.planKey === 'A').map(a => [f(a.summary), f(results.find(b => b.job.planKey === 'B' && b.job.sev === a.job.sev && b.job.seed === a.job.seed).summary)]);
+  const twin = a => results.find(b => b.job.planKey === 'B' && b.job.sev === a.job.sev && b.job.seed === a.job.seed && b.job.member === a.job.member);
+  const pairs = results.filter(r => r.job.planKey === 'A').map(a => [f(a.summary), f(twin(a).summary)]);
   const med = a => { const v = [...a].sort((x, y) => x - y); return v[Math.floor(v.length / 2)]; };
   const ma = med(pairs.map(x => x[0])), mb = med(pairs.map(x => x[1]));
   const better = pairs.filter(([a, b]) => (b - a) * dir > 0).length, worse = pairs.filter(([a, b]) => (b - a) * dir < 0).length;
@@ -913,7 +994,7 @@ function takeaway(results, scope) {
   const exF = S => S.exposedHome + S.exposedRoad + S.exposedNoVehicle + S.notOrderedExposed;
   let other = '';
   if (f.toString() !== exF.toString() && !/embers arrived/.test(label)) {
-    const ex = results.filter(r => r.job.planKey === 'A').map(a => exF(results.find(b => b.job.planKey === 'B' && b.job.sev === a.job.sev && b.job.seed === a.job.seed).summary) - exF(a.summary));
+    const ex = results.filter(r => r.job.planKey === 'A').map(a => exF(twin(a).summary) - exF(a.summary));
     if (!(ex.every(x => x < -0.5) || ex.every(x => x > 0.5))) other = ` People still there when embers arrived show no clear difference (B − A ranges from ${fmt(Math.min(...ex))} to ${fmt(Math.max(...ex))} across runs).${p.otherNote ? ' ' + esc(p.otherNote) : ''}`;
   }
   return `<div class="takeaway${robust ? '' : ' mixed'}"><b>${esc(label)}:</b> about ${fmt(ma)} under Plan A and ${fmt(mb)} under Plan B (median of ${pairs.length} runs). Plan B did better in ${better} of ${pairs.length} runs and worse in ${worse}.${robust ? '' : ' The difference does not hold in every run, so treat it as uncertain.'}${other} These are synthetic households on an illustrative fire, not a prediction.</div>`;
@@ -927,7 +1008,7 @@ function routingDiffers() {
 // plan also reruns with another junction serving order); A against its rerun (chance alone); and
 // A against B (better off under B).
 function householdPairs(results, g, scope) {
-  const thr = data.A.routing.worseOffDelayMin, same = (x, y) => x.job.sev === y.job.sev && x.job.seed === y.job.seed && x.job.scenarioId === y.job.scenarioId;
+  const thr = data.A.routing.worseOffDelayMin, same = (x, y) => x.job.sev === y.job.sev && x.job.seed === y.job.seed && x.job.scenarioId === y.job.scenarioId && x.job.member === y.job.member;
   return results.filter(r => r.job.planKey === 'A' && r.outcomes && (g == null || (scope === 'severities' ? r.job.sev === g : r.job.scenarioId === g))).map(a => {
     const f = k => results.find(r => r.job.planKey === k && same(r, a)), b = f('B'), a2 = f('A2'), b2 = f('B2');
     if (!b?.outcomes || !a2?.outcomes || !b2?.outcomes) return null;
@@ -1019,6 +1100,8 @@ $('btn-assumptions').onclick = () => {
   <h3>Fire and ember overlay ${badge('model rule')}</h3>
   <p class="small"><b>Fire crews.</b> The fire's pace comes from real fires and the City's repeat of 1923 (Simple view: "Like 1923" and "Like 1991"), so it includes the firefighting effort seen in those fires. In a wind-driven fire the Fire Department expects crews to focus on supporting evacuation, and aircraft are grounded in high wind (SOURCE_NOTES FS14). The simulator does not add crews holding the fire's sides, or the fire stopping when the wind changes, as both 1923 and 1991 did (FS15). The scenario may exaggerate the spread as winds die and firefighters establish control. Engines in the simulator only drive, to measure whether they could reach homes.</p>
   <p class="small">${esc(SEVERITY_NOTE)} Spread runs on ${CELL} m cells: wind sets an elliptical shape (Anderson 1983 length-to-breadth, capped at ${LB_MAX}); uphill is faster and downhill slower; a proxy fuel factor comes from the City fire zones (${Object.entries(FUEL).map(([k, v]) => `${k} ${v}`).join(', ')}), not from vegetation data. Spot fires are random, so seeds differ. A cell is "ember-exposed" once any burning cell lies within the ember distance upwind. The 1923 reference fire is confined to the City's archival boundary.</p>
+  <p class="small"><b>Wind.</b> Each fire's wind, 30 to 35 mph, is an extreme hour: dry north-east winds at the Oakland hills weather station average that strongly about 1% of the time (1992–2026). The 1923 and 1991 fires burned in such winds. In this model the speed sets only the fire's shape, which stops changing above about 18 mph, so a lower speed would give the same fires ${badge('derived', 'Oakland North RAWS, WRCC frequency tool, June 1992 – October 2026: of 7,340 hours with wind from 0–90° and humidity ≤ 25%, 1.3% averaged 30 mph or more (SOURCE_NOTES FF5). Length-to-breadth is capped at ' + LB_MAX + ', reached at about 11 mph (high severity), 14 mph (medium) and 18 mph (low); the head spread rate is calibrated, not computed from wind.')}.</p>
+  <p class="small"><b>Fire families</b> ${badge('assumption')} (off by default; the box under the fire in Simple view, and in Expert view's Scenario section). With them on, a comparison also runs each fire from other starting points (the 1923 fire keeps the City's) and with wind from 30°, 45° and 60°, the core of dry, windy hours at that station (20–70° held 71.8% of them). The points are tied to past fire origins and the County's fire-pathway study and are our choices: no source gives where the next fire will start, so every start and wind counts equally. Speed, severity, time of day, duration and orders stay the fire's, so a start elsewhere can burn into zones the fire's orders leave out. The 1923 fire stays inside the City's footprint at every wind, which cuts it more at 30° and 60° than at 45° (SOURCE_NOTES FF16–FF18).</p>
   <table><tr><th>Severity</th><th>Head spread (m/min)</th><th>Wind ×</th><th>Ember distance (m)</th><th>Spot probability</th></tr>${Object.values(SEVERITY).map(s => `<tr><td>${s.label}</td><td>${s.rosMpm}</td><td>${s.windFactor}</td><td>${s.emberM}</td><td>${s.spotProb}</td></tr>`).join('')}</table>
   <h3>Time of day ${badge('assumption')}</h3><p class="small">${esc(TIME_NOTE)}</p>
   <table>${Object.values(TIME_OF_DAY).map(t => `<tr><td>${t.label}</td><td>households awaiting a commuter ${t.commuterShare * 100}%, school in session ${t.schoolInSession * 100}%, background traffic allowance ${t.background * 100}%</td><td class="small">${esc(t.note)}</td></tr>`).join('')}</table>

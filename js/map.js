@@ -30,6 +30,7 @@ export class MapView {
       cityBoundary: true, stations: true, noParking: false, tightTurns: false, access: false, fire: true, vehicles: true, queues: true, responder: true };
     this.streetMode = 'class';
     this.sim = null; this.selected = null; this.hover = null;
+    this.family = []; // fire families on: [{ ignition, winds }] for the starting points a comparison tries (js/main.js syncFamilies)
     this.marks = []; // Simple view, Change the plan: [{ geom, kind: 'street' | 'link' | 'buyout', focus }] for the picked changes
     this.zoneShapes = data.layers.evacZones.map((z, i) => ({ i, rings: z.rings, bb: bbox(z.rings) }));
     this.resize();
@@ -123,6 +124,7 @@ export class MapView {
     if (L.tightTurns) this.drawTightTurns();
     if (L.noParking) this.drawPoints(data.layers.noParkingSigns, '#b0306a', 1.6);
     if (L.stations) this.drawStations();
+    this.drawFamily();
     if (this.sim) this.drawIgnition();
     this.drawMarks();
     this.drawSelection();
@@ -431,6 +433,20 @@ export class MapView {
     for (const eid of r.route) { ctx.beginPath(); this.path(this.data.net.edges[eid].geom); ctx.stroke(); }
     ctx.setLineDash([]);
     if (r.pinch) { ctx.strokeStyle = '#c0262d'; ctx.lineWidth = 6; for (const eid of r.pinch) { ctx.beginPath(); this.path(this.data.net.edges[eid].geom); ctx.stroke(); } }
+  }
+  // Fire families: a small circle at each starting point a comparison tries, with a short line toward
+  // where each family wind comes from (30°, 45°, 60°). No picker: the watched run stays the fire as it is.
+  drawFamily() {
+    const { ctx } = this; if (!this.family.length) return;
+    ctx.save();
+    for (const f of this.family) {
+      const X = this.sx(f.ignition[0]), Y = this.sy(f.ignition[1]);
+      ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 1.5;
+      for (const w of f.winds) { const a = w * Math.PI / 180; ctx.beginPath(); ctx.moveTo(X, Y); ctx.lineTo(X + Math.sin(a) * 22, Y - Math.cos(a) * 22); ctx.stroke(); }
+      ctx.fillStyle = '#fff'; ctx.strokeStyle = '#b91c1c'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(X, Y, 5, 0, 7); ctx.fill(); ctx.stroke();
+    }
+    ctx.restore();
   }
   drawIgnition() {
     const { ctx } = this, [x, y] = this.sim.scenario.ignition, X = this.sx(x), Y = this.sy(y);
