@@ -517,8 +517,12 @@ export class Evacuation {
         // No U-turns back down the street just driven, unless it is a dead end: take the best
         // other street with a route instead (re-routing otherwise sends cars back and forth
         // around hill loops such as Orchard Ln / Arden Rd).
+        let tu = tr;
+        // Guidance offers only checked routes: if every one turns back, it declines here and the
+        // driver does what they would do themselves (their Habit route, and its U-turn rule).
+        if (tr?.pick && opts.every(o => links[o].to === L.from)) { tu = this.guidance.habitOf(i, k); opts = tu.at(L.to) || opts; }
         if (opts.every(o => links[o].to === L.from)) {
-          const dist = tr ? tr.dist : this.dist[k], cost = tr ? tr.cost : this.linkCost;
+          const dist = tu ? tu.dist : this.dist[k], cost = tu ? tu.cost : this.linkCost;
           const alt = this.outL[L.to].filter(o => links[o].to !== L.from && cost[o] < Infinity && dist[links[o].to] < Infinity)
             .sort((a, b) => cost[a] + dist[links[a].to] - cost[b] - dist[links[b].to]);
           if (alt.length) opts = alt.slice(0, 2);

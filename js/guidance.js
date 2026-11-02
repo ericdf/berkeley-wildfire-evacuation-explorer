@@ -206,6 +206,9 @@ class Guidance {
     tree.version++;
   }
 
+  // The Habit tree driver i would follow on their own (ember-aware once they have met embers).
+  habitOf(i, k) { return this.alerted[i] ? this.T.habitEmber[k] : this.T.habit[k]; }
+
   // The route tree vehicle i (class 0 or 1) follows on edge e, or null for Today's tree.
   tree(i, k, e) {
     const f = this.follow[i], T = this.T;
