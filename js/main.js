@@ -1163,6 +1163,7 @@ $('btn-assumptions').onclick = () => {
 $('btn-sources').onclick = () => {
   const S = data.layers.meta.sources || [];
   modal(`<h2>Data sources</h2><p class="small">Every imported layer, where it came from and how the simulator uses it. See <code>DATA_INVENTORY.md</code> for missing inputs.</p>
+  <p class="small">Each layer stays under its publisher's terms. OpenStreetMap data © OpenStreetMap contributors, available under the <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">Open Database License</a>; the street network built with it carries that license. The simulator's code is MIT-licensed; its writing, including the text on this page, is CC BY 4.0, both © 2026 Eric Friedman and both requiring attribution (<code>LICENSE</code>, <code>LICENSE-TEXT.md</code>).</p>
   <table><tr><th>Layer</th><th>Publisher · retrieved</th><th>Used for</th></tr>${S.map(s => `<tr><td>${esc(s.title)} ${badge(s.category)}${s.url ? `<div class="small"><a href="${esc(s.url)}" target="_blank" rel="noopener">service</a></div>` : ''}</td><td class="small">${esc(s.publisher)}<br>${esc(s.retrieved || '')}${s.lastEdit ? `<br>last edited ${esc(s.lastEdit)}` : ''}</td><td class="small">${esc(s.why)}</td></tr>`).join('')}</table>`);
 };
 
