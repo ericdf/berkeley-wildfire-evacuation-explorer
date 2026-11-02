@@ -13,7 +13,7 @@ import { loadData } from '../js/data.js';
 import { buildFireGrid, runFire } from '../js/fire.js';
 import { makeScenarios, SEVERITY, TIME_OF_DAY } from '../js/scenarios.js';
 import { Evacuation, DEFAULT_PLAN } from '../js/sim.js';
-import { worseOff, worstOf, bestOf, reshuffle } from '../js/guidance.js';
+import { worseOff, worseOffBeyondChance, reshuffle } from '../js/guidance.js';
 
 const data = await loadData(async (p, k) => { const b = fs.readFileSync(p); return k === 'json' ? JSON.parse(b) : b.buffer.slice(b.byteOffset, b.byteOffset + b.length); });
 const grid = buildFireGrid(data);
@@ -37,9 +37,9 @@ for (let seed = 1; seed <= +nSeeds; seed++) {
     const a = build(), S = a.runToEnd(), b = reshuffle(build()), S2 = b.runToEnd();
     out[k] = { S, S2, O: a.householdOutcomes(), O2: b.householdOutcomes() };
   }
-  const H = out.habit, hw = worstOf(H.O, H.O2);
+  const H = out.habit;
   for (const k of names) {
-    const { S, S2, O, O2 } = out[k], w = worseOff(H.O, O, thr), wb = worseOff(hw, bestOf(O, O2), thr), better = worseOff(O, H.O, thr);
+    const { S, S2, O, O2 } = out[k], w = worseOff(H.O, O, thr), wb = worseOffBeyondChance(H.O, H.O2, O, O2, thr), better = worseOff(O, H.O, thr);
     // totals: mean of the two serving orders
     const mean = f => { const x = f(S), y = f(S2); return x == null || y == null ? null : Math.round((x + y) / 2); };
     const row = { seed, v: k, embers: mean(embers), fireFront: mean(s => s.fireFrontHome + s.fireFrontRoad), cutOff: mean(s => s.vehiclesNoRoute), p90: mean(s => s.clearP90),

@@ -7,7 +7,7 @@ import { PRESETS, FIRES } from './presets.js';
 import { MapView, STREET_MODES } from './map.js';
 import { fromUTM } from '../tools/utm.mjs';
 import { accessCard, accessSummary, accessTable, accessLegend } from './access.js';
-import { ROUTING, routingOf, complianceOf, worseOff, worstOf, bestOf } from './guidance.js';
+import { ROUTING, routingOf, complianceOf, worseOff, worseOffBeyondChance } from './guidance.js';
 
 const $ = id => document.getElementById(id);
 const fmt = (x, d = 0) => x == null || Number.isNaN(x) ? '—' : x === Infinity ? '∞' : Number(x).toLocaleString(undefined, { maximumFractionDigits: d, minimumFractionDigits: d });
@@ -126,7 +126,7 @@ function routingPanel(sim, S, done) {
   }
   const thr = data.A.routing.worseOffDelayMin;
   if (!P.ready) return html + `<p class="small muted">Checking households worse off against ${esc(ROUTING[base].short)}: three background runs of the same fire, households and seed…</p>`;
-  const w = worseOff(P.runs[0], P.mine, thr), wb = worseOff(worstOf(P.runs[0], P.runs[1]), bestOf(P.mine, P.runs[2]), thr), floor = worseOff(P.runs[0], P.runs[1], thr), better = worseOff(P.mine, P.runs[0], thr);
+  const w = worseOff(P.runs[0], P.mine, thr), wb = worseOffBeyondChance(P.runs[0], P.runs[1], P.mine, P.runs[2], thr), floor = worseOff(P.runs[0], P.runs[1], thr), better = worseOff(P.mine, P.runs[0], thr);
   if (!w) return html;
   return html + `<table class="kv">
     ${tr(`Households worse off than under ${esc(ROUTING[base].short)}`, fmt(w.households), `Same fire, households, parked cars and seed; only routing differs. Worse off: still there when embers or the fire front reached them, or cut off, where they were not under ${ROUTING[base].short}, or reaching safety more than ${thr} min later or not at all (model rule).`)}
@@ -529,7 +529,7 @@ function householdPairs(results, g, scope) {
     const f = k => results.find(r => r.job.planKey === k && same(r, a)), b = f('B'), a2 = f('A2'), b2 = f('B2');
     if (!b?.outcomes || !a2?.outcomes || !b2?.outcomes) return null;
     const w = worseOff(a.outcomes, b.outcomes, thr); if (!w) return null;
-    return { w, wb: worseOff(worstOf(a.outcomes, a2.outcomes), bestOf(b.outcomes, b2.outcomes), thr), floor: worseOff(a.outcomes, a2.outcomes, thr), better: worseOff(b.outcomes, a.outcomes, thr) };
+    return { w, wb: worseOffBeyondChance(a.outcomes, a2.outcomes, b.outcomes, b2.outcomes, thr), floor: worseOff(a.outcomes, a2.outcomes, thr), better: worseOff(b.outcomes, a.outcomes, thr) };
   }).filter(Boolean);
 }
 const medOf = a => { const s = a.filter(x => x != null).sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : null; };

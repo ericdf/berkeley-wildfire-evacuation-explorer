@@ -174,15 +174,17 @@ class Guidance {
   // street. A candidate is offered only if it is no riskier than the driver's own route and either at
   // most tolS slower at current queues or strictly safer (safety before speed). The load-balancing
   // route is preferred only when it is as safe as the safest route. If neither passes, guidance
-  // offers nothing and the driver keeps their own route. Fallbacks for a full street: the static
-  // safest tree's options.
+  // offers nothing and the driver keeps their own route. Fallbacks for a full street: the driver's
+  // own Habit options.
   pickGuided(k, n) {
     const own = this.T.own[k], so = this.T.so[k], hab = this.T.habit[k], eps = 1e-6;
     const h = this.walk(hab, n, k), base = own.at(n);
     if (!h || !base) return hab.at(n);
     const ok = c => c && c.R <= h.R + eps && (c.T <= h.T + this.tolS || c.R < h.R - eps);
     const best = this.safest(n, k), lbFirst = so.via[n], lb = lbFirst >= 0 ? this.walk(so, n, k) : null;
-    const pick = first => [first, ...base.filter(l => l !== first)].slice(0, 3);
+    // Fallbacks for a full street are the driver's own Habit options, not unvalidated alternatives:
+    // only the first street is guidance.
+    const pick = first => [first, ...hab.at(n).filter(l => l !== first)].slice(0, 3);
     if (lb && best && lbFirst !== best.first && lb.R <= best.R + eps && ok(lb)) { this.stats.offered++; return pick(lbFirst); }
     if (best && ok(best)) { if (best.R < h.R - eps) this.stats.safety++; else this.stats.faster++; return pick(best.first); }
     this.stats.declined++;
@@ -253,32 +255,52 @@ export function householdOutcomes(sim) {
 // later by more than delayMin, or not at all. Also the mean change in minutes to safety among
 // households that reached it in both runs (positive: faster under b). null when the runs hold
 // different households.
+// How household h fares under run b against run a: null if not worse off, else the reason
+// ('cutOff', 'fireFront', 'embers', 'notSafe', 'later') and the extra minutes to safety.
+function worse(a, b, h, delayMin) {
+  const la = a.level[h], lb = b.level[h], ta = a.arrive[h], tb = b.arrive[h];
+  if (lb > la) return { why: lb === 3 ? 'cutOff' : lb === 2 ? 'fireFront' : 'embers', delay: 0 };
+  if (ta < Infinity && tb === Infinity) return { why: 'notSafe', delay: 0 };
+  if (ta < Infinity && tb - ta > delayMin) return { why: 'later', delay: tb - ta };
+  return null;
+}
+const same = (...r) => r.every(x => x && x.n === r[0].n && x.key === r[0].key);
+const tally = (r, w) => { r.households++; r[w.why]++; if (w.why === 'later') r.worstDelayMin = Math.max(r.worstDelayMin, w.delay); };
+const blank = () => ({ households: 0, cutOff: 0, fireFront: 0, embers: 0, later: 0, notSafe: 0, worstDelayMin: 0, compared: 0 });
+const active = (rs, h) => rs.some(x => x.trip[h] || x.level[h]);
+
 export function worseOff(a, b, delayMin) {
-  if (!a || !b || a.n !== b.n || a.key !== b.key) return null;
-  const r = { households: 0, cutOff: 0, fireFront: 0, embers: 0, later: 0, notSafe: 0, worstDelayMin: 0, compared: 0, gainSum: 0, gainN: 0 };
+  if (!same(a, b)) return null;
+  const r = blank(); let gainSum = 0, gainN = 0;
   for (let h = 0; h < a.n; h++) {
-    if (!a.trip[h] && !b.trip[h] && !a.level[h] && !b.level[h]) continue;
+    if (!active([a, b], h)) continue;
     r.compared++;
-    const la = a.level[h], lb = b.level[h], ta = a.arrive[h], tb = b.arrive[h];
-    if (ta < Infinity && tb < Infinity) { r.gainSum += ta - tb; r.gainN++; }
-    if (lb > la) { r.households++; if (lb === 3) r.cutOff++; else if (lb === 2) r.fireFront++; else r.embers++; continue; }
-    if (ta < Infinity && tb === Infinity) { r.households++; r.notSafe++; continue; }
-    if (ta < Infinity && tb - ta > delayMin) { r.households++; r.later++; r.worstDelayMin = Math.max(r.worstDelayMin, tb - ta); }
+    const ta = a.arrive[h], tb = b.arrive[h];
+    if (ta < Infinity && tb < Infinity) { gainSum += ta - tb; gainN++; }
+    const w = worse(a, b, h, delayMin); if (w) tally(r, w);
   }
-  r.meanGainMin = r.gainN ? r.gainSum / r.gainN : null;
-  delete r.gainSum;
+  r.meanGainMin = gainN ? gainSum / gainN : null;
   return r;
 }
 
-// Each household's worse (worstOf) or better (bestOf) outcome of two runs of the same plan that
-// differ only in the junction serving order. worseOff(worstOf(A, A2), bestOf(B, B2)) counts
-// households worse off under B in both serving orders than under A in both ("beyond chance"),
-// which filters out most of the chance in who reaches a junction first.
-function combine(a, a2, f) {
-  if (!a || !a2 || a.n !== a2.n || a.key !== a2.key) return null;
-  const level = new Uint8Array(a.n), arrive = new Float32Array(a.n), trip = new Uint8Array(a.n);
-  for (let h = 0; h < a.n; h++) { level[h] = f(a.level[h], a2.level[h]); arrive[h] = f(a.arrive[h], a2.arrive[h]); trip[h] = a.trip[h] | a2.trip[h]; }
-  return { n: a.n, key: a.key, level, arrive, trip };
+// Households worse off under B than under A in every one of the four actual pairings of two runs
+// per plan that differ only in the junction serving order ("beyond chance"). The reason reported
+// is the least severe of the four pairings; the delay the smallest.
+const SEV = { later: 0, notSafe: 1, embers: 2, fireFront: 3, cutOff: 4 };
+export function worseOffBeyondChance(a, a2, b, b2, delayMin) {
+  if (!same(a, a2, b, b2)) return null;
+  const r = blank();
+  for (let h = 0; h < a.n; h++) {
+    if (!active([a, a2, b, b2], h)) continue;
+    r.compared++;
+    let least = null;
+    for (const [x, y] of [[a, b], [a, b2], [a2, b], [a2, b2]]) {
+      const w = worse(x, y, h, delayMin);
+      if (!w) { least = null; break; }
+      if (!least || SEV[w.why] < SEV[least.why] || (w.why === least.why && w.delay < least.delay)) least = w;
+    }
+    if (least) tally(r, least);
+  }
+  return r;
 }
-export const worstOf = (a, a2) => combine(a, a2, Math.max);
-export const bestOf = (a, a2) => combine(a, a2, Math.min);
+
