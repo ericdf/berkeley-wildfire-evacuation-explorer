@@ -110,7 +110,12 @@ export function setupOperations(sim) {
     }
     const comps = [...byT].flatMap(([told, ids]) => components(ids, edges).map(ids => ({ ids, entries: entriesOf(ids), told, use: Math.max(...ids.map(id => edgeUse[id])), name: [...new Set(ids.map(id => edges[id].name))].slice(0, 2).join(' / ') })))
       .sort((a, b) => b.use - a.use);
-    const installedEntries = components(ok, edges).reduce((s, ids) => s + entriesOf(ids).length, 0);
+    // Sign inventory: the entry points of each whole wide-enough street, plus the activation
+    // boundaries where this run's order times split a street into pieces told at different times
+    // (an activation needs a sign there too, so the count and cost include it).
+    const wholeEntries = new Set(components(ok, edges).flatMap(entriesOf)), installed = new Set(wholeEntries);
+    for (const c of comps) for (const n of c.entries) installed.add(n);
+    const installedEntries = installed.size, boundaryEntries = installedEntries - wholeEntries.size;
     const hillNode = new Uint8Array(nN); for (const e of edges) if (e.fireZone >= 2) { hillNode[e.a] = 1; hillNode[e.b] = 1; }
     const signs = plan.contraflowMode === 'signs', power = plan.contraflowPower || 'battery', fallback = plan.contraflowFallback || 'officers';
     const cf = ops.cf = { status, comps, entries: 0, active: 0, segments: 0, failedSigns: 0, failedPower: 0, failedFire: 0, short: 0, mode: signs ? 'signs' : 'officers', planned: comps.length, plannedEntries: comps.reduce((s, c) => s + c.entries.length, 0), installedEntries, outside: never };
@@ -141,7 +146,7 @@ export function setupOperations(sim) {
     });
     cf.blocked = new Int8Array(edges.length).fill(-1); // closed direction per edge once active (engines)
     const narrow = [...status.values()].filter(s => !s.ok).length;
-    ops.log.push([0, `Contraflow plan (${CONTRAFLOW_SETS[plan.contraflow]}, ${signs ? `pre-installed signs and gates, ${{ grid: 'grid power only', battery: 'battery backup', mechanical: 'mechanical fallback' }[power]}` : 'officer-staffed'}): ${ok.length} of ${cand.length} street segments are wide enough for two outbound lanes with this plan's parked cars; ${narrow} are not and stay two-way. ${signs ? `Signs and gates go at all ${installedEntries} entry points on the wide-enough segments${C.costPerEntryUSD[power] ? ` (about $${fmtK(installedEntries * C.costPerEntryUSD[power][0])}–$${fmtK(installedEntries * C.costPerEntryUSD[power][1])}; gates not costed)` : ' (no public unit cost found for mechanical signs and gates)'}. ` : ''}${comps.length} contraflow pieces with ${cf.plannedEntries} entry points lie in zones this run orders or warns${never ? `; ${never} wide-enough segment${never > 1 ? 's lie' : ' lies'} in zones it never orders or warns and stay${never > 1 ? '' : 's'} two-way` : ''}.`, 'plan']);
+    ops.log.push([0, `Contraflow plan (${CONTRAFLOW_SETS[plan.contraflow]}, ${signs ? `pre-installed signs and gates, ${{ grid: 'grid power only', battery: 'battery backup', mechanical: 'mechanical fallback' }[power]}` : 'officer-staffed'}): ${ok.length} of ${cand.length} street segments are wide enough for two outbound lanes with this plan's parked cars; ${narrow} are not and stay two-way. ${signs ? `Signs and gates go at all ${installedEntries} entry points on the wide-enough segments${boundaryEntries ? `, ${boundaryEntries} of them where this run's order times split a street into pieces activated at different times` : ''}${C.costPerEntryUSD[power] ? ` (about $${fmtK(installedEntries * C.costPerEntryUSD[power][0])}–$${fmtK(installedEntries * C.costPerEntryUSD[power][1])}; gates not costed)` : ' (no public unit cost found for mechanical signs and gates)'}. ` : ''}${comps.length} contraflow pieces with ${cf.plannedEntries} entry points lie in zones this run orders or warns${never ? `; ${never} wide-enough segment${never > 1 ? 's lie' : ' lies'} in zones it never orders or warns and stay${never > 1 ? '' : 's'} two-way` : ''}.`, 'plan']);
     const notRunning = comps.filter(c => c.state !== 'scheduled');
     if (notRunning.length) ops.log.push([0, `Contraflow will not run on ${notRunning.length} of the pieces in the order area: ${[...new Set(notRunning.map(c => c.state.replace('not running: ', '')))].slice(0, 3).join('; ')}.`, 'warn']);
   }
