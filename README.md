@@ -29,19 +29,19 @@ Loading takes a few seconds: about 10 MB of terrain and 2 MB of street network.
 
 ## Playing
 
-**Simple view** (the default) has two tabs. **Watch a fire:** pick the east-wind fire near
+**Simple view** (the default) has two tabs. **Today's plan:** pick the east-wind fire near
 Grizzly Peak Blvd (all of Fire Zones 2–3 ordered), the 1923 fire repeated today, or Panoramic
 Hill (remembered across visits), and watch it with today's plan (first order 10 minutes after
-ignition, today's parking, a fall night, central severity). No numbers appear until the user runs
-it; the results panel shows that run. When the run ends, the page invites the user to "explore
-changes that would mitigate damage and loss of life". **Try changes:** a checklist of changes
+ignition, today's parking, a fall night, medium severity). No numbers appear until the user runs
+it; the outcomes panel shows that run. When the run ends, the page invites the user to "explore
+changes that would mitigate damage and loss of life". **Change the plan**: a **fire scenario** is what Berkeley doesn't control (ignition, wind, time of day); a **plan** is what it does control, changes made before the fire and the response on the day; each run tests a plan against a fire scenario. The tab is a checklist, grouped Before the fire and On the day, of changes
 (leave early, decide faster, parking, a red curb, widening, new roads, buyouts, traffic
 management), each with its cost, provenance and "What the simulator can't tell you", and a
 "Show on map" outline. Changes stack (`js/levers.js`); two settings of the same thing, or two
 rewrites of the same block, are alternatives. **Compare with today's plan** runs both plans on the
 same households in 15 passes (3 severities × 5 seeds; each pass runs both plans) in background workers and reports, at the top of the right-hand panel, per
 measure, the middle value of each plan and how many passes went each way; only the full set earns a
-verdict ("better in every pass", "mixed"), because one pass can point the wrong way. Watching a plan
+verdict ("better in every pass", "mixed"), because one pass can point the wrong way; a pass counts as better or worse only when the two plans differ by more than 1%. Watching a plan
 on the map is labeled as one run. The stored results of `tools/mitigations.mjs` are not shown as
 answers: changes that did not reliably help on the chosen fire there (contraflow, police control,
 guided routing, the Buena Vista link) are greyed out with that explanation, so people see they
@@ -295,7 +295,7 @@ add any parking-removal bonus.
 | `js/map.js`, `js/terrain.js` | Canvas map, hillshade and contours |
 | `js/fire.js`, `js/sim.js`, `js/parking.js`, `js/scenarios.js`, `js/rng.js` | Models and presets |
 | `js/presets.js` | Simple view: its fires, the "Other questions", per-fire "What to look for" text and the reasons a question is withheld |
-| `js/mitigate.js` | Simple view, Try changes: the change catalog from `data/model/mitigations.json`, the comparison measures, cost badges, and which changes the stored runs grey out |
+| `js/mitigate.js` | Simple view, Change the plan: the change catalog from `data/model/mitigations.json`, the comparison measures, cost badges, and which changes the stored runs grey out |
 | `js/levers.js` | Stacks changes (plan settings, edge copies, new links, buyouts) into one run's plan, world and street network, without changing the base data; used by the page and the workers (`tests/stack.mjs`) |
 | `js/worker.js` | Runs comparison batches off the main thread |
 | `js/guidance.js` | Driver information and routing: Habit, Ordinary app, constrained guidance and system-optimal route trees; households worse off |

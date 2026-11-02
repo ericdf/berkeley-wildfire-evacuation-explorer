@@ -1,4 +1,4 @@
-// Simple view, "Try changes": the catalog of changes a user can stack, and the measures a
+// Simple view, "Change the plan": the catalog of changes a user can stack, and the measures a
 // comparison reports. Reads data/model/mitigations.json (tools/mitigations.mjs; SOURCE_NOTES MS1–MS11).
 // The stored results are not shown as answers (Eric, 2026-11-02: people should explore, not be told).
 // They are used for one thing only: a change that did not reliably help on the chosen fire in the
@@ -10,7 +10,7 @@ export const MEASURES = {
   ember: { label: 'People still there when embers arrived', f: S => S.exposedHome + S.exposedRoad + S.exposedNoVehicle + S.notOrderedExposed,
     tip: 'Synthetic people at home, on the road, or without a car when embers first reached their street. Not a casualty count.' },
   front: { label: 'People still there when the fire front arrived', f: S => S.fireFrontHome + S.fireFrontRoad,
-    tip: 'Synthetic people at home or on the road when the fire front itself reached their street, as in the results panel. Not a casualty count.' },
+    tip: 'Synthetic people at home or on the road when the fire front itself reached their street, as in the outcomes panel. Not a casualty count.' },
   cutOff: { label: 'Cars cut off by fire', f: S => S.vehiclesNoRoute,
     tip: 'Cars on the road with no remaining way out at the end of the run.' },
   engine: { label: 'Hill residents an engine cannot reach within 5 minutes', f: S => S.engineReachBeyond5People,
@@ -48,11 +48,9 @@ export function stored(id, fire) {
   return { reliable, harms, runs: s.runs };
 }
 
-// Groups for the checklist, in the order a resident might think of them.
+// Groups for the checklist: the plan's two halves (Eric, 2026-11-02: "there's a fire scenario and a plan
+// and we are testing the plan against that scenario"), changes made before the fire and the response on the day.
 export const GROUPS = [
-  ['When people leave', ['timing']],
-  ['Streets and parking', ['parking', 'widen']],
-  ['New roads', ['link']],
-  ['Buyouts', ['retreat']],
-  ['Traffic management on the day', ['operations']],
+  ['Before the fire', [['Streets and parking', ['parking', 'widen']], ['New roads', ['link']], ['Buyouts', ['retreat']]]],
+  ['On the day', [['When people leave', ['timing']], ['Traffic management', ['operations']]]],
 ];
