@@ -191,7 +191,7 @@ $('growth').onchange = () => { growthNote(); r0Note(); newRun(); };
 ['severity', 'seed', 'tod'].forEach(id => $(id).onchange = () => { todNote(); newRun(); });
 $('street-mode').onchange = e => { map.streetMode = e.target.value; map.draw(); legend(); };
 $('speed').onchange = e => state.speed = +e.target.value;
-$('run').onclick = () => { if (state.sim.t >= state.sim.end) newRun(); state.playing = !state.playing; runLabel(state.playing ? '❚❚ Pause' : '▶ Play'); update(false); };
+$('run').onclick = () => { if (state.sim.t >= state.sim.end) newRun(); state.playing = !state.playing; runLabel(state.playing ? '❚❚ Pause' : '▶ Run'); update(false); };
 $('reset').onclick = () => newRun();
 $('map-run').onclick = () => $('run').click();
 $('map-reset').onclick = () => newRun();
@@ -226,14 +226,16 @@ const pickedLevers = () => [...state.picked].map(leverById).filter(Boolean);
 const simDone = () => state.sim && state.sim.t >= state.sim.end;
 
 function renderSimple() {
+  homePlayback(); // out of #simple before it is rebuilt; moved back into the tab below
   const tabs = `<div class="tabs"><button data-tab="watch" class="${state.tab === 'watch' ? 'on' : ''}">Today's plan</button><button data-tab="try" class="${state.tab === 'try' ? 'on' : ''}">Change the plan</button></div>`;
   $('simple').innerHTML = tabs + (state.tab === 'watch' ? watchHTML() : tryHTML());
   $('simple').querySelectorAll('[data-tab]').forEach(b => b.onclick = () => showTab(b.dataset.tab));
   $('simple').querySelectorAll('.fire-pick').forEach(b => b.onclick = () => pickFire(b.dataset.fire));
   if ($('try-fire')) $('try-fire').onchange = e => pickFire(e.target.value);
-  if ($('watch-today')) $('watch-today').onclick = () => watch('today');
   if ($('go-try')) $('go-try').onclick = () => showTab('try');
   if (state.tab === 'try') wireTry();
+  if ($('pb-slot')) $('pb-slot').replaceWith($('playback'));
+  $('playback').classList.toggle('today', state.tab === 'watch');
   showMarks(); renderTries();
 }
 // Comparisons go at the top of the right-hand panel, where results are read (Eric, 2026-11-02).
@@ -241,7 +243,14 @@ function renderTries() {
   const show = state.tab === 'try';
   $('try-out').innerHTML = (show && state.presetOut ? `<h2>Ready-made comparison</h2>${state.presetOut}` : '') + (show && state.tries.length ? `<h2>Your plan compared with today's plan</h2>${triesHTML()}` : '');
 }
-function showTab(t) { state.tab = t; renderSimple(); $('simple').scrollTop = 0; }
+// The playback controls' home is Expert view's Run section (index.html #playback).
+const homePlayback = () => $('run-section').querySelector('h2').after($('playback'));
+function showTab(t) {
+  state.tab = t;
+  if (t === 'watch' && state.preset?.id !== 'today') applyPreset(todayPreset()); // the Today's plan tab plays today's plan only
+  else renderSimple();
+  $('simple').scrollTop = 0;
+}
 
 // Map outlines for a change: the street segments it rewrites or buys out, or its new road.
 function marksOf(l, focus = false) {
@@ -267,11 +276,11 @@ function watchHTML() {
     <p class="small muted"><b>Fire scenario:</b> what Berkeley doesn't control (where the fire starts, the wind, the time of day). <b>Plan:</b> what it does control, what is built or changed beforehand and how it responds on the day. Each run tests a plan against a fire scenario.</p>
     <div class="fires">${FIRES.map(f => `<button class="fire-pick${f.id === state.fire ? ' on' : ''}" data-fire="${f.id}"><b>${esc(f.title)}</b><span>${esc(f.line)}</span></button>`).join('')}</div>
     <h2><span class="step">2</span> Watch it with today's plan</h2>
-    <p class="small">Today's plan: the first evacuation order 10 minutes after the fire starts, today's street parking, a fall night, central severity. The map shows one run with synthetic households; the outcomes on the right are that run's, not a prediction.</p>
-    <div class="btns"><button id="watch-today" class="primary">▶ Watch today's plan</button></div>
+    <p class="small">Today's plan: the first evacuation order 10 minutes after the fire starts, today's street parking, a fall night, central severity. Run starts it on the map with synthetic households; the outcomes on the right are that run's, not a prediction. Restart starts again from ignition; drag the slider to jump to a time.</p>
+    <div id="pb-slot"></div>
     ${done ? `<div class="nudge"><b>Explore changes that would mitigate damage and loss of life.</b>
       <p class="small">Leave earlier, clear a curb, add a road, buy out the most exposed blocks: try changes alone or together, and compare them with today's plan on this fire.</p>
-      <button id="go-try" class="primary">Change the plan →</button></div>` : `<p class="small muted">When the run ends, you can explore changes that would mitigate damage and loss of life, under <b>Change the plan</b>.</p>`}`;
+      <button id="go-try" class="primary">Change the plan →</button></div>` : ''}`;
 }
 
 function leverItem(l) {
@@ -300,6 +309,7 @@ function tryHTML() {
       <div class="btns"><button id="watch-today2">▶ Watch today's plan</button><button id="watch-mine"${picked.length ? '' : ' disabled'}>▶ Watch your plan</button>
       <button id="try-compare" class="primary"${picked.length && !running ? '' : ' disabled'}>Compare with today's plan (${n} passes)</button>${picked.length ? ' <button id="try-clear">Clear</button>' : ''}</div>
       ${picked.length ? '' : '<p class="small muted">Pick at least one change below to make your plan.</p>'}
+      <div id="pb-slot"></div>
       <p class="small muted">Watching makes a single pass of a plan against the fire scenario. Compare uses multiple passes to achieve a useful comparison.</p>
       <p class="small muted">On the map: <span class="mk" style="background:#15803d"></span>street changed, <span class="mk" style="background:repeating-linear-gradient(90deg,#15803d 0 4px,transparent 4px 7px)"></span>new road, <span class="mk" style="background:#7e22ce"></span>bought out. Point at a change to see where it is.</p></div>
     ${state.tries.length ? '<p class="small"><b>Your comparisons are at the top of the right-hand panel →</b></p>' : ''}
@@ -447,7 +457,7 @@ function setMode(m) {
   document.body.classList.toggle('simple', m === 'simple'); document.body.classList.toggle('expert', m === 'expert');
   document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
   localStorage.setItem('bhe-mode', m);
-  if (m !== 'simple') { map.marks = []; map.draw(); } // Change-the-plan outlines belong to the Simple view
+  if (m !== 'simple') { map.marks = []; map.draw(); homePlayback(); } // Change-the-plan outlines and the moved playback controls belong to the Simple view
   // Street, road and buyout changes run only in the Simple view (Expert's controls and Compare carry plan
   // settings only), so leaving it drops the stack: Plan B keeps its plan settings under a name that says so.
   const dropStack = m !== 'simple' && !!state.preset?.stack;
@@ -471,7 +481,7 @@ function newRun() {
   const st = document.body.classList.contains('simple') && state.editing === 'B' ? state.preset?.stack : null, d = st ? dataFor(data, st.net) : data;
   state.sim = new Evacuation(d, grid, getFire(sc, sev, seed), sc, sev, { ...state.plans[state.editing] }, seed, TIME_OF_DAY[$('tod').value], { ...world(), ...(st?.world || {}) });
   map.data = d; map.sim = state.sim;
-  state.playing = false; runLabel('▶ Play'); $('scrub').value = 0;
+  state.playing = false; runLabel('▶ Run'); $('scrub').value = 0;
   if (map.selected?.kind === 'edge' && !d.net.edges[map.selected.id]) { map.selected = null; inspect(null); } // a new road from the previous network
   $('run-plan').textContent = `Plan ${state.editing}${state.preset ? ': ' + state.plans[state.editing].name.replace(/^[AB]: /, '') : ''}`;
   update(true); map.draw();
@@ -488,7 +498,7 @@ function loop(now) {
   if (state.playing && sim) {
     let steps = Math.min(400, Math.round(state.speed * dt / sim.dt));
     while (steps-- > 0 && sim.t < sim.end) sim.step();
-    if (sim.t >= sim.end) { state.playing = false; runLabel('▶ Play again'); update(true); map.draw(); if (document.body.classList.contains('simple')) renderSimple(); requestAnimationFrame(loop); return; }
+    if (sim.t >= sim.end) { state.playing = false; runLabel('▶ Run again'); update(true); map.draw(); if (document.body.classList.contains('simple')) renderSimple(); requestAnimationFrame(loop); return; }
     $('scrub').value = Math.floor(sim.t / 60);
     map.draw();
     if (now - lastUi > 300) { update(false); lastUi = now; }
@@ -501,11 +511,11 @@ function update(full) {
   const sim = state.sim, S = sim.summary(), sc = sim.scenario;
   const done = sim.t >= sim.end;
   $('clock').classList.toggle('done', done);
-  $('clock').innerHTML = `${done ? '<span class="done-tag">✓ Run complete</span> ' : ''}t + ${hm(sim.t)} <span class="of">of ${hm(sim.end)}${done ? '' : state.playing ? ' · playing' : sim.t > 0 ? ' · paused' : ''}</span> <span class="sub">${esc(sc.name)} · ${SEVERITY[sim.sevKey].label} severity · seed ${sim.seed} · ${esc(sim.plan.name)}</span>`;
+  $('clock').innerHTML = `${done ? '<span class="done-tag">✓ Run complete</span> ' : ''}t + ${hm(sim.t)} <span class="of">of ${hm(sim.end)}${done ? '' : state.playing ? ' · running' : sim.t > 0 ? ' · paused' : ''}</span> <span class="sub">${esc(sc.name)} · ${SEVERITY[sim.sevKey].label} severity · seed ${sim.seed} · ${esc(sim.plan.name)}</span>`;
   const c = (k, v, cls = '', tip = '') => `<div class="card ${cls}" title="${esc(tip)}"><div class="v">${v}</div><div class="k">${k}${tip ? ' <span class="tip">ⓘ</span>' : ''}</div></div>`;
   const tr = (label, value, tip) => `<tr title="${esc(tip)}"><td>${label} <span class="tip">ⓘ</span></td><td class="num">${value}</td></tr>`;
   const exposed = S.exposedHome + S.exposedRoad + S.exposedNoVehicle + S.notOrderedExposed;
-  if ($('run-status')) $('run-status').innerHTML = done ? `<b>✓ Run complete.</b> ${esc(sim.plan.name)} ran the full ${hm(sim.end)} (h:mm) after ignition. The outcomes on the right are final for this run; Play again restarts it.` : '';
+  if ($('run-status')) $('run-status').innerHTML = done ? `<b>✓ Run complete.</b> ${esc(sim.plan.name)} ran the full ${hm(sim.end)} (h:mm) after ignition. The outcomes on the right are final for this run; Run again restarts it.` : '';
   $('results').innerHTML = `<h2>${done ? 'Outcomes at the end of the run' : 'Outcomes so far'} ${badge('synthetic')}</h2>
     <p class="small muted">People are synthetic households placed from Genasys zone population estimates (2020 Census blocks where Genasys publishes none); the fire is an illustrative overlay. Compare plans on the same scenario and seed; do not read the numbers as predictions.</p>
     <div class="cards">

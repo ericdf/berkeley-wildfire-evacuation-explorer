@@ -89,16 +89,20 @@
       <p class="small muted">Phase 2 adds funded interventions (vegetation, home hardening, secondary egress, buyouts, transport assistance) with costs and a budget.</p>
     </section>
 
-    <section>
-      <h2><span class="expert-only">3 · Run</span><span class="simple-only">Playing on the map: <span id="run-plan">Plan A</span></span></h2>
-      <p class="small muted simple-only" style="margin:0 0 6px">Play and Pause control the plan shown on the map. Restart starts it again from ignition. Drag the slider to jump to a time.</p>
-      <div class="row">
-        <button id="run" class="primary">▶ Play</button>
-        <button id="reset">⟲ Restart</button>
-        <label class="inline">Speed <select id="speed"><option value="60">1 min/s</option><option value="300">5 min/s</option><option value="900" selected>15 min/s</option></select></label>
+    <section id="run-section">
+      <h2 class="expert-only">3 · Run</h2>
+      <!-- Playback controls. In Simple view js/main.js renderSimple moves this block into the open tab, so
+           playing a plan has one set of controls (Eric, 2026-11-02: "can this be consolidated?"). -->
+      <div id="playback">
+        <div class="small muted simple-only onmap">On the map: <b id="run-plan">Plan A</b></div>
+        <div class="row">
+          <button id="run" class="primary">▶ Run</button>
+          <button id="reset">⟲ Restart</button>
+          <label class="inline">Speed <select id="speed"><option value="60">1 min/s</option><option value="300">5 min/s</option><option value="900" selected>15 min/s</option></select></label>
+        </div>
+        <input id="scrub" type="range" min="0" max="240" step="1" value="0">
+        <div id="run-status" class="run-status"></div>
       </div>
-      <input id="scrub" type="range" min="0" max="240" step="1" value="0">
-      <div id="run-status" class="run-status"></div>
       <h3 class="expert-only">Compare Plan A and Plan B</h3>
       <div class="row expert-only">
         <select id="cmp-scope">
@@ -123,7 +127,7 @@
   <div id="mapwrap">
     <canvas id="map"></canvas>
     <div id="sim-banner" hidden><span id="sim-banner-text"></span><div class="track"><div id="sim-banner-bar"></div></div></div>
-    <div id="clockbar"><div id="clock">Ready</div><div id="map-controls"><button id="map-run" class="primary" title="Play or pause the plan shown on the map">▶ Play</button><button id="map-reset" title="Start the plan shown on the map again from ignition">⟲ Restart</button></div></div>
+    <div id="clockbar"><div id="clock">Ready</div><div id="map-controls"><button id="map-run" class="primary" title="Run or pause the plan shown on the map">▶ Run</button><button id="map-reset" title="Start the plan shown on the map again from ignition">⟲ Restart</button></div></div>
     <div id="legend"></div>
     <div id="status"></div>
     <div id="loading">Loading street network, terrain and City layers…</div>
