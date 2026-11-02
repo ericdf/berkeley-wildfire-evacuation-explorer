@@ -128,3 +128,20 @@ table.sortable td { font-size: 11.5px; }
 #sim-banner[hidden] { display: none; }
 #sim-banner .track { height: 3px; background: rgba(255,255,255,.25); border-radius: 2px; margin-top: 5px; overflow: hidden; }
 #sim-banner-bar { height: 100%; width: 0; background: #fbbf24; transition: width .3s; }
+/* Simple view: three steps (js/mitigate.js) */
+.step { display: inline-block; width: 18px; height: 18px; line-height: 18px; text-align: center; border-radius: 50%; background: var(--accent); color: #fff; font-size: 11px; margin-right: 4px; }
+.damage { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 4px; margin: 4px 0; }
+.dm { background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 4px 6px; cursor: help; }
+.dm b { display: block; font-size: 15px; color: #991b1b; }
+.dm span { font-size: 10.5px; color: #555; line-height: 1.25; display: block; }
+#simple h3 { font-size: 12.5px; margin: 10px 0 4px; color: #4b3a2a; }
+.lever { border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; margin: 5px 0; background: #fbfaf7; }
+.lever-h { display: flex; justify-content: space-between; gap: 6px; align-items: baseline; }
+.lever-h b { font-size: 12.5px; color: #4b3a2a; }
+.lever .cost { font-size: 11px; color: #6b5d50; text-align: right; }
+.lever ul { margin: 4px 0 4px 16px; padding: 0; }
+.lever .cant { font-size: 11px; color: #6b4a1f; background: #fffbeb; border-left: 3px solid #f59e0b; padding: 3px 6px; margin: 4px 0; }
+.lever .try { margin-top: 3px; font-size: 11.5px; }
+.chosen { border: 1px solid var(--accent); border-radius: 6px; padding: 6px 8px; background: #fff7ed; margin-bottom: 6px; }
+#simple details { margin: 6px 0; font-size: 12px; }
+#simple details > summary { cursor: pointer; color: #4b3a2a; }

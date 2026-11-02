@@ -8,6 +8,7 @@ import { MapView, STREET_MODES } from './map.js';
 import { fromUTM } from '../tools/utm.mjs';
 import { accessCard, accessSummary, accessTable, accessLegend } from './access.js';
 import { SHUTOFF } from './operations.js';
+import { loadMitigations, damageHTML, leversHTML, leverPreset } from './mitigate.js';
 
 const $ = id => document.getElementById(id);
 const fmt = (x, d = 0) => x == null || Number.isNaN(x) ? '—' : x === Infinity ? '∞' : Number(x).toLocaleString(undefined, { maximumFractionDigits: d, minimumFractionDigits: d });
@@ -24,7 +25,7 @@ const state = {
   editing: 'A', preset: null, fire: null, playing: false, speed: 900, sim: null, fires: new Map(), batch: 0,
 };
 
-const data = await loadData();
+const [data] = await Promise.all([loadData(), loadMitigations()]);
 const grid = buildFireGrid(data);
 const scenarios = makeScenarios(data);
 state.fire = FIRES.find(f => f.id === localStorage.getItem('bhe-fire'))?.id ?? FIRES[0].id;
@@ -167,32 +168,47 @@ $('nbhd').onchange = e => {
 // A question is offered on a fire only where its answer held in every tested run (presets.js).
 function renderSimple() {
   const p = state.preset, fire = FIRES.find(f => f.id === state.fire);
-  $('simple').innerHTML = `<h2>Pick a fire</h2>
+  const lever = p?.lever;
+  $('simple').innerHTML = `<h2><span class="step">1</span> Pick a fire</h2>
     <div class="fires">${FIRES.map(f => `<button class="fire-pick${f.id === state.fire ? ' on' : ''}" data-fire="${f.id}"><b>${esc(f.title)}</b><span>${esc(f.line)}</span></button>`).join('')}</div>
-    <h2>Pick a question</h2>
-    <div class="presets">${PRESETS.map(q => { const ok = q.on[state.fire]; return `<button class="preset${p?.id === q.id ? ' on' : ''}" data-id="${q.id}"${ok ? '' : ' disabled'}><b>${esc(q.title)}</b><span>${esc(q.question)}</span>${ok ? '' : `<span class="why">Not offered on ${esc(fire.title)}: ${esc(q.off[state.fire])}</span>`}</button>`; }).join('')}</div>
-    ${p ? `<div class="plans-ab"><div><b>Plan A</b> ${esc(p.A.name.replace(/^A: /, ''))}</div><div><b>Plan B</b> ${esc(p.B.name.replace(/^B: /, ''))}</div>
+    <h2><span class="step">2</span> See what it does</h2>
+    ${damageHTML(state.fire)}
+    <div class="btns"><button id="watch-today" class="${p?.id === 'today' ? 'on' : ''}">▶ Watch it with today's plan</button></div>
+    <h2><span class="step">3</span> Explore what would help</h2>
+    ${p && p.id !== 'today' ? `<div class="chosen"><div class="plans-ab"><div><b>Plan A</b> ${esc(p.A.name.replace(/^A: /, ''))}</div><div><b>Plan B</b> ${esc(p.B.name.replace(/^B: /, ''))}</div>
       <div class="small muted">${esc(scenario().name)} · ${p.tods ? 'time of day as above' : esc(TIME_OF_DAY[p.tod].label)} · central severity</div></div>
       <div class="watch"><b>What to look for.</b> ${esc(p.on[state.fire])}</div>
       <div class="btns"><button data-watch="A" class="${state.editing === 'A' ? 'on' : ''}">▶ Watch Plan A</button><button data-watch="B" class="${state.editing === 'B' ? 'on' : ''}">▶ Watch Plan B</button>
-      <button class="primary" id="simple-compare">Compare A and B on 9 fires</button></div>
-<div id="simple-result"></div>
-      <p class="small muted">Watch starts that plan on the map; pause, restart or slow it with the buttons beside the clock on the map. Compare runs both plans on the same 9 fires (low, central and high severity, 3 random seeds each) and the same households, takes a few minutes, and shows the answer here. Trust a difference that shows up in every run.</p>` : '<p class="small muted">Each question compares two plans on the same fire and the same households. The Expert switch at the top right lets you set everything yourself.</p>'}`;
+      <button class="primary" id="simple-compare">Compare A and B on 9 fires</button> <button id="simple-close">✕ Close</button></div>
+      <div id="simple-result"></div>
+      <p class="small muted">Watch starts that plan on the map; pause, restart or slow it with the buttons beside the clock on the map. Compare runs both plans on the same 9 fires (low, central and high severity, 3 random seeds each) and the same households, takes a few minutes, and shows the answer here. Trust a difference that shows up in every run.</p></div>` : ''}
+    <div id="levers">${leversHTML(state.fire)}</div>
+    <details${p && !lever && p.id !== 'today' ? ' open' : ''}><summary>Other questions</summary>
+      <div class="presets">${PRESETS.map(q => { const ok = q.on[state.fire]; return `<button class="preset${p?.id === q.id ? ' on' : ''}" data-id="${q.id}"${ok ? '' : ' disabled'}><b>${esc(q.title)}</b><span>${esc(q.question)}</span>${ok ? '' : `<span class="why">Not offered on ${esc(fire.title)}: ${esc(q.off[state.fire])}</span>`}</button>`; }).join('')}</div>
+      <p class="small muted">These questions use their own Plan A and time of day, so their numbers differ from the list above. The Expert switch at the top lets you set everything yourself.</p></details>`;
   $('simple').querySelectorAll('.fire-pick').forEach(b => b.onclick = () => pickFire(b.dataset.fire));
   $('simple').querySelectorAll('.preset').forEach(b => b.onclick = () => { if (!b.disabled) applyPreset(b.dataset.id); });
+  $('simple').querySelectorAll('.try').forEach(b => b.onclick = () => { applyPreset(leverPreset(b.dataset.lever, state.fire)); $('simple').scrollIntoView({ behavior: 'smooth' }); });
+  $('watch-today').onclick = () => { applyPreset(todayPreset()); state.playing = true; runLabel('❚❚ Pause'); };
   $('simple').querySelectorAll('[data-watch]').forEach(b => b.onclick = () => { state.editing = b.dataset.watch; showPlan(); if (p.tods) { $('tod').value = p.tods[state.editing]; todNote(); } newRun(); renderSimple(); state.playing = true; runLabel('❚❚ Pause'); });
   if ($('simple-compare')) $('simple-compare').onclick = () => { $('cmp-scope').value = 'severities'; $('compare').click(); };
+  if ($('simple-close')) $('simple-close').onclick = () => applyPreset(todayPreset());
 }
+// Today's plan on the chosen fire, as in step 2 (the mitigation baseline: DEFAULT_PLAN, fall night).
+const todayPreset = () => ({ id: 'today', title: "Today's plan", tod: 'S6', A: { ...DEFAULT_PLAN, name: "A: today's plan" }, B: { ...DEFAULT_PLAN, name: "B: today's plan" }, on: {}, off: {}, headline: null, always: true });
 // The chosen fire applies to every question. Keep the current question if it holds on the new
 // fire; otherwise switch to the first question that does.
 function pickFire(id) {
   state.fire = id; localStorage.setItem('bhe-fire', id);
-  const q = state.preset?.on[id] ? state.preset : PRESETS.find(x => x.on[id]);
-  applyPreset(q.id);
+  // Step 2 shows the fire with today's plan; a chosen lever or question is reapplied on the new fire when it can be.
+  const p = state.preset;
+  if (p?.lever) applyPreset(leverPreset(p.lever, id));
+  else if (p && p.id !== 'today' && p.on[id]) applyPreset(p.id);
+  else applyPreset(todayPreset());
 }
-function applyPreset(id) {
-  const p = PRESETS.find(q => q.id === id);
-  if (!p.on[state.fire]) return; // withheld on this fire
+function applyPreset(idOrPreset) {
+  const p = typeof idOrPreset === 'string' ? PRESETS.find(q => q.id === idOrPreset) : idOrPreset;
+  if (!p.always && !p.on[state.fire]) return; // withheld on this fire
   state.preset = p;
   $('scenario').value = state.fire; showScenario();
   $('tod').value = p.tod; todNote(); $('severity').value = 'central'; $('seed').value = 1;
@@ -516,7 +532,7 @@ function renderCompare(results, scope) {
 }
 // One plain sentence on the preset's headline metric: medians and in how many runs B beat A.
 function takeaway(results, scope) {
-  const p = state.preset; if (!p || scope !== 'severities') return '';
+  const p = state.preset; if (!p?.headline || scope !== 'severities') return '';
   const { label, f, dir } = p.headline;
   const pairs = results.filter(r => r.job.planKey === 'A').map(a => [f(a.summary), f(results.find(b => b.job.planKey === 'B' && b.job.sev === a.job.sev && b.job.seed === a.job.seed).summary)]);
   const med = a => { const v = [...a].sort((x, y) => x - y); return v[Math.floor(v.length / 2)]; };
