@@ -372,6 +372,18 @@
     "operations.contraflow.reversedLaneFactor": {
       "category": "assumption",
       "note": "The reversed lane carries 70% of a normal lane's capacity. On I-55 during the Hurricane Katrina evacuation the contraflow lanes peaked at 1,842 vehicles per hour, 'about 30 percent lower than the adjacent normal-flow lanes' (Wolshon, 'Empirical Characterization of Mass Evacuation Traffic Flow', TRB 2008 preprint 08-0930, pp. 9–10). Freeway data; no figure for two-lane streets was found."
+    },
+    "orders.firePathKm": {
+      "category": "assumption",
+      "note": "Other cities' orders (model rule, SOURCE_NOTES FO1-FO3): every evacuation zone outside Berkeley's (a Genasys zone id not starting BER- or LBL-: Oakland OKL, Albany ALB, Emeryville EMV, El Cerrito and Kensington ECK, Richmond RCH, Orinda ORI, unincorporated Contra Costa CCC) is ordered once the fire front comes within this distance of any 30 m cell of the zone (straight line, a circle). 2 km is Eric's choice, 2026-11-02; no source gives the distance at which Oakland, El Cerrito or the County order a zone. Berkeley's and the Lab's orders stay the scenario's City-defined region."
+    },
+    "orders.firePathDelayMin": {
+      "category": "assumption",
+      "note": "Minutes from the fire coming within firePathKm to the order: the simulator's default decision delay (DEFAULT_PLAN orderDelayMin, 10 min), fixed. A plan's order delay is Berkeley's decision speed and does not change other cities' orders (SOURCE_NOTES FO2)."
+    },
+    "orders.berkeleyPrefixes": {
+      "category": "model rule",
+      "note": "Zone id prefixes whose orders come from the scenario alone: BER (City of Berkeley) and LBL (Lawrence Berkeley National Laboratory, which the City's Time Study regions order, e.g. R02 LBL-E001 to E006). Every other prefix is another jurisdiction."
     }
   },
   "routing": {
@@ -604,5 +616,13 @@
     "powerShutoff": {
       "allWayStopVph": 900
     }
+  },
+  "orders": {
+    "firePathKm": 2,
+    "firePathDelayMin": 10,
+    "berkeleyPrefixes": [
+      "BER",
+      "LBL"
+    ]
   }
 }

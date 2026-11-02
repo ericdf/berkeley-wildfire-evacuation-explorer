@@ -160,6 +160,31 @@ export function minFilter(arr, W, H, radiusM) {
   return out;
 }
 
+// Earliest time the fire is within radiusM of each cell, measured between cell centers (a circle,
+// unlike minFilter's square): each row of the disk is a horizontal window of its own half-width.
+export function diskMinFilter(arr, W, H, radiusM) {
+  const R = Math.floor(radiusM / CELL), out = new Float32Array(W * H).fill(Infinity), row = new Float32Array(W);
+  const half = Array.from({ length: R + 1 }, (_, dy) => Math.floor(Math.sqrt(Math.max(0, radiusM * radiusM - (dy * CELL) ** 2)) / CELL));
+  for (const w of new Set(half)) {
+    const dys = []; half.forEach((h, dy) => { if (h === w) { dys.push(dy); if (dy) dys.push(-dy); } });
+    for (let r = 0; r < H; r++) {
+      // sliding minimum of row r over [c - w, c + w]
+      const dq = []; let head = 0, any = false;
+      for (let p = 0; p < W + w; p++) {
+        if (p < W) { const v = arr[r * W + p]; if (v < Infinity) any = true; while (dq.length > head && arr[r * W + dq[dq.length - 1]] >= v) dq.pop(); dq.push(p); }
+        const q = p - w;
+        if (q >= 0) { while (dq[head] < q - w) head++; row[q] = arr[r * W + dq[head]]; }
+      }
+      if (!any) continue;
+      for (const dy of dys) {
+        const rr = r - dy; if (rr < 0 || rr >= H) continue;
+        for (let c = 0; c < W; c++) if (row[c] < out[rr * W + c]) out[rr * W + c] = row[c];
+      }
+    }
+  }
+  return out;
+}
+
 export const cellOf = (grid, x, y) => {
   const c = Math.floor(x / CELL), r = Math.floor(y / CELL);
   return c < 0 || r < 0 || c >= grid.W || r >= grid.H ? -1 : r * grid.W + c;

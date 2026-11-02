@@ -19,7 +19,7 @@ import { mulberry32 } from './rng.js';
 import { toUTM } from '../tools/utm.mjs';
 import { parkingState, PARKING_PLANS } from './parking.js';
 import { LEAVE_EARLY_ZONES } from './scenarios.js';
-import { minFilter, cellOf, MinHeap, inPoly, bbox, inBB, CELL } from './fire.js';
+import { minFilter, diskMinFilter, cellOf, MinHeap, inPoly, bbox, inBB, CELL } from './fire.js';
 import { makeGuidance, householdOutcomes } from './guidance.js';
 import { opsActive, setupOperations, stepOperations, markPriority } from './operations.js';
 
@@ -44,6 +44,28 @@ const INTERSECTION_KEY = ['localVph', 'collectorVph', 'arterialVph', 'freewayVph
 export const DEFAULT_PLAN = { name: 'Baseline', alertKm: 0, orderDelayMin: 10, hillsOrderMin: null, earlyShare: 0, earlyZones: 'lez', hillsParking: 'both', r0: 'none',
   // Traffic operations (js/operations.js), all off: contraflow streets, how they start, police control of junctions and the shared officer pool.
   contraflow: 'none', contraflowEdges: [], contraflowMode: 'officers', contraflowPower: 'battery', contraflowFallback: 'officers', police: 'none', officers: 20, officerDelayMin: 30 };
+
+// Other cities' orders (model rule; the distance and delay are assumptions, data/assumptions.json
+// orders, SOURCE_NOTES FO1-FO3): an evacuation zone outside Berkeley's (zone id not starting with a
+// prefix in orders.berkeleyPrefixes) is ordered firePathDelayMin after the fire front first comes
+// within firePathKm of any of its 30 m cells. Depends on the fire alone, never on the plan.
+// Returns per zone the order time in seconds (Infinity: no such order). Cached on the fire object.
+export function otherCityOrders(data, grid, fire) {
+  const O = data.A.orders, key = `${O.firePathKm}|${O.firePathDelayMin}`;
+  if (fire.otherCityOrders?.key === key) return fire.otherCityOrders.t;
+  const zones = data.layers.evacZones, t = new Float64Array(zones.length).fill(Infinity);
+  const other = zones.map(z => !O.berkeleyPrefixes.includes(z.id.split('-')[0]));
+  let burns = false; for (let i = 0; i < fire.arrival.length; i++) if (fire.arrival[i] < Infinity) { burns = true; break; }
+  if (burns) {
+    const near = diskMinFilter(fire.arrival, grid.W, grid.H, O.firePathKm * 1000);
+    for (let i = 0; i < grid.zone.length; i++) {
+      const z = grid.zone[i]; if (z < 0 || !other[z]) continue;
+      const tt = (near[i] + O.firePathDelayMin) * 60; if (tt < t[z]) t[z] = tt;
+    }
+  }
+  fire.otherCityOrders = { key, t };
+  return t;
+}
 
 export class Evacuation {
   // world: settings shared by both plans, such as future growth ({ growth: 'none' | 'middle' | 'moderate' | 'max' }).
@@ -81,7 +103,9 @@ export class Evacuation {
     // ---- zone orders and warnings ----
     // 1. The scenario's City-defined zones (Time Study region lists, SOURCE_NOTES E2-E3), or a
     //    City region polygon; issued once the fire is detected and the order decided.
-    // 2. Optionally, the plan's distance rule: zones within alertKm of the fire are ordered too.
+    // 2. Other cities' zones, once the fire comes within 2 km (otherCityOrders): part of the
+    //    scenario, the same for every plan.
+    // 3. Optionally, the plan's distance rule: zones within alertKm of the fire are ordered too.
     const zones = data.layers.evacZones;
     this.orderT = new Float64Array(zones.length).fill(Infinity);
     this.warnT = new Float64Array(zones.length).fill(Infinity);
@@ -117,11 +141,28 @@ export class Evacuation {
       }
       zones.forEach((_, z) => { if (zoneCells[z] && inside[z] / zoneCells[z] >= 0.3) { this.orderT[z] = Math.min(this.orderT[z], decided); scenOrd[z] = 1; } });
     }
+    // Berkeley's orders (the scenario's and the plan's) and their first order: the Time Study ETE
+    // (summary clearP50/90/100) counts vehicles from these zones from this time, and shadow
+    // evacuation, through traffic and police start from it.
+    const cityT = Float64Array.from(this.orderT, (T, z) => Math.min(T, this.warnT[z]));
+    this.cityOrdered = Uint8Array.from(this.orderT, T => T <= this.end ? 1 : 0);
+    this.firstOrderT = Math.min(...cityT); if (this.firstOrderT > this.end) this.firstOrderT = Infinity;
+    // Other cities' orders: they only add orders or bring one forward, and they never touch a
+    // Berkeley or Lab zone, whose orders stay the scenario's. They do not depend on the plan.
+    const other = otherCityOrders(this.data, grid, fire);
+    this.otherCityOrder = new Uint8Array(zones.length); // 1: the zone's order comes from this rule
+    this.otherCityZone = Uint8Array.from(other, T => T <= this.end ? 1 : 0); // 1: the rule orders the zone in this run
+    for (let z = 0; z < zones.length; z++) {
+      if (other[z] > this.end) continue;
+      // scenTold stays the City-defined orders: these zones take their draws as plan-added orders
+      // do (supplementary slots), so every plan and every family member draws the same shared stream.
+      if (other[z] < this.orderT[z]) { this.orderT[z] = other[z]; this.otherCityOrder[z] = 1; }
+    }
     for (let z = 0; z < zones.length; z++) {
       if (this.orderT[z] > this.end) this.orderT[z] = Infinity;
-      if (this.orderT[z] < Infinity || this.warnT[z] > this.end) this.warnT[z] = Infinity;
+      // a warning stays when it comes before the zone's order (warned households that leave go then)
+      if (this.orderT[z] <= this.warnT[z] || this.warnT[z] > this.end) this.warnT[z] = Infinity;
     }
-    this.firstOrderT = Math.min(...this.orderT, ...this.warnT);
     // 0 not told, 1 ordered, 2 warned, under the scenario's orders alone: the pattern in which
     // buildHouseholds takes draws from the shared stream, so that pattern is the same for every plan.
     this.scenTold = Array.from(zones, (_, z) => scenOrd[z] ? 1 : scenWarn[z] ? 2 : 0);
@@ -314,12 +355,13 @@ export class Evacuation {
       const sk = scenKind[h] = scenLeave(z, u, R);
       if (sk === 1 || sk === 2) { u[2] = R(); u[3] = R(); if (u[2] < tod.commuterShare && hh.veh[h]) { u[4] = R(); u[5] = R(); } }
       if (sk) u[6] = R();
-      // scenario donors per street, in household order, so today's come first
-      if (hh.veh[h] && (sk === 1 || sk === 2)) { if (!scenDonors.has(hh.edge[h])) scenDonors.set(hh.edge[h], []); scenDonors.get(hh.edge[h]).push(h); }
+      // scenario donors per street, in household order, so today's come first; in a zone another
+      // city orders, every household with a car (the rule does not depend on the plan either)
+      if (hh.veh[h] && (sk === 1 || sk === 2 || this.otherCityZone[z])) { if (!scenDonors.has(hh.edge[h])) scenDonors.set(hh.edge[h], []); scenDonors.get(hh.edge[h]).push(h); }
       if (hh.gone[h]) continue; // bought out: kind 0, no trip, no car on the road, never a donor
       let T, kind;
-      if (this.orderT[z] < Infinity) { T = this.orderT[z]; kind = 1; }
-      else if (this.warnT[z] < Infinity && g(0) < C.warning) { T = this.warnT[z]; kind = 2; }
+      if (this.warnT[z] < Infinity && g(0) < C.warning) { T = this.warnT[z]; kind = 2; } // warned before any order: leaves then
+      else if (this.orderT[z] < Infinity) { T = this.orderT[z]; kind = 1; }
       else if (this.firstOrderT < Infinity && g(1) < C.shadow) { T = this.firstOrderT; kind = 3; }
       else continue;
       hh.kind[h] = kind;
@@ -392,8 +434,8 @@ export class Evacuation {
           const g = i => Number.isNaN(uu[i]) ? (x || (x = extra(2, iv)))[i] : uu[i];
           if (scenLeave(z, uu, rand)) uu[6] = rand();
           let T, cls;
-          if (this.orderT[z] < Infinity) { T = this.orderT[z]; cls = 0; }
-          else if (this.warnT[z] < Infinity && g(0) < C.warning) { T = this.warnT[z]; cls = 0; }
+          if (this.warnT[z] < Infinity && g(0) < C.warning) { T = this.warnT[z]; cls = 0; }
+          else if (this.orderT[z] < Infinity) { T = this.orderT[z]; cls = 0; }
           else if (this.firstOrderT < Infinity && g(1) < C.shadow) { T = this.firstOrderT; cls = 1; }
           else continue;
           const dep = T + 60 * sampleHist(M.A, () => g(6));
@@ -415,7 +457,7 @@ export class Evacuation {
     for (let i = 0; i < nV; i++) {
       if (this.v.cls[i] !== 0) continue;
       const z = zoneIdx.get(net.edges[this.v.edge[i]].evacZone);
-      this.v.fromOrder[i] = z != null && this.orderT[z] < Infinity ? 1 : 0;
+      this.v.fromOrder[i] = z != null && this.orderT[z] < Infinity ? (this.cityOrdered[z] ? 1 : 2) : 0; // 2: ordered by another city only
     }
     this.commutersTurnedBack = 0; this.lostCar = 0; this.skipVehicle = new Set();
     this.paths = new Map(); this.held = new Map(); // inbound paths; household vehicles waiting for their commuter
@@ -794,7 +836,10 @@ export class Evacuation {
     const warned = [];
     this.warnT.forEach((T, z) => { if (T <= this.t && !this.ordersLogged.has(-1 - z)) { this.ordersLogged.add(-1 - z); const id = this.data.layers.evacZones[z].id; if (!warned.includes(id)) warned.push(id); } });
     if (warned.length) this.log(`Evacuation warning issued for ${warned.length} zone${warned.length > 1 ? 's' : ''}: ${warned.slice(0, 8).join(', ')}${warned.length > 8 ? ' …' : ''}.`, 'order');
-    if (due.length) this.log(`Evacuation order issued for ${due.length} zone${due.length > 1 ? 's' : ''}: ${due.slice(0, 8).join(', ')}${due.length > 8 ? ' …' : ''}.`, 'order');
+    const zi = id => this.data.layers.evacZones.findIndex(z => z.id === id);
+    const others = due.filter(id => this.otherCityOrder[zi(id)]), own = due.filter(id => !others.includes(id));
+    if (own.length) this.log(`Evacuation order issued for ${own.length} zone${own.length > 1 ? 's' : ''}: ${own.slice(0, 8).join(', ')}${own.length > 8 ? ' …' : ''}.`, 'order');
+    if (others.length) this.log(`Neighboring cities and the County order ${others.length} zone${others.length > 1 ? "s" : ""} the fire has come within ${this.data.A.orders.firePathKm} km of: ${others.slice(0, 8).join(', ')}${others.length > 8 ? ' …' : ''} (model rule; the 2 km is an assumption).`, 'order');
     // ember exposure reaching zones with people still home
     const { hh } = this; const counts = new Map();
     for (let h = 0; h < hh.n; h++) {
@@ -818,7 +863,7 @@ export class Evacuation {
   summary() {
     const { hh, v, t, data } = this, pph = data.A.demand.personsPerHousehold;
     const S = { orderedPeople: 0, warnedLeaving: 0, shadowLeaving: 0, leftEarly: 0, reachedSafety: 0, onRoad: 0, notLeft: 0, noVehicle: 0, riders: 0,
-      notOrderedExposed: 0, exposedHome: 0, exposedRoad: 0, exposedNoVehicle: 0, fireFrontHome: 0, fireFrontRoad: 0, waitingToEnter: this.waiting.length };
+      notOrderedExposed: 0, otherCityOrderedPeople: 0, exposedHome: 0, exposedRoad: 0, exposedNoVehicle: 0, fireFrontHome: 0, fireFrontRoad: 0, waitingToEnter: this.waiting.length };
     let drivingHH = 0, drivingVeh = 0;
     for (let h = 0; h < hh.n; h++) {
       if (hh.gone[h]) continue;
@@ -833,7 +878,7 @@ export class Evacuation {
       if (tf <= t && hh.leftHome[e] > tf && !hh.early[h]) S.fireFrontHome += pph;
       if (k === 3 && hh.leftHome[h] <= t) S.shadowLeaving += pph;
       if (!told) { if (exposedAtHome) S.notOrderedExposed += pph; continue; }
-      if (k === 1) S.orderedPeople += pph; else S.warnedLeaving += pph;
+      if (k === 1) { S.orderedPeople += pph; if (this.otherCityOrder[z] && !this.cityOrdered[z]) S.otherCityOrderedPeople += pph; } else S.warnedLeaving += pph;
       if (hh.early[h]) { S.leftEarly += pph; continue; }
       if (!hh.veh[h] && hh.ride[h] < 0) { S.noVehicle += pph; if (exposedAtHome) S.exposedNoVehicle += pph; continue; }
       if (hh.ride[h] >= 0) S.riders += pph;
@@ -844,13 +889,15 @@ export class Evacuation {
     }
     // ETE as the Time Study measures it: minutes from the first order until 50/90/100% of
     // evacuating (non-shadow) vehicles have left the order and warning area.
-    let exposedVeh = 0, fireVeh = 0, n0 = 0, nEvac = 0; const arr = [];
+    let exposedVeh = 0, fireVeh = 0, n0 = 0, nEvac = 0, nOther = 0; const arr = [], arrOther = [];
     for (let i = 0; i < v.n; i++) {
       if (v.exposed[i]) exposedVeh++;
       if (v.fireFront[i]) fireVeh++;
       if (v.cls[i] || v.state[i] === 4) continue; nEvac++;
-      if (!v.fromOrder[i]) continue; n0++;
-      const x = Math.min(v.exit[i], v.arrive[i]); if (x < Infinity) arr.push(x - this.firstOrderT);
+      if (!v.fromOrder[i]) continue;
+      const x = Math.min(v.exit[i], v.arrive[i]);
+      if (v.fromOrder[i] === 2) { nOther++; if (x < Infinity) arrOther.push(x - this.firstOrderT); continue; }
+      n0++; if (x < Infinity) arr.push(x - this.firstOrderT);
     }
     S.exposedRoad = exposedVeh * pph / Math.max(1, drivingVeh / Math.max(1, drivingHH));
     S.fireFrontRoad = fireVeh * pph / Math.max(1, drivingVeh / Math.max(1, drivingHH));
@@ -863,6 +910,10 @@ export class Evacuation {
     arr.sort((a, b) => a - b);
     const pct = p => n0 ? (arr.length >= Math.ceil(p * n0) ? arr[Math.ceil(p * n0) - 1] / 60 : null) : null;
     S.clearP50 = pct(0.5); S.clearP90 = pct(0.9); S.clearP100 = pct(1);
+    // Vehicles from zones only another city orders (otherCityOrders): extra load, outside the ETE above.
+    // clearP90All: the same 90% measure over those vehicles and the ETE's together.
+    S.otherCityVehicles = nOther;
+    { const all = [...arr, ...arrOther].sort((a, b) => a - b), N = n0 + nOther; S.clearP90All = N && all.length >= Math.ceil(0.9 * N) ? all[Math.ceil(0.9 * N) - 1] / 60 : null; }
     S.firstOrder = this.firstOrderT / 60;
     { let last = 0, all = true; for (let h = 0; h < hh.n; h++) if ((hh.kind[h] === 1 || hh.kind[h] === 2) && hh.veh[h] && !hh.early[h]) { if (hh.arrived[h] === Infinity) all = false; else last = Math.max(last, hh.arrived[h]); } S.lastHousehold = all ? (last - this.firstOrderT) / 60 : null; }
     S.responderFree = this.responder.free / 60; S.responderEta = this.responder.eta / 60; S.responderBlocked = this.responder.blocked;
