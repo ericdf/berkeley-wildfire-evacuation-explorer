@@ -109,7 +109,10 @@ const LEVERS = [
     costNote: 'Little capital cost; officers taken from other work, unpriced.',
     cannotMeasure: 'How officers actually direct traffic (the simulator gives a fixed capacity gain and outbound priority), radio coordination, and officers lost to other emergencies.' },
   { id: 'powerShutoff', group: 'notComparable', title: 'Power shutoff', notComparable: 'A hazard condition (scenario setting), not a mitigation: signals go dark and run as all-way stops. Its effect on the baseline and on contraflow is in SOURCE_NOTES CF14' },
-  { id: 'egressGuidance', group: 'pending', title: 'Egress guidance', pending: 'PR #22, not merged; add an entry here when it is' },
+  { id: 'egressGuidance', group: 'operations', title: 'Constrained egress guidance (hypothetical pilot), all drivers follow', what: 'drivers get a route only if it is no riskier than their own and at most a minute slower, or safer; nobody is told to wait',
+    how: 'plan { routing: guided, compliance: 1 } (js/guidance.js, SOURCE_NOTES DG1–DG30)', plan: { routing: 'guided', compliance: 1 },
+    costNote: 'Little capital cost in this table; a real system (data feeds, phones, liability) is unpriced.',
+    cannotMeasure: 'Today\'s plan in this table already gives every driver an idealized, well-informed route, so guidance has little to add here; against drivers who follow habit it does better in every run (SOURCE_NOTES DG30). Phone networks failing, distrust, and the households a real system would leave worse off are not shown here.' },
 ];
 const CANNOT = {
   link: 'Environmental review, slope and land acquisition, and whether the link is itself in the fire\'s path on the day. Costs exclude engineering, environmental review and legal costs (egress-candidates.json meta.cost.note).',
