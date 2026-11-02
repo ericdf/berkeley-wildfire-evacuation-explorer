@@ -437,8 +437,12 @@ function setMode(m) {
   document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
   localStorage.setItem('bhe-mode', m);
   if (m !== 'simple') { map.marks = []; map.draw(); } // Try-changes outlines belong to the Simple view
+  // Street, road and buyout changes run only in the Simple view (Expert's controls and Compare carry plan
+  // settings only), so leaving it drops the stack: Plan B keeps its plan settings under a name that says so.
+  const dropStack = m !== 'simple' && !!state.preset?.stack;
+  if (dropStack) { cancelTry(); state.preset = null; state.plans.B = { ...state.plans.B, name: 'B: your plan settings only (street, road and buyout changes are in Simple view)' }; }
   if (m === 'simple' && !state.preset) pickFire(state.fire); // pickFire starts a new run
-  else { if (rerun) newRun(); if (m === 'simple') renderSimple(); }
+  else { if (rerun || dropStack) { if (dropStack) showPlan(); newRun(); } if (m === 'simple') renderSimple(); }
 }
 document.querySelectorAll('#modes button').forEach(b => b.onclick = () => setMode(b.dataset.mode));
 // Changing any expert control leaves the preset; the simple view then shows no plan detail.
@@ -456,7 +460,8 @@ function newRun() {
   const st = document.body.classList.contains('simple') && state.editing === 'B' ? state.preset?.stack : null, d = st ? dataFor(data, st.net) : data;
   state.sim = new Evacuation(d, grid, getFire(sc, sev, seed), sc, sev, { ...state.plans[state.editing] }, seed, TIME_OF_DAY[$('tod').value], { ...world(), ...(st?.world || {}) });
   map.data = d; map.sim = state.sim;
-  if (map.selected?.kind === 'edge' && !d.net.edges[map.selected.id]) { map.selected = null; inspect(null); } // a new road from the previous network state.playing = false; runLabel('▶ Play'); $('scrub').value = 0;
+  state.playing = false; runLabel('▶ Play'); $('scrub').value = 0;
+  if (map.selected?.kind === 'edge' && !d.net.edges[map.selected.id]) { map.selected = null; inspect(null); } // a new road from the previous network
   $('run-plan').textContent = `Plan ${state.editing}${state.preset ? ': ' + state.plans[state.editing].name.replace(/^[AB]: /, '') : ''}`;
   update(true); map.draw();
 }
