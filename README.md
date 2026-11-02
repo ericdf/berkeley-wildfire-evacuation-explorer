@@ -43,7 +43,7 @@ rewrites of the same block, are alternatives. **Compare with today's plan** runs
 same households in 15 passes (3 severities × 5 seeds; each pass runs both plans) in background workers and reports, at the top of the right-hand panel, per
 measure, the middle value of each plan and how many passes went each way; only the full set earns a
 verdict ("better in every pass", "mixed"), because one pass can point the wrong way; a pass counts as better or worse only when the two plans differ by more than 1%. Watching a plan
-on the map is labeled as one run. The stored results of `tools/mitigations.mjs` are not shown as
+on the map is labeled as one run. Under a finished comparison of two or more changes, **Break down this plan** shows, for each change, what it does alone and what the plan loses without it, and names changes that overlap (SOURCE_NOTES MS14). The stored results of `tools/mitigations.mjs` are not shown as
 answers: changes that did not reliably help on the chosen fire there (contraflow, police control,
 guided routing, the Buena Vista link) are greyed out with that explanation, so people see they
 were considered (SOURCE_NOTES MS11). Ready-made A/B questions (`js/presets.js`) sit under

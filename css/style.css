@@ -171,3 +171,6 @@ body.simple #run-section { display: none; }
 .pace { margin: 6px 0 8px; }
 .pace-pick { font-size: 12px; padding: 3px 8px; margin: 2px 4px 2px 0; }
 .pace-pick.on { background: #7c2d12; color: #fff; border-color: #7c2d12; }
+.bd { border-top: 1px solid #eee; padding: 5px 0; font-size: 12px; }
+.bd ul { margin: 3px 0 0 16px; padding: 0; }
+.tryres h3 { font-size: 12.5px; margin: 8px 0 2px; color: #4b3a2a; }
