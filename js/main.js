@@ -276,7 +276,7 @@ function watchHTML() {
     <p class="small muted"><b>Fire scenario:</b> what Berkeley doesn't control (where the fire starts, the wind, the time of day). <b>Plan:</b> what it does control, what is built or changed beforehand and how it responds on the day. Each run tests a plan against a fire scenario.</p>
     <div class="fires">${FIRES.map(f => `<button class="fire-pick${f.id === state.fire ? ' on' : ''}" data-fire="${f.id}"><b>${esc(f.title)}</b><span>${esc(f.line)}</span></button>`).join('')}</div>
     <h2><span class="step">2</span> Watch it with today's plan</h2>
-    <p class="small">Today's plan assumes <b>the first evacuation order 10 minutes after the fire starts</b> and <b>today's street parking</b>; the fire scenario here is <b>a fall night</b> at <b>central severity</b> (change these in Expert mode).</p>
+    <p class="small">Today's plan assumes <b>the first evacuation order 10 minutes after the fire starts</b> and <b>today's street parking</b>; the fire scenario here is <b>a fall night</b> at <b title="Calibrated to the City StoryMap 1923 present-day repeat: about 5 h from the eastern edge to Shattuck Ave. Low and high are half and double the spread rate.">medium severity</b> (change these in Expert mode).</p>
     <p class="small muted"><b>Run:</b> one simulation of a plan against the fire scenario, from ignition to ${hm(scenario().durationMin * 60)} (h:mm) later, with one draw of the fire and one set of synthetic households. Another draw can turn out differently, which is why Change the plan compares many. The outcomes on the right are this run's, not a prediction. Restart starts again from ignition; drag the slider to jump to a time.</p>
     <div id="pb-slot"></div>
     ${done ? `<div class="nudge"><b>Explore changes that would mitigate damage and loss of life.</b>
@@ -305,7 +305,7 @@ function tryHTML() {
   const all = M.levers.filter(stackable), picked = pickedLevers(), p = state.preset, n = M.meta.severities.length * M.meta.seeds.length;
   const running = state.tryBatch != null;
   return `<h2>Fire scenario: <select id="try-fire">${FIRES.map(f => `<option value="${f.id}"${f.id === state.fire ? ' selected' : ''}>${esc(f.title)}</option>`).join('')}</select></h2>
-    <p class="small">Build your plan from today's plan by picking changes, alone or together: changes made before the fire, and how Berkeley responds on the day. Then compare it with today's plan against this fire scenario. A comparison makes ${n} passes (low, central and high severity × ${M.meta.seeds.length} random seeds); each pass runs both plans on the same fire and the same synthetic households. One pass can point the wrong way. Outcomes appear at the top of the right-hand panel.</p>
+    <p class="small">Build your plan from today's plan by picking changes, alone or together: changes made before the fire, and how Berkeley responds on the day. Then compare it with today's plan against this fire scenario. A comparison makes ${n} passes (low, medium and high severity × ${M.meta.seeds.length} random seeds); each pass runs both plans on the same fire and the same synthetic households. One pass can point the wrong way. Outcomes appear at the top of the right-hand panel.</p>
     <div class="yourplan"><b>Your plan:</b> today's plan${picked.length ? ' + ' + picked.map(l => esc(l.title)).join(' + ') : ', nothing changed yet'}
       <div class="btns"><button id="watch-today2">▶ Watch today's plan</button><button id="watch-mine"${picked.length ? '' : ' disabled'}>▶ Watch your plan</button>
       <button id="try-compare" class="primary"${picked.length && !running ? '' : ' disabled'}>Compare with today's plan (${n} passes)</button>${picked.length ? ' <button id="try-clear">Clear</button>' : ''}</div>
@@ -321,12 +321,12 @@ function tryHTML() {
 function presetsHTML() {
   const p = state.preset, fire = FIRES.find(f => f.id === state.fire);
   return `${p && !['today', 'try'].includes(p.id) ? `<div class="chosen"><div class="plans-ab"><div><b>Plan A</b> ${esc(p.A.name.replace(/^A: /, ''))}</div><div><b>Plan B</b> ${esc(p.B.name.replace(/^B: /, ''))}</div>
-      <div class="small muted">${esc(scenario().name)} · ${p.tods ? 'time of day as set' : esc(TIME_OF_DAY[p.tod].label)} · central severity</div></div>
+      <div class="small muted">${esc(scenario().name)} · ${p.tods ? 'time of day as set' : esc(TIME_OF_DAY[p.tod].label)} · medium severity</div></div>
       <div class="watch"><b>What to look for.</b> ${esc(p.on[state.fire])}</div>
       <div class="btns"><button data-watch="A" class="${state.editing === 'A' ? 'on' : ''}">▶ Watch Plan A</button><button data-watch="B" class="${state.editing === 'B' ? 'on' : ''}">▶ Watch Plan B</button>
       <button class="primary" id="simple-compare">Compare A and B (9 passes)</button> <button id="simple-close">✕ Close</button></div>
       ${state.presetOut ? '<p class="small"><b>The answer is at the top of the right-hand panel →</b></p>' : ''}
-      <p class="small muted">Compare makes 9 passes (low, central and high severity, 3 random seeds each); each pass runs both plans on the same fire and households. It takes a few minutes and puts the answer at the top of the right-hand panel. Trust a difference that shows up in every pass.</p></div>` : ''}
+      <p class="small muted">Compare makes 9 passes (low, medium and high severity, 3 random seeds each); each pass runs both plans on the same fire and households. It takes a few minutes and puts the answer at the top of the right-hand panel. Trust a difference that shows up in every pass.</p></div>` : ''}
     <div class="presets">${PRESETS.map(q => { const ok = q.on[state.fire]; return `<button class="preset${p?.id === q.id ? ' on' : ''}" data-id="${q.id}"${ok ? '' : ' disabled'}><b>${esc(q.title)}</b><span>${esc(q.question)}</span>${ok ? '' : `<span class="why">Not offered on ${esc(fire.title)}: ${esc(q.off[state.fire])}</span>`}</button>`; }).join('')}</div>
     <p class="small muted">These questions use their own Plan A and time of day. The Expert switch at the top lets you set everything yourself.</p>`;
 }
@@ -869,7 +869,7 @@ function modal(html, cls = '') { $('modal').className = cls; $('modal-body').inn
 const INPUTS = [
   ['Fire scenario', 'Where the fire starts and how the wind blows, and so which zones the City orders out.', 'Which neighborhoods are under order; how fast embers reach homes.'],
   ['Time of day', 'Who is home, commuters driving home against the outbound traffic, and employees, students and visitors (Evacuation Time Study cases).', 'Evacuation time: weekdays are slower than nights.'],
-  ['Severity', 'Fire spread speed and ember distance: half or double the central case.', 'People still there when embers or the fire front arrived.'],
+  ['Severity', 'Fire spread speed and ember distance: half or double the medium case.', 'People still there when embers or the fire front arrived.'],
   ['Random seed', 'Which households live where, where cars are parked, and random spot fires.', 'Small differences. Trust a difference that holds across seeds.'],
   ['Decision delay', 'Minutes from ignition to the first evacuation order.', 'Households still home when embers arrive.'],
   ['Zones ordered', 'Only the City\'s pre-defined zones, or also zones within 1–3 km of the fire, or all hill zones at once.', 'Exposure falls; more cars on the road at once.'],
