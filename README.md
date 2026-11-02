@@ -39,9 +39,9 @@ changes that would mitigate damage and loss of life". **Try changes:** a checkli
 management), each with its cost, provenance and "What the simulator can't tell you", and a
 "Show on map" outline. Changes stack (`js/levers.js`); two settings of the same thing, or two
 rewrites of the same block, are alternatives. **Compare with today's plan** runs both plans on the
-same households in 15 runs (3 severities × 5 seeds) in background workers and reports, per
-measure, the middle value of each plan and how many runs went each way; only the full set earns a
-verdict ("better in every run", "mixed"), because one run can point the wrong way. Watching a plan
+same households in 15 passes (3 severities × 5 seeds; each pass runs both plans) in background workers and reports, at the top of the right-hand panel, per
+measure, the middle value of each plan and how many passes went each way; only the full set earns a
+verdict ("better in every pass", "mixed"), because one pass can point the wrong way. Watching a plan
 on the map is labeled as one run. The stored results of `tools/mitigations.mjs` are not shown as
 answers: changes that did not reliably help on the chosen fire there (contraflow, police control,
 guided routing, the Buena Vista link) are greyed out with that explanation, so people see they
