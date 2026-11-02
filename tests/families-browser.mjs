@@ -49,6 +49,11 @@ for (const li of await page.$$eval('#try-out h3 + ul li', ls => ls.map(l => l.te
 await page.click('#bd-go');
 await page.waitForFunction(() => /Your plan, change by change/.test(document.querySelector('#try-out')?.textContent || ''), { timeout: 900000, polling: 1000 });
 check(/Same 27 passes/.test(await page.$eval('#try-out', d => d.textContent)), 'breakdown over the same 27 passes');
+// Turning families off keeps the finished comparison's own description (Codex review of PR #35).
+const words = async () => (await page.$eval('#try-out', d => d.textContent)).match(/Passes: [^.]*/)?.[0];
+const before = await words();
+await page.click('#simple .fam-box');
+check(!(await page.$eval('#simple .fam-box', b => b.checked)) && (await words()) === before && /3 starting points × .* one random seed/.test(before || ''), `after turning families off: ${await words()}`);
 check(!errors.length, `console errors: ${errors.length}${errors.length ? '\n  ' + errors.join('\n  ') : ''}`);
 await browser.close();
 console.log(bad ? `FAIL (${bad})` : 'families-browser: all checks pass');

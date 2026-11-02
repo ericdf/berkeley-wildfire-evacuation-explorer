@@ -373,7 +373,7 @@ function tryHTML() {
   return `<h2>Fire scenario: <select id="try-fire">${FIRES.map(f => `<option value="${f.id}"${f.id === state.fire ? ' selected' : ''}>${esc(f.title)}</option>`).join('')}</select></h2>
     ${famHTML()}
     ${paceHTML()}
-    <p class="small">Build your plan from today's plan by picking changes, alone or together: changes made before the fire, and how Berkeley responds on the day. Then compare it with today's plan against this fire scenario. A comparison makes ${n} passes (${state.families ? passWords(state.fire) : `low, medium and high severity × ${M.meta.seeds.length} random seeds`}); each pass runs both plans on the same fire and the same synthetic households. One pass can point the wrong way. Outcomes appear at the top of the right-hand panel.</p>
+    <p class="small">Build your plan from today's plan by picking changes, alone or together: changes made before the fire, and how Berkeley responds on the day. Then compare it with today's plan against this fire scenario. A comparison makes ${n} passes (${state.families ? passWords(state.fire, passesFor(state.fire)) : `low, medium and high severity × ${M.meta.seeds.length} random seeds`}); each pass runs both plans on the same fire and the same synthetic households. One pass can point the wrong way. Outcomes appear at the top of the right-hand panel.</p>
     <div class="yourplan"><b>Your plan:</b> today's plan${picked.length ? ' + ' + picked.map(l => esc(l.title)).join(' + ') : ', nothing changed yet'}
       <div class="btns"><button id="watch-today2">▶ Watch today's plan</button><button id="watch-mine"${picked.length ? '' : ' disabled'}>▶ Watch your plan</button>
       <button id="try-compare" class="primary"${picked.length && !running ? '' : ' disabled'}>Compare with today's plan (${n} passes)</button>${picked.length ? ' <button id="try-clear">Clear</button>' : ''}</div>
@@ -442,8 +442,11 @@ function cancelTry() {
 // The passes of a comparison on a fire (js/scenarios.js comparisonCases): severities × seeds of the stored
 // table with families off; every family member × severity, with seeds added to reach 15, with families on.
 const passesFor = (fire, families = state.families) => comparisonCases(scenById(fire), data, { families, severities: mit().meta.severities, seeds: mit().meta.seeds });
-function passWords(fire) {
-  const sc = scenById(fire), pts = familyPoints(sc).length, ms = familyOf(sc, data).length, seeds = passesFor(fire).length / ms / mit().meta.severities.length;
+// What a set of passes covers, read from the passes themselves, so a finished comparison keeps its own
+// description when the families box changes afterwards (Codex review of PR #35).
+function passWords(fire, cases) {
+  const fam = familyOf(scenById(fire), data), used = fam.filter(m => cases.some(c => c.member === m.id));
+  const pts = new Set(used.map(m => m.point)).size, seeds = new Set(cases.map(c => c.seed)).size;
   return `${pts > 1 ? `${pts} starting points × ` : ''}winds from ${FAMILY_WINDS.map(w => `${w}°`).join(', ')} × low, medium and high severity${seeds > 1 ? ` × ${seeds} random seeds` : ', one random seed'}`;
 }
 const secs = ms => { const s = Math.round(ms / 1000); return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${s % 60} s`; };
@@ -600,7 +603,7 @@ function triesHTML() {
       ${i ? '' : `<table class="cmp"><tr><th></th><th>Today's plan</th><th>Your plan</th><th>Your plan, pass by pass</th></tr>${rows}</table>
       <p class="small muted">Middle value of the passes so far for each plan. A pass counts as better or worse only when the two plans differ by more than 1%; smaller differences are treated as noise. Synthetic households on an illustrative fire: compare the plans, don't read the numbers as predictions.${T.done ? ' Where a line is mixed, your plan did better in some passes and worse in others; don\'t rely on it.' : ' Wait for every pass before trusting a difference.'}</p>
       ${memberLines(T)}
-      ${T.families && T.done ? `<p class="small muted">Passes: ${esc(passWords(T.fire))}. The starts and winds are our choices, not probabilities, and count equally. Evacuation orders stay this fire's.</p>` : ''}
+      ${T.families && T.done ? `<p class="small muted">Passes: ${esc(passWords(T.fire, T.cases))}. The starts and winds are our choices, not probabilities, and count equally. Evacuation orders stay this fire's.</p>` : ''}
       ${T.done ? (T.ids.length >= 2 ? bdButtonHTML(T) : `<p class="small"><b>Keep exploring:</b> add another change to see whether it adds anything.</p>`) : ''}
       ${cant.length ? `<details class="cant"><summary>What the simulator can't tell you about these changes</summary><ul class="small">${cant.map(l => `<li><b>${esc(l.title)}:</b> ${esc(l.cannotMeasure)}</li>`).join('')}</ul></details>` : ''}`}
       ${i ? `<table class="cmp small">${rows}</table>` : ''}</div>`;
