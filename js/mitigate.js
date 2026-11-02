@@ -10,7 +10,7 @@ export const MEASURES = {
   ember: { label: 'People still there when embers arrived', f: S => S.exposedHome + S.exposedRoad + S.exposedNoVehicle + S.notOrderedExposed,
     tip: 'Synthetic people at home, on the road, or without a car when embers first reached their street. Not a casualty count.' },
   front: { label: 'People still there when the fire front arrived', f: S => S.fireFrontHome + S.fireFrontRoad,
-    tip: 'Synthetic people at home or on the road when the fire front itself reached their street, as in the results panel. Not a casualty count.' },
+    tip: 'Synthetic people at home or on the road when the fire front itself reached their street, as in the outcomes panel. Not a casualty count.' },
   cutOff: { label: 'Cars cut off by fire', f: S => S.vehiclesNoRoute,
     tip: 'Cars on the road with no remaining way out at the end of the run.' },
   engine: { label: 'Hill residents an engine cannot reach within 5 minutes', f: S => S.engineReachBeyond5People,

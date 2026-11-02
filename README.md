@@ -33,7 +33,7 @@ Loading takes a few seconds: about 10 MB of terrain and 2 MB of street network.
 Grizzly Peak Blvd (all of Fire Zones 2–3 ordered), the 1923 fire repeated today, or Panoramic
 Hill (remembered across visits), and watch it with today's plan (first order 10 minutes after
 ignition, today's parking, a fall night, central severity). No numbers appear until the user runs
-it; the results panel shows that run. When the run ends, the page invites the user to "explore
+it; the outcomes panel shows that run. When the run ends, the page invites the user to "explore
 changes that would mitigate damage and loss of life". **Try changes** (the user's set of changes is "your scenario", today's plan is "today's scenario"): a checklist of changes
 (leave early, decide faster, parking, a red curb, widening, new roads, buyouts, traffic
 management), each with its cost, provenance and "What the simulator can't tell you", and a
