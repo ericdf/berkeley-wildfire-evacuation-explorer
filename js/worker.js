@@ -9,11 +9,15 @@ import { reshuffle } from './guidance.js';
 let data, grid, scenarios;
 const ready = (async () => { data = await loadData(); grid = buildFireGrid(data); scenarios = makeScenarios(data); })();
 const fires = new Map();
+const cancelled = new Set(); // batches the page no longer wants (a closed comparison)
 
 self.onmessage = async ev => {
+  if (ev.data.cancel != null) { cancelled.add(ev.data.cancel); return; }
   await ready;
   const { batch, jobs } = ev.data;
   for (let k = 0; k < jobs.length; k++) {
+    await new Promise(r => setTimeout(r)); // let a cancel message in between runs
+    if (cancelled.has(batch)) { cancelled.delete(batch); return; }
     const j = jobs[k];
     const sc = scenarios.find(s => s.id === j.scenarioId);
     const key = `${sc.id}|${j.sev}|${j.seed}`;

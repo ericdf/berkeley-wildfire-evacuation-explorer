@@ -9,6 +9,7 @@ import { fromUTM } from '../tools/utm.mjs';
 import { accessCard, accessSummary, accessTable, accessLegend } from './access.js';
 import { ROUTING, routingOf, complianceOf, worseOff, worseOffBeyondChance } from './guidance.js';
 import { SHUTOFF } from './operations.js';
+import { loadMitigations, damageHTML, leversHTML, leverPreset } from './mitigate.js';
 
 const $ = id => document.getElementById(id);
 const fmt = (x, d = 0) => x == null || Number.isNaN(x) ? '—' : x === Infinity ? '∞' : Number(x).toLocaleString(undefined, { maximumFractionDigits: d, minimumFractionDigits: d });
@@ -25,7 +26,7 @@ const state = {
   editing: 'A', preset: null, fire: null, playing: false, speed: 900, sim: null, fires: new Map(), batch: 0,
 };
 
-const data = await loadData();
+const [data] = await Promise.all([loadData(), loadMitigations()]);
 const grid = buildFireGrid(data);
 const scenarios = makeScenarios(data);
 state.fire = FIRES.find(f => f.id === localStorage.getItem('bhe-fire'))?.id ?? FIRES[0].id;
@@ -215,32 +216,48 @@ $('nbhd').onchange = e => {
 // A question is offered on a fire only where its answer held in every tested run (presets.js).
 function renderSimple() {
   const p = state.preset, fire = FIRES.find(f => f.id === state.fire);
-  $('simple').innerHTML = `<h2>Pick a fire</h2>
+  const lever = p?.lever;
+  $('simple').innerHTML = `<h2><span class="step">1</span> Pick a fire</h2>
     <div class="fires">${FIRES.map(f => `<button class="fire-pick${f.id === state.fire ? ' on' : ''}" data-fire="${f.id}"><b>${esc(f.title)}</b><span>${esc(f.line)}</span></button>`).join('')}</div>
-    <h2>Pick a question</h2>
-    <div class="presets">${PRESETS.map(q => { const ok = q.on[state.fire]; return `<button class="preset${p?.id === q.id ? ' on' : ''}" data-id="${q.id}"${ok ? '' : ' disabled'}><b>${esc(q.title)}</b><span>${esc(q.question)}</span>${ok ? '' : `<span class="why">Not offered on ${esc(fire.title)}: ${esc(q.off[state.fire])}</span>`}</button>`; }).join('')}</div>
-    ${p ? `<div class="plans-ab"><div><b>Plan A</b> ${esc(p.A.name.replace(/^A: /, ''))}</div><div><b>Plan B</b> ${esc(p.B.name.replace(/^B: /, ''))}</div>
+    <h2><span class="step">2</span> See what it does</h2>
+    ${damageHTML(state.fire)}
+    <div class="btns"><button id="watch-today" class="${p?.id === 'today' ? 'on' : ''}">▶ Watch it with today's plan</button></div>
+    <h2><span class="step">3</span> Explore what would help</h2>
+    ${p && p.id !== 'today' ? `<div class="chosen"><div class="plans-ab"><div><b>Plan A</b> ${esc(p.A.name.replace(/^A: /, ''))}</div><div><b>Plan B</b> ${esc(p.B.name.replace(/^B: /, ''))}</div>
       <div class="small muted">${esc(scenario().name)} · ${p.tods ? 'time of day as above' : esc(TIME_OF_DAY[p.tod].label)} · central severity</div></div>
       <div class="watch"><b>What to look for.</b> ${esc(p.on[state.fire])}</div>
       <div class="btns"><button data-watch="A" class="${state.editing === 'A' ? 'on' : ''}">▶ Watch Plan A</button><button data-watch="B" class="${state.editing === 'B' ? 'on' : ''}">▶ Watch Plan B</button>
-      <button class="primary" id="simple-compare">Compare A and B on 9 fires</button></div>
-<div id="simple-result"></div>
-      <p class="small muted">Watch starts that plan on the map; pause, restart or slow it with the buttons beside the clock on the map. Compare runs both plans on the same 9 fires (low, central and high severity, 3 random seeds each) and the same households, takes a few minutes, and shows the answer here. Trust a difference that shows up in every run.</p>` : '<p class="small muted">Each question compares two plans on the same fire and the same households. The Expert switch at the top right lets you set everything yourself.</p>'}`;
+      <button class="primary" id="simple-compare">Compare A and B on 9 fires</button> <button id="simple-close">✕ Close</button></div>
+      <div id="simple-result"></div>
+      <p class="small muted">Watch starts that plan on the map; pause, restart or slow it with the buttons beside the clock on the map. Compare runs both plans on the same 9 fires (low, central and high severity, 3 random seeds each) and the same households, takes a few minutes, and shows the answer here. Trust a difference that shows up in every run.</p></div>` : ''}
+    <div id="levers">${leversHTML(state.fire)}</div>
+    <details${p && !lever && p.id !== 'today' ? ' open' : ''}><summary>Other questions</summary>
+      <div class="presets">${PRESETS.map(q => { const ok = q.on[state.fire]; return `<button class="preset${p?.id === q.id ? ' on' : ''}" data-id="${q.id}"${ok ? '' : ' disabled'}><b>${esc(q.title)}</b><span>${esc(q.question)}</span>${ok ? '' : `<span class="why">Not offered on ${esc(fire.title)}: ${esc(q.off[state.fire])}</span>`}</button>`; }).join('')}</div>
+      <p class="small muted">These questions use their own Plan A and time of day, so their numbers differ from the list above. The Expert switch at the top lets you set everything yourself.</p></details>`;
   $('simple').querySelectorAll('.fire-pick').forEach(b => b.onclick = () => pickFire(b.dataset.fire));
   $('simple').querySelectorAll('.preset').forEach(b => b.onclick = () => { if (!b.disabled) applyPreset(b.dataset.id); });
+  $('simple').querySelectorAll('.try').forEach(b => b.onclick = () => { applyPreset(leverPreset(b.dataset.lever, state.fire)); $('simple').scrollIntoView({ behavior: 'smooth' }); });
+  $('watch-today').onclick = () => { applyPreset(todayPreset()); state.playing = true; runLabel('❚❚ Pause'); };
   $('simple').querySelectorAll('[data-watch]').forEach(b => b.onclick = () => { state.editing = b.dataset.watch; showPlan(); if (p.tods) { $('tod').value = p.tods[state.editing]; todNote(); } newRun(); renderSimple(); state.playing = true; runLabel('❚❚ Pause'); });
   if ($('simple-compare')) $('simple-compare').onclick = () => { $('cmp-scope').value = 'severities'; $('compare').click(); };
+  if ($('simple-close')) $('simple-close').onclick = () => applyPreset(todayPreset());
 }
+// Today's plan on the chosen fire, as in step 2 (the mitigation baseline: DEFAULT_PLAN, fall night).
+const todayPreset = () => ({ id: 'today', title: "Today's plan", tod: 'S6', A: { ...DEFAULT_PLAN, name: "A: today's plan" }, B: { ...DEFAULT_PLAN, name: "B: today's plan" }, on: {}, off: {}, headline: null, always: true });
 // The chosen fire applies to every question. Keep the current question if it holds on the new
 // fire; otherwise switch to the first question that does.
 function pickFire(id) {
   state.fire = id; localStorage.setItem('bhe-fire', id);
-  const q = state.preset?.on[id] ? state.preset : PRESETS.find(x => x.on[id]);
-  applyPreset(q.id);
+  // Step 2 shows the fire with today's plan; a chosen lever or question is reapplied on the new fire when it can be.
+  const p = state.preset;
+  if (p?.lever) applyPreset(leverPreset(p.lever, id));
+  else if (p && p.id !== 'today' && p.on[id]) applyPreset(p.id);
+  else applyPreset(todayPreset());
 }
-function applyPreset(id) {
-  const p = PRESETS.find(q => q.id === id);
-  if (!p.on[state.fire]) return; // withheld on this fire
+function applyPreset(idOrPreset) {
+  const p = typeof idOrPreset === 'string' ? PRESETS.find(q => q.id === idOrPreset) : idOrPreset;
+  if (!p.always && !p.on[state.fire]) return; // withheld on this fire
+  cancelCompare(); // a comparison still running belongs to the previous plans
   state.preset = p;
   $('scenario').value = state.fire; showScenario();
   $('tod').value = p.tod; todNote(); $('severity').value = 'central'; $('seed').value = 1;
@@ -484,6 +501,11 @@ function legend() {
 }
 
 // ---------- comparison ----------
+function cancelCompare() {
+  if (state.compareBatch == null) return;
+  worker.postMessage({ cancel: state.compareBatch }); state.compareBatch = null;
+  $('sim-banner').hidden = true; if ($('simple-compare')) $('simple-compare').disabled = false;
+}
 $('compare').onclick = () => {
   readPlan();
   const scope = $('cmp-scope').value, seeds = [1, 2, 3], sc = scenario();
@@ -491,17 +513,18 @@ $('compare').onclick = () => {
     : scenarios.flatMap(s => seeds.map(seed => ({ scenarioId: s.id, sev: 'central', seed, tod: s.timeOfDay })));
   const W = world(), jobs = ['A', 'B'].flatMap(p => cases.map(c => ({ ...c, tod: state.preset?.tods?.[p] ?? c.tod, planKey: p, plan: { ...state.plans[p] }, world: W })));
   if (routingDiffers()) { for (const j of jobs) j.outcomes = true; jobs.push(...jobs.filter(j => j.planKey === 'A' || j.planKey === 'B').map(j => ({ ...j, planKey: j.planKey + '2', reshuffle: true }))); } // households worse off (js/guidance.js)
-  const batch = ++state.batch, results = [];
+  const batch = ++state.batch, results = []; state.compareBatch = batch;
   // Progress goes in a small banner above the map (Eric, 2026-11-01), visible from either panel.
   const progress = (t, done = 0) => { $('sim-banner').hidden = !t; $('sim-banner-text').textContent = t; $('sim-banner-bar').style.width = `${Math.round(100 * done / jobs.length)}%`; };
   if ($('simple-compare')) $('simple-compare').disabled = true;
   progress(`Comparing Plan A and Plan B: running ${jobs.length} simulations on the same fires and households. This takes a few minutes…`);
   worker.onmessage = ev => {
-    const m = ev.data; if (m.batch !== batch) return;
+    const m = ev.data; if (m.batch !== batch || state.compareBatch !== batch) return; // a closed comparison renders nothing
     if (m.done) {
+      state.compareBatch = null;
       progress(''); renderCompare(results, scope);
       if ($('simple-compare')) $('simple-compare').disabled = false;
-      if (document.body.classList.contains('simple')) {
+      if (document.body.classList.contains('simple') && $('simple-result')) {
         $('simple-result').innerHTML = takeaway(results, scope) + '<p class="small muted">The full table is in the right-hand panel.</p>';
         $('compare-out').scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
@@ -567,7 +590,7 @@ function renderCompare(results, scope) {
 }
 // One plain sentence on the preset's headline metric: medians and in how many runs B beat A.
 function takeaway(results, scope) {
-  const p = state.preset; if (!p || scope !== 'severities') return '';
+  const p = state.preset; if (!p?.headline || scope !== 'severities') return '';
   const { label, f, dir } = p.headline;
   const pairs = results.filter(r => r.job.planKey === 'A').map(a => [f(a.summary), f(results.find(b => b.job.planKey === 'B' && b.job.sev === a.job.sev && b.job.seed === a.job.seed).summary)]);
   const med = a => { const v = [...a].sort((x, y) => x - y); return v[Math.floor(v.length / 2)]; };
@@ -652,7 +675,7 @@ function intro() {
   modal(`<div class="intro"><h2>Berkeley Hills Wildfire Evacuation: Scenario Explorer</h2>
   <p>Run a wildfire on Berkeley's real streets and watch residents' cars, parked cars and fire engines compete for the same narrow roads. Compare two ways of running an evacuation on the same fire and the same households.</p>
   <p class="note">This is a teaching tool, not a prediction and not an official evacuation plan. The households are synthetic and the fire is illustrative. For real instructions see the <a href="https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation" target="_blank" rel="noopener">City's fire weather and evacuation page</a>.</p>
-  <div class="steps"><div><b>1 · Pick a fire and a question</b>Each question sets two plans, A and B, that differ in one choice. A question is switched off on a fire where its answer did not hold.</div><div><b>2 · Watch</b>Run Plan A, then Plan B. Fire is orange, embers amber, cars blue, queues red.</div><div><b>3 · Compare</b>Run both plans on 9 fires. A difference that shows up in every run is worth discussing.</div></div>
+  <div class="steps"><div><b>1 · Pick a fire</b>Three illustrative fires, each with its own evacuation order area.</div><div><b>2 · See what it does</b>With today's plan: people still there when embers or the fire front arrived, cars cut off, homes engines cannot reach in time. Watch it on the map: fire is orange, embers amber, cars blue, queues red.</div><div><b>3 · Explore what would help</b>Every change tested on that fire 15 times, ranked by what held in every run, with its cost and what the simulator can't tell you. Compare a change with today's plan on the map.</div></div>
   <h3>The inputs and what they change</h3>
   <table><tr><th>Input</th><th>What it sets</th><th>What to watch</th></tr>${INPUTS.map(r => `<tr><td><b>${r[0]}</b></td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`).join('')}</table>
   <h3>Reading the results</h3>
@@ -662,8 +685,8 @@ function intro() {
     <li><b>Fire-engine travel</b> from the nearest station to the fire edge, and streets where parked cars leave less than an engine's width.</li>
     <li><b>Hill homes an engine can reach within 5 minutes</b>: the share of residents of Berkeley's Fire Zones 2–3 whose street an engine can reach from the nearest station within the City's 5-minute standard, given the plan's parked cars, before traffic and fire. It measures access only: engines do not fight the fire in this simulator.</li>
   </ul>
-  <p class="small muted">Simple view offers three fires and four questions; a question is offered on a fire only where Plan B did better than Plan A in every one of 15 test runs there. Expert view (the Simple / Expert switch at the top right of the page) opens every control: scenario, severity, seed, time of day and both plans. Every number shows whether it is sourced, derived, an assumption, a model rule or synthetic; see Assumptions &amp; limits and Data sources. Streets and residents beyond Berkeley (Oakland, Albany, Kensington, El Cerrito) are included up to the edge of the elevation data; north Kensington and Oakland south of about 37.84° N are not.</p>
-  <div class="start"><button id="intro-expert">Open expert view</button><button class="primary" id="intro-simple">Start with a question</button></div></div>`, 'intro');
+  <p class="small muted">Simple view offers three fires and the changes tested on each; a change is listed as helping only where it did better than today's plan in every one of 15 test runs on that fire (engine access: in at least three of four and never worse). Expert view (the Simple / Expert switch at the top right of the page) opens every control: scenario, severity, seed, time of day and both plans. Every number shows whether it is sourced, derived, an assumption, a model rule or synthetic; see Assumptions &amp; limits and Data sources. Streets and residents beyond Berkeley (Oakland, Albany, Kensington, El Cerrito) are included up to the edge of the elevation data; north Kensington and Oakland south of about 37.84° N are not.</p>
+  <div class="start"><button id="intro-expert">Open expert view</button><button class="primary" id="intro-simple">Start: pick a fire</button></div></div>`, 'intro');
   const go = m => { localStorage.setItem('bhe-intro-seen', '1'); $('modal').close(); setMode(m); };
   $('intro-simple').onclick = () => go('simple'); $('intro-expert').onclick = () => go('expert');
 }
