@@ -16,17 +16,22 @@ the same holds for everything proposed here.
   `specification.md`, Joint scenario).
 - **The fault runs between the hills and the Bay.** In the State's Earthquake Fault Zone
   bound (below), 711 of the 1,617 street nodes in Berkeley's Fire Zones 2–3 are left on the
-  hill side, with exits only on the grid's east and north edges, none on the Bay side; another 391 lie inside the zone.
-  From Grizzly Peak Blvd at Spruce St, Panoramic Hill and upper Claremont Canyon, no route
-  reaches the Bay side (EQ5).
+  hill side, with exits only on the grid's east and north edges, none on the Bay side; another
+  391 lie on segments that are all closed. None of the four hill points checked keeps a route
+  to the Bay side: Grizzly Peak Blvd at Spruce St and Claremont Ave at Grizzly Peak Blvd have
+  none, and Panoramic Way at Mosswood Rd and Cragmont Ave at Euclid Ave are cut off, every
+  street at them closed (EQ5).
 - **Even the narrowest bound cuts Panoramic Hill off from the Bay side.** Closing only the 69
   vehicle segments that cross a mapped Hayward Fault trace leaves Panoramic Hill with no
   route west; the rest of the hills keep one, through a gap in the mapped trace near Arlington
-  Ave and Thousand Oaks Blvd (EQ4). Whether that gap is real or a gap in mapping is open.
+  Ave and Thousand Oaks Blvd (6.2 km from Grizzly Peak Blvd at Spruce St, 6.5 km from Cragmont
+  Ave at Euclid Ave, 13.3 km from the top of Claremont Canyon by way of the north hills; EQ4).
+  Whether that gap is real or a gap in mapping is open.
 - **Shaking is strong everywhere at once.** The USGS HayWired M7.05 scenario ShakeMap gives
-  intensity (MMI) 8.4–8.9 at the points checked, from Second St at Gilman St (8.4) to Grizzly
-  Peak Blvd at Spruce St (8.9) (EQ3), so signals, power and water fail across the city, not
-  only in the hills.
+  intensity (MMI) 8.4–9.7 at the points checked, from Second St at Gilman St (8.4) to Grizzly
+  Peak Blvd at Spruce St (9.7) (EQ3). The design assumes signals and power fail citywide
+  (assumption); the ShakeMap gives shaking, not which systems fail. Water supply after the
+  earthquake is an open question (section 6).
 - **Many fires, little help.** USGS's HayWired fire study estimates about 450 large fires in
   the region (EQ6, secondary source; the chapter itself has not been read). The City's 2024
   hazard mitigation plan says after a Hayward earthquake "Outside fire departments may not be
@@ -44,7 +49,7 @@ gone?
 | Item | Value | Source | Category |
 |---|---|---|---|
 | Scenario earthquake | M7.05 on the Hayward Fault, epicenter in Oakland | USGS HayWired (EQ1, EQ3) | sourced |
-| Shaking at Berkeley points | MMI 8.4 (Second St at Gilman St), 8.6 (I-80 at University Ave), 8.9 (Grizzly Peak Blvd at Spruce St) | HayWired ShakeMap grid, nearest node, about 1.8 km spacing (EQ3) | derived |
+| Shaking at Berkeley points | MMI 8.4 (Second St at Gilman St), 8.6 (I-80 at University Ave), 9.7 (Grizzly Peak Blvd at Spruce St) | HayWired ShakeMap grid, nearest node, about 1.8 km spacing (EQ3) | derived |
 | Where surface rupture is expected | Mapped Hayward Fault traces; the State's Earthquake Fault Zone around them | California Geological Survey (EQ2) | sourced |
 | Streets crossing a mapped trace | 69 vehicle segments, 10.9 km | `tools/fault-zone-check.mjs trace` (EQ4) | derived |
 | Streets touching the Earthquake Fault Zone | 551 vehicle segments, 66.3 km | `tools/fault-zone-check.mjs zone` (EQ5) | derived |
@@ -67,8 +72,8 @@ gone?
 **A. Fault closures (scenario setting).** Close street segments at the fault before the fire
 starts, at one of the two bounds: segments crossing a mapped trace (model rule, lower bound)
 or segments touching the Earthquake Fault Zone (model rule, upper bound; the zone marks
-where the State requires a fault investigation before building). Reuse the citywide
-power shutoff for dark signals. Report evacuation, engine reach and which exits are left.
+where the State requires a fault investigation before building). Reuse the citywide power shutoff for dark signals (an assumption: EQ3 gives shaking, not
+outages). Report evacuation, engine reach and which exits are left.
 Uses machinery the simulator already has (closed edges, dark signals); the closure list
 comes from `tools/fault-zone-check.mjs`.
 

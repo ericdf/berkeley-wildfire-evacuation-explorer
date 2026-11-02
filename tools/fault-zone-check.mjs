@@ -69,7 +69,22 @@ function closedByZone() {
 }
 
 const edgeOf = (p) => (p[0] < 1500 ? 'west' : p[0] > W - 1500 ? 'east' : p[1] < 300 ? 'south' : p[1] > H - 300 ? 'north' : 'interior');
-const STARTS = { 'Grizzly Peak Blvd at Spruce St': [-122.2590, 37.8890], 'Panoramic Hill': [-122.2440, 37.8690], 'upper Claremont Canyon': [-122.2360, 37.8560], 'Cragmont': [-122.2650, 37.8880] };
+// Start points, each the network node where two named streets meet (County street names), so a
+// start is the place it is named for (Codex review of PR #39: coordinates had snapped up to 1.9 km away).
+const STARTS = {
+  'Grizzly Peak Blvd at Spruce St': [/^GRIZZLY PEAK BL/, /^SPRUCE ST/],
+  'Panoramic Hill (Panoramic Way at Mosswood Rd)': [/^PANORAMIC WY/, /^MOSSWOOD RD/],
+  'top of Claremont Canyon (Claremont Ave at Grizzly Peak Blvd)': [/^CLAREMONT AV/, /^GRIZZLY PEAK BL/],
+  'Cragmont (Cragmont Ave at Euclid Ave)': [/^CRAGMONT AV/, /^EUCLID AV/],
+};
+const namesAt = new Map();
+for (const e of veh) for (const n of [e.a, e.b]) (namesAt.get(n) ?? namesAt.set(n, new Set()).get(n)).add(e.name);
+const startNode = {};
+for (const [label, [p, q]] of Object.entries(STARTS)) {
+  const hits = [...namesAt].filter(([, s]) => [...s].some(x => p.test(x)) && [...s].some(x => q.test(x))).map(([n]) => n);
+  if (!hits.length) throw new Error(`no node where ${p} meets ${q}`);
+  startNode[label] = hits[0];
+}
 
 function report(label, closed) {
   const adj = new Map();
@@ -85,9 +100,9 @@ function report(label, closed) {
   for (const [k, g] of Object.entries(groups).sort((a, b) => b[1].nodes - a[1].nodes).slice(0, 6))
     console.log(`  piece ${k}: ${g.nodes} hill nodes; exits by grid edge ${JSON.stringify(g.exits)}`);
   const west = new Set([...exits].filter(x => edgeOf(net.nodes[x]) === 'west'));
-  for (const [name, ll] of Object.entries(STARTS)) {
-    const [x, y] = local(ll); let s = null, bd = Infinity;
-    for (const h of hill) { if (!adj.has(h)) continue; const p = net.nodes[h]; const d = (p[0] - x) ** 2 + (p[1] - y) ** 2; if (d < bd) { bd = d; s = h; } }
+  for (const [name, s] of Object.entries(startNode)) {
+    // The start stays fixed whatever closes; if every street at it is closed, it is cut off.
+    if (!adj.has(s)) { console.log(`  ${name} (node ${s}): cut off, every street segment at it is closed`); continue; }
     const dist = new Map([[s, 0]]), prev = new Map(), pq = [[0, s]]; let hit = null;
     while (pq.length) { pq.sort((a, b) => b[0] - a[0]); const [d, u] = pq.pop(); if (d > dist.get(u)) continue; if (west.has(u)) { hit = u; break; } for (const [v, e] of adj.get(u)) { const nd = d + e.len; if (nd < (dist.get(v) ?? Infinity)) { dist.set(v, nd); prev.set(v, [u, e]); pq.push([nd, v]); } } }
     if (!hit) { console.log(`  ${name}: no route to the Bay-side grid edge`); continue; }
