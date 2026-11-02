@@ -29,15 +29,23 @@ Loading takes a few seconds: about 10 MB of terrain and 2 MB of street network.
 
 ## Playing
 
-**Simple view** (the default) offers three fires and four questions (`js/presets.js`). The
-fires are the east-wind fire near Grizzly Peak Blvd (all of Fire Zones 2–3 ordered), the 1923
-fire repeated today, and Panoramic Hill. The chosen fire applies to every question and is
-remembered across visits. A question is offered on a fire only where Plan B beat Plan A on its
-headline measure in all 15 same-seed test runs (low, central and high severity, seeds 1–5) and
-the central-severity median changed by 5% or more; elsewhere it is shown switched off with the
-reason (SOURCE_NOTES P19–P22). "Weekday midday or night" is offered only on the east-wind fire.
-Each question's "What to look for" gives that fire's central-severity medians. Watch plays one
-plan on the map; Compare runs both on 9 fires (3 severities × 3 seeds) and states how often B won.
+**Simple view** (the default) works in three steps. **1. Pick a fire:** the east-wind fire near
+Grizzly Peak Blvd (all of Fire Zones 2–3 ordered), the 1923 fire repeated today, or Panoramic
+Hill; the choice is remembered across visits. **2. See what it does** with today's plan (first
+order 10 minutes after ignition, today's parking, a fall night): people still there when embers
+arrived, people still home when the fire front arrived, cars cut off, hill residents an engine
+cannot reach within 5 minutes, and minutes until 90% of cars are out, as central-severity medians
+from `data/model/mitigations.json` (`tools/mitigations.mjs`, SOURCE_NOTES MS1–MS9). **3. Explore
+what would help:** every tested change, ranked for that fire. A change is listed as getting people
+out only if it did better in all 15 same-seed runs (3 severities × 5 seeds); engine-access changes
+are listed when they did better in every run or in at least three of four and never worse. Each
+card shows the cost (screening ranges from the earlier analyses), the before and after numbers, and
+what the simulator can't tell you about it. Changes that are plan settings open a Plan A / Plan B
+comparison: Watch plays one plan on the map; Compare runs both on 9 fires (3 severities × 3 seeds)
+and states how often B won. Street, new-road and buyout changes were tested offline and are not
+adjustable on the map yet. The earlier questions (`js/presets.js`, offered on a fire only where
+Plan B beat Plan A in all 15 test runs by 5% or more, SOURCE_NOTES P19–P22) are under "Other
+questions".
 
 **Expert view** opens every control:
 
@@ -285,7 +293,8 @@ add any parking-removal bonus.
 | `js/main.js` | UI: controls, results, inspector, comparison, modals |
 | `js/map.js`, `js/terrain.js` | Canvas map, hillshade and contours |
 | `js/fire.js`, `js/sim.js`, `js/parking.js`, `js/scenarios.js`, `js/rng.js` | Models and presets |
-| `js/presets.js` | Simple view: its fires, questions, per-fire "What to look for" text and the reasons a question is withheld |
+| `js/presets.js` | Simple view: its fires, the "Other questions", per-fire "What to look for" text and the reasons a question is withheld |
+| `js/mitigate.js` | Simple view steps 2 and 3: reads `data/model/mitigations.json`, groups the changes for the chosen fire, and builds a Plan A / Plan B comparison from a plan-setting change |
 | `js/worker.js` | Runs comparison batches off the main thread |
 | `js/guidance.js` | Driver information and routing: Habit, Ordinary app, constrained guidance and system-optimal route trees; households worse off |
 | `js/access.js` | Access-constrained areas: inspector card, Expert-view summary, ranking table, map key |
