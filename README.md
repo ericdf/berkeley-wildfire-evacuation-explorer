@@ -267,6 +267,7 @@ add any parking-removal bonus.
 | `data/model/access-constraints.json` | Built by `tools/access-constraints.mjs`; the simulator runs without it |
 | `data/model/signals.json` | Signal junctions and control type (City `Signals` layer) and the Time Study's Appendix F congestion points, built by `tools/signals.mjs` |
 | `data/model/contraflow-streets.json` | Main hill exit streets for contraflow, built by `tools/contraflow-streets.mjs` from status-quo runs |
+| `data/model/retreat.json` | Built by `tools/retreat-sim.mjs` (managed retreat: block ranking, buyout runs, costs); its report is `docs/managed-retreat.md` |
 | `data/terrain/dem.i16`, `dem.json` | Elevation grid, built by `tools/fetch-dem.mjs` |
 | `data/field/` | Field and aerial observations (counts only), e.g. parked cars on 22 hill blocks |
 | `data/raw/` | Downloaded source data (reproducible, large; City layers and report PDFs are not in git). `osm/east-bay-roads.json` (OSM streets), `osm/lbnl-gate-roads.json` (the Lab's gate roads), `genasys/zones.json` (zone outlines), `census/` (2020 block counts) each have a retrieval note |
@@ -276,6 +277,7 @@ add any parking-removal bonus.
 | `tests/calibration.mjs`, `tests/stuck.mjs`, `tests/leftover.mjs` | Compare with the Time Study (fire off); list jammed links; list order-zone vehicles that never leave |
 | `tests/plan-draws.mjs` | Checks that Plan A and Plan B of every Simple-view question see the same households for a seed (each fire, seeds 1–3), the same with maximum growth under each R0 area, and that growth leaves today's households and the shared random stream unchanged |
 | `tests/growth.mjs` | Future growth and R0 with the fire on, seeds 1–5 (`SOURCE_NOTES.md` R4, R5); `GROWTH=max node tests/calibration.mjs` gives R3 |
+| `tests/retreat-draws.mjs` | Checks that a managed-retreat buyout (`world.retreat`) leaves every other household, every non-resident car and the shared random stream unchanged |
 
 ## Replacing datasets
 
@@ -368,6 +370,20 @@ Rerun it after `tools/build-network.mjs`.
 
 Clicking a street in an area, with the layer on, outlines the innermost area in yellow and puts an "Access-constrained area" card above the street card: entrance, type, streets, residents, households and vehicles (synthetic), evacuation zones, nesting with the enclosing areas, clear width and engine fit at the entrance, steepest grade, fire-zone mix, nearest other street, existing path, and the constraint score with its components, each with its provenance badge and source note. With the layer off, the street card names the area in one row. Below the layer list, a line gives hill residents behind a choke point (5,749 of 41,475; Berkeley and LBNL 3,149 of 27,840) and opens a sortable table of the union of the two top-50 rankings (68 areas), with the score and its components labeled a model rule; clicking an area zooms to it. None of this appears in Simple view.
 
-### Second ways out
+## Widening streets or banning parking at pinch points
 
+`tools/widening.mjs` ranks the hill segments where width binds (under 10 ft clear for an engine or 20 ft for two-way traffic with today's parking) by the people who depend on them, and for the top 30 screens what widening would take: added width to each standard, parcels the new strip enters and buildings it reaches (County parcels and OpenStreetMap footprints, counted in memory, never saved), side slope and retaining wall from the DEM, and cost ranges labeled as assumptions. `tools/widening-sim.mjs` runs the simulator with each of the top 10 widened or with parking banned on just that segment, applied in memory, same seed with and without. On the lowest block of Panoramic Way (17 ft), a red curb passes an engine just as widening does: in the simulator, the synthetic residents behind it beyond 5-minute engine reach fall from about 950 to 9 (central runs), and no evacuation measure changed in every same-seed pair. Method, tables, costs and limits are in `docs/widening.md`; a screening estimate, not engineering or legal analysis.
+
+```sh
+node tools/widening-all.mjs        # ranking and screening (web requests), simulator runs (about 30 min on 8 cores), report
+node tools/widening.mjs --no-fetch # ranking only, no web requests, writes nothing
+```
+
+Rerun it after `tools/build-network.mjs` and `tools/access-constraints.mjs`.
+## Managed retreat (voluntary buyouts)
+`tools/retreat-sim.mjs` asks which hill blocks (street segments) a voluntary buyout would target and what removing their households would change. It scores 1,803 hill blocks over 60 fire runs (share of runs with households still home when the fire front or embers arrived, cars cut off, no engine within 5 minutes, chokes in series, crowding at the choke; the weights are a model rule), then reruns the simulator with and without buyouts of the top blocks and of Panoramic Hill, same seed, and prices them from Census block-group home values and Uniform Relocation Act figures as a screening estimate. Buyouts are a harness setting (`world.retreat` in `js/sim.js`), not a plan option on the page: the bought-out households take their random draws and then make no trip, so every other household and car is the same draw. In these runs the benefit is almost entirely the people bought out; the neighbors who stay behind the same choke leave home at the same times and gain little on the road. Method, ranked blocks, results, costs and the comparison with second ways out are in `docs/managed-retreat.md`; findings are in `SOURCE_NOTES.md` RT1–RT11. Not a prediction, not an official evacuation plan and not a buyout proposal.
+node tools/retreat-sim.mjs                 # about 20 min on 7 workers; writes data/model/retreat.json and docs/managed-retreat.md
+node tools/retreat-sim.mjs --report-only   # rebuilds the report from data/model/retreat.json
+node tests/retreat-draws.mjs               # bought-out households leave every other draw unchanged
+### Second ways out
 `node tools/egress-all.mjs` screens candidate road connections that would give these areas a second way out: straight new roads up to 250 m, upgraded paths and stairways, opened barriers, and the City's "2nd Route Out" for Panoramic Hill. For each it reports length, grade from the lidar DEM, buildings and Alameda County parcels in a 40 ft corridor (counts only), park and campus land, the residents it takes out from behind a choke, a screening cost range from public figures, and the simulator's result with and without the link for the same seeds (the link is added at run time; `network.json` is unchanged). The candidates are a screening, not designs, and the results are a comparison, not a prediction. Method, ranked table, what was pruned and the Time Study benchmark are in `docs/egress-candidates.md`; the whole run takes 20–30 minutes on 8 cores. Rerun it after every network rebuild: candidate ids are built from the access-constraint area ids (AC-160-N3 is a link out of area AC-160), which shift when the network changes.

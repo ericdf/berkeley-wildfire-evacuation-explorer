@@ -45,6 +45,8 @@ export const DEFAULT_PLAN = { name: 'Baseline', alertKm: 0, orderDelayMin: 10, h
 
 export class Evacuation {
   // world: settings shared by both plans, such as future growth ({ growth: 'none' | 'middle' | 'moderate' | 'max' }).
+  // world.retreat (analysis harness only, tools/retreat-sim.mjs): { edges: street segment ids whose
+  // households are bought out, clearParking: also take the parked cars off those segments }.
   constructor(data, grid, fire, scenario, sevKey, plan, seed, tod, world = {}) {
     Object.assign(this, { data, grid, fire, scenario, sevKey, plan, seed, tod, world });
     const A = data.A, net = data.net;
@@ -56,6 +58,13 @@ export class Evacuation {
     // ---- per-edge parking state under this plan (same parked cars for every plan with this seed) ----
     const nE = edges.length;
     const P = this.parking = parkingState(data, plan, seed, tod);
+    // Managed retreat (harness setting): with clearParking, bought-out segments keep no parked cars
+    // (model rule). Applied after every parking draw, so the draws are unchanged.
+    this.retreatEdges = world.retreat?.edges ? new Set(world.retreat.edges) : null;
+    if (this.retreatEdges && world.retreat.clearParking) for (const eid of this.retreatEdges) {
+      const W = edges[eid]?.widthM; if (W == null || Number.isNaN(P.clear[eid])) continue;
+      P.clear[eid] = W; P.eff[eid] = W >= 2 * A.access.movingLaneM ? 2 : W >= A.access.movingLaneM ? 1 : 0; P.engineOK[eid] = W >= A.access.engineClearM ? 1 : 0;
+    }
     this.clear = P.clear; this.eff = P.eff; this.engineOK = P.engineOK;
     this.parkingStats = P.stats;
 
@@ -265,12 +274,17 @@ export class Evacuation {
     }
     const nH = hhEdge.length;
     const hh = this.hh = { n: nH, edge: Int32Array.from(hhEdge), zone: Int16Array.from(hhZone), veh: Uint8Array.from(hhVeh), early: Uint8Array.from(hhEarly),
+      gone: new Uint8Array(nH), // 1 bought out (world.retreat): placed and drawn as usual, then no trip and not counted
       kind: new Uint8Array(nH), // 0 stays, 1 ordered, 2 warned and leaving, 3 shadow (voluntary)
       ride: new Int32Array(nH).fill(-1), depart: new Float64Array(nH).fill(Infinity), leftHome: new Float64Array(nH).fill(Infinity),
       vehLeft: new Uint8Array(nH), arrived: new Float64Array(nH).fill(Infinity),
       commuter: new Uint8Array(nH), // 1 a commuter is driving home; 2 home; 3 turned back
       commuterHome: new Float64Array(nH).fill(Infinity) };
     this.unplacedPeople = unplaced;
+    // Managed retreat: households on bought-out segments are placed and take every draw as before, so
+    // every other household and every non-resident car draws the same numbers (tests/retreat-draws.mjs).
+    this.retreat = { households: 0, edges: this.retreatEdges ? this.retreatEdges.size : 0 };
+    if (this.retreatEdges) for (let h = 0; h < nH; h++) if (this.retreatEdges.has(hh.edge[h])) { hh.gone[h] = 1; this.retreat.households++; }
     // Who leaves and when (Time Study: 100% of Order zones, 50% of Warning zones, 20% shadow
     // elsewhere in the city and its Shadow Region, here the whole model area; mobilization histograms by household type; SOURCE_NOTES E8, E9).
     const M = D.mobilization15min, C = D.compliance;
@@ -296,6 +310,7 @@ export class Evacuation {
       if (sk) u[6] = R();
       // scenario donors per street, in household order, so today's come first
       if (hh.veh[h] && (sk === 1 || sk === 2)) { if (!scenDonors.has(hh.edge[h])) scenDonors.set(hh.edge[h], []); scenDonors.get(hh.edge[h]).push(h); }
+      if (hh.gone[h]) continue; // bought out: kind 0, no trip, no car on the road, never a donor
       let T, kind;
       if (this.orderT[z] < Infinity) { T = this.orderT[z]; kind = 1; }
       else if (this.warnT[z] < Infinity && g(0) < C.warning) { T = this.warnT[z]; kind = 2; }
@@ -687,7 +702,7 @@ export class Evacuation {
     const zones = data.layers.evacZones, edges = data.net.edges;
     const z = { hill: [0, 0, 0], all: [0, 0, 0] }; // households: total, within the standard, no route
     for (let h = 0; h < hh.n; h++) {
-      if (!String(zones[hh.zone[h]]?.id).startsWith('BER')) continue;
+      if (hh.gone[h] || !String(zones[hh.zone[h]]?.id).startsWith('BER')) continue;
       const tt = times[hh.edge[h]], g = edges[hh.edge[h]].fireZone >= 2 ? [z.hill, z.all] : [z.all];
       for (const c of g) { c[0]++; if (tt <= lim) c[1]++; if (tt === Infinity) c[2]++; }
     }
@@ -754,6 +769,7 @@ export class Evacuation {
       if (G.units) this.log(`Future growth "${opt.label}": ${G.units.toLocaleString()} added homes on Berkeley hill streets (Fire Zones 2–3, standing in for the Hillside Overlay), spread like today's households.${G.blocked ? ` R0 in ${R0_AREAS[G.r0]} bars ${G.blocked.toLocaleString()} of them (${Math.round(G.blocked * pph).toLocaleString()} people); none move elsewhere.` : ''} Built: ${G.built.toLocaleString()} homes, about ${Math.round(G.built * pph).toLocaleString()} added residents.`, 'plan');
       if (G.r0Missing) this.log('R0 in access-constrained areas has no effect in this build: data/model/access-constraints.json is missing.', 'warn');
       else if (G.r0 !== 'none' && !G.units) this.log(`R0 in ${R0_AREAS[G.r0]} has no effect: Future growth is set to none.`, 'plan'); }
+    if (this.retreat.edges) this.log(`Managed retreat (analysis setting): ${this.retreat.households.toLocaleString()} synthetic households on ${this.retreat.edges.toLocaleString()} bought-out street segments are removed${this.world.retreat.clearParking ? ', with the parked cars on those segments' : ''}.`, 'plan');
     if (plan.hillsParking !== 'both') this.log(`Parking plan "${PARKING_PLANS[plan.hillsParking]}": ${parkingChanged(parkingStats)}.`, 'plan');
     if (warned) this.log(`${warned.toLocaleString()} households in warning zones choose to leave (Time Study: 50% of warned households).`, 'order');
     if (shadow) this.log(`${shadow.toLocaleString()} households outside the order and warning zones leave anyway (${shadowVeh.toLocaleString()} vehicles heading out of the model area; Time Study: 20% shadow evacuation).`, 'order');
@@ -770,6 +786,7 @@ export class Evacuation {
     // ember exposure reaching zones with people still home
     const { hh } = this; const counts = new Map();
     for (let h = 0; h < hh.n; h++) {
+      if (hh.gone[h]) continue;
       const te = this.tEmber[hh.edge[h]];
       const e = hh.ride[h] >= 0 ? hh.ride[h] : h;
       if (te <= this.t && hh.leftHome[e] > te && !hh.early[h]) counts.set(hh.zone[h], (counts.get(hh.zone[h]) || 0) + 1);
@@ -792,6 +809,7 @@ export class Evacuation {
       notOrderedExposed: 0, exposedHome: 0, exposedRoad: 0, exposedNoVehicle: 0, fireFrontHome: 0, fireFrontRoad: 0, waitingToEnter: this.waiting.length };
     let drivingHH = 0, drivingVeh = 0;
     for (let h = 0; h < hh.n; h++) {
+      if (hh.gone[h]) continue;
       if (hh.veh[h]) { drivingHH++; drivingVeh += hh.veh[h]; }
       const k = hh.kind[h], z = hh.zone[h];
       const told = (k === 1 && this.orderT[z] <= t) || (k === 2 && this.warnT[z] <= t);
