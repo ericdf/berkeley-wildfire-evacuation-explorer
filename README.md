@@ -34,14 +34,14 @@ Grizzly Peak Blvd (all of Fire Zones 2–3 ordered), the 1923 fire repeated toda
 Hill (remembered across visits), and watch it with today's plan (first order 10 minutes after
 ignition, today's parking, a fall night, central severity). No numbers appear until the user runs
 it; the results panel shows that run. When the run ends, the page invites the user to "explore
-changes that would mitigate damage and loss of life". **Try changes:** a checklist of changes
+changes that would mitigate damage and loss of life". **Try changes** (the user's set of changes is "your scenario", today's plan is "today's scenario"): a checklist of changes
 (leave early, decide faster, parking, a red curb, widening, new roads, buyouts, traffic
 management), each with its cost, provenance and "What the simulator can't tell you", and a
 "Show on map" outline. Changes stack (`js/levers.js`); two settings of the same thing, or two
 rewrites of the same block, are alternatives. **Compare with today's plan** runs both plans on the
 same households in 15 passes (3 severities × 5 seeds; each pass runs both plans) in background workers and reports, at the top of the right-hand panel, per
 measure, the middle value of each plan and how many passes went each way; only the full set earns a
-verdict ("better in every pass", "mixed"), because one pass can point the wrong way. Watching a plan
+verdict ("better in every pass", "mixed"), because one pass can point the wrong way; a pass counts as better or worse only when the two scenarios differ by more than 1%. Watching a plan
 on the map is labeled as one run. The stored results of `tools/mitigations.mjs` are not shown as
 answers: changes that did not reliably help on the chosen fire there (contraflow, police control,
 guided routing, the Buena Vista link) are greyed out with that explanation, so people see they
