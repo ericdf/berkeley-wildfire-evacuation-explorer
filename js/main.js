@@ -220,7 +220,8 @@ $('nbhd').onchange = e => {
 // reliably help on this fire (js/mitigate.js stored), so people see they were considered.
 // A single pass can point the wrong way, so a comparison always runs all 15 passes and only the full
 // set earns a verdict; a run watched on the map is labeled as one run.
-Object.assign(state, { tab: 'watch', picked: new Set(), todayCache: new Map(), tries: [], tryBatch: null });
+Object.assign(state, { tab: 'watch', picked: new Set(), todayCache: new Map(), stackRuns: new Map(), tries: [], tryBatch: null });
+// stackRuns: measures of any stack of changes, keyed `${fire}|${stack key}|${severity}|${seed}` (Break down this plan reuses them).
 const leverById = id => mit()?.levers.find(l => l.id === id);
 const pickedLevers = () => [...state.picked].map(leverById).filter(Boolean);
 const simDone = () => state.sim && state.sim.t >= state.sim.end;
@@ -262,6 +263,7 @@ function renderSimple() {
 function renderTries() {
   const show = state.tab === 'try';
   $('try-out').innerHTML = (show && state.presetOut ? `<h2>Ready-made comparison</h2>${state.presetOut}` : '') + (show && state.tries.length ? `<h2>Your plan compared with today's plan</h2>${triesHTML()}` : '');
+  if ($('bd-go')) $('bd-go').onclick = () => breakdown(state.tries[0]);
 }
 // The playback controls' home is Expert view's Run section (index.html #playback).
 const homePlayback = () => $('run-section').querySelector('h2').after($('playback'));
@@ -391,13 +393,14 @@ function cancelTry() {
   for (const w of pool || []) w.postMessage({ cancel: state.tryBatch });
   state.tryBatch = null; $('sim-banner').hidden = true;
   state.tries = state.tries.filter(t => t.done); // an unfinished comparison earns no verdict
+  for (const t of state.tries) if (t.bd?.running) delete t.bd; // nor does an unfinished breakdown
 }
 function compareStack() {
   const M = mit(), levers = pickedLevers(); if (!levers.length) return;
   cancelTry(); cancelCompare();
   const st = stackOf(levers), fire = state.fire, W = world();
   const cases = M.meta.severities.flatMap(sev => M.meta.seeds.map(seed => ({ sev, seed, key: `${fire}|${sev}|${seed}` })));
-  const T = { fire, titles: levers.map(l => l.title), ids: levers.map(l => l.id), n: cases.length, A: {}, B: {}, done: false };
+  const T = { fire, titles: levers.map(l => l.title), ids: levers.map(l => l.id), n: cases.length, A: {}, B: {}, done: false, cases };
   for (const c of cases) if (state.todayCache.has(c.key)) T.A[c.key] = state.todayCache.get(c.key);
   const base = { scenarioId: fire, tod: 'S6' };
   const jobs = [...cases.filter(c => !T.A[c.key]).map(c => ({ ...base, sev: c.sev, seed: c.seed, key: c.key, side: 'A', plan: { ...DEFAULT_PLAN, name: "A: today's plan" }, world: W })),
@@ -414,6 +417,7 @@ function compareStack() {
       if (m.done) { if (++finished === ws.length) { T.done = true; state.tryBatch = null; $('sim-banner').hidden = true; renderSimple(); } return; }
       const v = Object.fromEntries(Object.entries(MEASURES).map(([k, d]) => [k, d.f(m.summary)]));
       T[m.job.side][m.job.key] = v; if (m.job.side === 'A') state.todayCache.set(m.job.key, v);
+      if (m.job.side === 'B') state.stackRuns.set(`${fire}|${st.key}|${m.job.sev}|${m.job.seed}`, v);
       if (T.A[m.job.key] && T.B[m.job.key]) passes++; progress(); renderTries();
     };
     w.postMessage({ batch, jobs: parts[i] });
@@ -426,6 +430,79 @@ const NOISE = 0.01;
 const tolSame = (a, b) => a === b || (a != null && b != null && Math.abs(a - b) <= NOISE * Math.max(Math.abs(a), Math.abs(b)));
 const asNum = x => x == null ? Infinity : x;
 const median = xs => { const s = xs.map(asNum).sort((a, b) => a - b), n = s.length; if (!n) return null; const v = n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2; return Number.isFinite(v) ? v : null; };
+// ---------- break down this plan ----------
+// For each change in a finished comparison (two or more changes): what it does alone against today's
+// plan, and what the user's plan loses without it, each over the same passes. Overlap shows as a
+// change that helps alone but adds nothing on top of the rest (Eric, 2026-11-02: "is there a way to
+// say which element of the stack had which effect … It's not great if people have to try multiple
+// combinations to discover serious candidates"). SOURCE_NOTES MS14.
+const bdVariants = T => {
+  const ls = T.ids.map(leverById), out = new Map();
+  for (const l of ls) { out.set(stackOf([l]).key, [l]); const rest = ls.filter(x => x !== l); out.set(stackOf(rest).key, rest); }
+  return out;
+};
+const bdMissing = T => [...bdVariants(T)].flatMap(([vk, ls]) => T.cases.filter(c => !state.stackRuns.has(`${T.fire}|${vk}|${c.sev}|${c.seed}`)).map(c => ({ vk, ls, c })));
+function breakdown(T) {
+  cancelTry(); cancelCompare();
+  const W = world(), base = { scenarioId: T.fire, tod: 'S6' };
+  const jobs = bdMissing(T).map(({ vk, ls, c }) => { const st = stackOf(ls);
+    return { ...base, sev: c.sev, seed: c.seed, key: `${T.fire}|${vk}|${c.sev}|${c.seed}`, side: 'S', plan: { ...st.plan, name: 'B: part of your plan' }, world: { ...W, ...st.world }, net: st.net }; });
+  T.bd = { running: true, got: 0, total: jobs.length };
+  const progress = () => { $('sim-banner').hidden = !T.bd?.running; $('sim-banner-text').textContent = `Breaking down your plan: ${T.bd?.got ?? 0} of ${jobs.length} simulations done…`; $('sim-banner-bar').style.width = `${Math.round(100 * (T.bd?.got ?? 0) / Math.max(1, jobs.length))}%`; };
+  const finish = () => { T.bd.running = false; state.tryBatch = null; $('sim-banner').hidden = true; renderTries(); };
+  if (!jobs.length) { finish(); return; }
+  const batch = ++state.batch; state.tryBatch = batch;
+  const ws = workers(), parts = ws.map(() => []); jobs.forEach((j, i) => parts[i % ws.length].push(j));
+  let finished = 0; progress(); renderTries();
+  ws.forEach((w, i) => {
+    w.onmessage = ev => {
+      const m = ev.data; if (m.batch !== batch || state.tryBatch !== batch || !T.bd) return;
+      if (m.done) { if (++finished === ws.length) finish(); return; }
+      state.stackRuns.set(m.job.key, Object.fromEntries(Object.entries(MEASURES).map(([k, d]) => [k, d.f(m.summary)])));
+      T.bd.got++; progress();
+    };
+    w.postMessage({ batch, jobs: parts[i] });
+  });
+}
+// Tally lower-is-better pairs with the 1% noise rule: how often x beats y.
+function tally(xs, ys) { let better = 0, worse = 0; for (let i = 0; i < xs.length; i++) { if (tolSame(xs[i], ys[i])) continue; asNum(xs[i]) < asNum(ys[i]) ? better++ : worse++; } return { better, worse, n: xs.length }; }
+const holds = t => t.better === t.n, mostly = t => t.worse === 0 && t.better >= Math.ceil(0.75 * t.n);
+function breakdownHTML(T) {
+  const ls = T.ids.map(leverById), keys = T.cases.map(c => c.key);
+  const run = (vk, c) => state.stackRuns.get(`${T.fire}|${vk}|${c.sev}|${c.seed}`);
+  const today = m => keys.map(k => T.A[k][m]), full = m => keys.map(k => T.B[k][m]);
+  const v = (m, x) => x == null ? (MEASURES[m].time ? 'not reached' : '—') : MEASURES[m].time ? `${Math.round(x)} min` : fmt(x);
+  const rows = ls.map(l => {
+    const rest = ls.filter(x => x !== l), aK = stackOf([l]).key, wK = stackOf(rest).key;
+    const per = Object.keys(MEASURES).map(m => {
+      const alone = T.cases.map(c => run(aK, c)[m]), without = T.cases.map(c => run(wK, c)[m]);
+      return { m, alone, without, ta: tally(alone, today(m)), tc: tally(full(m), without) };
+    });
+    const own = per.filter(p => holds(p.tc)), helps = per.filter(p => holds(p.ta) || mostly(p.ta));
+    // Changes that overlap: others in the plan that also help alone on a measure this one helps alone on.
+    const overlaps = helps.length && !own.length ? rest.filter(o => { const oK = stackOf([o]).key; return helps.some(p => { const t = tally(T.cases.map(c => run(oK, c)[p.m]), today(p.m)); return holds(t) || mostly(t); }); }) : [];
+    const verdict = own.length ? `<span class="good">Does its own work in your plan</span> (${own.map(p => esc(MEASURES[p.m].label.toLowerCase())).join('; ')})`
+      : helps.length ? `<span class="mixed">Helps alone, but adds little on top of the rest of your plan</span>${overlaps.length ? `: it overlaps with ${overlaps.map(o => `“${esc(o.title)}”`).join(' and ')}` : ''}`
+      : '<span class="muted">Not reliably helping on this fire, alone or in your plan</span>';
+    // Only measures with a reliable signal (better or worse in at least three of four passes and never the other way); the rest is noise.
+    const harm = t => t.better === 0 && t.worse >= Math.ceil(0.75 * t.n), signal = p => mostly(p.ta) || mostly(p.tc) || harm(p.ta) || harm(p.tc);
+    const quiet = per.filter(p => !signal(p)).length;
+    const lines = per.filter(signal).map(p => {
+      const d = MEASURES[p.m];
+      return `<li title="${esc(d.tip)}"><b>${esc(d.label)}:</b> alone ${v(p.m, median(today(p.m)))} → ${v(p.m, median(p.alone))} (better in ${p.ta.better}, worse in ${p.ta.worse} of ${p.ta.n}); without it your plan goes ${v(p.m, median(full(p.m)))} → ${v(p.m, median(p.without))} (worse in ${p.tc.better}, better in ${p.tc.worse} of ${p.tc.n})</li>`;
+    }).join('');
+    return `<div class="bd"><b>${esc(l.title)}</b><div class="small">${verdict}</div>${lines ? `<ul class="small">${lines}</ul>` : ''}${quiet ? `<div class="small muted">${lines ? 'Other measures' : 'Every measure'}: no reliable effect, alone or in your plan.</div>` : ''}</div>`;
+  }).join('');
+  return `<h3>Your plan, change by change</h3>${rows}
+    <p class="small muted"><b>Alone</b>: that change by itself against today's plan. <b>Without it</b>: your plan with every change except that one, against your whole plan. Same ${T.n} passes and households throughout; a pass counts only beyond 1%. "Does its own work" means your plan is worse without it in every pass on some measure. A change that helps alone but adds little in your plan usually overlaps with another change that fixes the same problem.</p>`;
+}
+function bdButtonHTML(T) {
+  if (!T.done || T.ids.length < 2) return '';
+  if (T.bd?.running) return `<p class="small muted">Breaking down your plan: ${T.bd.got} of ${T.bd.total} simulations done…</p>`;
+  if (T.bd) return breakdownHTML(T);
+  const n = bdMissing(T).length;
+  return `<div class="btns"><button id="bd-go">Break down this plan</button></div><p class="small muted">For each change: what it does alone, and what your plan loses without it, over the same ${T.n} passes${n ? ` (${n} more simulations)` : ''}.</p>`;
+}
 function triesHTML() {
   if (!state.tries.length) return '';
   return state.tries.map((T, i) => {
@@ -447,7 +524,7 @@ function triesHTML() {
     return `<div class="tryres${i ? ' old' : ''}"><div><b>Today's plan + ${T.titles.map(esc).join(' + ')}</b> · ${esc(fire.title)} · ${T.done ? `${T.n} passes` : `running, ${k} of ${T.n} passes so far`}</div>
       ${i ? '' : `<table class="cmp"><tr><th></th><th>Today's plan</th><th>Your plan</th><th>Your plan, pass by pass</th></tr>${rows}</table>
       <p class="small muted">Middle value of the passes so far for each plan. A pass counts as better or worse only when the two plans differ by more than 1%; smaller differences are treated as noise. Synthetic households on an illustrative fire: compare the plans, don't read the numbers as predictions.${T.done ? ' Where a line is mixed, your plan did better in some passes and worse in others; don\'t rely on it.' : ' Wait for every pass before trusting a difference.'}</p>
-      ${T.done ? `<p class="small"><b>Keep exploring:</b> take one change away to see which one did the work, or add another.</p>` : ''}
+      ${T.done ? (T.ids.length >= 2 ? bdButtonHTML(T) : `<p class="small"><b>Keep exploring:</b> add another change to see whether it adds anything.</p>`) : ''}
       ${cant.length ? `<details class="cant"><summary>What the simulator can't tell you about these changes</summary><ul class="small">${cant.map(l => `<li><b>${esc(l.title)}:</b> ${esc(l.cannotMeasure)}</li>`).join('')}</ul></details>` : ''}`}
       ${i ? `<table class="cmp small">${rows}</table>` : ''}</div>`;
   }).join('');
