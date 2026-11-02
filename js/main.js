@@ -227,12 +227,12 @@ const pickedLevers = () => [...state.picked].map(leverById).filter(Boolean);
 const simDone = () => state.sim && state.sim.t >= state.sim.end;
 // How fast the fire moves (Eric, 2026-11-02: "a fine line between alarmist and complacency"; SOURCE_NOTES S19).
 // Simple view offers two historical paces: medium severity, calibrated to the City's 1923 repeat (the
-// default), and high severity, whose front in this model is a median 1.1 to 1.4 miles downwind (by fire; runs 0.96–1.54) 64 minutes after
+// default), and high severity, whose front in this model is a median 1.1 to 1.4 miles downwind (by fire; runs 1.02–1.54) 64 minutes after
 // ignition, the pace of the 1991 fire ("more than a mile" in 64 minutes). Low stays in Expert view.
 // It changes the watched run only; comparisons already run low, medium and high.
 const PACE = {
   central: { label: 'Like 1923 (the City\'s repeat)', short: '1923 pace (medium severity)',
-    tip: 'Medium severity, calibrated to the City StoryMap\'s present-day repeat of the 1923 fire: about 5 h from the eastern edge to Shattuck Ave. In this model the front is downwind a median of about half a mile (0.5 to 0.6 mi by fire, five seeds each) 64 minutes after ignition; single runs range from 0.3 to 0.9 mi.' },
+    tip: 'Medium severity, calibrated to the City StoryMap\'s present-day repeat of the 1923 fire: about 5 h from the eastern edge to Shattuck Ave. In this model the front is downwind a median of about half a mile (0.5 to 0.6 mi by fire, five seeds each) 64 minutes after ignition; single runs range from 0.4 to 0.9 mi.' },
   high: { label: 'Like 1991', short: '1991 pace (high severity)',
     tip: 'High severity: twice the medium spread rate, with embers carried farther. In this model the front is downwind a median of 1.1 to 1.4 miles (by fire, five seeds each) 64 minutes after ignition; single runs range from about 1.0 to 1.5 mi. The 1991 Oakland-Berkeley Hills fire was more than a mile downwind 64 minutes after it broke out (US Fire Administration report).' },
 };

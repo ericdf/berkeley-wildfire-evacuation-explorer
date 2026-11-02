@@ -1,7 +1,7 @@
 // Simple-view fires and questions. A question is offered on a fire only where Plan B beat Plan A
 // on its headline measure in all 15 same-seed runs (low, central and high severity x seeds 1-5)
 // by a clear margin (central-severity median change of 5% or more); SOURCE_NOTES P19-P22,
-// 2026-11-01, and P31 for the north-hills fire, 2026-11-02. Each question fixes the time of day
+// 2026-11-01, P31 for the north-hills fire and P32 for the east-wind fire from 60°, 2026-11-02. Each question fixes the time of day
 // (per plan where `tods` is set); the plans start from DEFAULT_PLAN. `on` holds the "What to look
 // for" text for each fire it is offered on, with central-severity medians from that test; `off`
 // gives the one-line reason it is withheld.
@@ -29,7 +29,7 @@ export const PRESETS = [
     A: plan('A: everyone waits for an order'),
     B: plan('B: half of hill households leave on the Red Flag warning', { earlyShare: 0.5, earlyZones: 'fz23' }),
     on: {
-      eastWind: 'In Plan B more than a quarter fewer people are still there when embers arrive (about 5,100 against 3,600 in the medium-severity case), and the roads clear about a minute sooner. If only the City\'s smaller Leave Early Zones do it, the drop is about 6%: most hill residents live outside them.',
+      eastWind: 'In Plan B about a fifth fewer people are still there when embers arrive (about 5,300 against 4,150 in the medium-severity case), and 90% of cars are out under a minute sooner. If only the City\'s smaller Leave Early Zones do it, the drop is about 4%: most hill residents live outside them.',
       ref1923: 'In Plan B about a third fewer people are still there when embers arrive (about 4,850 against 3,100 in the medium-severity case), and 90% of cars are out about 2 minutes sooner (89 against 91 min).',
       panoramic: `In Plan B about a fifth fewer people are still there when embers arrive (about 14,900 against 12,100 in the medium-severity case). ${PANORAMIC_UNORDERED} In most runs not all ordered cars get out within the 4 hours simulated, so watch the count, not the clearance time.`,
       northHills: 'In Plan B about 30% fewer people are still there when embers arrive (about 4,750 against 3,300 in the medium-severity case), and 90% of cars are out under a minute sooner. If only the City\'s smaller Leave Early Zones do it, the drop is about 16%.',
@@ -46,7 +46,7 @@ export const PRESETS = [
     B: plan('B: first order 5 min after ignition', { orderDelayMin: 5 }),
     on: {
       ref1923: 'About a fifth fewer people are still there when embers arrive (about 7,100 against 5,550 in the medium-severity case). The time to clear the roads hardly changes: the gain is people getting out ahead of the fire, not faster traffic.',
-      eastWind: 'About 15% fewer people are still there when embers arrive (about 6,500 against 5,500 in the medium-severity case). The time to clear the roads hardly changes: the gain is people getting out ahead of the fire, not faster traffic.',
+      eastWind: 'About 17% fewer people are still there when embers arrive (about 7,150 against 5,950 in the medium-severity case). The time to clear the roads hardly changes: the gain is people getting out ahead of the fire, not faster traffic.',
       panoramic: `About 8% fewer people are still there when embers arrive (about 16,900 against 15,550 in the medium-severity case), a smaller gain than on the two larger fires. ${PANORAMIC_UNORDERED}`,
       northHills: 'About 15% fewer people are still there when embers arrive (about 6,050 against 5,150 in the medium-severity case). The time to clear the roads hardly changes: the gain is people getting out ahead of the fire, not faster traffic.',
     },
@@ -77,10 +77,10 @@ export const PRESETS = [
     tod: 'S6',
     A: plan('A: parking as it is today'),
     B: plan('B: parking on one side only in Fire Zones 2–3', { hillsParking: 'oneside' }),
-    otherNote: 'In this simulator engines only drive; they do not fight the fire or protect homes, so better engine access has no effect on the fire. Parking still changes traffic on hill streets a little, but in the runs tested it made no consistent difference to who was still there. The engine\'s route to the fire edge runs on streets that stay passable, so engine travel time to the fire is the same under both plans.',
+    otherNote: 'In this simulator engines only drive; they do not fight the fire or protect homes, so better engine access has no effect on the fire. Parking still changes traffic on hill streets a little, but in the runs tested it made no consistent difference to who was still there. Engine travel time to the fire edge, at ignition and at the end of the run, was the same or shorter under Plan B in every run tested (four fires, three severities, five seeds), and shorter in some.',
     // Headline and numbers: SOURCE_NOTES ER2 (225 runs, central medians). Reach at ignition depends on the seed's
     // parked cars, not the fire, so it is the same on every fire; the end-of-run share (traffic and fire) differs.
-    on: Object.fromEntries([['eastWind', '83%', '86%', 4], ['ref1923', '67%', '71%', 6], ['panoramic', '80%', '83%', 4], ['northHills', '75%', '81%', 4]].map(([id, la, lb, hours]) => [id,
+    on: Object.fromEntries([['eastWind', '80%', '81%', 4], ['ref1923', '67%', '71%', 6], ['panoramic', '80%', '83%', 4], ['northHills', '75%', '81%', 4]].map(([id, la, lb, hours]) => [id,
       'Count the hill residents a fire engine cannot reach from a station within the City\'s 5-minute standard, before traffic and fire: about 1,550 of Berkeley\'s 27,900 Fire Zones 2–3 residents with today\'s parking, about 1,050 with parking on one side (central case; fewer in every run). '
       + 'Most of those left are on Panoramic Hill: its lowest block of Panoramic Way is 17 ft wide, and in 4 of the 5 test seeds a car parked there leaves less than an engine\'s width under either plan, cutting off about 990 people. '
       + `By the end of the ${hours}-hour run, with evacuation traffic and burned streets, an engine can reach ${la} of hill residents within 5 minutes under Plan A and ${lb} under Plan B. `
