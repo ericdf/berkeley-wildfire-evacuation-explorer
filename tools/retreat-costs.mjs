@@ -74,28 +74,33 @@ export async function computeCosts({ data, caseList, expHH, refresh = false }) {
   console.log(`ACS: ${fetched} requests${failed ? `, ${failed} failed (rerun to retry)` : ''}, cache retrieved ${cache.retrieved}`);
 
   // A block group with no median (few owner-occupied homes) takes the household-weighted median of the case's other block groups.
+  // If no block group in the case has one, acquisition, total and per-household cost are null (not priced), never zero.
   const TOP = 2000001, costs = {};
   for (const c of caseList) {
     const byBG = new Map();
     for (const e of c.removed) { const g = cache.edgeBlockGroup[e] || 'none'; byBG.set(g, (byBG.get(g) || 0) + expHH.get(e)); }
-    const known = [...byBG].filter(([g]) => cache.blockGroups[g]?.median);
+    const known = [...byBG].filter(([g]) => cache.blockGroups[g]?.median != null);
     const wHH = known.reduce((s, [, h]) => s + h, 0);
-    const fallback = wHH ? { median: known.reduce((s, [g, h]) => s + cache.blockGroups[g].median * h, 0) / wHH, moe: known.reduce((s, [g, h]) => s + (cache.blockGroups[g].moe || 0) * h, 0) / wHH } : { median: null, moe: null };
-    let acqLo = 0, acqHi = 0, hhs = 0, topCoded = 0, filled = 0; const bgs = [];
+    const fallback = wHH ? { median: known.reduce((s, [g, h]) => s + cache.blockGroups[g].median * h, 0) / wHH, moe: known.reduce((s, [g, h]) => s + (cache.blockGroups[g].moe || 0) * h, 0) / wHH } : null;
+    let acqLo = 0, acqHi = 0, hhs = 0, topCoded = 0, filled = 0, unpriced = 0; const bgs = [];
     for (const [g, h] of byBG) {
       const B = cache.blockGroups[g] || {}, has = B.median != null;
+      hhs += h;
+      bgs.push({ blockGroup: g, name: B.name ?? null, households: Math.round(h * 10) / 10, median: B.median ?? null, moe: B.moe ?? null });
+      if (!has && !fallback) { unpriced += h; continue; }
       const med = has ? B.median : fallback.median, moe = has ? (B.moe || 0) : fallback.moe;
       if (!has) filled += h; if (has && B.median >= TOP) topCoded += h;
-      acqLo += h * Math.max(0, med - moe); acqHi += h * (med + moe); hhs += h;
-      bgs.push({ blockGroup: g, name: B.name ?? null, households: Math.round(h * 10) / 10, median: B.median ?? null, moe: B.moe ?? null });
+      acqLo += h * Math.max(0, med - moe); acqHi += h * (med + moe);
     }
+    const priced = unpriced === 0;
     const relLo = hhs * RATES.relocation[0], relHi = hhs * RATES.relocation[1];
     const demLo = hhs * RATES.demolition[0], demHi = hhs * RATES.demolition[1];
     const rnd = x => Math.round(x / 1e5) * 1e5;
     costs[c.id] = { households: Math.round(hhs * 10) / 10, residents: Math.round(hhs * data.A.demand.personsPerHousehold),
-      acquisition: [rnd(acqLo), rnd(acqHi)], relocation: [rnd(relLo), rnd(relHi)], demolition: [rnd(demLo), rnd(demHi)], total: [rnd(acqLo + relLo + demLo), rnd(acqHi + relHi + demHi)],
-      perHousehold: [Math.round((acqLo + relLo + demLo) / hhs / 1e3) * 1e3, Math.round((acqHi + relHi + demHi) / hhs / 1e3) * 1e3],
-      householdsTopCoded: Math.round(topCoded), householdsNoMedian: Math.round(filled), blockGroups: bgs.sort((a, b) => b.households - a.households) };
+      acquisition: priced ? [rnd(acqLo), rnd(acqHi)] : null, relocation: [rnd(relLo), rnd(relHi)], demolition: [rnd(demLo), rnd(demHi)],
+      total: priced ? [rnd(acqLo + relLo + demLo), rnd(acqHi + relHi + demHi)] : null,
+      perHousehold: priced ? [Math.round((acqLo + relLo + demLo) / hhs / 1e3) * 1e3, Math.round((acqHi + relHi + demHi) / hhs / 1e3) * 1e3] : null,
+      householdsTopCoded: Math.round(topCoded), householdsNoMedian: Math.round(filled), householdsUnpriced: Math.round(unpriced), blockGroups: bgs.sort((a, b) => b.households - a.households) };
   }
   const sources = Object.fromEntries(Object.entries(SOURCES).map(([k, s]) => [k, { ...s, retrieved: k === 'acs' ? cache.retrieved : '2026-11-01' }]));
   return { costs, sources: { ...sources, rates: RATES } };
