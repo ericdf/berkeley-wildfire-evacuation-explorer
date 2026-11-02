@@ -30,8 +30,9 @@ Loading takes a few seconds: about 10 MB of terrain and 2 MB of street network.
 ## Playing
 
 **Simple view** (the default) has two tabs. **Today's plan:** pick the east-wind fire near
-Grizzly Peak Blvd (all of Fire Zones 2–3 ordered), the 1923 fire repeated today, or Panoramic
-Hill (remembered across visits), and watch it with today's plan (first order 10 minutes after
+Grizzly Peak Blvd (all of Fire Zones 2–3 ordered), the 1923 fire repeated today, Panoramic
+Hill, or a fire from Tilden into the north hills above Marin Ave (the Time Study's North Berkeley
+Hills region ordered; remembered across visits), and watch it with today's plan (first order 10 minutes after
 ignition, today's parking, a fall night, medium severity). No numbers appear until the user runs
 it; the outcomes panel shows that run. When the run ends, the page invites the user to "explore
 changes that would mitigate damage and loss of life". **Change the plan**: a **fire scenario** is what Berkeley doesn't control (ignition, wind, time of day); a **plan** is what it does control, changes made before the fire and the response on the day; each run tests a plan against a fire scenario. The tab is a checklist, grouped Before the fire and On the day, of changes
@@ -71,7 +72,7 @@ were considered (SOURCE_NOTES MS11). Ready-made A/B questions (`js/presets.js`) 
    slider to jump to a time. Click a street or zone to inspect it; hover a badge (ⓘ)
    to see where each value comes from.
 4. **Compare.** Runs both plans on the same fires and households, either across
-   low/central/high severity or across all four scenarios, with three seeds each. The table
+   low/central/high severity or across all five scenarios, with three seeds each. The table
    shows the median and the min–max range. A plan that wins in one run but not across
    the range has not been shown to be robust.
 

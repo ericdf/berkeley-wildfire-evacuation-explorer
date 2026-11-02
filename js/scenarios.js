@@ -38,11 +38,17 @@ const R04 = {
   order: ['OAK-E003', 'OAK-E004', 'OAK-E005', 'BER-E013', 'BER-E058', 'BER-E059', 'BER-E066'],
   warning: ['OAK-E006', 'OAK-E007', 'OAK-E009', 'BER-E041', 'BER-E055', 'BER-E057', 'BER-E060', 'BER-E073', 'BER-E077'],
 };
+// R09 North Berkeley Hills (Table 6-2, p. 6-8): a geographic region, Order zones only.
+const R09 = {
+  order: [...range('BER', 1, 12), ...range('BER', 15, 21), ...range('BER', 28, 33), 'BER-E040'],
+  warning: [],
+};
 // Time Study 90th / 100th percentile ETE targets, minutes after the order (Tables 7-1, 7-2).
 export const ETE_TARGETS = {
   ref1923: { p90: { S1: 145, S2: 110, S3: 105, S4: 175, S5: 110, S6: 105 }, p100: { S1: 220, S2: 205, S3: 205, S4: 250, S5: 205, S6: 205 }, region: 'R02 1923 Fire' },
   panoramic: { p90: { S1: 100, S2: 95, S3: 100, S4: 105, S5: 95, S6: 100 }, p100: { S1: 220, S2: 205, S3: 205, S4: 220, S5: 205, S6: 205 }, region: 'R04 Panoramic Hill' },
   eastWind: { p90: { S1: 125, S2: 115, S3: 105, S4: 140, S5: 115, S6: 105 }, p100: { S1: 220, S2: 205, S3: 205, S4: 220, S5: 205, S6: 205 }, region: 'R05 Fire Zones 2 & 3' },
+  northHills: { p90: { S1: 130, S2: 120, S3: 110, S4: 125, S5: 110, S6: 105 }, p100: { S1: 220, S2: 205, S3: 205, S4: 220, S5: 205, S6: 205 }, region: 'R09 North Berkeley Hills' },
 };
 
 export function makeScenarios(data) {
@@ -63,7 +69,7 @@ export function makeScenarios(data) {
       ignition: [ne[0] + SHIFT * 0.97, ne[1] + SHIFT * 0.97], ignitionLabel: 'Present-day eastern edge, 1.3 km uphill of the 1923 entry point',
       windFrom: 45, windMph: 32, durationMin: 360, timeOfDay: 'S4', clip: footprint,
       orders: R02,
-      calibration: 'Central head spread rate (14 m/min in wildland, all scenarios) is tuned so the fire reaches the west end of the 1923 footprint (Shattuck) in about 4-5 h (240-302 min over seeds 1-3; StoryMap: about 5 h). Known mismatch: it reaches the 1923 entry point in 38-108 min, earlier than the StoryMap 2.5 h, because the model spreads faster in the hills than in the flats.',
+      calibration: 'Medium-severity head spread rate (14 m/min in wildland, all scenarios) is tuned so the fire reaches the west end of the 1923 footprint (Shattuck) in about 4-5 h (240-302 min over seeds 1-3; StoryMap: about 5 h). Known mismatch: it reaches the 1923 entry point in 38-108 min, earlier than the StoryMap 2.5 h, because the model spreads faster in the hills than in the flats.',
       sources: ['Footprint: City 1923_Archival_Boundary_COB, extended 1.3 km uphill per the City Evacuation StoryMap (July 2025) §3.2',
         'Timing: StoryMap §3.2, about 2.5 h from the eastern edge to Codornices Park, 5 h to Shattuck Ave; 1923 winds were Diablo, 25-40 mph',
         'Orders and warnings: Evacuation Time Study region R02 zone lists (p. 6-6). Default time: S4, fall midweek midday, as in the StoryMap\'s combined fire/traffic run'],
@@ -92,6 +98,16 @@ export function makeScenarios(data) {
       ignition: L(-122.2425, 37.8845), ignitionLabel: 'Wildland near Grizzly Peak Blvd (illustrative)',
       windFrom: 75, windMph: 35, durationMin: 240, timeOfDay: 'S4', orderRegion: 'R05',
       sources: ['Time-of-day behavior from the Time Study (Table 6-5, Table 5-9); background traffic is a model rule; employees and students are not yet placed'],
+    },
+    {
+      // Added 2026-11-02 so the north hills above Marin Ave have a fire of their own (SOURCE_NOTES P30).
+      id: 'northHills', name: 'North hills: fire in Tilden above the Summit',
+      kind: 'illustrative',
+      blurb: 'Fire starts in Tilden Regional Park east of the Summit (Grizzly Peak Blvd at Spruce St) on a fall night with a strong north-east (Diablo) wind. It burns over the ridge into Cragmont, the Thousand Oaks hills and the streets along Grizzly Peak Blvd down to Fire Station 7, at the edge of Kensington. The City\'s North Berkeley Hills region is ordered.',
+      ignition: L(-122.2561, 37.9044), ignitionLabel: 'Wildland in Tilden Regional Park, about 1.2 km east of Grizzly Peak Blvd at Spruce St (illustrative)',
+      windFrom: 45, windMph: 33, durationMin: 240, timeOfDay: 'S6', orders: R09,
+      sources: ['Orders: Evacuation Time Study region R09 "North Berkeley Hills" zone list (Table 6-2, p. 6-8); the study lists no warning zones for R09',
+        'Ignition point, wind and time of day are illustrative model choices: a fall night, when Diablo winds are strongest, as in the east-wind fire'],
     },
   ];
 }
