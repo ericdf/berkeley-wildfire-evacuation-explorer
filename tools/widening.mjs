@@ -262,7 +262,10 @@ function side(p, S, sgn, gain, parcels, buildings) {
       parcels.forEach((P_, i) => { if (inPolyH(P_, qx, qy)) { hitP.set(i, (hitP.get(i) || 0) + ds * 0.25); inside = true; } });
       if (inside) nIn++;
     }
+    // Buildings: only the added strip (today's edge of pavement outward) counts as a taking; a footprint
+    // inside the modeled existing pavement is a centerline/footprint misalignment (existingPavementOverlap).
     for (let o = 0.25; o < W + gain + COST.setbackM; o += 0.25) {
+      if (o < W) continue; // existing pavement
       const qx = x + sgn * nx * o, qy = y + sgn * ny * o;
       buildings.forEach((B, i) => { if (inPolyH(B, qx, qy)) { if (o < W + gain) hitB.add(i); else hitB2.add(i); } });
     }
@@ -271,6 +274,17 @@ function side(p, S, sgn, gain, parcels, buildings) {
   out.parcels = hitP.size; out.parcelsOver1M2 = [...hitP.values()].filter(a => a >= COST.minTakeM2).length; out.buildingsInNewPavement = hitB.size; out.buildingsWithinSetback = [...hitB2].filter(i => !hitB.has(i)).length;
   out.wallM2 = r0(out.wallM2); out.wallLengthM = r0(out.wallLengthM);
   return out;
+}
+// Footprints inside the modeled existing pavement (both sides, centerline to half the City width):
+// the County centerline or the pavement width does not match the OSM footprint there. Reported as an
+// alignment flag, never counted as a building taken.
+function existingPavementOverlap(p, S, buildings) {
+  const W = p.pavementWidthM / 2, hit = new Set();
+  for (const { p: [x, y], nx, ny } of S) for (const sgn of [1, -1]) for (let o = 0.25; o < W; o += 0.25) { // the grid side() uses
+    const qx = x + sgn * nx * o, qy = y + sgn * ny * o;
+    buildings.forEach((B, i) => { if (inPolyH(B, qx, qy)) hit.add(i); });
+  }
+  return hit.size;
 }
 // Side slope: median rise of the ground from today's edge of pavement to 6 m beyond it (positive uphill).
 function sideSlope(p, S, sgn) {
@@ -307,6 +321,7 @@ if (FETCH) {
     const hv = await homeValue(toLL(S[Math.floor(S.length / 2)].p));
     p.blockGroup = hv.blockGroup; p.medianHomeValue = hv.value;
     p.sideSlopePct = { left: sideSlope(p, S, 1), right: sideSlope(p, S, -1) };
+    p.buildingsOverlappingExistingPavement = existingPavementOverlap(p, S, buildings);
     p.widening = {};
     for (const [k, gain] of Object.entries(p.gainM)) {
       if (gain <= 0) { p.widening[k] = null; continue; }
@@ -316,7 +331,7 @@ if (FETCH) {
       p.widening[k] = { symmetric: opts[0], leastTaking: best };
     }
     const f = w => w ? `${w.leastTaking.layout} +${r2(w.leastTaking.newPavementM2 / Math.max(1, p.lengthM))} m parcels ${w.leastTaking.parcelsToAcquire} (${w.leastTaking.stripInParcelsM2}/${w.leastTaking.newPavementM2} m²) bldg ${w.leastTaking.buildingsInNewPavement}+${w.leastTaking.buildingsWithinSetback} wall ${w.leastTaking.retainingWallM2} m² ${(c => c.total ? `$${(c.total[0] / 1e6).toFixed(2)}–${(c.total[1] / 1e6).toFixed(2)}M` : `construction $${(c.construction[0] / 1e6).toFixed(2)}–${(c.construction[1] / 1e6).toFixed(2)}M, acquisition not priced`)(w.leastTaking.cost)}` : 'met';
-    console.log(`  ${p.id} ${p.street}: slope L ${p.sideSlopePct.left}% R ${p.sideSlopePct.right}% | ` + Object.entries(p.widening).map(([k, w]) => `${k}: ${f(w)}`).join(' | '));
+    console.log(`  ${p.id} ${p.street}: slope L ${p.sideSlopePct.left}% R ${p.sideSlopePct.right}% | in existing pavement ${p.buildingsOverlappingExistingPavement} | ` + Object.entries(p.widening).map(([k, w]) => `${k}: ${f(w)}`).join(' | '));
   }
 }
 // Parking-only alternative: no parking on just this pinch (red curb), no taking.
@@ -351,7 +366,8 @@ const out = {
       grouping: 'model rule: adjacent binding segments of one street are one pinch when they enter the same choke area or their engine-reach losses are within 10%',
       standards: 'engine: 10 ft clear plus 8 ft per side parked today (nominal); fireCode: 20 ft unobstructed (CFC §503.2.1) plus 8 ft per side parked today; full: two 10 ft lanes plus parking on both sides, 36 ft (assumption)',
       strip: 'model rule: today\'s edge of pavement at half the City width from the County centerline; layouts: symmetric (half the gain each side) or all on one side; leastTaking = fewest buildings in the new pavement, then within the setback, then parcels, then retaining wall',
-      buildings: `derived: OpenStreetMap footprints the new pavement reaches, and others within ${COST.setbackM} m beyond it (assumption: a working setback); counts only`,
+      buildings: `derived: OpenStreetMap footprints the added strip reaches (sampled from today's edge of pavement outward), and others within ${COST.setbackM} m beyond the new edge (assumption: a working setback); counts only`,
+      buildingsOverlappingExistingPavement: 'derived: OpenStreetMap footprints inside the modeled existing pavement (centerline to half the City width, either side). A flag that the County centerline or the pavement width does not line up with the footprint there; not counted as a building taken',
       parcels: 'derived: County parcel polygons the new strip enters (sampled every 1 m along and 0.25 m across); stacked polygons with the same outline (condominium units) count once; parcelsToAcquire counts parcels holding 1 m² or more of strip (assumption); stripInParcelsM2 = strip area inside any parcel (the rest lies in public right of way or unparceled land)',
       sideSlopePct: 'derived: median over the pinch of the ground rise from today\'s edge of pavement to 6 m beyond it, per side (left = left of the County digitizing direction), from the 4 m DEM; positive uphill',
       retainingWall: `model rule: a wall where the ground ${COST.wallBeyondEdgeM} m beyond the new edge is ${COST.wallMinHeightM} m or more above or below the centerline; wall face = that height along that length`,
