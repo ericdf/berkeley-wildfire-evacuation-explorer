@@ -287,7 +287,8 @@ function layout(p, S, gain, how, parcels, buildings, hv) {
   const pave = COST.pavementPerM2.map(c => area * c), walls = COST.wallPerM2.map(c => wall * c);
   const v = hv?.median ? [Math.max(0, hv.median - (hv.moe || 0)), hv.median + (hv.moe || 0)] : null;
   const taken = sum(sides, 'parcelsOver1M2');
-  const acq = v ? [nB * v[0] + Math.max(0, taken - nB) * v[0] * COST.partialTakeShare[0], nB * v[1] + Math.max(0, taken - nB) * v[1] * COST.partialTakeShare[1]] : null;
+  // No home value (ACS lookup failed or no median): acquisition and total stay null unless nothing is acquired.
+  const acq = v ? [nB * v[0] + Math.max(0, taken - nB) * v[0] * COST.partialTakeShare[0], nB * v[1] + Math.max(0, taken - nB) * v[1] * COST.partialTakeShare[1]] : !taken && !nB ? [0, 0] : null;
   return { layout: how, left: sides[0], right: sides[1], newPavementM2: area, stripInParcelsM2: sum(sides, 'areaInParcelsM2'), parcelsEntered: sum(sides, 'parcels'), parcelsToAcquire: taken,
     buildingsInNewPavement: nB, buildingsWithinSetback: sum(sides, 'buildingsWithinSetback'), retainingWallM2: wall, retainingWallLengthM: sum(sides, 'wallLengthM'),
     cost: { pavement: pave.map(rr), walls: walls.map(rr), construction: [rr(pave[0] + walls[0]), rr(pave[1] + walls[1])], acquisition: acq && acq.map(rr), total: acq ? [rr(pave[0] + walls[0] + acq[0]), rr(pave[1] + walls[1] + acq[1])] : null } };
@@ -314,7 +315,7 @@ if (FETCH) {
       const best = opts.slice().sort((a, b) => { const ka = key(a), kb = key(b); for (let i = 0; i < ka.length; i++) if (ka[i] !== kb[i]) return ka[i] - kb[i]; return 0; })[0];
       p.widening[k] = { symmetric: opts[0], leastTaking: best };
     }
-    const f = w => w ? `${w.leastTaking.layout} +${r2(w.leastTaking.newPavementM2 / Math.max(1, p.lengthM))} m parcels ${w.leastTaking.parcelsToAcquire} (${w.leastTaking.stripInParcelsM2}/${w.leastTaking.newPavementM2} m²) bldg ${w.leastTaking.buildingsInNewPavement}+${w.leastTaking.buildingsWithinSetback} wall ${w.leastTaking.retainingWallM2} m² $${(w.leastTaking.cost.total?.[0] / 1e6).toFixed(2)}–${(w.leastTaking.cost.total?.[1] / 1e6).toFixed(2)}M` : 'met';
+    const f = w => w ? `${w.leastTaking.layout} +${r2(w.leastTaking.newPavementM2 / Math.max(1, p.lengthM))} m parcels ${w.leastTaking.parcelsToAcquire} (${w.leastTaking.stripInParcelsM2}/${w.leastTaking.newPavementM2} m²) bldg ${w.leastTaking.buildingsInNewPavement}+${w.leastTaking.buildingsWithinSetback} wall ${w.leastTaking.retainingWallM2} m² ${(c => c.total ? `$${(c.total[0] / 1e6).toFixed(2)}–${(c.total[1] / 1e6).toFixed(2)}M` : `construction $${(c.construction[0] / 1e6).toFixed(2)}–${(c.construction[1] / 1e6).toFixed(2)}M, acquisition not priced`)(w.leastTaking.cost)}` : 'met';
     console.log(`  ${p.id} ${p.street}: slope L ${p.sideSlopePct.left}% R ${p.sideSlopePct.right}% | ` + Object.entries(p.widening).map(([k, w]) => `${k}: ${f(w)}`).join(' | '));
   }
 }
