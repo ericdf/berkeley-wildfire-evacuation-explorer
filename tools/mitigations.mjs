@@ -265,7 +265,7 @@ function resolveLevers() {
 const fmtN = (v, unit) => v == null ? (unit === 'minutes' ? 'not reached' : '—') : unit === 'minutes' ? `${Math.round(v)}` : Math.round(v).toLocaleString('en-US');
 const fmtD = (v, unit) => { if (v == null) return '—'; const a = Math.round(Math.abs(v)); return `${a === 0 ? '±' : v > 0 ? '+' : '−'}${a.toLocaleString('en-US')}`; };
 const money = v => v == null ? null : v >= 1e9 ? `$${(v / 1e9).toFixed(2)}B` : v >= 1e6 ? `$${(v / 1e6).toFixed(v < 1e7 ? 2 : 0)}M` : v >= 1e3 ? `$${Math.round(v / 1e3)}k` : `$${v}`;
-const costText = c => !c ? 'not priced' : c.capital ? `${money(c.capital[0])}–${money(c.capital[1])}` : c.unpriced && c.note ? 'little capital cost; not priced' : 'not priced';
+const costText = c => !c ? 'not priced' : c.capital ? `${money(c.capital[0])}–${money(c.capital[1])}` : c.unpriced && /^Little capital/.test(c.note || '') ? 'little capital cost; not priced' : 'not priced in this table (see notes)';
 
 function writeReport(D) {
   const L = [];

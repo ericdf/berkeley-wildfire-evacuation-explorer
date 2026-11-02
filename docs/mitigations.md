@@ -46,7 +46,7 @@ Each cell: lever's central median (change from baseline; pairs better of 15). **
 | Buy out the top-ranked blocks, about 100 households | 5,060 (−24; 11/15, 4 worse) | 225 (±0; 0/15) | 51 (±0; 1/15, 3 worse) | 1,263 (−277; 12/15) | 92 (±0; 6/15, 5 worse) | $114M–$319M |
 | Buy out Panoramic Hill's upper streets | 5,085 (+2; 9/15, 6 worse) | 225 (±0; 0/15) | 50 (−1; 3/15, 4 worse) | 981 (−559; 12/15) | 92 (±0; 5/15, 5 worse) | $298M–$731M |
 | Contraflow on the main hill exit streets, officer-staffed | 5,072 (−12; 7/15, 6 worse) | 225 (±0; 0/15, 1 worse) | 60 (+9; 1/15, 13 worse) | 1,541 (±0; 0/15) | 92 (±0; 6/15, 8 worse) | little capital cost; not priced |
-| Contraflow on the main hill exit streets, pre-installed signs (battery backup) | 5,058 (−26; 9/15, 4 worse) | 225 (±0; 0/15) | 60 (+9; 0/15, 13 worse) | 1,541 (±0; 0/15) | 92 (±0; 3/15, 7 worse) | little capital cost; not priced |
+| Contraflow on the main hill exit streets, pre-installed signs (battery backup) | 5,058 (−26; 9/15, 4 worse) | 225 (±0; 0/15) | 60 (+9; 0/15, 13 worse) | 1,541 (±0; 0/15) | 92 (±0; 3/15, 7 worse) | not priced in this table (see notes) |
 | Police control of the pre-timed signals | 5,079 (−4; 10/15, 5 worse) | 225 (±0; 0/15) | 51 (±0; 1/15, 4 worse) | 1,541 (±0; 0/15) | 92 (±0; 5/15, 4 worse) | little capital cost; not priced |
 | Constrained egress guidance (hypothetical pilot), all drivers follow | 5,113 (+30; 1/15, 14 worse) | 225 (±0; 0/15) | 51 (±0; 1/15, 3 worse) | 1,541 (±0; 0/15) | 92 (±0; 1/15, 11 worse) | little capital cost; not priced |
 
@@ -71,7 +71,7 @@ Each cell: lever's central median (change from baseline; pairs better of 15). **
 | Buy out the top-ranked blocks, about 100 households | 4,878 (+20; 9/15, 6 worse) | 275 (±0; 0/15) | 63 (±0; 4/15, 3 worse) | 1,263 (−277; 12/15) | 91 (±0; 11/15, 4 worse) | $114M–$319M |
 | Buy out Panoramic Hill's upper streets | 4,888 (+30; 6/15, 9 worse) | 275 (±0; 1/15) | 63 (±0; 2/15, 5 worse) | 981 (−559; 12/15) | 91 (±0; 8/15, 4 worse) | $298M–$731M |
 | Contraflow on the main hill exit streets, officer-staffed | 4,861 (+2; 6/15, 9 worse) | 275 (±0; 0/15, 4 worse) | 63 (±0; 4/15, 3 worse) | 1,541 (±0; 0/15) | 91 (±0; 8/15, 3 worse) | little capital cost; not priced |
-| Contraflow on the main hill exit streets, pre-installed signs (battery backup) | 4,839 (−20; 8/15, 6 worse) | 275 (±0; 1/15, 4 worse) | 63 (±0; 1/15, 5 worse) | 1,541 (±0; 0/15) | 91 (±0; 8/15, 6 worse) | little capital cost; not priced |
+| Contraflow on the main hill exit streets, pre-installed signs (battery backup) | 4,839 (−20; 8/15, 6 worse) | 275 (±0; 1/15, 4 worse) | 63 (±0; 1/15, 5 worse) | 1,541 (±0; 0/15) | 91 (±0; 8/15, 6 worse) | not priced in this table (see notes) |
 | Police control of the pre-timed signals | 4,847 (−12; 4/15, 10 worse) | 275 (±0; 0/15, 2 worse) | 63 (±0; 3/15, 2 worse) | 1,541 (±0; 0/15) | 91 (±0; 5/15, 6 worse) | little capital cost; not priced |
 | Constrained egress guidance (hypothetical pilot), all drivers follow | 4,967 (+108; 2/15, 13 worse) | 275 (±0; 0/15) | 63 (±0; 4/15, 2 worse) | 1,541 (±0; 0/15) | 91 (±0; 9/15, 3 worse) | little capital cost; not priced |
 
@@ -96,7 +96,7 @@ Each cell: lever's central median (change from baseline; pairs better of 15). **
 | Buy out the top-ranked blocks, about 100 households | **14,421 (−499; 15/15)** | **2,918 (−190; 15/15)** | **125 (−70; 15/15)** | 1,263 (−277; 12/15) | not reached (—; 6/15) | $114M–$319M |
 | Buy out Panoramic Hill's upper streets | **13,837 (−1,083; 15/15)** | **2,792 (−315; 15/15)** | **48 (−147; 15/15)** | 981 (−559; 12/15) | 93 (—; 9/15) | $298M–$731M |
 | Contraflow on the main hill exit streets, officer-staffed | 15,024 (+104; 7/15, 7 worse) | 3,107 (±0; 0/15, 1 worse) | 216 (+21; 0/15, 12 worse) | 1,541 (±0; 0/15) | not reached (—; 2/15, 2 worse) | little capital cost; not priced |
-| Contraflow on the main hill exit streets, pre-installed signs (battery backup) | 15,040 (+120; 6/15, 9 worse) | 3,107 (±0; 0/15, 1 worse) | 215 (+20; 0/15, 13 worse) | 1,541 (±0; 0/15) | not reached (—; 0/15, 5 worse) | little capital cost; not priced |
+| Contraflow on the main hill exit streets, pre-installed signs (battery backup) | 15,040 (+120; 6/15, 9 worse) | 3,107 (±0; 0/15, 1 worse) | 215 (+20; 0/15, 13 worse) | 1,541 (±0; 0/15) | not reached (—; 0/15, 5 worse) | not priced in this table (see notes) |
 | Police control of the pre-timed signals | 14,975 (+55; 8/15, 7 worse) | 3,107 (±0; 0/15) | 195 (±0; 3/15, 5 worse) | 1,541 (±0; 0/15) | not reached (—; 2/15, 2 worse) | little capital cost; not priced |
 | Constrained egress guidance (hypothetical pilot), all drivers follow | 14,983 (+63; 2/15, 13 worse) | 3,107 (±0; 0/15) | 195 (±0; 4/15, 2 worse) | 1,541 (±0; 0/15) | not reached (—; 2/15, 3 worse) | little capital cost; not priced |
 
@@ -221,7 +221,7 @@ Both lanes outbound on the main hill exit streets wide enough between parked car
 The same streets, started by rehearsed electronic signs and gates with battery backup. Applied with plan { contraflow: main, contraflowMode: signs, contraflowPower: battery } (js/operations.js).
 
 - **Holds on:** eastWind: none; ref1923: none; panoramic: none.
-- **Cost:** little capital cost; not priced. Signs at every entry point; the run logs the count and a range per run (1923 fire, central, seed 1: 75 locations, about $1.1M–$4.3M; gates not costed). Not copied into this table because the count depends on the run.
+- **Cost:** not priced in this table (see notes). Signs at every entry point; the run logs the count and a range per run (1923 fire, central, seed 1: 75 locations, about $1.1M–$4.3M; gates not costed). Not copied into this table because the count depends on the run.
 - **What the simulator can't measure:** Whether drivers obey a sign without an officer, signs damaged by the fire itself, and rehearsal: the simulator assumes everyone follows the reversed lanes once they start.
 
 ### Police control of the pre-timed signals

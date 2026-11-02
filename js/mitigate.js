@@ -34,7 +34,7 @@ const costBadge = c => {
   const tip = [c?.capital ? 'Screening range, not a project budget or appraisal.' : '', c?.note || '', c?.source ? `Source: ${c.source}.` : ''].filter(Boolean).join(' ');
   return `<span class="badge b-${{ derived: 'derived', assumption: 'assumption' }[cat] || 'missing'}" title="${esc(tip)}">${cat} ⓘ</span>`;
 };
-const costText = c => !c ? 'Cost not priced' : c.capital ? `${money(c.capital[0])}–${money(c.capital[1])}` : /^Little capital/.test(c.note || '') ? 'Little capital cost' : 'Cost';
+const costText = c => !c ? 'Cost not priced' : c.capital ? `${money(c.capital[0])}–${money(c.capital[1])}` : /^Little capital/.test(c.note || '') ? 'Little capital cost' : 'Not priced here';
 const val = (k, x) => x == null ? (MEASURES[k].time ? 'not reached' : '—') : MEASURES[k].time ? `${Math.round(x)} min` : n0(x);
 
 // Step 2: the chosen fire's baseline, central-severity medians of 5 seeds.
