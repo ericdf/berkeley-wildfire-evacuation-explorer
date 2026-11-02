@@ -339,6 +339,7 @@ function watchHTML() {
   return `<h2><span class="step">1</span> Pick a fire scenario</h2>
     <p class="small muted"><b>Fire scenario:</b> what Berkeley doesn't control (where the fire starts, the wind, the time of day). <b>Plan:</b> what it does control, what is built or changed beforehand and how it responds on the day. Each run tests a plan against a fire scenario.</p>
     <div class="fires">${FIRES.map(f => `<button class="fire-pick${f.id === state.fire ? ' on' : ''}" data-fire="${f.id}"><b>${esc(f.title)}</b><span>${esc(f.line)}</span></button>`).join('')}</div>
+    <p class="small muted">Oakland, Kensington, Albany and the other neighbors order their own zones once the fire comes within ${data.A.orders.firePathKm} km ${badge('model rule', 'The distance and the 10-minute delay are assumptions (Eric\'s choice, 2026-11-02); no source gives when these jurisdictions order a zone. Their cars use the same roads. SOURCE_NOTES FO1–FO4.')}.</p>
     ${famHTML()}
     ${paceHTML()}
     <h2><span class="step">2</span> Watch it with today's plan</h2>

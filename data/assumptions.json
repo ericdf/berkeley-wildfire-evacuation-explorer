@@ -375,7 +375,7 @@
     },
     "orders.firePathKm": {
       "category": "assumption",
-      "note": "Other cities' orders (model rule, SOURCE_NOTES FO1-FO3): every evacuation zone outside Berkeley's (a Genasys zone id not starting BER- or LBL-: Oakland OKL, Albany ALB, Emeryville EMV, El Cerrito and Kensington ECK, Richmond RCH, Orinda ORI, unincorporated Contra Costa CCC) is ordered once the fire front comes within this distance of any 30 m cell of the zone (straight line, a circle). 2 km is Eric's choice, 2026-11-02; no source gives the distance at which Oakland, El Cerrito or the County order a zone. Berkeley's and the Lab's orders stay the scenario's City-defined region."
+      "note": "Other cities' orders (model rule, SOURCE_NOTES FO1-FO4): every evacuation zone outside Berkeley's (a Genasys zone id not starting BER- or LBL-: Oakland OKL, Albany ALB, Emeryville EMV, El Cerrito and Kensington ECK, Richmond RCH, Orinda ORI, unincorporated Contra Costa CCC) is ordered once the fire front comes within this distance of any 30 m cell of the zone (straight line, a circle). 2 km is Eric's choice, 2026-11-02; no source gives the distance at which Oakland, El Cerrito or the County order a zone. Berkeley's and the Lab's orders stay the scenario's City-defined region."
     },
     "orders.firePathDelayMin": {
       "category": "assumption",
