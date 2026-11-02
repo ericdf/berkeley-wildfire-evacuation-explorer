@@ -213,7 +213,7 @@ $('nbhd').onchange = e => {
 };
 
 // ---------- simple view ----------
-// Two tabs (Eric, 2026-11-02). "Watch a fire": pick a fire and watch today's plan; every number on
+// Two tabs (Eric, 2026-11-02). "Today's plan": pick a fire and watch today's plan (only today's plan); every number on
 // screen comes from the run the user started. When it ends, the page invites them to explore changes.
 // "Change the plan": stack changes and compare them with today's plan in 15 passes (a pass runs both plans on the same fire and households). The
 // stored mitigation table is never shown as an answer: it only greys out changes that did not
@@ -226,7 +226,7 @@ const pickedLevers = () => [...state.picked].map(leverById).filter(Boolean);
 const simDone = () => state.sim && state.sim.t >= state.sim.end;
 
 function renderSimple() {
-  const tabs = `<div class="tabs"><button data-tab="watch" class="${state.tab === 'watch' ? 'on' : ''}">Watch a fire</button><button data-tab="try" class="${state.tab === 'try' ? 'on' : ''}">Change the plan</button></div>`;
+  const tabs = `<div class="tabs"><button data-tab="watch" class="${state.tab === 'watch' ? 'on' : ''}">Today's plan</button><button data-tab="try" class="${state.tab === 'try' ? 'on' : ''}">Change the plan</button></div>`;
   $('simple').innerHTML = tabs + (state.tab === 'watch' ? watchHTML() : tryHTML());
   $('simple').querySelectorAll('[data-tab]').forEach(b => b.onclick = () => showTab(b.dataset.tab));
   $('simple').querySelectorAll('.fire-pick').forEach(b => b.onclick = () => pickFire(b.dataset.fire));
@@ -875,7 +875,7 @@ function intro() {
   modal(`<div class="intro"><h2>Berkeley Hills Wildfire Evacuation: Scenario Explorer</h2>
   <p>Run a wildfire on Berkeley's real streets and watch residents' cars, parked cars and fire engines compete for the same narrow roads. Compare two ways of running an evacuation on the same fire and the same households.</p>
   <p class="note">This is a teaching tool, not a prediction and not an official evacuation plan. The households are synthetic and the fire is illustrative. For real instructions see the <a href="https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation" target="_blank" rel="noopener">City's fire weather and evacuation page</a>.</p>
-  <div class="steps"><div><b>Watch a fire</b>Pick one of three illustrative fires and watch it with today's plan: fire is orange, embers amber, cars blue, queues red. The outcomes on the right are the run you watched.</div><div><b>Change the plan</b>Explore changes that would mitigate damage and loss of life: leave earlier, clear a curb, add a road, buy out the most exposed blocks. Stack them and compare your plan with today's plan in 15 passes; each pass runs both plans on the same fire and households.</div><div><b>Trust what holds</b>One pass can point the wrong way. A difference counts only where it shows up in every pass. Each change says what the simulator can't tell you about it.</div></div>
+  <div class="steps"><div><b>Today's plan</b>Pick one of three illustrative fires and watch it with today's plan: fire is orange, embers amber, cars blue, queues red. The outcomes on the right are the run you watched.</div><div><b>Change the plan</b>Explore changes that would mitigate damage and loss of life: leave earlier, clear a curb, add a road, buy out the most exposed blocks. Stack them and compare your plan with today's plan in 15 passes; each pass runs both plans on the same fire and households.</div><div><b>Trust what holds</b>One pass can point the wrong way. A difference counts only where it shows up in every pass. Each change says what the simulator can't tell you about it.</div></div>
   <h3>The inputs and what they change</h3>
   <table><tr><th>Input</th><th>What it sets</th><th>What to watch</th></tr>${INPUTS.map(r => `<tr><td><b>${r[0]}</b></td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`).join('')}</table>
   <h3>Reading the outcomes</h3>

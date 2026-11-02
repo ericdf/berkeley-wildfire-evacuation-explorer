@@ -29,7 +29,7 @@ Loading takes a few seconds: about 10 MB of terrain and 2 MB of street network.
 
 ## Playing
 
-**Simple view** (the default) has two tabs. **Watch a fire:** pick the east-wind fire near
+**Simple view** (the default) has two tabs. **Today's plan:** pick the east-wind fire near
 Grizzly Peak Blvd (all of Fire Zones 2–3 ordered), the 1923 fire repeated today, or Panoramic
 Hill (remembered across visits), and watch it with today's plan (first order 10 minutes after
 ignition, today's parking, a fall night, central severity). No numbers appear until the user runs
