@@ -2,7 +2,7 @@
 
 ## Next session: start here
 
-1. **Build fire families and move the east-wind fire to 60°** (Eric, 2026-11-02). The spec is `docs/design/fire-families.md`; its sources are SOURCE_NOTES FF1–FF15. Part A (east wind 75° → 60°, rebaseline tests, regenerate `data/model/mitigations.json`) is its own PR, first. Part B (opt-in families in "Change the plan", disclosure first, no user-placed starts or winds) follows. No summer westerly fire. Wind speed stays (answered in the spec).
+1. **Build fire families and move the east-wind fire to 60°** (Eric, 2026-11-02). The spec is `docs/design/fire-families.md`; its sources are SOURCE_NOTES FF1–FF15. Part A is done: the east-wind fire (`eastWind`, `eastWindDay`) blows from 60°, east-north-east (SOURCE_NOTES P32 and the change log; tests rebaselined, `data/model/mitigations.json` regenerated; every Simple-view question still holds on it). Part B (opt-in families in "Change the plan", disclosure first, no user-placed starts or winds) follows. No summer westerly fire. Wind speed stays (answered in the spec).
 2. **Publishing main to `pages`:** not approved. Ask Eric before any `git push origin main:pages`.
 3. **Mode 3, "find a combination for a goal":** framing is Eric's; not started.
 

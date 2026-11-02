@@ -77,10 +77,11 @@ export function makeScenarios(data) {
     {
       id: 'eastWind', name: 'Extreme east wind',
       kind: 'illustrative',
-      blurb: 'Fire starts in wildland near the ridge during a strong, dry east wind at night. Embers carry west, downslope, over hill neighborhoods and toward the flats. All of Fire Zones 2–3 is ordered.',
+      blurb: 'Fire starts in wildland near the ridge at night, in a strong, dry wind from the east-north-east. Embers carry west-south-west, downslope, over hill neighborhoods and toward the flats. All of Fire Zones 2–3 is ordered.',
       ignition: L(-122.2425, 37.8845), ignitionLabel: 'Wildland near Grizzly Peak Blvd (illustrative)',
-      windFrom: 75, windMph: 35, durationMin: 240, timeOfDay: 'S6', orderRegion: 'R05',
-      sources: ['Orders: City evacuation region R05 "Fire Zones 2 3 Combined" (Time Study region R05)', 'Ignition point and wind are illustrative model choices'],
+      windFrom: 60, windMph: 35, durationMin: 240, timeOfDay: 'S6', orderRegion: 'R05',
+      sources: ['Orders: City evacuation region R05 "Fire Zones 2 3 Combined" (Time Study region R05)', 'Ignition point is an illustrative model choice',
+        'Wind from 60°, east-north-east: of the dry, windy hours at the Oakland North weather station near Grizzly Peak Blvd (hourly mean wind 15 mph or more, humidity 25% or less, June 1992 – October 2026), 71.8% blew from 20–70° and 1.5% from 70–80° (WRCC RAWS records, SOURCE_NOTES FF4). 60° is a model choice inside that range'],
     },
     {
       id: 'panoramic', name: 'Constrained neighborhood: Panoramic Hill',
@@ -96,8 +97,9 @@ export function makeScenarios(data) {
       kind: 'illustrative',
       blurb: 'Same fire as "Extreme east wind", but on a fall weekday at midday (Time Study S4): some households wait for a commuter to come home, parents pick up children, and there is more other traffic. Compare with the night run.',
       ignition: L(-122.2425, 37.8845), ignitionLabel: 'Wildland near Grizzly Peak Blvd (illustrative)',
-      windFrom: 75, windMph: 35, durationMin: 240, timeOfDay: 'S4', orderRegion: 'R05',
-      sources: ['Time-of-day behavior from the Time Study (Table 6-5, Table 5-9); background traffic is a model rule; employees and students are not yet placed'],
+      windFrom: 60, windMph: 35, durationMin: 240, timeOfDay: 'S4', orderRegion: 'R05',
+      sources: ['Time-of-day behavior from the Time Study (Table 6-5, Table 5-9); background traffic is a model rule; employees and students are not yet placed',
+        'Wind from 60°, east-north-east: of the dry, windy hours at the Oakland North weather station near Grizzly Peak Blvd (hourly mean wind 15 mph or more, humidity 25% or less, June 1992 – October 2026), 71.8% blew from 20–70° and 1.5% from 70–80° (WRCC RAWS records, SOURCE_NOTES FF4). 60° is a model choice inside that range'],
     },
     {
       // Added 2026-11-02 so the north hills above Marin Ave have a fire of their own (SOURCE_NOTES P30).
