@@ -15,7 +15,7 @@
 //      (world.retreat in js/sim.js: households on bought-out blocks are placed and drawn as usual, then
 //      make no trip, so every other household and car is the same draw; tests/retreat-draws.mjs).
 //   3. Costs (screening ranges from public figures; ACS block-group values fetched once and cached).
-//   4. Step 2 comparison (second ways out, PR #15, provisional), read from origin/egress-candidates.
+//   4. Step 2 comparison (second ways out), read from data/model/egress-candidates.json.
 //   Writes data/model/retreat.json and docs/managed-retreat.md (tools/retreat-report.mjs).
 //
 //   node tools/retreat-sim.mjs [--seeds 5] [--workers N] [--refresh-acs] [--report-only]
@@ -187,7 +187,9 @@ async function runJobs(jobs, cases, workers) {
 // ---------- main ----------
 if (argv.includes('--report-only')) {
   const { writeReport } = await import(R + '/tools/retreat-report.mjs');
-  writeReport(JSON.parse(fs.readFileSync(OUT, 'utf8')));
+  const D = JSON.parse(fs.readFileSync(OUT, 'utf8'));
+  D.step2 = step2For(D.cases); fs.writeFileSync(OUT, JSON.stringify(D)); // refresh the step 2 comparison from the current file
+  writeReport(D);
   process.exit(0);
 }
 const NSEED = +arg('--seeds', 5), WORKERS = +arg('--workers', Math.max(1, os.cpus().length - 1));
@@ -386,21 +388,24 @@ let engineFoot;
 // ---------- costs (screening ranges) ----------
 const { costs, sources: costSources } = await import(R + '/tools/retreat-costs.mjs').then(m => m.computeCosts({ data, caseList: [...caseList, { id: 'footBlock', removed: foot }], expHH, ranked, refresh: argv.includes('--refresh-acs') }));
 
-// ---------- step 2 comparison (PR #15, provisional) ----------
+// ---------- step 2 comparison (second ways out, data/model/egress-candidates.json on this branch) ----------
+function step2For(caseList) {
 let step2 = null;
 try {
-  const sha = execFileSync('git', ['rev-parse', 'origin/egress-candidates'], { cwd: R }).toString().trim();
-  const EC = JSON.parse(execFileSync('git', ['show', 'origin/egress-candidates:data/model/egress-candidates.json'], { cwd: R, maxBuffer: 1 << 28 }).toString());
+  const EC = JSON.parse(fs.readFileSync(path.join(R, 'data/model/egress-candidates.json'), 'utf8'));
   const areasOfCases = new Set(caseList.flatMap(c => c.outerAreas));
   const touched = EC.candidates.filter(k => (k.rank || k.type === 'city') && (k.access?.asIs?.areasAffected || []).some(a => areasOfCases.has(a.id)) && k.access.asIs.hillResidentsFreed > 0);
   const pick = (ev, fire) => { const s = (ev || []).find(x => x.fire === fire && x.mob === 'normal' && x.delay === 10 && x.variant === 'asIs'); if (!s) return null;
     const f = o => o && { without: o.centralMedianWithout, with: o.centralMedianWith, better: o.better, worse: o.worse, same: o.same, n: o.n };
     return { area: s.area, areaFrontHome: f(s.area_.fireFrontHome), areaVehNoRoute: f(s.area_.vehNoRoute), areaClearP90: f(s.area_.clearP90), allVehNoRoute: f(s.overall.vehiclesNoRoute), allFrontPeople: f(s.overall.fireFrontPeople) }; };
-  step2 = { provisional: true, source: `origin/egress-candidates (PR #15, under review), commit ${sha.slice(0, 7)}, data/model/egress-candidates.json built ${EC.meta?.built}`,
+  step2 = { provisional: false, source: `data/model/egress-candidates.json (step 2, PR #15; rerun on this network, SOURCE_NOTES EG14), built ${EC.meta?.built}`,
     candidates: touched.map(k => ({ id: k.id, type: k.type, link: `${k.endpoints?.[0]?.street ?? ''} → ${k.toStreet ?? k.endpoints?.[1]?.street ?? ''}`, lengthM: k.lengthM, avgGradePct: k.profile?.avgGradePct,
       rank: k.rank ?? null, areasAffected: k.access.asIs.areasAffected, hillResidentsFreed: k.access.asIs.hillResidentsFreed, cost: k.cost?.total ?? null, buildingsRemoved: k.cost?.buildingsRemoved ?? null, peopleDisplaced: k.cost?.peopleDisplaced ?? null,
       fires: Object.fromEntries(['panoramic', 'ref1923', 'eastWind'].map(f => [f, pick(k.evacuation, f)]).filter(([, v]) => v)) })) };
 } catch (e) { console.log(`step 2 comparison skipped: ${e.message.split('\n')[0]}`); }
+return step2;
+}
+const step2 = step2For(caseList);
 
 // ---------- write ----------
 const OUTJ = {
