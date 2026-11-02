@@ -2,11 +2,14 @@
 // Mitigation synthesis, phase 1 (data only): every mitigation lever run against the same baseline on the
 // same fires, severities and seeds, with costs copied from earlier outputs and a robustness count.
 //
-//   node tools/mitigations.mjs [--seeds 5] [--workers N] [--report-only] [--from-runs] [--fires a,b] [--levers a,b]
+//   node tools/mitigations.mjs [--seeds 5] [--workers N] [--report-only] [--from-runs] [--fires a,b] [--levers a,b] [--merge]
 //        writes data/model/mitigations.json and docs/mitigations.md
+//   --merge (with --fires): run only the fires named and keep the saved runs of every other fire in
+//        data/model/mitigations.json; the seeds and levers are the saved ones, and summaries are
+//        recomputed from all runs (the saved fires' runs are copied unchanged).
 //
 // Baseline: DEFAULT_PLAN (js/sim.js), Time Study case S6 (fall night) for every fire, fires eastWind,
-// ref1923 and panoramic, low/central/high severity × seeds 1–5. Each lever is one entry in LEVERS below:
+// ref1923, panoramic and northHills, low/central/high severity × seeds 1–5. Each lever is one entry in LEVERS below:
 // a plan delta (merged onto DEFAULT_PLAN) and/or a world delta, applied the way existing code applies it:
 //   plan     Simple-view Plan B deltas, read from js/presets.js (so they stay in step with the presets)
 //   edges    run-time edge copies from tools/widening-core.mjs (noParkingEdge, widenedEdge), as tools/widening-sim.mjs
@@ -34,7 +37,7 @@ const argv = process.argv.slice(2);
 const arg = (k, d) => argv.includes(k) ? argv[argv.indexOf(k) + 1] : d;
 const OUT = path.join(R, 'data/model/mitigations.json'), DOC = path.join(R, 'docs/mitigations.md');
 
-const FIRES = ['eastWind', 'ref1923', 'panoramic'];
+const FIRES = ['eastWind', 'ref1923', 'panoramic', 'northHills'];
 const SEVS = ['low', 'central', 'high'];
 const TOD = 'S6';
 
@@ -282,15 +285,15 @@ function writeReport(D) {
     const parts = ranLevers.map(lv => { const s = D.summaries.find(x => x.lever === lv.id && x.fire === fire); const h = s ? MKEYS.filter(k => s.measures[k].holds) : []; return h.length ? `${lv.title} (${h.map(k => MEASURES[k].label.toLowerCase()).join('; ')})` : null; }).filter(Boolean);
     p(`- **${fire}:** holds in every pair: ${parts.length ? parts.join(', ') : 'none'}.`);
   }
-  // The two paragraphs below are prose written for the full experiment of 2026-11-02 (UTC) (every lever,
-  // all three fires, 15 pairs). They are omitted for any narrower run (--seeds, --fires, --levers);
+  // The paragraphs below are prose written for the full experiment of 2026-11-02 (UTC) (every lever,
+  // all four fires, 15 pairs). They are omitted for any narrower run (--seeds, --fires, --levers);
   // the per-fire "holds" lines above are always computed from this run's summaries.
   const PROSE_LEVERS = 'leaveEarly orderSooner parkingOneSide redCurbFoot link-CITY-1 link-AC-160-N3 link-AC-193-N1 widen-WP-001 widen-WP-007 retreat-footBlock retreat-top100 retreat-panoramicUpper contraflow-officers contraflow-signs policeControl egressGuidance';
-  const full = n === 15 && D.meta.fires.length === 3 && ranLevers.map(l => l.id).join(' ') === PROSE_LEVERS;
+  const full = n === 15 && FIRES.every(f => D.meta.fires.includes(f)) && ranLevers.map(l => l.id).join(' ') === PROSE_LEVERS;
   if (full) {
-  p(`- (Prose written for the full run of 2026-11-02 with 16 levers; check it against the tables after any rerun.) Only the timing levers (leave early, decide faster) and buyouts on the Panoramic Hill fire lower the counts of people still there; parking, red curb, widening and new links move those counts by a few dozen people at most, either way, and hold on none of them. Of the street changes, only the City\'s Dwight Way–Dwight Place concept holds on an evacuation measure: cars cut off on the Panoramic Hill fire. The three buyouts tested are all on Panoramic Hill; the two larger ones hold on evacuation measures only on the Panoramic Hill fire, and part of their drop is the bought-out people no longer counted.`);
+  p(`- (Prose written for the full run of 2026-11-02 with 16 levers, extended the same day to the north-hills fire; check it against the tables after any rerun.) Only the timing levers (leave early, decide faster) and buyouts on the Panoramic Hill fire lower the counts of people still there; parking, red curb, widening and new links move those counts by a few dozen people at most, either way, and hold on none of them. Of the street changes, only the City\'s Dwight Way–Dwight Place concept holds on an evacuation measure: cars cut off on the Panoramic Hill fire. The three buyouts tested are all on Panoramic Hill; the two larger ones hold on evacuation measures only on the Panoramic Hill fire, and part of their drop is the bought-out people no longer counted.`);
   p(`- Parking, red curb, widening, the curb-clearing buyout and the two Panoramic Hill links all act through engine reach. A change at the foot of Panoramic Way is better in 12 of 15 pairs and equal in the other 3 (the seeds where no parked car blocks that block today), so it never "holds" under the 15-of-15 rule while never being worse. The new Panoramic Hill links also give engines a way around the foot, which step 2 did not measure.`);
-  p(`- Operations: contraflow on the main hill exit streets (officer-staffed or with battery-backed signs), police control of the pre-timed signals and constrained egress guidance hold on nothing on any fire. Contraflow leaves more cars cut off by fire on the east-wind and Panoramic Hill fires in 12 or 13 of 15 pairs and fewer in at most 1 (SOURCE_NOTES CF14). Guidance is measured here against today's plan, whose drivers already take an idealized, well-informed route, so it leaves slightly more people still there when embers arrived (13 or 14 of 15 pairs); against drivers who follow habit it does better in every pair (DG30).`);
+  p(`- Operations: contraflow on the main hill exit streets (officer-staffed or with battery-backed signs), police control of the pre-timed signals and constrained egress guidance hold on nothing on any fire. Contraflow leaves more cars cut off by fire on the east-wind and Panoramic Hill fires in 12 or 13 of 15 pairs and fewer in at most 1 (SOURCE_NOTES CF14), and on the north-hills fire in 8 of 15 and fewer in none. Guidance is measured here against today's plan, whose drivers already take an idealized, well-informed route, so it leaves slightly more people still there when embers arrived (13 or 14 of 15 pairs; 10 of 15 on the north-hills fire); against drivers who follow habit it does better in every pair (DG30).`);
   } else p('- This run is not the full experiment the prose was written for (different seeds, fires or levers); see the tables and the lines above. The written conclusions for the full run are in the committed `docs/mitigations.md`.');
   p('');
   p('## How it was run');
@@ -304,7 +307,7 @@ function writeReport(D) {
   for (const k of MKEYS) p(`- **${MEASURES[k].label}**: ${MEASURES[k].def}.`);
   p('');
   for (const fire of D.meta.fires) {
-    p(`## ${{ eastWind: 'East wind, Grizzly Peak', ref1923: '1923 fire, repeated today', panoramic: 'Panoramic Hill' }[fire] || fire} (\`${fire}\`)`);
+    p(`## ${{ eastWind: 'East wind, Grizzly Peak', ref1923: '1923 fire, repeated today', panoramic: 'Panoramic Hill', northHills: 'North hills, Tilden' }[fire] || fire} (\`${fire}\`)`);
     p('');
     const base = D.baseline[fire];
     p(`Baseline, central median: ${MKEYS.map(k => `${MEASURES[k].label.toLowerCase()} ${fmtN(base[k], MEASURES[k].unit)}`).join('; ')}.`);
@@ -359,16 +362,26 @@ if (argv.includes('--report-only')) { writeReport(JSON.parse(fs.readFileSync(OUT
 // ---------- main: run ----------
 // --from-runs: recompute summaries and the report from the runs saved in the output (no simulation).
 const SAVED = argv.includes('--from-runs') ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : null;
-const NSEED = SAVED ? SAVED.meta.seeds.length : +arg('--seeds', 5), WORKERS = +arg('--workers', Math.max(1, os.cpus().length - 1));
+// --merge: run the --fires named and keep the saved runs of every other fire (same seeds and levers).
+const MERGE = !SAVED && argv.includes('--merge') ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : null;
+if (MERGE && !arg('--fires', null)) throw new Error('--merge needs --fires');
+if (MERGE && (arg('--seeds', null) || arg('--levers', null))) throw new Error('--merge takes the saved seeds and levers; drop --seeds and --levers');
+const OLD = SAVED || MERGE;
+const NSEED = OLD ? OLD.meta.seeds.length : +arg('--seeds', 5), WORKERS = +arg('--workers', Math.max(1, os.cpus().length - 1));
 const seeds = Array.from({ length: NSEED }, (_, i) => i + 1);
-const fires = SAVED ? SAVED.meta.fires : arg('--fires', null)?.split(',') ?? FIRES;
-const only = SAVED ? SAVED.levers.filter(l => l.ran).map(l => l.id) : arg('--levers', null)?.split(',');
+if (MERGE && JSON.stringify(seeds) !== JSON.stringify(MERGE.meta.seeds)) throw new Error('saved seeds are not 1..n');
+const runFires = SAVED ? SAVED.meta.fires : arg('--fires', null)?.split(',') ?? FIRES;
+for (const f of runFires) if (!FIRES.includes(f)) throw new Error(`unknown fire ${f}; known: ${FIRES.join(', ')}`);
+const kept = MERGE ? MERGE.runs.filter(r => !runFires.includes(r.fire)) : [];
+const fires = MERGE ? FIRES.filter(f => runFires.includes(f) || kept.some(r => r.fire === f)) : runFires;
+const only = OLD ? OLD.levers.filter(l => l.ran).map(l => l.id) : arg('--levers', null)?.split(',');
 const levers = resolveLevers();
 for (const l of levers.filter(l => l.stopped)) console.log(`STOPPED ${l.id}: ${l.stopped}`);
 const runnable = levers.filter(l => !l.stopped && !l.pending && !l.notComparable && (!only || only.includes(l.id) || l.id === 'control'));
+if (MERGE && runnable.map(l => l.id).join(' ') !== only.join(' ')) throw new Error(`levers differ from the saved run: ${runnable.map(l => l.id).join(' ')} vs ${only.join(' ')}`);
 const byId = Object.fromEntries(runnable.map(l => [l.id, l]));
 const jobs = [];
-for (const fire of fires) for (const sev of SEVS) for (const seed of seeds) {
+for (const fire of runFires) for (const sev of SEVS) for (const seed of seeds) {
   jobs.push({ lever: 'baseline', fire, sev, seed });
   for (const l of runnable) if (!l.centralOnly || sev === 'central') jobs.push({ lever: l.id, fire, sev, seed });
 }
@@ -390,6 +403,7 @@ rows = (await Promise.all(chunks.filter(c => c.length).map(async (chunk, w) => {
 fs.rmSync(TMP, { recursive: true, force: true });
 wallMin = r1((Date.now() - t0) / 60000);
 console.log(`done in ${wallMin} min`);
+if (MERGE) { console.log(`merged with ${kept.length} saved runs (${[...new Set(kept.map(r => r.fire))].join(', ')})`); rows = [...kept, ...rows]; wallMin = r1(MERGE.meta.wallMin + wallMin); }
 }
 
 // ---------- summaries ----------
@@ -422,7 +436,7 @@ for (const l of runnable) for (const fire of fires) {
 }
 
 const D = {
-  meta: { built: SAVED ? SAVED.meta.built : new Date().toISOString().slice(0, 10), workersNote: SAVED ? 'summaries recomputed from saved runs (--from-runs)' : undefined, tool: 'tools/mitigations.mjs', report: 'docs/mitigations.md',
+  meta: { built: SAVED ? SAVED.meta.built : new Date().toISOString().slice(0, 10), workersNote: SAVED ? 'summaries recomputed from saved runs (--from-runs)' : MERGE ? `runs of ${runFires.join(', ')} added to the saved runs of ${fires.filter(f => !runFires.includes(f)).join(', ')} (--merge); wallMin is the sum` : undefined, tool: 'tools/mitigations.mjs', report: 'docs/mitigations.md',
     note: 'Educational comparison, not a prediction and not an official evacuation plan. Synthetic households, illustrative fires. "People still there when embers arrived" and "still home when the fire front arrived" count synthetic people at that moment; they are not casualty counts. Costs are screening ranges copied from earlier outputs (null = not priced, never zero).',
     baseline: 'DEFAULT_PLAN (js/sim.js), Time Study case S6 (fall night) for every fire', plan: DEFAULT_PLAN, timeOfDay: TOD, fires, severities: SEVS, seeds, workers: SAVED ? SAVED.meta.workers : WORKERS, runs: rows.length, wallMin,
     holdsRule: `better in every same-seed pair (${SEVS.length * seeds.length} of ${SEVS.length * seeds.length}), SOURCE_NOTES P19`, measures: Object.fromEntries(MKEYS.map(k => [k, { label: MEASURES[k].label, unit: MEASURES[k].unit, def: MEASURES[k].def }])) },

@@ -539,7 +539,9 @@ function studyRow(sc) {
   const T = ETE_TARGETS[sc.id === 'eastWindDay' ? 'eastWind' : sc.id], tk = $('tod').value;
   if (!T?.p90[tk]) return '';
   const weekday = tk === 'S1' || tk === 'S4';
-  return `<tr><td>For scale: the 2025 Evacuation Time Study's 90% time for ${esc(T.region)}, ${esc(TIME_OF_DAY[tk].label)} (status quo, no fire) ${badge('sourced')}<div class="small muted">${weekday && sc.id !== 'panoramic'
+  return `<tr><td>For scale: the 2025 Evacuation Time Study's 90% time for ${esc(T.region)}, ${esc(TIME_OF_DAY[tk].label)} (status quo, no fire) ${badge('sourced')}<div class="small muted">${sc.id === 'northHills'
+    ? `The simulator runs ${weekday ? '19–30' : '13–29'} min faster than the study here${weekday ? ' on weekdays' : ' at night and on weekends'}, probably because it lacks the City's signal timing. Treat its times as a lower bound.`
+    : weekday && sc.id !== 'panoramic'
     ? 'On weekdays the simulator runs 25–80 min faster than the study here, probably because it lacks the City\'s signal timing and where commuters and students park. Treat its times as a lower bound.'
     : sc.id === 'panoramic' ? 'The simulator runs within about 10 min of the study here.' : 'At night and on weekends the simulator runs 15–25 min faster than the study here.'} See Assumptions &amp; limits.</div></td><td class="num">${mins(T.p90[tk])}</td></tr>`;
 }
@@ -933,6 +935,7 @@ $('btn-assumptions').onclick = () => {
         <li>Panoramic Hill: within about 10 min of the study at all times of day.</li>
         <li>1923 repeat and Fire Zones 2–3, nights and weekends: 15–25 min too fast (study 1 h 45 min to 1 h 55 min; simulator about 1 h 30 min).</li>
         <li>Same regions on weekdays: 25–80 min too fast. On a fall weekday the study takes 2 h 55 min for the 1923 region; the simulator takes about 1 h 35 min.</li>
+        <li>North Berkeley Hills (the north-hills fire): 13–29 min too fast at night and on weekends, 19–30 min on weekdays (fall weekday: study 2 h 5 min, simulator about 1 h 46 min).</li>
       </ul>
       Read weekday clearance times for the large regions as a lower bound: the study's times run up to 1.8 times the simulator's. Part of the gap also comes from where employees and students park, which the simulator places by area. Differences between two plans are more reliable than either plan's clock time, but a plan that sends more traffic through signals the study found congested (around the UC campus, and the pre-timed signal at Cedar St and MLK Jr Way) can look better in the simulator than it would on the street. The results panel shows the study's time for the same case.</li>
   </ul>
