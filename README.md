@@ -50,7 +50,8 @@ plan on the map; Compare runs both on 9 fires (3 severities × 3 seeds) and stat
    how long detection and the decision take, whether all hill zones are ordered at once,
    early departure on Red Flag days (from the City's Leave Early Zones, or all of Fire Zones 2–3),
    parking on hill streets, and R0: no added units in the Leave Early Zones, Fire Zones 2–3
-   or access-constrained areas, shown with its legal status.
+   or access-constrained areas, shown with its legal status. Driver information and routing
+   (off by default) sets how drivers find their way out and the share who follow.
 3. **Run.** Watch the fire, embers, vehicles, queues and the fire-engine route. Drag the
    slider to jump to a time. Click a street or zone to inspect it; hover a badge (ⓘ)
    to see where each value comes from.
@@ -192,6 +193,32 @@ about 29% of it and access-constrained areas about 11% (areas from
 `data/model/access-constraints.json`, written by `tools/access-constraints.mjs`; the option
 stays disabled until that file exists). Parked cars do not increase with growth.
 
+**Driver information and routing** (`js/guidance.js`; SOURCE_NOTES DG1–DG24). A plan setting,
+Expert view only, off by default: with it at "Today's model" the code path and every result
+are exactly as before. Today's model is idealized: every car re-plans every minute with full
+knowledge of queues, fire and embers. The other options: **Habit** (an assumption; most
+evacuees surveyed after the 2017–2018 California fires did not use GPS): the shortest
+free-flow route to the nearest way out, changed only where a street burns or is full, embers
+ignored until they reach the driver's street. **Ordinary app**: live queues, no fire knowledge
+until a street burns, as when apps sent drivers into the 2017 Skirball and Creek fire areas.
+**Constrained egress guidance** (hypothetical; no agency runs one), measured against the route
+each driver would take on their own (by habit): it offers a route only if, under its fire
+forecast (the illustrative fire plus a 30 min margin, checked at the time the driver would
+reach each street), the route is no riskier than the
+driver's own and either at most 60 s slower at current queues or strictly safer; among equally
+safe routes it balances load; otherwise it offers nothing; nobody is told to delay leaving. **Unconstrained system-optimal**, for comparison only: each car counts the delay it
+adds to the cars behind it, with no protection for the individual and no ember forecast. A
+share setting (100%, 65%, 50%, 15%; an assumption) says how many households follow; the rest
+drive by habit (or, for Habit, follow Today's model). Each household's draw comes from its own
+seeded stream, so plans that differ only in routing see the same households, and Compare pairs
+them household by household: **households worse off** under Plan B are those still there when
+embers or the fire front reached them, or cut off, where they were not under Plan A, or
+reaching safety more than 5 min later. Which car reaches a junction first is partly chance,
+so Compare reruns each plan with another serving order and reports households worse off under
+both B runs than under both A runs ("beyond chance") and the count chance alone produces. None of this
+models phone networks failing, distrust of instructions or liability; the share setting
+stands in for them, and no simulator run justifies deploying route guidance.
+
 **Diverters and traffic circles.** The list of record is the City's "Existing Traffic
 Calming Devices" layer (edited 2025-10-28: 75 diverters, 63 circles, 1 gate). The City gives
 only a point, so the builder reads each diverter's shape from OpenStreetMap: at each junction it
@@ -228,6 +255,7 @@ add any parking-removal bonus.
 | `js/fire.js`, `js/sim.js`, `js/parking.js`, `js/scenarios.js`, `js/rng.js` | Models and presets |
 | `js/presets.js` | Simple view: its fires, questions, per-fire "What to look for" text and the reasons a question is withheld |
 | `js/worker.js` | Runs comparison batches off the main thread |
+| `js/guidance.js` | Driver information and routing: Habit, Ordinary app, constrained guidance and system-optimal route trees; households worse off |
 | `js/access.js` | Access-constrained areas: inspector card, Expert-view summary, ranking table, map key |
 | `js/data.js` | Loads the data files (`access-constraints.json` is optional) |
 | `data/assumptions.json` | **Editable** assumptions and model rules, each with a category and note |
@@ -242,6 +270,7 @@ add any parking-removal bonus.
 | `tests/calibration.mjs`, `tests/stuck.mjs`, `tests/leftover.mjs` | Compare with the Time Study (fire off); list jammed links; list order-zone vehicles that never leave |
 | `tests/plan-draws.mjs` | Checks that Plan A and Plan B of every Simple-view question see the same households for a seed (each fire, seeds 1–3), the same with maximum growth under each R0 area, and that growth leaves today's households and the shared random stream unchanged |
 | `tests/growth.mjs` | Future growth and R0 with the fire on, seeds 1–5 (`SOURCE_NOTES.md` R4, R5); `GROWTH=max node tests/calibration.mjs` gives R3 |
+| `tests/routing.mjs` | Driver information and routing with the fire on, seeds 1–5: every option, households worse off against Habit (also beyond chance), and a check that every option sees the same households and shared random stream as Today's model (`SOURCE_NOTES.md` DG19–DG24) |
 
 ## Replacing datasets
 
@@ -297,6 +326,11 @@ by the simulator at load time. Scenario presets, severities and time-of-day valu
   and through the middle of Kensington; north Kensington (about 1,500 people) and Oakland
   south of that line are not modeled. Traffic that reaches the edge has left.
 - Fire spread, ember distances and spot-fire rates are illustrative model values.
+- Driver information and routing: constrained guidance forecasts with the simulator's own fire,
+  so its forecast is never wrong, and it balances load on current queues, not forecast ones. No
+  option models phone networks down or overloaded, distrust of instructions, or liability; the
+  share of drivers who follow stands in for them. Households worse off depend partly on chance
+  (which car reaches a junction first); read them against the "chance alone" count.
 - Future growth: with the Time Study's maximum ADU build-out the simulator's evacuation time
   in the large regions grows less than the study's (fire off, fall weekday S4: 1923 region +42%
   against the study's +58%; Fire Zones 2–3 +3% against +97%), because its junctions pass traffic

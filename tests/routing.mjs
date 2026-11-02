@@ -1,6 +1,7 @@
 // Driver information and routing with the fire on (SOURCE_NOTES DG19–DG24): default plan apart
 // from routing, scenario time of day, seeds 1..n. For each seed it runs every routing option
-// twice, the second time with another junction serving order (js/guidance.js reshuffle), and pairs
+// twice, the second time with another junction serving order (js/guidance.js reshuffle; totals are
+// the mean of the two), and pairs
 // the runs household by household against Habit: worse off (single runs), beyond chance (worse
 // under both runs of the option than under both Habit runs) and chance alone (the option against
 // its rerun). Prints one JSON line per option and seed, then medians.
@@ -33,13 +34,15 @@ for (let seed = 1; seed <= +nSeeds; seed++) {
     const probe = build(), key = probe.householdOutcomes().key, u = probe.rand();
     if (k === 'today') { out.key0 = key; out.u0 = u; }
     else if (key !== out.key0 || u !== out.u0) { bad++; console.log(`FAIL seed ${seed} ${k}: households or shared stream differ from Today's model`); }
-    const a = build(), S = a.runToEnd(), b = reshuffle(build()); b.runToEnd();
-    out[k] = { S, O: a.householdOutcomes(), O2: b.householdOutcomes() };
+    const a = build(), S = a.runToEnd(), b = reshuffle(build()), S2 = b.runToEnd();
+    out[k] = { S, S2, O: a.householdOutcomes(), O2: b.householdOutcomes() };
   }
   const H = out.habit, hw = worstOf(H.O, H.O2);
   for (const k of names) {
-    const { S, O, O2 } = out[k], w = worseOff(H.O, O, thr), wb = worseOff(hw, bestOf(O, O2), thr), better = worseOff(O, H.O, thr);
-    const row = { seed, v: k, embers: Math.round(embers(S)), fireFront: Math.round(S.fireFrontHome + S.fireFrontRoad), cutOff: S.vehiclesNoRoute, p90: S.clearP90 == null ? null : Math.round(S.clearP90),
+    const { S, S2, O, O2 } = out[k], w = worseOff(H.O, O, thr), wb = worseOff(hw, bestOf(O, O2), thr), better = worseOff(O, H.O, thr);
+    // totals: mean of the two serving orders
+    const mean = f => { const x = f(S), y = f(S2); return x == null || y == null ? null : Math.round((x + y) / 2); };
+    const row = { seed, v: k, embers: mean(embers), fireFront: mean(s => s.fireFrontHome + s.fireFrontRoad), cutOff: mean(s => s.vehiclesNoRoute), p90: mean(s => s.clearP90),
       followers: S.routing?.followers ?? null, offered: S.routing?.offered ?? null, declined: S.routing?.declined ?? null,
       worse: w.households, beyond: wb.households, beyondLevel: wb.embers + wb.fireFront + wb.cutOff, beyondCut: wb.cutOff, beyondWorstMin: Math.round(wb.worstDelayMin),
       better: better.households, gainMin: w.meanGainMin == null ? null : +w.meanGainMin.toFixed(2), chance: worseOff(O, O2, thr).households };

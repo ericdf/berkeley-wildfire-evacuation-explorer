@@ -20,7 +20,7 @@ export const ROUTING = {
   app: { label: 'Ordinary navigation app: live traffic, no fire knowledge', short: 'Ordinary app', category: 'assumption',
     note: 'Like consumer navigation: re-plans every minute on live queues but knows nothing about fire or embers until a road is closed (here, once the fire front reaches it). In the December 2017 Skirball and Creek fires, navigation apps sent drivers onto streets inside evacuation areas because they showed no traffic (Los Angeles City Council motion 17-1407). The share setting is the share of drivers using the app; the rest drive by habit.' },
   guided: { label: 'Constrained egress guidance (hypothetical pilot design)', short: 'Constrained guidance', category: 'model rule',
-    note: 'Central guidance with hard constraints, measured against the route each driver would take on their own (by habit). Never worse off: it offers a route only if, under its fire forecast, the route is no riskier than the driver\'s own and either at most a small tolerance slower at current queues or strictly safer. Safety before speed: it never routes toward the fire or through current or forecast ember areas when another way out exists; the forecast is the illustrative fire\'s own arrival times plus a margin, and a real forecast would be uncertain. Among equally safe routes it spreads cars across ways out (load balancing). It never tells anyone to delay leaving (no staging). If no route passes, it offers nothing and the driver keeps their own route. The share setting is the share of drivers following it; the rest drive by habit. No agency runs such a system today.' },
+    note: 'Central guidance with hard constraints, measured against the route each driver would take on their own (by habit). Never worse off: it offers a route only if, under its fire forecast, the route is no riskier than the driver\'s own and either at most a small tolerance slower at current queues or strictly safer. Safety before speed: it never offers a route that takes the driver further into the fire or the current or forecast ember area than their own route would; the forecast is the illustrative fire\'s own arrival times plus a margin, checked at the time the driver would reach each street, and a real forecast would be uncertain. Among equally safe routes it spreads cars across ways out (load balancing). It never tells anyone to delay leaving (no staging). If no route passes, it offers nothing and the driver keeps their own route. The share setting is the share of drivers following it; the rest drive by habit. No agency runs such a system today.' },
   system: { label: 'Unconstrained system-optimal (comparison only)', short: 'Unconstrained system-optimal', category: 'model rule',
     note: 'Load balancing for the whole system with no protection for the individual: each car is routed on the delay it adds to the cars behind it as well as its own, and it has no ember forecast, only today\'s embers. Shown only to measure what the constraint costs or saves. It can send some households on slower or riskier routes, which is why it is not a recommended design. The share setting is the share of drivers following it; the rest drive by habit.' },
 };
@@ -37,7 +37,7 @@ export function makeGuidance(sim) {
 // One route tree for one class: distance to safety from every node, the link on that best path
 // (via), and the options at a node (up to three, as in sim.route()), computed when first asked.
 class Tree {
-  constructor(sim, nN, nL) { this.sim = sim; this.dist = new Float64Array(nN); this.via = new Int32Array(nN); this.cost = new Float64Array(nL); this.opts = new Array(nN); this.stamp = new Int32Array(nN).fill(-1); this.version = 0; this.order = new Int32Array(nN); this.nSettled = 0; }
+  constructor(sim, nN, nL) { this.sim = sim; this.dist = new Float64Array(nN); this.via = new Int32Array(nN); this.cost = new Float64Array(nL); this.opts = new Array(nN); this.stamp = new Int32Array(nN).fill(-1); this.version = 0; }
   at(n) {
     if (this.stamp[n] === this.version) return this.opts[n];
     this.stamp[n] = this.version;
@@ -75,11 +75,11 @@ class Guidance {
     this.T = Object.fromEntries(need.map(k => [k, [new Tree(sim, nN, nL), new Tree(sim, nN, nL)]]));
     this.time = new Float64Array(nL); this.risk = new Float64Array(nL); this.queueTerm = new Float64Array(nL);
     this.lastBurn = -1; this.lastEmber = -1;
-    if (mode === 'guided') for (const k of [0, 1]) {
-      for (const key of ['own', 'so']) { const tr = this.T[key][k]; tr.PT = new Float64Array(nN); tr.PR = new Float64Array(nN); } // time and risk along the best path
-      this.T.guided[k].pick = n => this.pickGuided(k, n);
+    if (mode === 'guided') {
+      for (const k of [0, 1]) this.T.guided[k].pick = n => this.pickGuided(k, n);
+      // forward search from a junction: cost, time, risk and first link per node, reset by generation
+      this.F = { c: new Float64Array(nN), tm: new Float64Array(nN), r: new Float64Array(nN), first: new Int32Array(nN), gen: new Int32Array(nN), g: 0 };
     }
-    if (mode === 'guided') this.hab = [0, 1].map(() => ({ PT: new Float64Array(nN), PR: new Float64Array(nN) })); // the driver's own (habit) route, at current queues and forecast
   }
 
   // Called by sim.route() every minute, after Today's tree.
@@ -117,8 +117,9 @@ class Guidance {
       this.build(T.system[k], k);
     }
     if (T.guided) {
-      // Forecast risk of a link: seconds driven on it if embers are forecast there within the
-      // margin, plus FIRE_RISK if the fire front is.
+      // Static forecast risk, used only to build the candidate trees: seconds driven on a link if
+      // embers are forecast there within the margin of now, plus FIRE_RISK if the fire front is.
+      // Candidates are then judged with risk at the time the driver would reach each street (riskAt).
       const horizon = t + this.marginS, risk = this.risk;
       for (let l = 0; l < n; l++) { const e = links[l].e; risk[l] = time[l] === Infinity ? 0 : (sim.tEmber[e] <= horizon ? links[l].ff : 0) + (sim.tFire[e] <= horizon ? FIRE_RISK : 0); }
       for (const k of [0, 1]) {
@@ -129,66 +130,76 @@ class Guidance {
         // Load balancing: the same safety terms, but each car also counts the delay it adds to the cars behind it.
         for (let l = 0; l < n; l++) so.cost[l] = time[l] === Infinity ? Infinity : links[l].ff + (1 + this.beta) * qt[l] + this.W * risk[l];
         this.build(so, k);
-        this.along(T.habit[k], this.hab[k]);
         g.dist.set(own.dist); g.cost.set(own.cost); g.version++;
       }
     }
   }
 
-  // Constrained guidance at node n. The driver's own route is the one they would take without
-  // guidance (habit). Candidates: the safest route under the forecast (least risk, then fastest)
-  // and the load-balancing route. A candidate is offered only if, along its whole path, it is no
-  // riskier than the driver's own route under the forecast and either at most tolS slower at
-  // current queues or strictly safer (safety before speed). The load-balancing route is preferred only when it is as safe as
-  // the safest route. If neither passes, guidance offers nothing and the driver keeps their own route.
-  pickGuided(k, n) {
-    const own = this.T.own[k], so = this.T.so[k], hab = this.T.habit[k], H = this.hab[k], links = this.sim.links, risk = this.risk, time = this.time, eps = 1e-6;
-    const base = own.at(n); if (!base) return hab.at(n);
-    const hR = H.PR[n], hT = H.PT[n];
-    const ok = (T, R) => R <= hR + eps && (T <= hT + this.tolS || R < hR - eps);
-    const oR = own.PR[n], s0 = so.via[n];
-    if (s0 >= 0 && s0 !== base[0]) {
-      const to = links[s0].to, R = risk[s0] + so.PR[to], T = time[s0] + so.PT[to];
-      if (R <= oR + eps && ok(T, R)) {
-        this.stats.offered++;
-        return [s0, ...base.filter(l => l !== s0 && risk[l] + own.PR[links[l].to] <= R + eps)].slice(0, 3);
+  // Forecast risk of link l for a driver who reaches it tau seconds from now: the seconds spent on
+  // it if embers are forecast there by the time the driver leaves it plus the margin, and
+  // FIRE_RISK if the fire front is.
+  riskAt(l, tau) {
+    const sim = this.sim, e = sim.links[l].e, leave = sim.t + tau + this.time[l] + this.marginS;
+    return (sim.tEmber[e] <= leave ? this.time[l] : 0) + (sim.tFire[e] <= leave ? FIRE_RISK : 0);
+  }
+  // Time to safety and forecast risk along a tree's best path from node n, judged at arrival times.
+  walk(tree, n, k) {
+    const links = this.sim.links, safe = this.sim.safe[k];
+    let tau = 0, R = 0;
+    for (let steps = 0; !safe[n]; steps++) {
+      const l = tree.via[n]; if (l < 0 || steps > 5000 || this.time[l] === Infinity) return null;
+      R += this.riskAt(l, tau); tau += this.time[l]; n = links[l].to;
+    }
+    return { T: tau, R };
+  }
+  // Safest route from n: forward search on time plus weighted forecast risk at arrival times.
+  safest(n, k) {
+    const { links, outL } = this.sim, safe = this.sim.safe[k], F = this.F, g = ++F.g, heap = new MinHeap();
+    F.gen[n] = g; F.c[n] = 0; F.tm[n] = 0; F.r[n] = 0; F.first[n] = -1; heap.push(0, n);
+    while (heap.size) {
+      const [c, u] = heap.pop(); if (c > F.c[u]) continue;
+      if (safe[u] && u !== n) return { first: F.first[u], T: F.tm[u], R: F.r[u] };
+      for (const l of outL[u]) {
+        if (this.time[l] === Infinity) continue;
+        const r = this.riskAt(l, F.tm[u]), nc = c + this.time[l] + this.W * r, w = links[l].to;
+        if (F.gen[w] !== g || nc < F.c[w]) { F.gen[w] = g; F.c[w] = nc; F.tm[w] = F.tm[u] + this.time[l]; F.r[w] = F.r[u] + r; F.first[w] = u === n ? l : F.first[u]; heap.push(nc, w); }
       }
     }
-    if (ok(own.PT[n], oR)) {
-      if (oR < hR - eps) this.stats.safety++; else this.stats.faster++;
-      const opts = base.filter(l => risk[l] + own.PR[links[l].to] <= oR + eps);
-      return opts.length ? opts : base;
-    }
+    return null;
+  }
+
+  // Constrained guidance at junction n. The driver's own route is the one they would take without
+  // guidance (habit). Candidates: the safest route under the forecast and the load-balancing route.
+  // Every route is judged along its whole path, with risk at the time the driver would reach each
+  // street. A candidate is offered only if it is no riskier than the driver's own route and either at
+  // most tolS slower at current queues or strictly safer (safety before speed). The load-balancing
+  // route is preferred only when it is as safe as the safest route. If neither passes, guidance
+  // offers nothing and the driver keeps their own route. Fallbacks for a full street: the static
+  // safest tree's options.
+  pickGuided(k, n) {
+    const own = this.T.own[k], so = this.T.so[k], hab = this.T.habit[k], eps = 1e-6;
+    const h = this.walk(hab, n, k), base = own.at(n);
+    if (!h || !base) return hab.at(n);
+    const ok = c => c && c.R <= h.R + eps && (c.T <= h.T + this.tolS || c.R < h.R - eps);
+    const best = this.safest(n, k), lbFirst = so.via[n], lb = lbFirst >= 0 ? this.walk(so, n, k) : null;
+    const pick = first => [first, ...base.filter(l => l !== first)].slice(0, 3);
+    if (lb && best && lbFirst !== best.first && lb.R <= best.R + eps && ok(lb)) { this.stats.offered++; return pick(lbFirst); }
+    if (best && ok(best)) { if (best.R < h.R - eps) this.stats.safety++; else this.stats.faster++; return pick(best.first); }
     this.stats.declined++;
     return hab.at(n);
   }
 
-  // Time and risk along each node's best path in a tree built earlier, at current values.
-  along(tree, P) {
-    const links = this.sim.links, { PT, PR } = P;
-    PT.fill(Infinity); PR.fill(Infinity);
-    for (let j = 0; j < tree.nSettled; j++) {
-      const n = tree.order[j], l = tree.via[n];
-      if (l < 0) { PT[n] = 0; PR[n] = 0; continue; }
-      const to = links[l].to; PT[n] = this.time[l] + PT[to]; PR[n] = this.risk[l] + PR[to];
-    }
-  }
-
   // Reverse Dijkstra from class k's safe nodes on tree.cost, as in sim.route(). Records the best link
-  // from each node (via) and, where the tree carries them, time and risk along that path.
+  // from each node (via).
   build(tree, k) {
     const sim = this.sim, { links, inL } = sim, cost = tree.cost, safe = sim.safe[k], nN = tree.dist.length;
-    const dist = tree.dist.fill(Infinity), via = tree.via.fill(-1), heap = new MinHeap(), PT = tree.PT, PR = tree.PR;
-    let m = 0;
-    if (PT) { PT.fill(Infinity); PR.fill(Infinity); }
-    for (let n = 0; n < nN; n++) if (safe[n]) { dist[n] = 0; heap.push(0, n); if (PT) { PT[n] = 0; PR[n] = 0; } }
+    const dist = tree.dist.fill(Infinity), via = tree.via.fill(-1), heap = new MinHeap();
+    for (let n = 0; n < nN; n++) if (safe[n]) { dist[n] = 0; heap.push(0, n); }
     while (heap.size) {
       const [d, n] = heap.pop(); if (d > dist[n]) continue;
-      tree.order[m++] = n;
-      if (PT && via[n] >= 0) { const l = via[n], to = links[l].to; PT[n] = this.time[l] + PT[to]; PR[n] = this.risk[l] + PR[to]; } // the next node settled first
       for (const lid of inL[n]) { const L = links[lid]; const nd = d + cost[lid]; if (nd < dist[L.from]) { dist[L.from] = nd; via[L.from] = lid; heap.push(nd, L.from); } }
     }
-    tree.nSettled = m; tree.version++;
+    tree.version++;
   }
 
   // The route tree vehicle i (class 0 or 1) follows on edge e, or null for Today's tree.
