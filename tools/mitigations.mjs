@@ -96,9 +96,19 @@ const LEVERS = [
   { id: 'retreat-panoramicUpper', group: 'retreat', title: 'Buy out Panoramic Hill\'s upper streets', what: 'case panoramicUpper of data/model/retreat.json (behind the second choke on Panoramic Way)', how: 'world.retreat { edges: retreat.json cases panoramicUpper .removed }, as tools/retreat-sim.mjs fire runs', retreat: 'panoramicUpper' },
   // Not run here.
   { id: 'r0', group: 'notComparable', title: 'R0: no added units in hill areas', notComparable: 'R0 acts only under a future-growth scenario; on today\'s population (no growth) it changes nothing, so it is not comparable with these levers. Its results are in SOURCE_NOTES R1–R8 (with maximum growth, R0 lowers people still there when embers arrived in all 30 pairs).' },
-  { id: 'contraflow', group: 'pending', title: 'Contraflow', pending: 'not merged; add an entry here when it is' },
-  { id: 'policeControl', group: 'pending', title: 'Police control of signals', pending: 'not merged (HANDOFF punch list 7a); add an entry here when it is' },
-  { id: 'powerShutoff', group: 'pending', title: 'Power shutoff', pending: 'PR #19, not merged; add an entry here when it is' },
+  { id: 'contraflow-officers', group: 'operations', title: 'Contraflow on the main hill exit streets, officer-staffed', what: 'both lanes outbound on the main hill exit streets wide enough between parked cars, started by officers at every entry point (default pool and arrival delay)',
+    how: 'plan { contraflow: main, contraflowMode: officers } (js/operations.js, SOURCE_NOTES CF1–CF16)', plan: { contraflow: 'main', contraflowMode: 'officers' },
+    costNote: 'Little capital cost; the cost is officers taken from other work (the shared pool), unpriced.',
+    cannotMeasure: 'Whether officers can reach and hold every entry point while the fire moves, drivers who ignore the closure, and the engines that can no longer drive up these streets beyond what engine reach shows.' },
+  { id: 'contraflow-signs', group: 'operations', title: 'Contraflow on the main hill exit streets, pre-installed signs (battery backup)', what: 'the same streets, started by rehearsed electronic signs and gates with battery backup',
+    how: 'plan { contraflow: main, contraflowMode: signs, contraflowPower: battery } (js/operations.js)', plan: { contraflow: 'main', contraflowMode: 'signs', contraflowPower: 'battery' },
+    costNote: 'Signs at every entry point; the run logs the count and a range per run (1923 fire, central, seed 1: 75 locations, about $1.1M–$4.3M; gates not costed). Not copied into this table because the count depends on the run.',
+    cannotMeasure: 'Whether drivers obey a sign without an officer, signs damaged by the fire itself, and rehearsal: the simulator assumes everyone follows the reversed lanes once they start.' },
+  { id: 'policeControl', group: 'operations', title: 'Police control of the pre-timed signals', what: 'officers take over the City\'s 44 pre-timed signals on evacuation routes after their arrival delay (default pool)',
+    how: 'plan { police: pretimed } (js/operations.js, SOURCE_NOTES CF7, CF8, CF16)', plan: { police: 'pretimed' },
+    costNote: 'Little capital cost; officers taken from other work, unpriced.',
+    cannotMeasure: 'How officers actually direct traffic (the simulator gives a fixed capacity gain and outbound priority), radio coordination, and officers lost to other emergencies.' },
+  { id: 'powerShutoff', group: 'notComparable', title: 'Power shutoff', notComparable: 'A hazard condition (scenario setting), not a mitigation: signals go dark and run as all-way stops. Its effect on the baseline and on contraflow is in SOURCE_NOTES CF14' },
   { id: 'egressGuidance', group: 'pending', title: 'Egress guidance', pending: 'PR #22, not merged; add an entry here when it is' },
 ];
 const CANNOT = {
@@ -204,7 +214,7 @@ function resolveLevers() {
     const L = { ...L0, cost: null, stopped: null };
     if (!L.cannotMeasure && CANNOT[L.group]) L.cannotMeasure = CANNOT[L.group];
     try {
-      if (L.group === 'timing' || L.group === 'parking' && L.plan) L.cost = { capital: null, unpriced: true, note: L.costNote, source: null };
+      if (L.group === 'timing' || L.group === 'operations' || L.group === 'parking' && L.plan) L.cost = { capital: null, unpriced: true, note: L.costNote, source: null };
       if (L.edges) {
         const p = W.pinches.find(x => x.id === L.edges.pinch); if (!p) throw new Error(`pinch ${L.edges.pinch} not in widening.json`);
         if (JSON.stringify(WS.pinchEdges?.[p.id]) !== JSON.stringify(p.edges)) throw new Error(`pinch ${p.id} edges differ between widening.json and widening-sim.json`);
