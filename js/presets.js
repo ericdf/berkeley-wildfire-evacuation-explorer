@@ -77,7 +77,7 @@ export const PRESETS = [
     tod: 'S6',
     A: plan('A: parking as it is today'),
     B: plan('B: parking on one side only in Fire Zones 2–3', { hillsParking: 'oneside' }),
-    otherNote: 'In this simulator engines only drive; they do not fight the fire or protect homes, so better engine access has no effect on the fire. Parking still changes traffic on hill streets a little, but in the runs tested it made no consistent difference to who was still there. The engine\'s route to the fire edge runs on streets that stay passable, so engine travel time to the fire is the same under both plans.',
+    otherNote: 'In this simulator engines only drive; they do not fight the fire or protect homes, so better engine access has no effect on the fire. Parking still changes traffic on hill streets a little, but in the runs tested it made no consistent difference to who was still there. Engine travel time to the fire edge, at ignition and at the end of the run, was the same or shorter under Plan B in every run tested (four fires, three severities, five seeds), and shorter in some.',
     // Headline and numbers: SOURCE_NOTES ER2 (225 runs, central medians). Reach at ignition depends on the seed's
     // parked cars, not the fire, so it is the same on every fire; the end-of-run share (traffic and fire) differs.
     on: Object.fromEntries([['eastWind', '80%', '81%', 4], ['ref1923', '67%', '71%', 6], ['panoramic', '80%', '83%', 4], ['northHills', '75%', '81%', 4]].map(([id, la, lb, hours]) => [id,
