@@ -234,7 +234,7 @@ function renderSimple() {
   if ($('try-fire')) $('try-fire').onchange = e => pickFire(e.target.value);
   if ($('go-try')) $('go-try').onclick = () => showTab('try');
   if (state.tab === 'try') wireTry();
-  if ($('pb-slot')) $('pb-slot').replaceWith($('playback'));
+  if ($('pb-slot') && document.body.classList.contains('simple')) $('pb-slot').replaceWith($('playback')); // Expert keeps them in its Run section
   $('playback').classList.toggle('today', state.tab === 'watch');
   showMarks(); renderTries();
 }
@@ -276,7 +276,8 @@ function watchHTML() {
     <p class="small muted"><b>Fire scenario:</b> what Berkeley doesn't control (where the fire starts, the wind, the time of day). <b>Plan:</b> what it does control, what is built or changed beforehand and how it responds on the day. Each run tests a plan against a fire scenario.</p>
     <div class="fires">${FIRES.map(f => `<button class="fire-pick${f.id === state.fire ? ' on' : ''}" data-fire="${f.id}"><b>${esc(f.title)}</b><span>${esc(f.line)}</span></button>`).join('')}</div>
     <h2><span class="step">2</span> Watch it with today's plan</h2>
-    <p class="small">Today's plan: the first evacuation order 10 minutes after the fire starts, today's street parking, a fall night, central severity. Run starts it on the map with synthetic households; the outcomes on the right are that run's, not a prediction. Restart starts again from ignition; drag the slider to jump to a time.</p>
+    <p class="small">Today's plan assumes <b>the first evacuation order 10 minutes after the fire starts</b> and <b>today's street parking</b>; the fire scenario here is <b>a fall night</b> at <b>central severity</b> (change these in Expert mode).</p>
+    <p class="small muted"><b>Run:</b> one simulation of a plan against the fire scenario, from ignition to ${hm(scenario().durationMin * 60)} (h:mm) later, with one draw of the fire and one set of synthetic households. Another draw can turn out differently, which is why Change the plan compares many. The outcomes on the right are this run's, not a prediction. Restart starts again from ignition; drag the slider to jump to a time.</p>
     <div id="pb-slot"></div>
     ${done ? `<div class="nudge"><b>Explore changes that would mitigate damage and loss of life.</b>
       <p class="small">Leave earlier, clear a curb, add a road, buy out the most exposed blocks: try changes alone or together, and compare them with today's plan on this fire.</p>
@@ -310,7 +311,7 @@ function tryHTML() {
       <button id="try-compare" class="primary"${picked.length && !running ? '' : ' disabled'}>Compare with today's plan (${n} passes)</button>${picked.length ? ' <button id="try-clear">Clear</button>' : ''}</div>
       ${picked.length ? '' : '<p class="small muted">Pick at least one change below to make your plan.</p>'}
       <div id="pb-slot"></div>
-      <p class="small muted">Watching makes a single pass of a plan against the fire scenario. Compare uses multiple passes to achieve a useful comparison.</p>
+      <p class="small muted">Watching makes a single run of a plan against the fire scenario. Compare uses multiple passes to achieve a useful comparison.</p>
       <p class="small muted">On the map: <span class="mk" style="background:#15803d"></span>street changed, <span class="mk" style="background:repeating-linear-gradient(90deg,#15803d 0 4px,transparent 4px 7px)"></span>new road, <span class="mk" style="background:#7e22ce"></span>bought out. Point at a change to see where it is.</p></div>
     ${state.tries.length ? '<p class="small"><b>Your comparisons are at the top of the right-hand panel →</b></p>' : ''}
     ${GROUPS.map(([phase, sub]) => `<h3 class="phase">${esc(phase)}</h3>` + sub.map(([title, groups]) => { const ls = all.filter(l => groups.includes(l.group)); return ls.length ? `<h4>${esc(title)}</h4>${ls.map(leverItem).join('')}` : ''; }).join('')).join('')}
