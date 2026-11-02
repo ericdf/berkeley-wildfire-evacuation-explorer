@@ -11,6 +11,7 @@ import { ROUTING, routingOf, complianceOf, worseOff, worseOffBeyondChance } from
 import { SHUTOFF } from './operations.js';
 import { loadMitigations, mit, MEASURES, GROUPS, stored, costText, costBadge } from './mitigate.js';
 import { stackable, conflict, stackOf, dataFor } from './levers.js';
+import { LINK_PROVENANCE } from '../tools/egress-link.mjs';
 
 const $ = id => document.getElementById(id);
 const fmt = (x, d = 0) => x == null || Number.isNaN(x) ? '—' : x === Infinity ? '∞' : Number(x).toLocaleString(undefined, { maximumFractionDigits: d, minimumFractionDigits: d });
@@ -454,7 +455,8 @@ function newRun() {
   // Your plan in Try changes (Plan B) can change streets, add roads and buy out blocks (js/levers.js); Expert view runs plans only.
   const st = document.body.classList.contains('simple') && state.editing === 'B' ? state.preset?.stack : null, d = st ? dataFor(data, st.net) : data;
   state.sim = new Evacuation(d, grid, getFire(sc, sev, seed), sc, sev, { ...state.plans[state.editing] }, seed, TIME_OF_DAY[$('tod').value], { ...world(), ...(st?.world || {}) });
-  map.data = d; map.sim = state.sim; state.playing = false; runLabel('▶ Play'); $('scrub').value = 0;
+  map.data = d; map.sim = state.sim;
+  if (map.selected?.kind === 'edge' && !d.net.edges[map.selected.id]) { map.selected = null; inspect(null); } // a new road from the previous network state.playing = false; runLabel('▶ Play'); $('scrub').value = 0;
   $('run-plan').textContent = `Plan ${state.editing}${state.preset ? ': ' + state.plans[state.editing].name.replace(/^[AB]: /, '') : ''}`;
   update(true); map.draw();
 }
@@ -560,6 +562,20 @@ function inspect(sel, quiet) {
   const row = (k, v, cat, note) => `<tr><td>${k}</td><td>${v}${badge(cat, note)}</td></tr>`;
   if (sel.kind === 'edge') {
     const e = net.edges[sel.id];
+    // A hypothetical road from Try changes (tools/egress-link.mjs): not a County record; every value is an assumption, derived or a model rule.
+    if (e.newLink || e.opened) {
+      const P = LINK_PROVENANCE, cat = s => s.split(':')[0];
+      box.innerHTML = `<h2>Hypothetical new road ${badge('assumption', 'Not a County street record: added for Try changes by tools/egress-link.mjs. Not a design.')}</h2><table class="kv">
+        ${row('Connection', esc(e.opened ? titleCase(e.name) + ' (an existing path opened to cars)' : mit()?.levers.find(l => l.delta?.link?.id === e.src?.egressCandidate)?.delta.link.street || e.name), 'derived', P.geom)}
+        ${row('Lanes [forward, back]', e.lanes.join(', '), cat(P.lanes), P.lanes)}
+        ${row('Pavement width', `${fmt(e.widthM, 1)} m (${fmt(e.widthM / 0.3048)} ft), no parking`, cat(P.widthM), P.widthM)}
+        ${row('Length', `${fmt(e.len)} m`, 'derived', P.geom)}
+        ${e.grade == null ? '' : row('Grade (ground profile)', `${fmt(e.grade, 1)}%`, cat(P.grade), P.grade)}
+        ${row('Speed', `${fmt(e.speedMps * 2.23694)} mph`, cat(P.speedMps), P.speedMps)}
+        ${row('Capacity per lane', `${fmt(e.capPerLaneVph)} vehicles/h${e.steep ? ' (steep)' : ''}`, cat(P.capPerLaneVph), P.capPerLaneVph)}
+        ${row('Households on it', 'none', cat(P.evacZone), P.evacZone)}</table>`;
+      return;
+    }
     const travel = { B: 'two-way', FT: 'one-way (drawn direction)', TF: 'one-way (against drawn direction)', NT: 'no vehicle travel' }[e.trav] || e.trav;
     const fix = e.correction, fixNote = fix ? (fix.why || data.A._meta['network.segmentCorrections']?.note || F.correction?.source || '') : '';
     let rows = row('Street', esc(titleCase(e.name)), 'sourced', fix ? fixNote : undefined) + row('Class', esc(e.cls), 'sourced') + row('Direction', travel, 'sourced', fix ? fixNote : F.trav.source)
