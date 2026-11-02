@@ -13,8 +13,8 @@ export const MEASURES = {
     tip: 'Cars on the road with no remaining way out at the end of the run.' },
   engine: { label: 'Hill residents an engine cannot reach within 5 minutes', short: 'hill residents engines cannot reach in 5 min', f: S => S.engineReachBeyond5People,
     tip: 'Residents of Fire Zones 2–3 whose street no engine can reach from a Berkeley station within the City\'s 5-minute standard, with the plan\'s parked cars. Engines only drive in this simulator; they do not fight the fire.' },
-  clear90: { label: 'Minutes until 90% of ordered cars are out', short: 'minutes to get 90% of cars out', f: S => S.clearP90, time: true,
-    tip: 'From ignition until 90% of the cars that start in ordered zones have left them.' },
+  clear90: { label: 'Minutes after the first order until 90% of ordered cars are out', short: 'minutes to get 90% of cars out', f: S => S.clearP90, time: true,
+    tip: 'From the first evacuation order (10 minutes after ignition in today\'s plan) until 90% of the cars that start in ordered zones have left them, as the Evacuation Time Study measures it.' },
 };
 const PEOPLE = ['ember', 'front', 'cutOff'];
 
@@ -27,7 +27,14 @@ export async function loadMitigations() {
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const n0 = x => x == null ? '—' : Math.round(x).toLocaleString('en-US');
 const money = v => v >= 1e9 ? `$${(v / 1e9).toFixed(1)}B` : v >= 1e6 ? `$${(v / 1e6).toFixed(v < 1e7 ? 1 : 0)}M` : v >= 1e3 ? `$${Math.round(v / 1e3)}k` : `$${Math.round(v)}`;
-const costText = c => !c ? 'Cost not priced' : c.capital ? `${money(c.capital[0])}–${money(c.capital[1])}` : /^Little capital/.test(c.note || '') ? 'Little capital cost' : 'Cost not priced';
+// Provenance of a cost: capital ranges are screening estimates built from sourced unit costs and
+// assumptions (derived); "little capital cost" is this project's assumption.
+const costBadge = c => {
+  const cat = c?.capital ? 'derived' : /^Little capital/.test(c?.note || '') ? 'assumption' : 'not priced';
+  const tip = [c?.capital ? 'Screening range, not a project budget or appraisal.' : '', c?.note || '', c?.source ? `Source: ${c.source}.` : ''].filter(Boolean).join(' ');
+  return `<span class="badge b-${{ derived: 'derived', assumption: 'assumption' }[cat] || 'missing'}" title="${esc(tip)}">${cat} ⓘ</span>`;
+};
+const costText = c => !c ? 'Cost not priced' : c.capital ? `${money(c.capital[0])}–${money(c.capital[1])}` : /^Little capital/.test(c.note || '') ? 'Little capital cost' : 'Cost';
 const val = (k, x) => x == null ? (MEASURES[k].time ? 'not reached' : '—') : MEASURES[k].time ? `${Math.round(x)} min` : n0(x);
 
 // Step 2: the chosen fire's baseline, central-severity medians of 5 seeds.
@@ -76,7 +83,7 @@ function card(r, fire) {
   const bad = harm.map(({ k, m }) => `<li class="worse" title="${esc(MEASURES[k].tip)}"><b>Worse — ${esc(MEASURES[k].label)}:</b> ${val(k, m.baselineCentral)} → ${val(k, m.leverCentral)} · worse in ${m.worse} of ${n}, never better</li>`).join('');
   const lines = eff.map(({ k, m, every }) => `<li title="${esc(MEASURES[k].tip)}"><b>${esc(MEASURES[k].label)}:</b> ${val(k, m.baselineCentral)} → ${val(k, m.leverCentral)} · ${every ? `better in all ${n} runs` : `better in ${m.better} of ${n}, never worse`}</li>`).join('');
   return `<div class="lever">
-    <div class="lever-h"><b>${esc(l.title)}</b><span class="cost" title="${esc(l.cost?.note || '')}">${esc(costText(l.cost))}${l.cost?.note ? ' ⓘ' : ''}</span></div>
+    <div class="lever-h"><b>${esc(l.title)}</b><span class="cost">${esc(costText(l.cost))} ${costBadge(l.cost)}</span></div>
     ${l.what ? `<div class="small">${esc(l.what)}.</div>` : ''}
     ${lines || bad ? `<ul class="small">${lines}${bad}</ul>` : ''}${lines ? '' : `<p class="small muted">No measure improved reliably on this fire.</p>`}
     ${l.cannotMeasure ? `<div class="cant"><b>What the simulator can't tell you:</b> ${esc(l.cannotMeasure)}</div>` : ''}
