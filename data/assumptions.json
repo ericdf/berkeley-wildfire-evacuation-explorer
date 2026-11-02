@@ -344,6 +344,34 @@
     "network.segmentCorrections": {
       "category": "sourced",
       "note": "County street-file records corrected where other sources show the County coding is wrong, each on Eric's decision; each is matched by SEGID and OBJECTID, sets the listed County fields before the network is built, and is listed in network.meta.segmentCorrections and on the edge (correction), with its sources in the entry's why. (1) Eric, 2026-11-01: the 45 m link from the foot of Panoramic Way to Prospect St / Canyon Rd (County OBJECTID 25386, SEGID 181025458, \"BANCROFT STEPS WY\", TRVLWAY NT) is a two-way street. OpenStreetMap maps it as Bancroft Way (way 24025453, highway=tertiary, lanes=2, no access or oneway tags, checked 2026-11-01); the City Street_Centerline layer has it as pavement section 627042086 (Seg-00193, Prospect St to Panoramic Way, 30 ft, 2 lanes, two-way); the City's AB 747 street layer gives it a capacity of 1,125 vehicles/h; the SB 99 report (KLD, Rev. 3, p. 4) puts Panoramic Hill's single access point at \"Panoramic Way and Prospect St/Canyon Rd\". The Bancroft Steps stairway is a separate feature (OSM ways 311861379-311861382 and 24025452, motor_vehicle=no, Warring St to Prospect St) and is not in the County file. SOURCE_NOTES K1-K6. (2) Eric, 2026-11-01, choosing between conflicting sources: The Crossways (County OBJECTID 35701, SEGID 181035806, 67 m, Overlook Rd to Middlefield Rd, TRVLWAY NT) is a two-way street, as OpenStreetMap (way 6391261, residential, with a stop sign), the City pavement records (Seg-02488, 21 ft, 2 lanes), the City Narrow_Roads survey and KLD's AB 747 model (capacity 1,125 veh/h) have it; the County record and the City segment's network fields (CATEGORY PEDESTRIAN, NET_CFCC A72 stairway) code it a walkway. SOURCE_NOTES K5, K8."
+    },
+    "operations.contraflow": {
+      "category": "assumption",
+      "note": "Contraflow start-up (SOURCE_NOTES CF3–CF6). Pre-installed signs and gates, rehearsed: they switch on 10 min after the zone's order (time to switch them and let the last inbound cars clear; the MUTCD requires the red X long enough for the lane to clear, §4T.04). Mechanical fallback (gates swung and signs unfolded by hand): 15 min more. Officer-staffed: one officer per entry point; no public source gives a staffing ratio. For scale, Paradise's 2016 drill ran Skyway one-way out between 07:00 and 08:00, and in the 2018 Camp Fire Clark Rd ran four lanes out by 09:00 (NIST TN 2252, pp. 38, 92)."
+    },
+    "operations.contraflow.costPerEntryUSD": {
+      "category": "assumption",
+      "note": "Capital cost per entry point, US dollars: low, one LED blank-out sign furnished and installed ($6,985, City of La Vista, NE, council report, 2024-04-16); high, one single-faced lane-use control signal ($32,000–$50,000, 2019, USDOT ITS cost database, read from a search excerpt, not verified). Battery backup adds about $7,000 for a complete system (City of Eastvale, CA, FY2023-24 capital plan). Gates are not costed: the only figure found is $100,000–$150,000 per location in 1995 dollars (ITS database, not verified). No public unit cost was found for mechanical fold-out signs and swing gates."
+    },
+    "operations.police.officers": {
+      "category": "assumption",
+      "note": "Officer pool for contraflow and junctions: 10, 20, 40 or 80. For scale (sourced): Berkeley Police had 154 sworn officers filled, 144 available, 174 authorized in 2025 (BPD 2025 Annual Report, slide 4); patrol minimum staffing was 60 sworn officers in 7 teams of 4 to 9 (City memo, 2022-05-05), and a 2026 patrol schedule has about 7 or 8 per team (Berkeley Scanner, 2026-04-14, quoting police); UC Berkeley Police had 49 sworn officers (August 2025). Officers on duty at any one time are roughly one or two teams; more need callback or mutual aid. Officers per junction: 1 (assumption). Arrival delay 15, 30 or 60 min after the first order (assumption)."
+    },
+    "operations.police.capacityUplift": {
+      "category": "assumption",
+      "note": "An officer-controlled junction passes 9% more vehicles than its model capacity and serves approaches heading toward safety first. 9% is the high end of published findings: manual control 'increased intersection capacity by as much as 9 percent' at oversaturated isolated intersections (Mahalel, Gur and Shiftan 1991, cited in Parr and Wolshon, SWUTC/15/600451-00113-1, 2015, p. 30); the same report measured about equal throughput and longer delays with an officer than with an actuated signal (pp. 84–88), and a 2020 simulation of evacuations found manual control gave no significant benefit and longer clearance in dense areas (Parr, Herrera, Wolshon and Smith, TRR 2674(9)). The Time Study models staffed control as actuated timing (§4.3, p. 4-7); converting pre-timed signals to actuated cut its evacuation times by up to 13% (p. 10-9)."
+    },
+    "operations.powerShutoff": {
+      "category": "model rule",
+      "note": "Which signals go dark (SOURCE_NOTES CF10–CF12): 'hills' darkens the 30 City signals at junctions on or within 150 m of a Fire Zones 2–3 street (tools/signals.mjs), standing in for the hill circuits PG&E shut off on 26–28 October 2019 (Arlington, Ridge and Substations F, G and K circuits in Tier 2 or 3 fire-threat areas; PG&E post-event report to the CPUC, appendix pp. 77–91); 'all' darkens all 146. No public source says which Berkeley signals have battery backup; the Time Study recommends adding 6–8 hours of it to every cabinet (Rec. 8.2), so none is assumed. Caltrans says signals on battery run normally for about 3 hours, then flash red (District 11, 2025-01-07); the 2019 shutoff lasted about 39 to 46 hours."
+    },
+    "operations.powerShutoff.allWayStopVph": {
+      "category": "assumption",
+      "note": "A dark signal is an all-way stop (California Vehicle Code §21800(d)). Capacity about 900 vehicles per hour through the junction: the HCM's base saturation headway at a single-lane all-way stop is 3.9 s (Exhibit 21-15, as reproduced in the NCHRP 08-135 guidebook), about 920 per hour, and the Time Study gives traffic circles, 'often functioning as all-way stops', about 900 vehicles per hour per lane (App. G, p. G-1). A junction whose model capacity is already lower keeps it."
+    },
+    "operations.contraflow.reversedLaneFactor": {
+      "category": "assumption",
+      "note": "The reversed lane carries 70% of a normal lane's capacity. On I-55 during the Hurricane Katrina evacuation the contraflow lanes peaked at 1,842 vehicles per hour, 'about 30 percent lower than the adjacent normal-flow lanes' (Wolshon, 'Empirical Characterization of Mass Evacuation Traffic Flow', TRB 2008 preprint 08-0930, pp. 9–10). Freeway data; no figure for two-lane streets was found."
     }
   },
   "routing": {
@@ -543,5 +571,38 @@
         "why": "Strawberry Canyon Gate, inbound: one-way from Centennial Dr to Lawrence Road (OSM gate node 7782302882)."
       }
     ]
+  },
+  "operations": {
+    "contraflow": {
+      "signDelayMin": 10,
+      "mechanicalExtraMin": 15,
+      "officersPerEntry": 1,
+      "reversedLaneFactor": 0.7,
+      "costPerEntryUSD": {
+        "grid": [
+          7000,
+          50000
+        ],
+        "battery": [
+          14000,
+          57000
+        ],
+        "mechanical": null
+      }
+    },
+    "police": {
+      "delayMin": 30,
+      "officersPerJunction": 1,
+      "capacityUplift": 0.09,
+      "officers": [
+        10,
+        20,
+        40,
+        80
+      ]
+    },
+    "powerShutoff": {
+      "allWayStopVph": 900
+    }
   }
 }

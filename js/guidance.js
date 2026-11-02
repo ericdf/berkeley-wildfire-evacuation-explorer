@@ -88,17 +88,18 @@ class Guidance {
   route() {
     const sim = this.sim, { links, t } = sim, opp = sim.data.A.sharedLane.opposingWaitS, n = links.length, T = this.T;
     let burning = 0, embers = 0;
-    for (let l = 0; l < n; l++) { const e = links[l].e; if (t >= sim.tFire[e]) burning++; if (t >= sim.tEmber[e]) embers++; }
+    // A closed link (the inbound side of a running contraflow street, js/operations.js) counts as burning.
+    for (let l = 0; l < n; l++) { const e = links[l].e; if (t >= sim.tFire[e] || links[l].closed) burning++; if (t >= sim.tEmber[e]) embers++; }
     // Habit: free-flow time; a burning street is closed. Rebuilt only when a street starts burning.
     if (burning !== this.lastBurn) for (const k of [0, 1]) {
       const c = T.habit[k].cost;
-      for (let l = 0; l < n; l++) c[l] = t >= sim.tFire[links[l].e] ? Infinity : links[l].ff;
+      for (let l = 0; l < n; l++) c[l] = t >= sim.tFire[links[l].e] || links[l].closed ? Infinity : links[l].ff;
       this.build(T.habit[k], k);
     }
     // Habit after meeting embers: free-flow time plus Today's ember penalty on streets under embers now.
     if (burning !== this.lastBurn || embers !== this.lastEmber) for (const k of [0, 1]) {
       const c = T.habitEmber[k].cost;
-      for (let l = 0; l < n; l++) { const e = links[l].e; c[l] = t >= sim.tFire[e] ? Infinity : links[l].ff + (t >= sim.tEmber[e] ? 300 : 0); }
+      for (let l = 0; l < n; l++) { const e = links[l].e; c[l] = t >= sim.tFire[e] || links[l].closed ? Infinity : links[l].ff + (t >= sim.tEmber[e] ? 300 : 0); }
       this.build(T.habitEmber[k], k);
     }
     this.lastBurn = burning; this.lastEmber = embers;
@@ -107,7 +108,7 @@ class Guidance {
     const time = this.time, qt = this.queueTerm;
     for (let l = 0; l < n; l++) {
       const L = links[l];
-      if (t >= sim.tFire[L.e]) { time[l] = Infinity; qt[l] = 0; continue; }
+      if (t >= sim.tFire[L.e] || L.closed) { time[l] = Infinity; qt[l] = 0; continue; }
       let q = L.q.length / Math.max(L.cap, 1e-3);
       if (L.share) { const O = links[L.share.links[0] === L.id ? L.share.links[1] : L.share.links[0]]; if (O) q += O.q.length * opp; }
       qt[l] = q; time[l] = L.ff + q;

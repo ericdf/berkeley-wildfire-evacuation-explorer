@@ -12,6 +12,7 @@ export const STREET_MODES = {
   grade: 'Grade (from DEM)',
   widthSource: 'Width data source',
   oneway: 'Direction of travel',
+  ops: 'Contraflow and officer control (this plan)',
 };
 
 // Access-constrained areas: residents behind the choke (synthetic), one blue ramp light to dark.
@@ -177,6 +178,10 @@ export class MapView {
     else if (m === 'grade') { const g = e.gradeReliable ? e.gradeMax : null; c = g == null ? '#aaa' : g < 5 ? '#4f7f9b' : g < 10 ? '#8fae4a' : g < 15 ? '#e0b21e' : g < 20 ? '#e07a1e' : '#c0262d'; }
     else if (m === 'widthSource') c = e.widthSrc === 'unknown' ? '#aaa' : e.narrow ? '#8a3fb8' : '#2b6cb0';
     else if (m === 'oneway') c = e.trav === 'FT' || e.trav === 'TF' ? '#d1495b' : e.trav === 'NT' ? '#aaa' : '#666';
+    else if (m === 'ops') { // js/operations.js: contraflow status on this plan
+      const st = sim?.ops?.cf?.status.get(e.id), comp = st && sim.ops.cf.comps[st.comp];
+      c = !st ? '#d4d4d4' : !st.ok ? '#e07a1e' : comp?.state === 'running' ? '#1d4ed8' : comp?.state === 'scheduled' ? '#93c5fd' : '#9ca3af';
+      if (st) w = Math.max(w, 3); }
     return [c, w];
   }
   drawStreets() {
@@ -189,6 +194,15 @@ export class MapView {
       const [c, w] = this.streetStyle(e);
       ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); this.path(e.geom); ctx.stroke();
       if (this.streetMode === 'oneway' && (e.trav === 'FT' || e.trav === 'TF') && this.scale > 0.5) this.arrow(e);
+    }
+    // Junctions under officer control, and dark signals in a power shutoff (street mode "ops")
+    if (this.streetMode === 'ops' && this.sim?.ops) {
+      const o = this.sim.ops, ctl = new Set(o.police && o.prio ? o.police.nodes : []), r = Math.max(3, Math.min(6, this.scale * 4));
+      const dark = o.shutoff ? (data.signals?.junctions || []).filter(j => j.signal && (this.sim.world.powerShutoff === 'all' || j.hills)).map(j => j.node) : [];
+      for (const [n, col] of [...dark.filter(n => !ctl.has(n)).map(n => [n, '#111']), ...[...ctl].map(n => [n, '#7c3aed'])]) {
+        const x = this.sx(data.net.nodes[n][0]), y = this.sy(data.net.nodes[n][1]);
+        ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); ctx.fill();
+      }
     }
     // Diverters (City list, shape from OpenStreetMap), bollards and gates that close a street to residents' cars
     for (const e of data.net.edges) {

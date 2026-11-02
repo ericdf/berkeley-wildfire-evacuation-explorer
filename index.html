@@ -40,6 +40,8 @@
       <p id="tod-note" class="small muted"></p>
       <label>Future growth: added homes in the hills (both plans) <select id="growth"></select></label>
       <p id="growth-note" class="small muted"></p>
+      <label>Red Flag power shutoff (both plans) <select id="powerShutoff"><option value="none">None: grid power on</option><option value="hills">Signals in and next to the hills go dark</option><option value="all">All 146 City signals go dark</option></select></label>
+      <p id="shutoff-note" class="small muted"></p>
       <details class="small"><summary>Scenario sources</summary><ul id="scenario-sources"></ul></details>
     </section>
 
@@ -69,6 +71,21 @@
       <label>…share of drivers who follow it
         <select id="p-compliance"><option value="1">100%</option><option value="0.65">65% (said they followed route instructions, 2024 Colorado drill)</option><option value="0.5">50%</option><option value="0.15">15% (followed a GPS route, 2017 California fires)</option></select></label>
       <p id="routing-note" class="note"></p>
+      <label>Contraflow: both lanes outbound on
+        <select id="p-contraflow"><option value="none">no streets</option><option value="main">main hill exit streets</option><option value="custom">streets I choose (click a street, then Add)</option></select></label>
+      <div id="cf-opts">
+        <label>…started by <select id="p-contraflowMode"><option value="officers">officers at every entry point</option><option value="signs">pre-installed signs and gates, rehearsed</option></select></label>
+        <label class="cf-signs">…sign power <select id="p-contraflowPower"><option value="grid">grid only</option><option value="battery">battery backup</option><option value="mechanical">mechanical fallback (gates and fold-out signs)</option></select></label>
+        <label class="cf-signs">…where a sign fails <select id="p-contraflowFallback"><option value="officers">officers take over (after their delay)</option><option value="none">no contraflow on that street</option></select></label>
+      </div>
+      <p id="cf-note" class="note"></p>
+      <label>Police control of junctions
+        <select id="p-police"><option value="none">none</option><option value="pretimed">the City's 44 pre-timed signals</option><option value="pretimedAppF">…plus the Time Study's congestion points</option><option value="all">every signal and congestion point</option></select></label>
+      <div class="row">
+        <label>Officers (contraflow and junctions) <select id="p-officers"><option value="10">10</option><option value="20">20</option><option value="40">40</option><option value="80">80</option></select></label>
+        <label>Arrive after the first order <select id="p-officerDelayMin"><option value="15">15 min</option><option value="30">30 min</option><option value="60">60 min</option></select></label>
+      </div>
+      <p id="police-note" class="note"></p>
       <p class="small muted">Phase 2 adds funded interventions (vegetation, home hardening, secondary egress, buyouts, transport assistance) with costs and a budget.</p>
     </section>
 
