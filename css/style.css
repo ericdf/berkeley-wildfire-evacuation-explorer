@@ -167,3 +167,4 @@ button:disabled, button.primary:disabled { background: #e7e5e0; color: #9a948a; 
 body.simple #run-section { display: none; }
 #playback.today .onmap { display: none; }
 #playback { margin: 6px 0; }
+.scrub-label { display: block; font-size: 11px; color: #6b5d50; margin: 6px 0 0; }
