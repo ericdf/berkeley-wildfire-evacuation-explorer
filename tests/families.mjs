@@ -74,14 +74,16 @@ for (const F of FIRES) {
   const sc = scen.find(s => s.id === F.id), fam = familyOf(sc, data), d = fam.find(m => m.isDefault), o = fam.find(m => !m.isDefault) || d;
   const build = (m, plan) => { const s = memberScenario(sc, m.id, data); return new Evacuation(data, grid, runFire(grid, s, SEVERITY.central, 1), s, 'central', plan, 1, TIME_OF_DAY.S6); };
   const a = build(d, DEFAULT_PLAN), b = build(o, DEFAULT_PLAN), c = build(o, LE.B);
-  const eq = (x, y, f) => x.hh[f].every((v, i) => v === y.hh[f][i]);
-  const fields = ['veh', 'edge', 'kind', 'commuter', 'depart', 'ride'];
-  const diff = fields.filter(f => !eq(a, b, f));
-  const diffPlan = ['veh', 'edge', 'kind'].filter(f => !eq(b, c, f));
+  // Other cities' orders follow each member's fire (js/sim.js otherCityOrders), so kind, commuter,
+  // departure and ride are compared on households whose zone gets the same order and warning times.
+  const same = (x, y, i) => { const z = x.hh.zone[i]; return x.orderT[z] === y.orderT[z] && x.warnT[z] === y.warnT[z]; };
+  const eq = (x, y, f, all) => x.hh[f].every((v, i) => v === y.hh[f][i] || (!all && !same(x, y, i)));
+  const diff = ['veh', 'edge'].filter(f => !eq(a, b, f, true)).concat(['kind', 'commuter', 'depart', 'ride'].filter(f => !eq(a, b, f, false)));
+  const diffPlan = ['veh', 'edge', 'kind'].filter(f => !eq(b, c, f, true));
   const park = a.parking.sides.every((v, i) => v === b.parking.sides[i]);
   const streams = [a.rand(), b.rand(), c.rand()];
   if (diff.length || diffPlan.length || !park || new Set(streams).size !== 1) fail(`${sc.id}: ${d.id} vs ${o.id}: ${diff.join(', ')} differ${diffPlan.length ? `; plans differ in ${diffPlan.join(', ')}` : ''}${park ? '' : '; parked cars differ'}${new Set(streams).size !== 1 ? '; shared stream differs' : ''}`);
-  else console.log(`ok   ${sc.id}: ${d.id} and ${o.id}, today's plan and leave early, seed 1: same ${a.hh.n.toLocaleString()} households, parked cars and shared stream`);
+  else console.log(`ok   ${sc.id}: ${d.id} and ${o.id}, today's plan and leave early, seed 1: same ${a.hh.n.toLocaleString()} households, parked cars and shared stream (kind, timing and ride compared where both members order the zone alike: ${a.hh.zone.filter((z, i) => same(a, b, i)).length.toLocaleString()})`);
 }
 console.log(bad ? `FAIL (${bad})` : 'families: all checks pass');
 process.exit(bad ? 1 : 0);

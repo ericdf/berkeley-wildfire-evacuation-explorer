@@ -43,7 +43,7 @@ rewrites of the same block, are alternatives. **Compare with today's plan** runs
 same households in 15 passes (3 severities × 5 seeds; each pass runs both plans) in background workers and reports, at the top of the right-hand panel, per
 measure, the middle value of each plan and how many passes went each way; only the full set earns a
 verdict ("better in every pass", "mixed"), because one pass can point the wrong way; a pass counts as better or worse only when the two plans differ by more than 1%. Watching a plan
-on the map is labeled as one run. Under a finished comparison of two or more changes, **Break down this plan** shows, for each change, what it does alone and what the plan loses without it, and names changes that overlap (SOURCE_NOTES MS14). **Fire families** are opt-in: a box under the fire ("Also test other likely starting points and wind directions") opens a disclosure, and after "Use them" a comparison runs every member of the fire, one ignition point × one wind from 30°, 45° or 60° (`js/scenarios.js` `familyOf`; ref1923 18 passes, northHills 27, eastWind and panoramic 18), with a line per measure where the change helps at some starts and winds and not others. The points and winds are our assumptions anchored to SOURCE_NOTES FF1–FF18; orders stay the fire's, so some members burn into zones nobody ordered (FF18). `node tests/families.mjs` checks the members; `tools/fire-families.mjs` measures the 1923 clip and fire reach outside the orders. The stored results of `tools/mitigations.mjs` are not shown as
+on the map is labeled as one run. Under a finished comparison of two or more changes, **Break down this plan** shows, for each change, what it does alone and what the plan loses without it, and names changes that overlap (SOURCE_NOTES MS14). **Fire families** are opt-in: a box under the fire ("Also test other likely starting points and wind directions") opens a disclosure, and after "Use them" a comparison runs every member of the fire, one ignition point × one wind from 30°, 45° or 60° (`js/scenarios.js` `familyOf`; ref1923 18 passes, northHills 27, eastWind and panoramic 18), with a line per measure where the change helps at some starts and winds and not others. The points and winds are our assumptions anchored to SOURCE_NOTES FF1–FF18; Berkeley's orders stay the fire's, so some members burn into Berkeley zones nobody ordered, while other cities order their zones as the fire nears (FF18, FO3). `node tests/families.mjs` checks the members; `tools/fire-families.mjs` measures the 1923 clip and fire reach outside the orders. The stored results of `tools/mitigations.mjs` are not shown as
 answers: changes that did not reliably help on the chosen fire there (contraflow, police control,
 guided routing, the Buena Vista link) are greyed out with that explanation, so people see they
 were considered (SOURCE_NOTES MS11). Ready-made A/B questions (`js/presets.js`) sit under
@@ -182,8 +182,13 @@ Panoramic Hill order zones, OKL-003 (Claremont Canyon, 307 instead of Genasys 27
 inside the model area are placed (about 74,700 outside Berkeley). Household size, vehicle ownership, ridesharing, compliance
 (100% of Order zones, 50% of Warning zones, 20% shadow, which the study applies to Berkeley
 and to a Shadow Region around it) and departure times come from the 2025 Evacuation Time Study.
-Shadow evacuees drive out of the model area. Orders and warnings use the study's zone lists. Evacuation time is
-measured as the study's ETE, from the first order. Directed links have a capacity and
+Shadow evacuees drive out of the model area. Berkeley's and the Lab's orders and warnings use the study's zone lists
+(or the City's region). Other cities and the County (every zone id not starting `BER-` or `LBL-`) order a zone 10 minutes
+after the fire front first comes within 2 km of it, on every fire, under both plans (model rule; the distance and delay
+are assumptions in `data/assumptions.json` `orders`; SOURCE_NOTES FO1–FO4); a warning that comes first stays, and the
+households that heed it leave on it. Evacuation time is measured as the study's ETE, from the first order, over cars from
+the zones Berkeley's plan orders; cars from zones only another city orders are on the same roads but outside that count
+(`summary().otherCityVehicles`; `clearP90All` counts them too). Directed links have a capacity and
 storage, and every intersection has a capacity. The 2025 study named intersections
 as the main constraint. Vehicles may use every street and re-route every minute around
 queues, fire and embers toward the nearest node outside every ordered zone and the ember
@@ -193,7 +198,7 @@ car short. A vehicle stuck 3 minutes at the head of a queue squeezes forward, so
 model cannot lock up for good (as it did at the Marin traffic circle).
 Plan A and Plan B see the same households for the same seed: placement, vehicles, who leaves,
 mobilization delay, commuters and rides are drawn in an order fixed by the scenario's
-orders, never by the plan, and the leave-early decision has a separate random stream. A
+City-defined orders, never by the plan or by other cities' orders (those zones use supplementary draws, as zones a plan adds do), and the leave-early decision has a separate random stream. A
 household that leaves early in Plan B is the only one whose draws go unused; a carless
 household whose Plan A neighbor left early rides with another neighbor. Added units (future
 growth, below) draw in the same fixed order from streams of their own, so with growth both
@@ -319,6 +324,7 @@ add any parking-removal bonus.
 | `tests/plan-draws.mjs` | Checks that Plan A and Plan B of every Simple-view question see the same households for a seed (each fire, seeds 1–3), the same with maximum growth under each R0 area, and that growth leaves today's households and the shared random stream unchanged |
 | `tests/growth.mjs` | Future growth and R0 with the fire on, seeds 1–5 (`SOURCE_NOTES.md` R4, R5); `GROWTH=max node tests/calibration.mjs` gives R3 |
 | `tests/routing.mjs` | Driver information and routing with the fire on, seeds 1–5: every option, households worse off against Habit (also beyond chance), and a check that every option sees the same households and shared random stream as Today's model (`SOURCE_NOTES.md` DG19–DG24) |
+| `tools/other-city-orders.mjs` | Zones, residents and vehicles other cities' orders add, by city, per fire, family member, severity and seed; `--runs` adds today's plan's headline measures (SOURCE_NOTES FO3, FO4) |
 | `tests/retreat-draws.mjs` | Checks that a managed-retreat buyout (`world.retreat`) leaves every other household, every non-resident car and the shared random stream unchanged |
 
 ## Replacing datasets

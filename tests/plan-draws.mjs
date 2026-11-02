@@ -46,7 +46,7 @@ function compare(label, a, b, { sameZoneOnly = false, growth = 'none', todayOnly
   const ia = identities(a, todayOnly ? 'none' : growth), ib = identities(b, growth);
   if (ia.nBase !== ib.nBase) bad.push(`today's household count ${ia.nBase} vs ${ib.nBase}`);
   if (!todayOnly && a.growth.units !== b.growth.units) bad.push(`unit count ${a.growth.units} vs ${b.growth.units}`);
-  let compared = 0, rerouted = 0, toAdded = 0, barred = 0;
+  let compared = 0, rerouted = 0, toAdded = 0, barred = 0, warnSplit = 0;
   for (let h = 0; h < H.n && bad.length < 5; h++) {
     const j = ib.at.get(ia.id[h]);
     if (j == null) continue; // a unit R0 bars in Plan B
@@ -54,9 +54,15 @@ function compare(label, a, b, { sameZoneOnly = false, growth = 'none', todayOnly
     if (H.veh[h] !== K.veh[j] || H.edge[h] !== K.edge[j]) { bad.push(`hh ${ia.id[h]}: vehicles or street differ`); continue; }
     if (sameZoneOnly && status(a, H.zone[h]) !== status(b, K.zone[j])) continue;
     compared++;
-    if (H.kind[h] !== K.kind[j]) { bad.push(`hh ${ia.id[h]}: kind ${H.kind[h]} vs ${K.kind[j]}`); continue; }
+    // A zone warned before another city orders it (js/sim.js otherCityOrders): a household that
+    // heeds the warning leaves on it (kind 2) in the plan whose warning comes first, and on the
+    // order (kind 1) in a plan whose warning would come after the order. Same draws either way.
+    const warnedFirst = (s, i) => s.hh.kind[i] === 2 && s.orderT[s.hh.zone[i]] < Infinity;
+    if (H.kind[h] !== K.kind[j] && !(H.kind[h] + K.kind[j] === 3 && (warnedFirst(a, h) || warnedFirst(b, j)))) { bad.push(`hh ${ia.id[h]}: kind ${H.kind[h]} vs ${K.kind[j]}`); continue; }
+    if (H.kind[h] !== K.kind[j]) warnSplit++;
     if (!H.kind[h]) continue;
-    if (H.commuter[h] !== K.commuter[j]) bad.push(`hh ${ia.id[h]}: commuter ${H.commuter[h]} vs ${K.commuter[j]}`);
+    // with different notice times a commuter can reach home before the run ends in one plan only
+    if (H.commuter[h] !== K.commuter[j] && !(sameZoneOnly && notice(a, h) !== notice(b, j))) bad.push(`hh ${ia.id[h]}: commuter ${H.commuter[h]} vs ${K.commuter[j]}`);
     const da = H.depart[h] - notice(a, h), db = K.depart[j] - notice(b, j);
     if (Math.abs(da - db) > 1e-6) bad.push(`hh ${ia.id[h]}: mobilization ${da.toFixed(1)} vs ${db.toFixed(1)} s`);
     if (sameZoneOnly) continue; // more ordered neighbors can change who gives a ride
@@ -78,7 +84,7 @@ function compare(label, a, b, { sameZoneOnly = false, growth = 'none', todayOnly
   if (ua !== ub) bad.push(`shared stream differs after setup (${ua} vs ${ub})`);
   checks++;
   if (bad.length) { failures++; console.log(`FAIL ${label}\n  ${bad.join('\n  ')}`); }
-  else console.log(`ok   ${label}: ${compared.toLocaleString()} households compared${rerouted ? `, ${rerouted} rides moved to another neighbor (the other plan's left early)` : ''}${barred ? `, ${barred} without the added neighbor R0 bars` : ''}${toAdded ? `, ${toAdded} ride with an added unit (no neighbor today)` : ''}`);
+  else console.log(`ok   ${label}: ${compared.toLocaleString()} households compared${rerouted ? `, ${rerouted} rides moved to another neighbor (the other plan's left early)` : ''}${barred ? `, ${barred} without the added neighbor R0 bars` : ''}${toAdded ? `, ${toAdded} ride with an added unit (no neighbor today)` : ''}${warnSplit ? `, ${warnSplit} leave on a warning in one plan and on another city's order in the other` : ''}`);
 }
 
 const LE = PRESETS.find(P => P.A.earlyShare === 0 && P.B.earlyShare > 0);
