@@ -193,7 +193,7 @@ export function stepOperations(sim) {
     } else if (ev.kind === 'police') {
       const P = sim.data.A.operations.police; ops.prio = new Uint8Array(sim.data.net.nodes.length);
       ops.police.controlled = ev.nodes.length; // junctions count as controlled once officers arrive
-      for (const n of ev.nodes) { const base = ops.baseCap?.get(n) ?? sim.nodeCap[n]; if (base === Infinity) continue; sim.nodeCap[n] = base * (1 + P.capacityUplift); ops.prio[n] = 1; }
+      for (const n of ev.nodes) { const base = ops.baseCap?.get(n) ?? sim.nodeCap[n]; sim.nodeCap[n] = base === Infinity ? Infinity : base * (1 + P.capacityUplift); ops.prio[n] = 1; } // unlimited model capacity stays unlimited (a dark signal there gets it back); priority still applies
       markPriority(sim);
       sim.log(`Officers take over ${ev.nodes.length} junctions: each passes ${Math.round(P.capacityUplift * 100)}% more vehicles than its model capacity and lets traffic heading out go first.`, 'plan', ev.nodes[0]);
     }
