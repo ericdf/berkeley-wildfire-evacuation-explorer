@@ -161,3 +161,5 @@ button.linkish { background: none; border: none; padding: 0; color: #9a3412; tex
 .mk { display: inline-block; width: 14px; height: 4px; vertical-align: 2px; margin: 0 2px; }
 /* Disabled buttons look disabled (Eric, 2026-11-02: Compare looked usable before any change was picked) */
 button:disabled, button.primary:disabled { background: #e7e5e0; color: #9a948a; border-color: #d6d3cc; cursor: not-allowed; box-shadow: none; }
+#simple h3.phase { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: #7c2d12; border-bottom: 1px solid var(--line); padding-bottom: 2px; margin-top: 12px; }
+#simple h4 { font-size: 12px; margin: 8px 0 3px; color: #4b3a2a; }

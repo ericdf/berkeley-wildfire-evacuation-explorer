@@ -48,11 +48,9 @@ export function stored(id, fire) {
   return { reliable, harms, runs: s.runs };
 }
 
-// Groups for the checklist, in the order a resident might think of them.
+// Groups for the checklist: the plan's two halves (Eric, 2026-11-02: "there's a fire scenario and a plan
+// and we are testing the plan against that scenario"), changes made before the fire and the response on the day.
 export const GROUPS = [
-  ['When people leave', ['timing']],
-  ['Streets and parking', ['parking', 'widen']],
-  ['New roads', ['link']],
-  ['Buyouts', ['retreat']],
-  ['Traffic management on the day', ['operations']],
+  ['Before the fire', [['Streets and parking', ['parking', 'widen']], ['New roads', ['link']], ['Buyouts', ['retreat']]]],
+  ['On the day', [['When people leave', ['timing']], ['Traffic management', ['operations']]]],
 ];
