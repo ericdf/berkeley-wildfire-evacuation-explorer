@@ -224,6 +224,25 @@ Object.assign(state, { tab: 'watch', picked: new Set(), todayCache: new Map(), t
 const leverById = id => mit()?.levers.find(l => l.id === id);
 const pickedLevers = () => [...state.picked].map(leverById).filter(Boolean);
 const simDone = () => state.sim && state.sim.t >= state.sim.end;
+// How fast the fire moves (Eric, 2026-11-02: "a fine line between alarmist and complacency"; SOURCE_NOTES S19).
+// Simple view offers two historical paces: medium severity, calibrated to the City's 1923 repeat (the
+// default), and high severity, whose front in this model is a median 1.1 to 1.4 miles downwind (by fire; runs 0.96–1.54) 64 minutes after
+// ignition, the pace of the 1991 fire ("more than a mile" in 64 minutes). Low stays in Expert view.
+// It changes the watched run only; comparisons already run low, medium and high.
+const PACE = {
+  central: { label: 'Like 1923 (the City\'s repeat)', short: '1923 pace (medium severity)',
+    tip: 'Medium severity, calibrated to the City StoryMap\'s present-day repeat of the 1923 fire: about 5 h from the eastern edge to Shattuck Ave. In this model the front is downwind a median of about half a mile (0.5 to 0.6 mi by fire, five seeds each) 64 minutes after ignition; single runs range from 0.3 to 0.9 mi.' },
+  high: { label: 'Like 1991', short: '1991 pace (high severity)',
+    tip: 'High severity: twice the medium spread rate, with embers carried farther. In this model the front is downwind a median of 1.1 to 1.4 miles (by fire, five seeds each) 64 minutes after ignition; single runs range from about 1.0 to 1.5 mi. The 1991 Oakland-Berkeley Hills fire was more than a mile downwind 64 minutes after it broke out (US Fire Administration report).' },
+};
+state.pace = PACE[localStorage.getItem('bhe-pace')] ? localStorage.getItem('bhe-pace') : 'central';
+const paceHTML = () => `<div class="pace"><span class="small"><b>How fast the fire moves:</b></span> ${Object.entries(PACE).map(([k, v]) => `<button class="pace-pick${state.pace === k ? ' on' : ''}" data-pace="${k}" title="${esc(v.tip)}">${esc(v.label)}</button>`).join('')}
+  <div class="small muted">Both paces have happened in these hills. Neither is a forecast. Hover for what each means in the model.</div>
+  <div class="small muted"><b>Fire crews:</b> both paces come from real fires (1923, 1991), so they include what firefighters achieved against the fire's front in those fires. In a wind-driven fire, the Fire Department expects crews to focus on helping people evacuate.</div></div>`;
+function setPace(k) {
+  state.pace = k; localStorage.setItem('bhe-pace', k);
+  $('severity').value = k; newRun(); renderSimple();
+}
 
 function renderSimple() {
   homePlayback(); // out of #simple before it is rebuilt; moved back into the tab below
@@ -231,6 +250,7 @@ function renderSimple() {
   $('simple').innerHTML = tabs + (state.tab === 'watch' ? watchHTML() : tryHTML());
   $('simple').querySelectorAll('[data-tab]').forEach(b => b.onclick = () => showTab(b.dataset.tab));
   $('simple').querySelectorAll('.fire-pick').forEach(b => b.onclick = () => pickFire(b.dataset.fire));
+  $('simple').querySelectorAll('.pace-pick').forEach(b => b.onclick = () => setPace(b.dataset.pace));
   if ($('try-fire')) $('try-fire').onchange = e => pickFire(e.target.value);
   if ($('go-try')) $('go-try').onclick = () => showTab('try');
   if (state.tab === 'try') wireTry();
@@ -275,8 +295,9 @@ function watchHTML() {
   return `<h2><span class="step">1</span> Pick a fire scenario</h2>
     <p class="small muted"><b>Fire scenario:</b> what Berkeley doesn't control (where the fire starts, the wind, the time of day). <b>Plan:</b> what it does control, what is built or changed beforehand and how it responds on the day. Each run tests a plan against a fire scenario.</p>
     <div class="fires">${FIRES.map(f => `<button class="fire-pick${f.id === state.fire ? ' on' : ''}" data-fire="${f.id}"><b>${esc(f.title)}</b><span>${esc(f.line)}</span></button>`).join('')}</div>
+    ${paceHTML()}
     <h2><span class="step">2</span> Watch it with today's plan</h2>
-    <p class="small">Today's plan assumes <b>the first evacuation order 10 minutes after the fire starts</b> and <b>today's street parking</b>; the fire scenario here is <b>a fall night</b> at <b title="Calibrated to the City StoryMap 1923 present-day repeat: about 5 h from the eastern edge to Shattuck Ave. Low and high are half and double the spread rate.">medium severity</b> (change these in Expert mode).</p>
+    <p class="small">Today's plan assumes <b>the first evacuation order 10 minutes after the fire starts</b> and <b>today's street parking</b>; the fire scenario here is <b>a fall night</b> at <b title="${esc(PACE[state.pace].tip)}">${esc(PACE[state.pace].short)}</b> (change the pace above; the rest in Expert mode).</p>
     <p class="small muted"><b>Run:</b> one simulation of a plan against the fire scenario, from ignition to ${hm(scenario().durationMin * 60)} (h:mm) later, with one draw of the fire and one set of synthetic households. Another draw can turn out differently, which is why Change the plan compares many. The outcomes on the right are this run's, not a prediction. Restart starts again from ignition; drag the <b>time since ignition</b> slider below the buttons to jump to a moment.</p>
     <div id="pb-slot"></div>
     ${done ? `<div class="nudge"><b>Explore changes that would mitigate damage and loss of life.</b>
@@ -305,6 +326,7 @@ function tryHTML() {
   const all = M.levers.filter(stackable), picked = pickedLevers(), p = state.preset, n = M.meta.severities.length * M.meta.seeds.length;
   const running = state.tryBatch != null;
   return `<h2>Fire scenario: <select id="try-fire">${FIRES.map(f => `<option value="${f.id}"${f.id === state.fire ? ' selected' : ''}>${esc(f.title)}</option>`).join('')}</select></h2>
+    ${paceHTML()}
     <p class="small">Build your plan from today's plan by picking changes, alone or together: changes made before the fire, and how Berkeley responds on the day. Then compare it with today's plan against this fire scenario. A comparison makes ${n} passes (low, medium and high severity × ${M.meta.seeds.length} random seeds); each pass runs both plans on the same fire and the same synthetic households. One pass can point the wrong way. Outcomes appear at the top of the right-hand panel.</p>
     <div class="yourplan"><b>Your plan:</b> today's plan${picked.length ? ' + ' + picked.map(l => esc(l.title)).join(' + ') : ', nothing changed yet'}
       <div class="btns"><button id="watch-today2">▶ Watch today's plan</button><button id="watch-mine"${picked.length ? '' : ' disabled'}>▶ Watch your plan</button>
@@ -321,7 +343,7 @@ function tryHTML() {
 function presetsHTML() {
   const p = state.preset, fire = FIRES.find(f => f.id === state.fire);
   return `${p && !['today', 'try'].includes(p.id) ? `<div class="chosen"><div class="plans-ab"><div><b>Plan A</b> ${esc(p.A.name.replace(/^A: /, ''))}</div><div><b>Plan B</b> ${esc(p.B.name.replace(/^B: /, ''))}</div>
-      <div class="small muted">${esc(scenario().name)} · ${p.tods ? 'time of day as set' : esc(TIME_OF_DAY[p.tod].label)} · medium severity</div></div>
+      <div class="small muted">${esc(scenario().name)} · ${p.tods ? 'time of day as set' : esc(TIME_OF_DAY[p.tod].label)} · ${esc(PACE[state.pace].short)}</div></div>
       <div class="watch"><b>What to look for.</b> ${esc(p.on[state.fire])}</div>
       <div class="btns"><button data-watch="A" class="${state.editing === 'A' ? 'on' : ''}">▶ Watch Plan A</button><button data-watch="B" class="${state.editing === 'B' ? 'on' : ''}">▶ Watch Plan B</button>
       <button class="primary" id="simple-compare">Compare A and B (9 passes)</button> <button id="simple-close">✕ Close</button></div>
@@ -448,7 +470,7 @@ function applyPreset(idOrPreset) {
   cancelCompare(); // a comparison still running belongs to the previous plans
   state.preset = p; state.presetOut = null;
   $('scenario').value = state.fire; showScenario();
-  $('tod').value = p.tod; todNote(); $('severity').value = 'central'; $('seed').value = 1;
+  $('tod').value = p.tod; todNote(); $('severity').value = document.body.classList.contains('simple') ? state.pace : 'central'; $('seed').value = 1;
   state.plans.A = { ...p.A }; state.plans.B = { ...p.B }; state.editing = 'A'; showPlan();
   $('compare-out').innerHTML = ''; newRun(); renderSimple();
 }
@@ -918,6 +940,7 @@ $('btn-assumptions').onclick = () => {
   <h3>Street network fields</h3>
   <table>${Object.entries(F).map(([k, m]) => `<tr><td><code>${k}</code></td><td>${badge(m.category)} ${esc(m.source)}${m.note ? ' ' + esc(m.note) : ''}</td></tr>`).join('')}</table>
   <h3>Fire and ember overlay ${badge('model rule')}</h3>
+  <p class="small"><b>Fire crews.</b> The fire's pace comes from real fires and the City's repeat of 1923 (Simple view: "Like 1923" and "Like 1991"), so it includes the firefighting effort seen in those fires. In a wind-driven fire the Fire Department expects crews to focus on supporting evacuation, and aircraft are grounded in high wind (SOURCE_NOTES FS14). The simulator does not add crews holding the fire's sides, or the fire stopping when the wind changes, as both 1923 and 1991 did (FS15). The scenario may exaggerate the spread as winds die and firefighters establish control. Engines in the simulator only drive, to measure whether they could reach homes.</p>
   <p class="small">${esc(SEVERITY_NOTE)} Spread runs on ${CELL} m cells: wind sets an elliptical shape (Anderson 1983 length-to-breadth, capped at ${LB_MAX}); uphill is faster and downhill slower; a proxy fuel factor comes from the City fire zones (${Object.entries(FUEL).map(([k, v]) => `${k} ${v}`).join(', ')}), not from vegetation data. Spot fires are random, so seeds differ. A cell is "ember-exposed" once any burning cell lies within the ember distance upwind. The 1923 reference fire is confined to the City's archival boundary.</p>
   <table><tr><th>Severity</th><th>Head spread (m/min)</th><th>Wind ×</th><th>Ember distance (m)</th><th>Spot probability</th></tr>${Object.values(SEVERITY).map(s => `<tr><td>${s.label}</td><td>${s.rosMpm}</td><td>${s.windFactor}</td><td>${s.emberM}</td><td>${s.spotProb}</td></tr>`).join('')}</table>
   <h3>Time of day ${badge('assumption')}</h3><p class="small">${esc(TIME_NOTE)}</p>
