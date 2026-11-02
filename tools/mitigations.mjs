@@ -68,11 +68,11 @@ const usd = (lo, hi) => [lo, hi];
 // plus cost (resolved below), cannotMeasure, and pending / notComparable for levers not run.
 const LEVERS = [
   { id: 'control', group: 'check', title: 'Control: baseline rerun, no change', what: 'DEFAULT_PLAN again; must match the baseline exactly', plan: {}, centralOnly: true },
-  { id: 'leaveEarly', group: 'timing', title: 'Leave early on a Red Flag day', what: 'half of hill households (Fire Zones 2–3) leave on the Red Flag warning, before ignition',
+  { id: 'leaveEarly', group: 'timing', title: 'Leave early on a Red Flag day', what: 'half of hill households (Fire Zones 2–3) leave on the Red Flag warning, before any fire starts',
     how: 'js/presets.js leaveEarly Plan B delta', plan: presetDelta('leaveEarly'),
     costNote: 'Little capital cost: a warning and outreach the City already runs. The real costs are households\' time away from home on every Red Flag day, unpriced.',
     cannotMeasure: 'Whether half of hill households would actually leave on a real Red Flag day, and whether they keep doing it after Red Flag days with no fire (warning fatigue). The simulator places the early leavers out of the area before ignition.' },
-  { id: 'orderSooner', group: 'timing', title: 'Decide faster', what: 'first evacuation order 5 minutes after ignition (baseline: 10, DEFAULT_PLAN)',
+  { id: 'orderSooner', group: 'timing', title: 'Decide faster', what: 'first evacuation order 5 minutes after the fire starts instead of 10 (today\'s plan in this table)',
     how: 'js/presets.js orderSooner Plan B delta (the preset compares 20 → 5 min; here the baseline is DEFAULT_PLAN\'s 10)', plan: presetDelta('orderSooner'),
     costNote: 'Little capital cost: staffing and authority to issue an order on first report. Orders that turn out to be unnecessary have a social cost, unpriced.',
     cannotMeasure: 'Whether a fire can be confirmed and an order issued 5 minutes after ignition, and the cost of orders for fires that would have been caught. How fast alerts reach people is not modeled separately.' },
@@ -84,22 +84,35 @@ const LEVERS = [
     how: 'tools/widening-core.mjs noParkingEdge on widening pinch WP-001 (edge 992, retreat.json engineFoot)', edges: { variant: 'noParking', pinch: 'WP-001' },
     cannotMeasure: 'Enforcement, and where the 7 cars that park there today go instead (probably farther up the same street). Engine access is its only effect here; engines do not fight the fire in this simulator.' },
   { id: 'link-CITY-1', group: 'link', title: 'New link: City concept, Dwight Way to Dwight Place', what: 'the City\'s "2nd Route Out" concept for Panoramic Hill', how: 'tools/egress-link.mjs withLinks, candidate CITY-1', link: 'CITY-1' },
-  { id: 'link-AC-160-N3', group: 'link', title: 'New link: upper Panoramic Way to Smyth Ln', what: 'step 2\'s top-ranked candidate (88 m)', how: 'tools/egress-link.mjs withLinks, candidate AC-160-N3', link: 'AC-160-N3' },
-  { id: 'link-AC-193-N1', group: 'link', title: 'New link: Buena Vista Way to W Parnassus Ct', what: 'the only non-Panoramic candidate whose own area\'s cars cut off fell in step 2 (ref1923)', how: 'tools/egress-link.mjs withLinks, candidate AC-193-N1', link: 'AC-193-N1' },
-  { id: 'widen-WP-001', group: 'widen', title: 'Widen the lowest block of Panoramic Way to 20 ft clear', what: 'pinch WP-001 widened to the fire-code standard, parking posted to today\'s sides',
+  { id: 'link-AC-160-N3', group: 'link', title: 'New link: upper Panoramic Way to Smyth Ln', what: 'a new 88 m road from the top of Panoramic Way to Smyth Ln, the best-ranked new connection in the egress analysis', how: 'tools/egress-link.mjs withLinks, candidate AC-160-N3', link: 'AC-160-N3' },
+  { id: 'link-AC-193-N1', group: 'link', title: 'New link: Buena Vista Way to W Parnassus Ct', what: 'a new road between Buena Vista Way and W Parnassus Ct, the one connection outside Panoramic Hill that reduced cars cut off in its own area in the egress analysis', how: 'tools/egress-link.mjs withLinks, candidate AC-193-N1', link: 'AC-193-N1' },
+  { id: 'widen-WP-001', group: 'widen', title: 'Widen the lowest block of Panoramic Way to 20 ft clear', what: 'the 49 m lowest block widened to 20 ft clear between parked cars (the fire-code width), parking kept where it is today',
     how: 'tools/widening-core.mjs widenedEdge (standards().fireCode), as tools/widening-sim.mjs "widen"', edges: { variant: 'widen', pinch: 'WP-001' } },
-  { id: 'widen-WP-007', group: 'widen', title: 'Widen Oak Ridge Rd pinch to 20 ft clear', what: 'pinch WP-007 widened to the fire-code standard, parking posted to today\'s sides',
+  { id: 'widen-WP-007', group: 'widen', title: 'Widen Oak Ridge Rd pinch to 20 ft clear', what: 'the narrowest stretch of Oak Ridge Rd widened to 20 ft clear between parked cars (the fire-code width), parking kept where it is today',
     how: 'tools/widening-core.mjs widenedEdge (standards().fireCode), as tools/widening-sim.mjs "widen"', edges: { variant: 'widen', pinch: 'WP-007' } },
-  { id: 'retreat-footBlock', group: 'retreat', title: 'Buy out the lowest block of Panoramic Way, curb cleared', what: 'households on edge 992 bought out and its parked cars removed',
+  { id: 'retreat-footBlock', group: 'retreat', title: 'Buy out the lowest block of Panoramic Way, curb cleared', what: 'the households on the lowest block of Panoramic Way bought out, and its parked cars gone',
     how: 'world.retreat { edges: retreat.json engineFoot.edges, clearParking: true }, the engine-reach sensitivity of tools/retreat-sim.mjs', retreat: 'footBlock', clearParking: true },
-  { id: 'retreat-top100', group: 'retreat', title: 'Buy out the top-ranked blocks, about 100 households', what: 'case top100 of data/model/retreat.json', how: 'world.retreat { edges: retreat.json cases top100 .removed }, as tools/retreat-sim.mjs fire runs', retreat: 'top100' },
-  { id: 'retreat-panoramicUpper', group: 'retreat', title: 'Buy out Panoramic Hill\'s upper streets', what: 'case panoramicUpper of data/model/retreat.json (behind the second choke on Panoramic Way)', how: 'world.retreat { edges: retreat.json cases panoramicUpper .removed }, as tools/retreat-sim.mjs fire runs', retreat: 'panoramicUpper' },
+  { id: 'retreat-top100', group: 'retreat', title: 'Buy out the top-ranked blocks, about 100 households', what: 'voluntary buyouts of the hill blocks ranked most exposed and hardest to leave, about 100 households (managed-retreat analysis)', how: 'world.retreat { edges: retreat.json cases top100 .removed }, as tools/retreat-sim.mjs fire runs', retreat: 'top100' },
+  { id: 'retreat-panoramicUpper', group: 'retreat', title: 'Buy out Panoramic Hill\'s upper streets', what: 'voluntary buyouts of every household on Panoramic Hill\'s streets above the second narrow point of Panoramic Way', how: 'world.retreat { edges: retreat.json cases panoramicUpper .removed }, as tools/retreat-sim.mjs fire runs', retreat: 'panoramicUpper' },
   // Not run here.
   { id: 'r0', group: 'notComparable', title: 'R0: no added units in hill areas', notComparable: 'R0 acts only under a future-growth scenario; on today\'s population (no growth) it changes nothing, so it is not comparable with these levers. Its results are in SOURCE_NOTES R1–R8 (with maximum growth, R0 lowers people still there when embers arrived in all 30 pairs).' },
-  { id: 'contraflow', group: 'pending', title: 'Contraflow', pending: 'not merged; add an entry here when it is' },
-  { id: 'policeControl', group: 'pending', title: 'Police control of signals', pending: 'not merged (HANDOFF punch list 7a); add an entry here when it is' },
-  { id: 'powerShutoff', group: 'pending', title: 'Power shutoff', pending: 'PR #19, not merged; add an entry here when it is' },
-  { id: 'egressGuidance', group: 'pending', title: 'Egress guidance', pending: 'PR #22, not merged; add an entry here when it is' },
+  { id: 'contraflow-officers', group: 'operations', title: 'Contraflow on the main hill exit streets, officer-staffed', what: 'both lanes outbound on the main hill exit streets wide enough between parked cars, started by officers at every entry point (default pool and arrival delay)',
+    how: 'plan { contraflow: main, contraflowMode: officers } (js/operations.js, SOURCE_NOTES CF1–CF16)', plan: { contraflow: 'main', contraflowMode: 'officers' },
+    costNote: 'Little capital cost; the cost is officers taken from other work (the shared pool), unpriced.',
+    cannotMeasure: 'Whether officers can reach and hold every entry point while the fire moves, drivers who ignore the closure, and the engines that can no longer drive up these streets beyond what engine reach shows.' },
+  { id: 'contraflow-signs', group: 'operations', title: 'Contraflow on the main hill exit streets, pre-installed signs (battery backup)', what: 'the same streets, started by rehearsed electronic signs and gates with battery backup',
+    how: 'plan { contraflow: main, contraflowMode: signs, contraflowPower: battery } (js/operations.js)', plan: { contraflow: 'main', contraflowMode: 'signs', contraflowPower: 'battery' },
+    costNote: 'Signs at every entry point; the run logs the count and a range per run (1923 fire, central, seed 1: 75 locations, about $1.1M–$4.3M; gates not costed). Not copied into this table because the count depends on the run.',
+    cannotMeasure: 'Whether drivers obey a sign without an officer, signs damaged by the fire itself, and rehearsal: the simulator assumes everyone follows the reversed lanes once they start.' },
+  { id: 'policeControl', group: 'operations', title: 'Police control of the pre-timed signals', what: 'officers take over the City\'s 44 pre-timed signals on evacuation routes after their arrival delay (default pool)',
+    how: 'plan { police: pretimed } (js/operations.js, SOURCE_NOTES CF7, CF8, CF16)', plan: { police: 'pretimed' },
+    costNote: 'Little capital cost; officers taken from other work, unpriced.',
+    cannotMeasure: 'How officers actually direct traffic (the simulator gives a fixed capacity gain and outbound priority), radio coordination, and officers lost to other emergencies.' },
+  { id: 'powerShutoff', group: 'notComparable', title: 'Power shutoff', notComparable: 'A hazard condition (scenario setting), not a mitigation: signals go dark and run as all-way stops. Its effect on the baseline and on contraflow is in SOURCE_NOTES CF14' },
+  { id: 'egressGuidance', group: 'operations', title: 'Constrained egress guidance (hypothetical pilot), all drivers follow', what: 'drivers get a route only if it is no riskier than their own and at most a minute slower, or safer; nobody is told to wait',
+    how: 'plan { routing: guided, compliance: 1 } (js/guidance.js, SOURCE_NOTES DG1–DG30)', plan: { routing: 'guided', compliance: 1 },
+    costNote: 'Little capital cost in this table; a real system (data feeds, phones, liability) is unpriced.',
+    cannotMeasure: 'Today\'s plan in this table already gives every driver an idealized, well-informed route, so guidance has little to add here; against drivers who follow habit it does better in every run (SOURCE_NOTES DG30). Phone networks failing, distrust, and the households a real system would leave worse off are not shown here.' },
 ];
 const CANNOT = {
   link: 'Environmental review, slope and land acquisition, and whether the link is itself in the fire\'s path on the day. Costs exclude engineering, environmental review and legal costs (egress-candidates.json meta.cost.note).',
@@ -204,7 +217,7 @@ function resolveLevers() {
     const L = { ...L0, cost: null, stopped: null };
     if (!L.cannotMeasure && CANNOT[L.group]) L.cannotMeasure = CANNOT[L.group];
     try {
-      if (L.group === 'timing' || L.group === 'parking' && L.plan) L.cost = { capital: null, unpriced: true, note: L.costNote, source: null };
+      if (L.group === 'timing' || L.group === 'operations' || L.group === 'parking' && L.plan) L.cost = { capital: null, unpriced: true, note: L.costNote, source: null };
       if (L.edges) {
         const p = W.pinches.find(x => x.id === L.edges.pinch); if (!p) throw new Error(`pinch ${L.edges.pinch} not in widening.json`);
         if (JSON.stringify(WS.pinchEdges?.[p.id]) !== JSON.stringify(p.edges)) throw new Error(`pinch ${p.id} edges differ between widening.json and widening-sim.json`);
@@ -272,11 +285,12 @@ function writeReport(D) {
   // The two paragraphs below are prose written for the full experiment of 2026-11-02 (UTC) (every lever,
   // all three fires, 15 pairs). They are omitted for any narrower run (--seeds, --fires, --levers);
   // the per-fire "holds" lines above are always computed from this run's summaries.
-  const PROSE_LEVERS = 'leaveEarly orderSooner parkingOneSide redCurbFoot link-CITY-1 link-AC-160-N3 link-AC-193-N1 widen-WP-001 widen-WP-007 retreat-footBlock retreat-top100 retreat-panoramicUpper';
+  const PROSE_LEVERS = 'leaveEarly orderSooner parkingOneSide redCurbFoot link-CITY-1 link-AC-160-N3 link-AC-193-N1 widen-WP-001 widen-WP-007 retreat-footBlock retreat-top100 retreat-panoramicUpper contraflow-officers contraflow-signs policeControl egressGuidance';
   const full = n === 15 && D.meta.fires.length === 3 && ranLevers.map(l => l.id).join(' ') === PROSE_LEVERS;
   if (full) {
-  p(`- (Prose written for the full run of 2026-11-02; check it against the tables after any rerun.) Only the timing levers (leave early, decide faster) and buyouts on the Panoramic Hill fire lower the counts of people still there; parking, red curb, widening and new links move those counts by a few dozen people at most, either way, and hold on none of them. Of the street changes, only the City\'s Dwight Way–Dwight Place concept holds on an evacuation measure: cars cut off on the Panoramic Hill fire. The three buyouts tested are all on Panoramic Hill; the two larger ones hold on evacuation measures only on the Panoramic Hill fire, and part of their drop is the bought-out people no longer counted.`);
+  p(`- (Prose written for the full run of 2026-11-02 with 16 levers; check it against the tables after any rerun.) Only the timing levers (leave early, decide faster) and buyouts on the Panoramic Hill fire lower the counts of people still there; parking, red curb, widening and new links move those counts by a few dozen people at most, either way, and hold on none of them. Of the street changes, only the City\'s Dwight Way–Dwight Place concept holds on an evacuation measure: cars cut off on the Panoramic Hill fire. The three buyouts tested are all on Panoramic Hill; the two larger ones hold on evacuation measures only on the Panoramic Hill fire, and part of their drop is the bought-out people no longer counted.`);
   p(`- Parking, red curb, widening, the curb-clearing buyout and the two Panoramic Hill links all act through engine reach. A change at the foot of Panoramic Way is better in 12 of 15 pairs and equal in the other 3 (the seeds where no parked car blocks that block today), so it never "holds" under the 15-of-15 rule while never being worse. The new Panoramic Hill links also give engines a way around the foot, which step 2 did not measure.`);
+  p(`- Operations: contraflow on the main hill exit streets (officer-staffed or with battery-backed signs), police control of the pre-timed signals and constrained egress guidance hold on nothing on any fire. Contraflow leaves more cars cut off by fire on the east-wind and Panoramic Hill fires in 12 or 13 of 15 pairs and fewer in at most 1 (SOURCE_NOTES CF14). Guidance is measured here against today's plan, whose drivers already take an idealized, well-informed route, so it leaves slightly more people still there when embers arrived (13 or 14 of 15 pairs); against drivers who follow habit it does better in every pair (DG30).`);
   } else p('- This run is not the full experiment the prose was written for (different seeds, fires or levers); see the tables and the lines above. The written conclusions for the full run are in the committed `docs/mitigations.md`.');
   p('');
   p('## How it was run');
