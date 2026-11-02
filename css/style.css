@@ -11,7 +11,9 @@ header .disclaimer { font-size: 12px; color: #e8d9c4; }
 header nav { display: flex; gap: 8px; align-items: center; }
 header nav button { background: #4a3a2a; color: #f5efe6; border: 1px solid #6b5640; }
 header a.official { color: #fde68a; font-size: 12px; text-decoration: none; border: 1px solid #a1784a; padding: 4px 8px; border-radius: 4px; }
-main { display: grid; grid-template-columns: 300px 1fr 360px; height: calc(100% - 52px); }
+main { display: grid; grid-template-columns: 300px 1fr 360px; height: calc(100% - 52px - 20px); }
+#license-foot { height: 20px; line-height: 20px; padding: 0 14px; font-size: 11px; color: #6b5a48; background: #f3ede4; border-top: 1px solid var(--line); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#license-foot a { color: inherit; }
 aside { overflow-y: auto; background: var(--panel); border-right: 1px solid var(--line); }
 #right { border-right: none; border-left: 1px solid var(--line); }
 section { padding: 10px 12px; border-bottom: 1px solid var(--line); }
