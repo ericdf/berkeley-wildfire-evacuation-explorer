@@ -181,8 +181,8 @@ if (argv[0] === '--worker') {
       }
       const t0 = Date.now();
       const S = sim.runToEnd();
-      const m = Object.fromEntries(MKEYS.map(k => { const v = MEASURES[k].get(S); return [k, v == null ? null : r1(v)]; }));
-      m.frontPeople = r1(S.fireFrontHome + S.fireFrontRoad);
+      const m = Object.fromEntries(MKEYS.map(k => { const v = MEASURES[k].get(S); return [k, v == null ? null : v]; }));
+      m.frontPeople = S.fireFrontHome + S.fireFrontRoad; // full precision: pairs are compared unrounded; rounding is for display only
       out.push({ lever: j.lever, fire: j.fire, sev: j.sev, seed: j.seed, m, check, retreatHouseholds: sim.retreat.households, sec: Math.round((Date.now() - t0) / 1000) });
     } finally { undo(); }
   }
@@ -272,7 +272,7 @@ function writeReport(D) {
   const PROSE_LEVERS = 'leaveEarly orderSooner parkingOneSide redCurbFoot link-CITY-1 link-AC-160-N3 link-AC-193-N1 widen-WP-001 widen-WP-007 retreat-footBlock retreat-top100 retreat-panoramicUpper';
   const full = n === 15 && D.meta.fires.length === 3 && ranLevers.map(l => l.id).join(' ') === PROSE_LEVERS;
   if (full) {
-  p(`- (Prose written for the full run of 2026-11-02; check it against the tables after any rerun.) Only the timing levers (leave early, decide faster) and buyouts on the Panoramic Hill fire lower the counts of people still there; parking, red curb, widening and new links move those counts by a few dozen people at most, either way, and hold on none of them. Of the street changes, only the City\'s Dwight Way–Dwight Place concept holds on an evacuation measure: cars cut off on the Panoramic Hill fire. The three buyouts tested are all on Panoramic Hill; the two larger ones hold only on the Panoramic Hill fire, and part of their drop is the bought-out people no longer counted.`);
+  p(`- (Prose written for the full run of 2026-11-02; check it against the tables after any rerun.) Only the timing levers (leave early, decide faster) and buyouts on the Panoramic Hill fire lower the counts of people still there; parking, red curb, widening and new links move those counts by a few dozen people at most, either way, and hold on none of them. Of the street changes, only the City\'s Dwight Way–Dwight Place concept holds on an evacuation measure: cars cut off on the Panoramic Hill fire. The three buyouts tested are all on Panoramic Hill; the two larger ones hold on evacuation measures only on the Panoramic Hill fire (the upper-streets buyout also holds on engine reach on every fire, 1,541 → 981), and part of their drop is the bought-out people no longer counted.`);
   p(`- Parking, red curb, widening, the curb-clearing buyout and the two Panoramic Hill links all act through engine reach. A change at the foot of Panoramic Way is better in 12 of 15 pairs and equal in the other 3 (the seeds where no parked car blocks that block today), so it never "holds" under the 15-of-15 rule while never being worse. The new Panoramic Hill links also give engines a way around the foot, which step 2 did not measure.`);
   } else p('- This run is not the full experiment the prose was written for (different seeds, fires or levers); see the tables and the lines above. The written conclusions for the full run are in the committed `docs/mitigations.md`.');
   p('');
