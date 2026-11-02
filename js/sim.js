@@ -560,9 +560,9 @@ export class Evacuation {
     const h = v.hh[i], eid = v.edge[i];
     const cand = (this.edgeLinks.get(eid) || []).filter(l => links[l].q.length < links[l].storage && !links[l].closed);
     if (!cand.length) return false;
-    const tr = this.guidance?.tree(i, v.cls[i], eid), dist = tr ? tr.dist : this.dist[v.cls[i]];
-    cand.sort((a, b) => dist[links[a].to] - dist[links[b].to]);
-    const L = links[cand[0]];
+    let L;
+    if (this.guidance) L = links[this.guidance.departOrder(i, v.cls[i], eid, cand)[0]]; // js/guidance.js: checked against the Habit departure
+    else { const dist = this.dist[v.cls[i]]; cand.sort((a, b) => dist[links[a].to] - dist[links[b].to]); L = links[cand[0]]; }
     L.q.push(i); v.link[i] = L.id; v.enter[i] = this.t - L.ff * this.rand(); v.state[i] = 1; this.active.add(L.id);
     if (h >= 0 && this.t < hh.leftHome[h]) hh.leftHome[h] = this.t;
     return true;

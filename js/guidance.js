@@ -146,14 +146,14 @@ class Guidance {
     return (sim.tEmber[e] <= leave ? this.time[l] : 0) + (sim.tFire[e] <= leave ? FIRE_RISK : 0);
   }
   // Time to safety and forecast risk along a tree's best path from node n, judged at arrival times.
-  walk(tree, n, k) {
+  walk(tree, n, k, tau0 = 0) {
     const links = this.sim.links, safe = this.sim.safe[k];
-    let tau = 0, R = 0;
+    let tau = tau0, R = 0;
     for (let steps = 0; !safe[n]; steps++) {
       const l = tree.via[n]; if (l < 0 || steps > 5000 || this.time[l] === Infinity) return null;
       R += this.riskAt(l, tau); tau += this.time[l]; n = links[l].to;
     }
-    return { T: tau, R };
+    return { T: tau - tau0, R };
   }
   // Safest route from n: forward search on time plus weighted forecast risk at arrival times.
   safest(n, k) {
@@ -207,6 +207,23 @@ class Guidance {
     tree.version++;
   }
 
+  // Order of the directions a car can take onto its home street (links of edge eid), best first.
+  // Guided followers take guidance's direction only if, judged along the whole route at arrival
+  // times, it passes the same rule as at a junction against the direction Habit would take;
+  // otherwise they leave the way Habit would. Everyone else sorts by their tree.
+  departOrder(i, k, eid, cand) {
+    const tr = this.tree(i, k, eid), links = this.sim.links;
+    const by = d => [...cand].sort((a, b) => d[links[a].to] - d[links[b].to]);
+    if (!tr) return by(this.sim.dist[k]);
+    if (this.mode !== 'guided' || !this.follow[i]) return by(tr.dist);
+    const hab = this.habitOf(i, k), hOrder = by(hab.dist), gOrder = by(tr.dist);
+    if (gOrder[0] === hOrder[0]) return gOrder;
+    const via = (l, tree) => { if (this.time[l] === Infinity) return null; const w = this.walk(tree, links[l].to, k, this.time[l]); return w && { T: this.time[l] + w.T, R: this.riskAt(l, 0) + w.R }; };
+    const h = via(hOrder[0], hab), c = via(gOrder[0], this.T.own[k]), eps = 1e-6;
+    if (h && c && c.R <= h.R + eps && (c.T <= h.T + this.tolS || c.R < h.R - eps)) return gOrder;
+    return hOrder;
+  }
+
   // The Habit tree driver i would follow on their own (ember-aware once they have met embers).
   habitOf(i, k) { return this.alerted[i] ? this.T.habitEmber[k] : this.T.habit[k]; }
 
@@ -237,7 +254,7 @@ export function reshuffle(sim) { sim.rand = mulberry32((Math.imul(sim.seed + 1, 
 // that neighbor's trip. key checks that the two runs hold the same households.
 export function householdOutcomes(sim) {
   const { hh, v, t } = sim, n = hh.n;
-  const level = new Uint8Array(n), arrive = new Float32Array(n).fill(Infinity), trip = new Uint8Array(n);
+  const level = new Uint8Array(n), arrive = new Float64Array(n).fill(Infinity), trip = new Uint8Array(n);
   const vLevel = new Uint8Array(n); // worst level over each household's own cars
   for (let i = 0; i < v.n; i++) {
     const h = v.hh[i]; if (h < 0 || v.cls[i] === 2) continue;
