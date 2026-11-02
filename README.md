@@ -49,6 +49,18 @@ guided routing, the Buena Vista link) are greyed out with that explanation, so p
 were considered (SOURCE_NOTES MS11). Ready-made A/B questions (`js/presets.js`) sit under
 "Ready-made comparisons".
 
+**Set a goal** (third tab) is the other path (SOURCE_NOTES GS1–GS5): pick one or more harms and how
+much each should be cut against today's plan, and the page lists the smallest combinations of up to
+three changes that did so on the chosen fire in every one of 30 passes, the 15 of a comparison plus
+15 fresh passes (seeds 6–10) used only to check, so a combination cannot qualify by luck on the
+passes that chose it. Answers are listed fewest changes first, then by screening cost ("not
+priced" is never read as free); each opens in Change the plan, which reruns it live. Combinations
+that met the goal on the 15 search passes only are listed apart, and so are the changes the search
+left out (those that did not reliably help alone on that fire, such as contraflow), with their
+stored result. The answers come from `data/model/goal-combos.json`, built by
+`node tools/goal-combos.mjs` (about 9 h on 7 workers; `--fires <id> --merge` reruns one fire);
+rebuild it after `tools/mitigations.mjs` or any model change.
+
 **Expert view** opens every control:
 
 1. **Scenario.** Pick a preset, a severity (low / central / high) and a random seed.
@@ -305,6 +317,7 @@ add any parking-removal bonus.
 | `js/fire.js`, `js/sim.js`, `js/parking.js`, `js/scenarios.js`, `js/rng.js` | Models and presets |
 | `js/presets.js` | Simple view: its fires, the "Other questions", per-fire "What to look for" text and the reasons a question is withheld |
 | `js/mitigate.js` | Simple view, Change the plan: the change catalog from `data/model/mitigations.json`, the comparison measures, cost badges, and which changes the stored runs grey out |
+| `js/goal.js` | Simple view, Set a goal: evaluates a goal against `data/model/goal-combos.json` and lists the smallest combinations that meet it |
 | `js/levers.js` | Stacks changes (plan settings, edge copies, new links, buyouts) into one run's plan, world and street network, without changing the base data; used by the page and the workers (`tests/stack.mjs`) |
 | `js/worker.js` | Runs comparison batches off the main thread |
 | `js/guidance.js` | Driver information and routing: Habit, Ordinary app, constrained guidance and system-optimal route trees; households worse off |

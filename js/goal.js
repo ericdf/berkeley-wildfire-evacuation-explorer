@@ -1,0 +1,123 @@
+// Simple view, "Set a goal" (Eric, 2026-11-02; SOURCE_NOTES GS1–GS5): the user picks one or more harms
+// and how much each should be cut against today's plan, and the page lists the smallest combinations
+// of changes that did so, from data/model/goal-combos.json (tools/goal-combos.mjs). The other path,
+// picking changes yourself and running them, stays in "Change the plan".
+//
+// A combination meets the goal when, for every harm picked, it cut that harm by at least the share
+// asked in every pass: 15 search passes (seeds 1–5) and 15 held-out passes (seeds 6–10) that play no
+// part in picking it. A combination that met the goal on the search passes but not on the held-out
+// ones is listed apart: checking about 200 combinations on the same 15 passes finds some that clear a
+// target by luck. Shown answers are minimal: no smaller combination inside them also meets the goal.
+import { MEASURES, costText, costBadge } from './mitigate.js';
+
+let G = null, loading = null;
+export const goalData = () => G;
+export const setGoalData = d => (G = d); // tests/goal.mjs
+export function loadGoal() {
+  return loading ??= fetch(new URL('../data/model/goal-combos.json', import.meta.url)).then(r => r.ok ? r.json() : null).catch(() => null).then(d => (G = d));
+}
+
+export const CUTS = [10, 25, 50, 75];
+const asNum = x => x == null ? Infinity : x;
+const median = xs => { const s = xs.map(asNum).sort((a, b) => a - b), n = s.length; if (!n) return null; const v = n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2; return Number.isFinite(v) ? v : null; };
+// The cut a pass achieved, as a share of today's plan (1 = harm gone). Today at 0: nothing to cut,
+// so the pass meets any goal if the plan also stays at 0. A clearance never reached counts as
+// slower than any that is; reaching it where today's plan does not meets any goal.
+const cutOf = (a, b) => {
+  if (a == null) return b == null ? 0 : 1;
+  if (b == null) return -Infinity;
+  if (a === 0) return b <= 0 ? 1 : -Infinity;
+  return (a - b) / a;
+};
+
+// Evaluate every stored combination on one fire against the targets ({ measure: percent }).
+export function evaluate(fire, targets) {
+  const F = G?.fires[fire]; if (!F) return null;
+  const MI = Object.fromEntries(G.meta.measures.map((k, i) => [k, i])), ns = G.meta.nSearch;
+  const ms = Object.keys(targets), base = F.runs[''];
+  const rows = Object.entries(F.runs).filter(([k]) => k).map(([key, R]) => {
+    const ids = key.split('+');
+    // worst cut per measure over the search passes and over the held-out passes
+    const worst = (from, to) => Object.fromEntries(ms.map(m => { let w = Infinity; for (let i = from; i < to; i++) w = Math.min(w, cutOf(base[i][MI[m]], R[i][MI[m]])); return [m, w]; }));
+    const ws = worst(0, ns), wh = worst(ns, base.length);
+    const meets = w => ms.every(m => w[m] >= targets[m] / 100 - 1e-9);
+    const holdPasses = Array.from({ length: base.length - ns }, (_, j) => ms.every(m => cutOf(base[ns + j][MI[m]], R[ns + j][MI[m]]) >= targets[m] / 100 - 1e-9)).filter(Boolean).length;
+    const mid = Object.fromEntries(ms.map(m => [m, { today: median(base.slice(0, ns).map(r => r[MI[m]])), plan: median(R.slice(0, ns).map(r => r[MI[m]])), worst: Math.min(ws[m], wh[m]) }]));
+    // shortfall: how far the worst pass is from the goal, the largest over the harms picked
+    const short = Math.max(...ms.map(m => targets[m] / 100 - Math.min(ws[m], wh[m])));
+    return { key, ids, search: meets(ws), hold: meets(wh), holdPasses, nHold: base.length - ns, mid, short };
+  });
+  const sub = (a, b) => a.ids.length < b.ids.length && a.ids.every(id => b.ids.includes(id));
+  const minimal = list => list.filter(r => !list.some(q => sub(q, r)));
+  const both = rows.filter(r => r.search && r.hold);
+  const answers = minimal(both);
+  // Met on the search passes only, and with no smaller combination that meets the goal on all 30.
+  const luck = minimal(rows.filter(r => r.search)).filter(r => !r.hold && !both.some(q => sub(q, r)));
+  const closest = answers.length ? [] : rows.filter(r => !r.search || !r.hold).sort((a, b) => a.short - b.short || a.ids.length - b.ids.length).slice(0, 3);
+  return { answers, luck, closest, excluded: F.excluded, candidates: F.candidates };
+}
+
+// Fewest changes first (Eric, 2026-11-02), then cost: combinations whose every change has a screening
+// cost, cheapest low end first; then those with an unpriced change, which are not treated as free.
+export function rank(list, leverById) {
+  const priced = r => r.ids.every(id => leverById(id)?.cost?.capital);
+  const low = r => r.ids.reduce((s, id) => s + (leverById(id)?.cost?.capital?.[0] || 0), 0);
+  return [...list].sort((a, b) => a.ids.length - b.ids.length || (priced(b) - priced(a)) || low(a) - low(b));
+}
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const pct = x => x === -Infinity ? 'worse' : x >= 1 ? '100%' : `${Math.round(x * 100)}%`;
+
+// Controls (left panel). ctx: { state, FIRES, fmt, leverById }.
+export function goalHTML(ctx) {
+  const { state, FIRES } = ctx, T = state.goal;
+  if (!G) return `<p class="small muted">${loading ? 'Loading the stored combinations…' : 'The stored combinations (data/model/goal-combos.json) did not load.'}</p>`;
+  const ok = G.meta.fires.includes(state.fire);
+  return `<h2>Fire scenario: <select id="goal-fire">${FIRES.map(f => `<option value="${f.id}"${f.id === state.fire ? ' selected' : ''}>${esc(f.title)}</option>`).join('')}</select></h2>
+    <p class="small">Say what you want a plan to achieve on this fire, and see the smallest combinations of changes that did it. Pick one or more harms and how much each should be cut, compared with today's plan.</p>
+    ${ok ? '' : '<p class="small bad">This fire has no stored combinations yet.</p>'}
+    <div class="goals">${Object.entries(MEASURES).map(([m, d]) => `<div class="goal-row" title="${esc(d.tip)}"><label class="small">${esc(d.label)} <span class="tip">ⓘ</span></label>
+      <select data-goal="${m}"><option value="">not a goal</option>${CUTS.map(c => `<option value="${c}"${T[m] === c ? ' selected' : ''}>cut by at least ${c}%</option>`).join('')}</select></div>`).join('')}</div>
+    <p class="small muted">A combination meets the goal only if it cut every harm you picked by at least that much in every one of 30 passes: the ${G.meta.nSearch} passes of a comparison (low, medium and high severity × seeds ${G.meta.searchSeeds[0]}–${G.meta.searchSeeds.at(-1)}) and ${G.meta.cases.length - G.meta.nSearch} fresh passes (seeds ${G.meta.holdoutSeeds[0]}–${G.meta.holdoutSeeds.at(-1)}) used only to check. Each pass runs both plans on the same fire and the same synthetic households. The fire starts where this scenario starts it, with its usual wind, on a fall night.</p>
+    <p class="small muted">The search tried every combination of up to ${G.meta.maxSize} changes that helped reliably on their own on this fire; the changes it left out are listed with the answers. Answers are listed fewest changes first, then by screening cost.</p>`;
+}
+
+// Answers (right panel).
+export function goalOutHTML(ctx) {
+  const { state, FIRES, fmt, leverById } = ctx, T = state.goal, fire = FIRES.find(f => f.id === state.fire);
+  if (!G || !G.fires[state.fire]) return '';
+  const ms = Object.keys(T);
+  const E = evaluate(state.fire, T);
+  const left = E.excluded.map(x => ({ l: leverById(x.id), x })).filter(o => o.l);
+  const leftHTML = left.length ? `<details class="cant" open><summary>Changes the search left out (${left.length})</summary><ul class="small">${left.map(({ l, x }) => `<li><b>${esc(l.title)}</b>: tested alone on this fire in ${x.runs} passes against today's plan; it did not reliably help${x.harms.length ? `, and it made ${x.harms.map(h => `"${esc((MEASURES[h.measure]?.label || h.measure).toLowerCase())}" worse in ${h.worse} of ${h.n}`).join(' and ')}` : ''}.</li>`).join('')}</ul>
+    <p class="small muted">They were considered and tested; you can still add them yourself in Change the plan.</p></details>` : '';
+  const head = `<h2>Plans that meet your goal</h2><p class="small">${esc(fire.title)}: ${ms.length ? ms.map(m => `${esc(MEASURES[m].label.toLowerCase())} cut by at least ${T[m]}%`).join('; ') : 'pick at least one harm and a cut on the left'}.</p>`;
+  if (!ms.length) return head + leftHTML;
+  const v = (m, x) => x == null ? (MEASURES[m].time ? 'not reached' : '—') : MEASURES[m].time ? `${Math.round(x)} min` : fmt(x);
+  const card = (r, kind) => {
+    const ls = r.ids.map(leverById);
+    const rowsHTML = ms.map(m => `<tr><td>${esc(MEASURES[m].label)}</td><td class="num">${v(m, r.mid[m].today)}</td><td class="num">${v(m, r.mid[m].plan)}</td><td class="num">${pct(r.mid[m].worst)}</td></tr>`).join('');
+    const status = kind === 'answer' ? `<span class="good">Met the goal in all ${G.meta.cases.length} passes, including the ${r.nHold} fresh ones</span>`
+      : kind === 'luck' ? `<span class="mixed">Met the goal in all ${G.meta.nSearch} search passes but only ${r.holdPasses} of ${r.nHold} fresh ones: don't rely on it</span>`
+      : `<span class="muted">Closest: falls short by ${Math.round(r.short * 100)} percentage points in its worst pass</span>`;
+    return `<div class="tryres goal-ans"><div><b>Today's plan + ${ls.map(l => esc(l.title)).join(' + ')}</b></div>
+      <div class="small">${status}</div>
+      <table class="cmp small"><tr><th></th><th>Today's plan</th><th>With these changes</th><th>Smallest cut in any pass</th></tr>${rowsHTML}</table>
+      <div class="small">${ls.map(l => `${esc(l.title)}: ${esc(costText(l.cost))} ${costBadge(l.cost)}`).join('<br>')}</div>
+      <div class="btns"><button data-goal-try="${esc(r.ids.join(','))}">Open in Change the plan</button></div></div>`;
+  };
+  const A = rank(E.answers, leverById), L = rank(E.luck, leverById);
+  const notice = '<p class="small muted">Middle values are over the 15 search passes. Synthetic households on an illustrative fire: these are comparisons between plans, not predictions, and not an official evacuation plan. Costs are screening ranges, not budgets; "not priced" means this project has no cost for that change, not that it is free.</p>';
+  const body = A.length ? `<p class="small">${A.length === 1 ? 'One combination' : `${A.length} combinations`} of up to ${G.meta.maxSize} changes met the goal, with nothing smaller inside ${A.length === 1 ? 'it' : 'them'} that also did.</p>${A.map(r => card(r, 'answer')).join('')}`
+    : `<p class="small"><b>No combination of up to ${G.meta.maxSize} changes met this goal in every pass.</b> A smaller cut, fewer harms, or more changes together (try them in Change the plan) may get closer.</p>${E.closest.map(r => card(r, 'closest')).join('')}`;
+  const luckHTML = L.length ? `<details class="cant"><summary>Met the goal on the search passes only (${L.length})</summary><p class="small muted">These met it in all ${G.meta.nSearch} search passes but not on the fresh passes, so their result on the search passes was partly luck.</p>${L.map(r => card(r, 'luck')).join('')}</details>` : '';
+  return head + body + luckHTML + leftHTML + notice;
+}
+
+// ctx adds: pickFire, openInTry(ids), render().
+export function wireGoal(ctx) {
+  const S = document.getElementById('simple');
+  S.querySelectorAll('[data-goal]').forEach(s => s.onchange = () => { const m = s.dataset.goal; s.value ? ctx.state.goal[m] = +s.value : delete ctx.state.goal[m]; ctx.render(); });
+  const f = document.getElementById('goal-fire'); if (f) f.onchange = e => ctx.pickFire(e.target.value);
+  document.querySelectorAll('[data-goal-try]').forEach(b => b.onclick = () => ctx.openInTry(b.dataset.goalTry.split(',')));
+}

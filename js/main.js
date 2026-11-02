@@ -11,6 +11,7 @@ import { ROUTING, routingOf, complianceOf, worseOff, worseOffBeyondChance } from
 import { SHUTOFF } from './operations.js';
 import { loadMitigations, mit, MEASURES, GROUPS, stored, costText, costBadge } from './mitigate.js';
 import { stackable, conflict, stackOf, dataFor } from './levers.js';
+import { loadGoal, goalData, goalHTML, goalOutHTML, wireGoal } from './goal.js';
 import { LINK_PROVENANCE } from '../tools/egress-link.mjs';
 
 const $ = id => document.getElementById(id);
@@ -221,7 +222,7 @@ $('nbhd').onchange = e => {
 // reliably help on this fire (js/mitigate.js stored), so people see they were considered.
 // A single pass can point the wrong way, so a comparison always runs all 15 passes and only the full
 // set earns a verdict; a run watched on the map is labeled as one run.
-Object.assign(state, { tab: 'watch', picked: new Set(), todayCache: new Map(), stackRuns: new Map(), tries: [], tryBatch: null, families: false });
+Object.assign(state, { tab: 'watch', goal: {}, picked: new Set(), todayCache: new Map(), stackRuns: new Map(), tries: [], tryBatch: null, families: false });
 // todayCache: today's plan, keyed `${fire}|${member}|${severity}|${seed}`; stackRuns: measures of any stack of changes, keyed
 // `${fire}|${member}|${stack key}|${severity}|${seed}` (Break down this plan reuses them). member is a fire family member
 // (js/scenarios.js familyOf); with families off every pass runs the fire's default member, which is the fire as it is.
@@ -288,8 +289,8 @@ famBox($('families'));
 
 function renderSimple() {
   homePlayback(); // out of #simple before it is rebuilt; moved back into the tab below
-  const tabs = `<div class="tabs"><button data-tab="watch" class="${state.tab === 'watch' ? 'on' : ''}">Today's plan</button><button data-tab="try" class="${state.tab === 'try' ? 'on' : ''}">Change the plan</button></div>`;
-  $('simple').innerHTML = tabs + (state.tab === 'watch' ? watchHTML() : tryHTML());
+  const tabs = `<div class="tabs"><button data-tab="watch" class="${state.tab === 'watch' ? 'on' : ''}">Today's plan</button><button data-tab="try" class="${state.tab === 'try' ? 'on' : ''}">Change the plan</button><button data-tab="goal" class="${state.tab === 'goal' ? 'on' : ''}">Set a goal</button></div>`;
+  $('simple').innerHTML = tabs + (state.tab === 'watch' ? watchHTML() : state.tab === 'goal' ? goalHTML(goalCtx()) : tryHTML());
   $('simple').querySelectorAll('[data-tab]').forEach(b => b.onclick = () => showTab(b.dataset.tab));
   $('simple').querySelectorAll('.fire-pick').forEach(b => b.onclick = () => pickFire(b.dataset.fire));
   $('simple').querySelectorAll('.pace-pick').forEach(b => b.onclick = () => setPace(b.dataset.pace));
@@ -297,6 +298,7 @@ function renderSimple() {
   if ($('go-try')) $('go-try').onclick = () => showTab('try');
   if (state.tab === 'try') wireTry();
   $('simple').querySelectorAll('.fam-box').forEach(famBox); syncFamilies();
+  if (state.tab === 'goal') wireGoal(goalCtx());
   if ($('pb-slot') && document.body.classList.contains('simple')) $('pb-slot').replaceWith($('playback')); // Expert keeps them in its Run section
   $('playback').classList.toggle('today', state.tab === 'watch');
   showMarks(); renderTries();
@@ -304,13 +306,18 @@ function renderSimple() {
 // Comparisons go at the top of the right-hand panel, where results are read (Eric, 2026-11-02).
 function renderTries() {
   const show = state.tab === 'try';
+  if (state.tab === 'goal') { $('try-out').innerHTML = goalOutHTML(goalCtx()); wireGoal(goalCtx()); return; }
   $('try-out').innerHTML = (show && state.presetOut ? `<h2>Ready-made comparison</h2>${state.presetOut}` : '') + (show && state.tries.length ? `<h2>Your plan compared with today's plan</h2>${triesHTML()}` : '');
   if ($('bd-go')) $('bd-go').onclick = () => breakdown(state.tries[0]);
 }
 // The playback controls' home is Expert view's Run section (index.html #playback).
 const homePlayback = () => $('run-section').querySelector('h2').after($('playback'));
+// Set a goal (js/goal.js): its stored combinations load on first use; an answer opens in Change the plan and runs there.
+const goalCtx = () => ({ state, FIRES, fmt, leverById, pickFire, render: renderSimple,
+  openInTry: ids => { state.picked = new Set(ids.filter(leverById)); state.tab = 'try'; renderSimple(); compareStack(); } });
 function showTab(t) {
   state.tab = t;
+  if (t === 'goal' && !goalData()) loadGoal().then(() => state.tab === 'goal' && renderSimple());
   if (t === 'watch' && state.preset?.id !== 'today') applyPreset(todayPreset()); // the Today's plan tab plays today's plan only
   else renderSimple();
   $('simple').scrollTop = 0;
