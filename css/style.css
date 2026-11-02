@@ -168,3 +168,6 @@ body.simple #run-section { display: none; }
 #playback.today .onmap { display: none; }
 #playback { margin: 6px 0; }
 .scrub-label { display: block; font-size: 11px; color: #6b5d50; margin: 6px 0 0; }
+.pace { margin: 6px 0 8px; }
+.pace-pick { font-size: 12px; padding: 3px 8px; margin: 2px 4px 2px 0; }
+.pace-pick.on { background: #7c2d12; color: #fff; border-color: #7c2d12; }

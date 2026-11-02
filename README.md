@@ -33,7 +33,7 @@ Loading takes a few seconds: about 10 MB of terrain and 2 MB of street network.
 Grizzly Peak Blvd (all of Fire Zones 2–3 ordered), the 1923 fire repeated today, Panoramic
 Hill, or a fire from Tilden into the north hills above Marin Ave (the Time Study's North Berkeley
 Hills region ordered; remembered across visits), and watch it with today's plan (first order 10 minutes after
-ignition, today's parking, a fall night, medium severity). No numbers appear until the user runs
+ignition, today's parking, a fall night). A control sets how fast the fire moves: "Like 1923" (medium severity, the default) or "Like 1991" (high severity; SOURCE_NOTES S19); it changes the watched run, not comparisons, which run every severity. No numbers appear until the user runs
 it; the outcomes panel shows that run. When the run ends, the page invites the user to "explore
 changes that would mitigate damage and loss of life". **Change the plan**: a **fire scenario** is what Berkeley doesn't control (ignition, wind, time of day); a **plan** is what it does control, changes made before the fire and the response on the day; each run tests a plan against a fire scenario. The tab is a checklist, grouped Before the fire and On the day, of changes
 (leave early, decide faster, parking, a red curb, widening, new roads, buyouts, traffic
