@@ -7,7 +7,7 @@
 //
 // Inputs (see the retrieved.txt or .retrieved file next to each):
 //   data/raw/lodes/wac-od-2023-model-area.csv   LEHD LODES8 2023 jobs by workplace block (SOURCE_NOTES WP1, WP2)
-//   data/raw/osm/parking.json                   OSM amenity=parking (WP5)
+//   data/raw/osm/parking.json                   OSM amenity=parking (WP5), fetched without addr:* tags by tools/fetch-osm-parking.mjs
 //   data/raw/osm/parking-campus-geom.json       their footprints near campus and the Lab, for capacity where untagged
 //   data/raw/cde/public-schools-model-area.csv  CDE public schools and 2025-26 enrollment (WP8)
 //   data/raw/cde/private-schools-by-district.csv

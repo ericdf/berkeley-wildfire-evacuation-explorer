@@ -357,6 +357,7 @@ node tools/fetch-dem.mjs           # elevation: USGS 3DEP 1 m lidar DEM (4 m ove
 node tools/fetch-city-layers.mjs   # City of Berkeley ArcGIS Online layers → data/raw/city/
 node tools/build-network.mjs       # rebuild data/model/*.json from everything above
 node tools/signals.mjs             # signal junctions for police control and the power shutoff (after every rebuild); OSM signals outside Berkeley
+node tools/fetch-osm-parking.mjs   # OSM parking and traffic signals, addr:* tags removed (--clean cleans files on disk)
 node tools/workplaces.mjs          # LODES workplaces, OSM parking and CDE schools → data/model/workplaces.json (opt-in placement)
 node tools/contraflow-streets.mjs  # main hill exit streets for contraflow, ~30 s on 8 cores (after every rebuild)
 node tests/headless.mjs            # sanity-check the models (optionally: low | central | high)

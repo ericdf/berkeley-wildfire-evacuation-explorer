@@ -1,1 +1,1 @@
-https://maps.mail.ru/osm/tools/overpass/api/interpreter 2026-11-03T20:12:33Z (OSM data as of 2026-11-03T20:10:57Z); query in parking.overpassql
+https://maps.mail.ru/osm/tools/overpass/api/interpreter 2026-11-03T20:12:33Z (OSM data as of 2026-11-03T20:10:57Z); query in parking.overpassql; addr:* tags removed by tools/fetch-osm-parking.mjs

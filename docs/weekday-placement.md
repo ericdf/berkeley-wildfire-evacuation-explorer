@@ -1,6 +1,6 @@
 # Weekday non-resident placement: by area against by workplace
 
-Placing employees, students and Lab staff where public data says they work and park moves the simulator's weekday 90th-percentile evacuation times by 0–5 minutes. The weekday gap to the 2025 Evacuation Time Study (25–80 minutes too fast in R02 and R05) stays. Where non-residents park does not explain it. The remaining candidates are junction capacity and signal timing, and through traffic. These are calibration runs with the fire off, not predictions.
+Placing employees, students and Lab staff where public data says they work and park moves the simulator's weekday 90th-percentile evacuation times by 0–5 minutes. That is the sensitivity of this one placement rule, with visitors placed as before and the Time Study's vehicle totals kept; the weekday gap to the 2025 Evacuation Time Study (25–80 minutes too fast in R02 and R05) stays. Hypotheses still open for the gap: signal timing and junction capacity, through traffic beyond I-80 and CA-24, where visitors park, and the demand totals themselves. These are calibration runs with the fire off, not predictions.
 
 ## What the setting does
 
@@ -46,7 +46,7 @@ Nights and weekends (S2, S3, S5, S6), where few non-residents are present, move 
 
 **Held-out regions.** Nothing was tuned: the 800 m walk comes from the study, the 5,500 spaces from UC, and no setting was chosen after seeing a result, so every region is a check. Where the setting moves a weekday result it moves toward the study (R02 S4 +5 min, against a gap of 80), and it moves no night case away from it. R04 Panoramic Hill, which already matched on weekdays, stays within 3 minutes of the study there. R02 S4 moves because UC's parking and the campus lie in its order zones: about 1,570 more non-resident cars start inside the order area (seed 1; most on campus roads and Gayley Rd). R05 S4 gains about 800 order-zone non-resident cars (Gayley Rd, Stadium Rim Rd) and does not move; R09 loses about 120 and does not move.
 
-**Reading.** At most 5 of R02's 80 minutes, and none of R05's 35, come from where non-residents park. The rest has to come from how fast junctions pass traffic, which the model sets by road class with no signal timing, and from traffic the model does not load (through traffic beyond I-80 and CA-24, E35).
+**Reading.** Under this rule, moving employees and UC and Lab cars to their workplaces and parking changes R02's weekday result by 5 of 80 minutes and R05's by none of 35. The run tests one placement rule: visitors (13,052 vehicles, the largest group) are placed as before, the study's totals per area are kept, and the UC parking share and the 800 m walk are fixed. It does not show what causes the rest of the gap. Hypotheses still open, none tested here: (a) signal timing and junction capacity, which the model sets by road class with no signal timing; (b) through traffic the model does not load beyond I-80 and CA-24 (E35); (c) where visitors park; (d) demand totals, for example LODES's larger employee counts (WP3) in place of the study's.
 
 ## What signal locations alone suggest (described, not tuned)
 
