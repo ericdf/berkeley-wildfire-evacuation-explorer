@@ -103,7 +103,7 @@ export class Evacuation {
     // ---- zone orders and warnings ----
     // 1. The scenario's City-defined zones (Time Study region lists, SOURCE_NOTES E2-E3), or a
     //    City region polygon; issued once the fire is detected and the order decided.
-    // 2. Other cities' zones, once the fire comes within 2 km (otherCityOrders): part of the
+    // 2. Other cities' zones, once the fire comes within orders.firePathKm (otherCityOrders): part of the
     //    scenario, the same for every plan.
     // 3. Optionally, the plan's distance rule: zones within alertKm of the fire are ordered too.
     const zones = data.layers.evacZones;
@@ -839,7 +839,7 @@ export class Evacuation {
     const zi = id => this.data.layers.evacZones.findIndex(z => z.id === id);
     const others = due.filter(id => this.otherCityOrder[zi(id)]), own = due.filter(id => !others.includes(id));
     if (own.length) this.log(`Evacuation order issued for ${own.length} zone${own.length > 1 ? 's' : ''}: ${own.slice(0, 8).join(', ')}${own.length > 8 ? ' …' : ''}.`, 'order');
-    if (others.length) this.log(`Neighboring cities and the County order ${others.length} zone${others.length > 1 ? "s" : ""} the fire has come within ${this.data.A.orders.firePathKm} km of: ${others.slice(0, 8).join(', ')}${others.length > 8 ? ' …' : ''} (model rule; the 2 km is an assumption).`, 'order');
+    if (others.length) this.log(`Neighboring cities and the County order ${others.length} zone${others.length > 1 ? "s" : ""} the fire has come within ${this.data.A.orders.firePathKm} km of: ${others.slice(0, 8).join(', ')}${others.length > 8 ? ' …' : ''} (model rule; the ${this.data.A.orders.firePathKm} km is an assumption).`, 'order');
     // ember exposure reaching zones with people still home
     const { hh } = this; const counts = new Map();
     for (let h = 0; h < hh.n; h++) {
