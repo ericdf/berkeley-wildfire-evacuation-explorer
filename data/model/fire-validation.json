@@ -1,0 +1,1698 @@
+{
+ "footprints": {
+  "seeds": [
+   1,
+   2,
+   3
+  ],
+  "note": "km² burned (arrival < Infinity) by 60 min, 120 min and the whole run, and ember-exposed; median over seeds; iou = cells burned under both fuels / under either",
+  "rows": {
+   "ref1923|low": {
+    "proxy": {
+     "b60": 0.041,
+     "b120": 0.12,
+     "all": 0.754,
+     "emb": 1.023,
+     "spots": 0,
+     "allRange": [
+      0.754,
+      0.8
+     ]
+    },
+    "landfire": {
+     "b60": 0.014,
+     "b120": 0.069,
+     "all": 0.575,
+     "emb": 0.83,
+     "spots": 1,
+     "allRange": [
+      0.536,
+      0.581
+     ]
+    },
+    "iou": 0.679
+   },
+   "ref1923|central": {
+    "proxy": {
+     "b60": 0.15,
+     "b120": 0.514,
+     "all": 1.77,
+     "emb": 3.159,
+     "spots": 1,
+     "allRange": [
+      1.77,
+      1.784
+     ]
+    },
+    "landfire": {
+     "b60": 0.079,
+     "b120": 0.339,
+     "all": 1.684,
+     "emb": 3.063,
+     "spots": 1,
+     "allRange": [
+      1.681,
+      1.731
+     ]
+    },
+    "iou": 0.951
+   },
+   "ref1923|high": {
+    "proxy": {
+     "b60": 0.613,
+     "b120": 1.571,
+     "all": 1.802,
+     "emb": 4.725,
+     "spots": 3,
+     "allRange": [
+      1.802,
+      1.802
+     ]
+    },
+    "landfire": {
+     "b60": 0.418,
+     "b120": 1.334,
+     "all": 1.798,
+     "emb": 4.716,
+     "spots": 3,
+     "allRange": [
+      1.798,
+      1.798
+     ]
+    },
+    "iou": 0.998
+   },
+   "eastWind|low": {
+    "proxy": {
+     "b60": 0.034,
+     "b120": 0.121,
+     "all": 0.402,
+     "emb": 0.59,
+     "spots": 1,
+     "allRange": [
+      0.368,
+      0.409
+     ]
+    },
+    "landfire": {
+     "b60": 0.008,
+     "b120": 0.058,
+     "all": 0.224,
+     "emb": 0.37,
+     "spots": 0,
+     "allRange": [
+      0.224,
+      0.238
+     ]
+    },
+    "iou": 0.593
+   },
+   "eastWind|central": {
+    "proxy": {
+     "b60": 0.134,
+     "b120": 0.484,
+     "all": 1.358,
+     "emb": 2.649,
+     "spots": 1,
+     "allRange": [
+      1.235,
+      1.372
+     ]
+    },
+    "landfire": {
+     "b60": 0.064,
+     "b120": 0.273,
+     "all": 1.021,
+     "emb": 2.479,
+     "spots": 1,
+     "allRange": [
+      0.978,
+      1.294
+     ]
+    },
+    "iou": 0.737
+   },
+   "eastWind|high": {
+    "proxy": {
+     "b60": 0.554,
+     "b120": 1.625,
+     "all": 3.756,
+     "emb": 7.864,
+     "spots": 6,
+     "allRange": [
+      3.504,
+      4.271
+     ]
+    },
+    "landfire": {
+     "b60": 0.363,
+     "b120": 1.393,
+     "all": 3.407,
+     "emb": 7.789,
+     "spots": 5,
+     "allRange": [
+      3.331,
+      3.964
+     ]
+    },
+    "iou": 0.863
+   },
+   "panoramic|low": {
+    "proxy": {
+     "b60": 0.034,
+     "b120": 0.146,
+     "all": 0.43,
+     "emb": 0.631,
+     "spots": 1,
+     "allRange": [
+      0.428,
+      0.448
+     ]
+    },
+    "landfire": {
+     "b60": 0.022,
+     "b120": 0.082,
+     "all": 0.301,
+     "emb": 0.477,
+     "spots": 1,
+     "allRange": [
+      0.291,
+      0.305
+     ]
+    },
+    "iou": 0.668
+   },
+   "panoramic|central": {
+    "proxy": {
+     "b60": 0.15,
+     "b120": 0.451,
+     "all": 1.075,
+     "emb": 2.143,
+     "spots": 2,
+     "allRange": [
+      1.012,
+      1.124
+     ]
+    },
+    "landfire": {
+     "b60": 0.083,
+     "b120": 0.307,
+     "all": 0.968,
+     "emb": 2.032,
+     "spots": 2,
+     "allRange": [
+      0.966,
+      0.979
+     ]
+    },
+    "iou": 0.79
+   },
+   "panoramic|high": {
+    "proxy": {
+     "b60": 0.486,
+     "b120": 1.218,
+     "all": 3.201,
+     "emb": 7.375,
+     "spots": 8,
+     "allRange": [
+      2.795,
+      3.413
+     ]
+    },
+    "landfire": {
+     "b60": 0.364,
+     "b120": 1.017,
+     "all": 2.916,
+     "emb": 6.714,
+     "spots": 6,
+     "allRange": [
+      2.65,
+      3.115
+     ]
+    },
+    "iou": 0.791
+   },
+   "northHills|low": {
+    "proxy": {
+     "b60": 0.034,
+     "b120": 0.147,
+     "all": 0.48,
+     "emb": 0.691,
+     "spots": 1,
+     "allRange": [
+      0.472,
+      0.51
+     ]
+    },
+    "landfire": {
+     "b60": 0.008,
+     "b120": 0.032,
+     "all": 0.156,
+     "emb": 0.301,
+     "spots": 1,
+     "allRange": [
+      0.153,
+      0.178
+     ]
+    },
+    "iou": 0.311
+   },
+   "northHills|central": {
+    "proxy": {
+     "b60": 0.161,
+     "b120": 0.535,
+     "all": 1.756,
+     "emb": 3.188,
+     "spots": 1,
+     "allRange": [
+      1.582,
+      1.794
+     ]
+    },
+    "landfire": {
+     "b60": 0.032,
+     "b120": 0.192,
+     "all": 1.003,
+     "emb": 2.106,
+     "spots": 1,
+     "allRange": [
+      0.838,
+      1.308
+     ]
+    },
+    "iou": 0.592
+   },
+   "northHills|high": {
+    "proxy": {
+     "b60": 0.712,
+     "b120": 2.119,
+     "all": 5.174,
+     "emb": 9.597,
+     "spots": 4,
+     "allRange": [
+      4.224,
+      5.207
+     ]
+    },
+    "landfire": {
+     "b60": 0.26,
+     "b120": 1.715,
+     "all": 4.297,
+     "emb": 8.797,
+     "spots": 7,
+     "allRange": [
+      4.178,
+      4.513
+     ]
+    },
+    "iou": 0.771
+   }
+  }
+ },
+ "emberZones": {
+  "note": "share = fraction of fire runs (4 fires at their usual start, seeds as listed) in which a cell is ember-exposed during the run; ETZ = XyloPlan Ember Threat Zones, NE scenario (ne_ember_risk_max), rasterized at 30 m cell centers; FHSZ = City VHFHSZ/HFHSZ layers and CAL FIRE LRA classes (map of 2025-03-24)",
+  "seeds": [
+   1,
+   2,
+   3
+  ],
+  "cityCellsOutsideCityZones": 21499,
+  "cityZoneCells": 8710,
+  "results": {
+   "proxy|central": {
+    "runs": 12,
+    "etzCells": 7853,
+    "spearmanCells": -0.204,
+    "hillCells": 1479,
+    "spearmanHill": -0.158,
+    "reachedCells": 3470,
+    "spearmanReached": -0.033,
+    "topQuintileHillShare": 0.561,
+    "berkeleyOutsideCityZones": {
+     "cells": 21499,
+     "meanShare": 0.054
+    },
+    "byNeQuintile": [
+     {
+      "cells": 1549,
+      "mean": 0.145,
+      "half": 0.105,
+      "lo": 0,
+      "hi": 0.08
+     },
+     {
+      "cells": 1585,
+      "mean": 0.159,
+      "half": 0.134,
+      "lo": 0.08,
+      "hi": 0.97
+     },
+     {
+      "cells": 1525,
+      "mean": 0.155,
+      "half": 0.157,
+      "lo": 0.97,
+      "hi": 6.34
+     },
+     {
+      "cells": 1604,
+      "mean": 0.113,
+      "half": 0.026,
+      "lo": 6.34,
+      "hi": 30.1
+     },
+     {
+      "cells": 1590,
+      "mean": 0.056,
+      "half": 0.005,
+      "lo": 30.1,
+      "hi": 638.22
+     }
+    ],
+    "zones": {
+     "n": 74,
+     "spearman": -0.28,
+     "topQuarterOverlap": 3,
+     "topQuarterSize": 19
+    },
+    "cityFHSZ": {
+     "High (City)": {
+      "cells": 8331,
+      "km2": 7.498,
+      "meanShare": 0.179,
+      "halfShare": 0.125
+     },
+     "Very High (City)": {
+      "cells": 379,
+      "km2": 0.341,
+      "meanShare": 0.243,
+      "halfShare": 0
+     }
+    },
+    "calfireLRA": {
+     "NonWildland": {
+      "cells": 21184,
+      "km2": 19.066,
+      "meanShare": 0.001,
+      "halfShare": 0
+     },
+     "Moderate": {
+      "cells": 3581,
+      "km2": 3.223,
+      "meanShare": 0.029,
+      "halfShare": 0
+     },
+     "High": {
+      "cells": 5817,
+      "km2": 5.235,
+      "meanShare": 0.007,
+      "halfShare": 0
+     },
+     "Very High": {
+      "cells": 3103,
+      "km2": 2.793,
+      "meanShare": 0.002,
+      "halfShare": 0
+     }
+    }
+   },
+   "proxy|low+central+high": {
+    "runs": 36,
+    "etzCells": 7853,
+    "spearmanCells": -0.22,
+    "hillCells": 1479,
+    "spearmanHill": -0.106,
+    "reachedCells": 4380,
+    "spearmanReached": 0.02,
+    "topQuintileHillShare": 0.561,
+    "berkeleyOutsideCityZones": {
+     "cells": 21499,
+     "meanShare": 0.092
+    },
+    "byNeQuintile": [
+     {
+      "cells": 1549,
+      "mean": 0.128,
+      "half": 0,
+      "lo": 0,
+      "hi": 0.08
+     },
+     {
+      "cells": 1585,
+      "mean": 0.144,
+      "half": 0.005,
+      "lo": 0.08,
+      "hi": 0.97
+     },
+     {
+      "cells": 1525,
+      "mean": 0.139,
+      "half": 0.004,
+      "lo": 0.97,
+      "hi": 6.34
+     },
+     {
+      "cells": 1604,
+      "mean": 0.11,
+      "half": 0.002,
+      "lo": 6.34,
+      "hi": 30.1
+     },
+     {
+      "cells": 1590,
+      "mean": 0.058,
+      "half": 0,
+      "lo": 30.1,
+      "hi": 638.22
+     }
+    ],
+    "zones": {
+     "n": 74,
+     "spearman": -0.276,
+     "topQuarterOverlap": 3,
+     "topQuarterSize": 19
+    },
+    "cityFHSZ": {
+     "High (City)": {
+      "cells": 8331,
+      "km2": 7.498,
+      "meanShare": 0.163,
+      "halfShare": 0.003
+     },
+     "Very High (City)": {
+      "cells": 379,
+      "km2": 0.341,
+      "meanShare": 0.229,
+      "halfShare": 0
+     }
+    },
+    "calfireLRA": {
+     "NonWildland": {
+      "cells": 21184,
+      "km2": 19.066,
+      "meanShare": 0.012,
+      "halfShare": 0
+     },
+     "Moderate": {
+      "cells": 3581,
+      "km2": 3.223,
+      "meanShare": 0.034,
+      "halfShare": 0
+     },
+     "High": {
+      "cells": 5817,
+      "km2": 5.235,
+      "meanShare": 0.008,
+      "halfShare": 0
+     },
+     "Very High": {
+      "cells": 3103,
+      "km2": 2.793,
+      "meanShare": 0.002,
+      "halfShare": 0
+     }
+    }
+   },
+   "landfire|central": {
+    "runs": 12,
+    "etzCells": 7853,
+    "spearmanCells": -0.184,
+    "hillCells": 1479,
+    "spearmanHill": -0.175,
+    "reachedCells": 3228,
+    "spearmanReached": -0.036,
+    "topQuintileHillShare": 0.561,
+    "berkeleyOutsideCityZones": {
+     "cells": 21499,
+     "meanShare": 0.045
+    },
+    "byNeQuintile": [
+     {
+      "cells": 1549,
+      "mean": 0.131,
+      "half": 0.093,
+      "lo": 0,
+      "hi": 0.08
+     },
+     {
+      "cells": 1585,
+      "mean": 0.148,
+      "half": 0.128,
+      "lo": 0.08,
+      "hi": 0.97
+     },
+     {
+      "cells": 1525,
+      "mean": 0.147,
+      "half": 0.161,
+      "lo": 0.97,
+      "hi": 6.34
+     },
+     {
+      "cells": 1604,
+      "mean": 0.108,
+      "half": 0.028,
+      "lo": 6.34,
+      "hi": 30.1
+     },
+     {
+      "cells": 1590,
+      "mean": 0.05,
+      "half": 0.007,
+      "lo": 30.1,
+      "hi": 638.22
+     }
+    ],
+    "zones": {
+     "n": 74,
+     "spearman": -0.26,
+     "topQuarterOverlap": 3,
+     "topQuarterSize": 19
+    },
+    "cityFHSZ": {
+     "High (City)": {
+      "cells": 8331,
+      "km2": 7.498,
+      "meanShare": 0.163,
+      "halfShare": 0.123
+     },
+     "Very High (City)": {
+      "cells": 379,
+      "km2": 0.341,
+      "meanShare": 0.242,
+      "halfShare": 0
+     }
+    },
+    "calfireLRA": {
+     "NonWildland": {
+      "cells": 21184,
+      "km2": 19.066,
+      "meanShare": 0,
+      "halfShare": 0
+     },
+     "Moderate": {
+      "cells": 3581,
+      "km2": 3.223,
+      "meanShare": 0.024,
+      "halfShare": 0
+     },
+     "High": {
+      "cells": 5817,
+      "km2": 5.235,
+      "meanShare": 0.006,
+      "halfShare": 0
+     },
+     "Very High": {
+      "cells": 3103,
+      "km2": 2.793,
+      "meanShare": 0.002,
+      "halfShare": 0
+     }
+    }
+   },
+   "landfire|low+central+high": {
+    "runs": 36,
+    "etzCells": 7853,
+    "spearmanCells": -0.23,
+    "hillCells": 1479,
+    "spearmanHill": -0.105,
+    "reachedCells": 4467,
+    "spearmanReached": 0.04,
+    "topQuintileHillShare": 0.561,
+    "berkeleyOutsideCityZones": {
+     "cells": 21499,
+     "meanShare": 0.085
+    },
+    "byNeQuintile": [
+     {
+      "cells": 1549,
+      "mean": 0.119,
+      "half": 0,
+      "lo": 0,
+      "hi": 0.08
+     },
+     {
+      "cells": 1585,
+      "mean": 0.131,
+      "half": 0.001,
+      "lo": 0.08,
+      "hi": 0.97
+     },
+     {
+      "cells": 1525,
+      "mean": 0.131,
+      "half": 0.002,
+      "lo": 0.97,
+      "hi": 6.34
+     },
+     {
+      "cells": 1604,
+      "mean": 0.1,
+      "half": 0,
+      "lo": 6.34,
+      "hi": 30.1
+     },
+     {
+      "cells": 1590,
+      "mean": 0.054,
+      "half": 0,
+      "lo": 30.1,
+      "hi": 638.22
+     }
+    ],
+    "zones": {
+     "n": 74,
+     "spearman": -0.285,
+     "topQuarterOverlap": 3,
+     "topQuarterSize": 19
+    },
+    "cityFHSZ": {
+     "High (City)": {
+      "cells": 8331,
+      "km2": 7.498,
+      "meanShare": 0.149,
+      "halfShare": 0.001
+     },
+     "Very High (City)": {
+      "cells": 379,
+      "km2": 0.341,
+      "meanShare": 0.221,
+      "halfShare": 0
+     }
+    },
+    "calfireLRA": {
+     "NonWildland": {
+      "cells": 21184,
+      "km2": 19.066,
+      "meanShare": 0.01,
+      "halfShare": 0
+     },
+     "Moderate": {
+      "cells": 3581,
+      "km2": 3.223,
+      "meanShare": 0.031,
+      "halfShare": 0
+     },
+     "High": {
+      "cells": 5817,
+      "km2": 5.235,
+      "meanShare": 0.007,
+      "halfShare": 0
+     },
+     "Very High": {
+      "cells": 3103,
+      "km2": 2.793,
+      "meanShare": 0.002,
+      "halfShare": 0
+     }
+    }
+   }
+  }
+ },
+ "timing1923": {
+  "note": "entry = earliest arrival in the 3×3 cells around the 1923 footprint's north-east vertex (the 1923 entry point; StoryMap: about 150 min from today's eastern edge); west = earliest arrival at a cell inside the 1923 footprint within 150 m of its west end (Shattuck; StoryMap about 300 min). Values per seed.",
+  "entryToWestM": 1074,
+  "seeds": [
+   1,
+   2,
+   3
+  ],
+  "rows": {
+   "proxy|low": {
+    "entryMin": [
+     212,
+     232,
+     232
+    ],
+    "westMin": [
+     null,
+     null,
+     null
+    ]
+   },
+   "proxy|central": {
+    "entryMin": [
+     104,
+     116,
+     54
+    ],
+    "westMin": [
+     264,
+     285,
+     220
+    ]
+   },
+   "proxy|high": {
+    "entryMin": [
+     28,
+     52,
+     58
+    ],
+    "westMin": [
+     113,
+     82,
+     91
+    ]
+   },
+   "landfire|low": {
+    "entryMin": [
+     280,
+     313,
+     313
+    ],
+    "westMin": [
+     null,
+     null,
+     null
+    ]
+   },
+   "landfire|central": {
+    "entryMin": [
+     140,
+     157,
+     77
+    ],
+    "westMin": [
+     303,
+     329,
+     250
+    ]
+   },
+   "landfire|high": {
+    "entryMin": [
+     39,
+     41,
+     78
+    ],
+    "westMin": [
+     124,
+     86,
+     97
+    ]
+   }
+  }
+ },
+ "like1991": {
+  "note": "Analysis fire only: ignition at 37.8625 N, 122.2205 W (between the east ends of Buckingham Blvd and Marlborough Terrace, our placement from USFA-TR-060 PDF pp. 25, 29), wind 30 mph from 30°, 45° or 60°, no clip, 240 min. km² burned by T minutes; downwindM = farthest burned cell along the wind from the ignition; perimeter = CAL FIRE FRAP TUNNEL 1991 (1,622.8 GIS acres) rasterized on the fire grid; medians over seeds",
+  "ignitionCellFuel": {
+   "proxy": 1,
+   "landfire": 2.0703999996185303,
+   "fbfm40": 102
+  },
+  "perimeterCellsOnGrid": 6639,
+  "perimeterKm2OnGrid": 5.975,
+  "seeds": [
+   1,
+   2,
+   3
+  ],
+  "rows": {
+   "proxy|central|30": {
+    "35": {
+     "km2": 0.047,
+     "downwindM": 841,
+     "perimeterCovered": 0.008,
+     "inPerimeterShare": 1,
+     "iou": 0.008
+    },
+    "60": {
+     "km2": 0.194,
+     "downwindM": 1217,
+     "perimeterCovered": 0.033,
+     "inPerimeterShare": 1,
+     "iou": 0.033
+    },
+    "64": {
+     "km2": 0.23,
+     "downwindM": 1308,
+     "perimeterCovered": 0.038,
+     "inPerimeterShare": 1,
+     "iou": 0.038
+    },
+    "120": {
+     "km2": 0.792,
+     "downwindM": 1932,
+     "perimeterCovered": 0.133,
+     "inPerimeterShare": 1,
+     "iou": 0.133
+    },
+    "240": {
+     "km2": 2.556,
+     "downwindM": 2968,
+     "perimeterCovered": 0.382,
+     "inPerimeterShare": 0.88,
+     "iou": 0.363
+    }
+   },
+   "proxy|central|45": {
+    "35": {
+     "km2": 0.056,
+     "downwindM": 1042,
+     "perimeterCovered": 0.009,
+     "inPerimeterShare": 1,
+     "iou": 0.009
+    },
+    "60": {
+     "km2": 0.216,
+     "downwindM": 1339,
+     "perimeterCovered": 0.036,
+     "inPerimeterShare": 1,
+     "iou": 0.036
+    },
+    "64": {
+     "km2": 0.254,
+     "downwindM": 1488,
+     "perimeterCovered": 0.042,
+     "inPerimeterShare": 1,
+     "iou": 0.042
+    },
+    "120": {
+     "km2": 0.931,
+     "downwindM": 2145,
+     "perimeterCovered": 0.154,
+     "inPerimeterShare": 0.984,
+     "iou": 0.154
+    },
+    "240": {
+     "km2": 2.587,
+     "downwindM": 3079,
+     "perimeterCovered": 0.357,
+     "inPerimeterShare": 0.824,
+     "iou": 0.331
+    }
+   },
+   "proxy|central|60": {
+    "35": {
+     "km2": 0.064,
+     "downwindM": 893,
+     "perimeterCovered": 0.011,
+     "inPerimeterShare": 1,
+     "iou": 0.011
+    },
+    "60": {
+     "km2": 0.218,
+     "downwindM": 1455,
+     "perimeterCovered": 0.036,
+     "inPerimeterShare": 1,
+     "iou": 0.036
+    },
+    "64": {
+     "km2": 0.255,
+     "downwindM": 1481,
+     "perimeterCovered": 0.043,
+     "inPerimeterShare": 1,
+     "iou": 0.043
+    },
+    "120": {
+     "km2": 0.896,
+     "downwindM": 2202,
+     "perimeterCovered": 0.135,
+     "inPerimeterShare": 0.937,
+     "iou": 0.133
+    },
+    "240": {
+     "km2": 2.55,
+     "downwindM": 2942,
+     "perimeterCovered": 0.288,
+     "inPerimeterShare": 0.686,
+     "iou": 0.247
+    }
+   },
+   "proxy|high|30": {
+    "35": {
+     "km2": 0.284,
+     "downwindM": 2182,
+     "perimeterCovered": 0.048,
+     "inPerimeterShare": 1,
+     "iou": 0.048
+    },
+    "60": {
+     "km2": 1.055,
+     "downwindM": 2724,
+     "perimeterCovered": 0.172,
+     "inPerimeterShare": 0.95,
+     "iou": 0.171
+    },
+    "64": {
+     "km2": 1.22,
+     "downwindM": 2791,
+     "perimeterCovered": 0.194,
+     "inPerimeterShare": 0.931,
+     "iou": 0.193
+    },
+    "120": {
+     "km2": 3.238,
+     "downwindM": 3218,
+     "perimeterCovered": 0.44,
+     "inPerimeterShare": 0.827,
+     "iou": 0.399
+    },
+    "240": {
+     "km2": 4.94,
+     "downwindM": 3383,
+     "perimeterCovered": 0.655,
+     "inPerimeterShare": 0.792,
+     "iou": 0.559
+    }
+   },
+   "proxy|high|45": {
+    "35": {
+     "km2": 0.308,
+     "downwindM": 2166,
+     "perimeterCovered": 0.05,
+     "inPerimeterShare": 0.987,
+     "iou": 0.05
+    },
+    "60": {
+     "km2": 1.112,
+     "downwindM": 2866,
+     "perimeterCovered": 0.168,
+     "inPerimeterShare": 0.927,
+     "iou": 0.165
+    },
+    "64": {
+     "km2": 1.27,
+     "downwindM": 2930,
+     "perimeterCovered": 0.19,
+     "inPerimeterShare": 0.912,
+     "iou": 0.186
+    },
+    "120": {
+     "km2": 3.224,
+     "downwindM": 3312,
+     "perimeterCovered": 0.386,
+     "inPerimeterShare": 0.715,
+     "iou": 0.334
+    },
+    "240": {
+     "km2": 5.848,
+     "downwindM": 3736,
+     "perimeterCovered": 0.562,
+     "inPerimeterShare": 0.593,
+     "iou": 0.405
+    }
+   },
+   "proxy|high|60": {
+    "35": {
+     "km2": 0.315,
+     "downwindM": 1987,
+     "perimeterCovered": 0.049,
+     "inPerimeterShare": 0.934,
+     "iou": 0.049
+    },
+    "60": {
+     "km2": 1.037,
+     "downwindM": 2587,
+     "perimeterCovered": 0.136,
+     "inPerimeterShare": 0.794,
+     "iou": 0.131
+    },
+    "64": {
+     "km2": 1.188,
+     "downwindM": 2587,
+     "perimeterCovered": 0.152,
+     "inPerimeterShare": 0.764,
+     "iou": 0.145
+    },
+    "120": {
+     "km2": 3.076,
+     "downwindM": 3150,
+     "perimeterCovered": 0.288,
+     "inPerimeterShare": 0.611,
+     "iou": 0.238
+    },
+    "240": {
+     "km2": 5.807,
+     "downwindM": 3954,
+     "perimeterCovered": 0.443,
+     "inPerimeterShare": 0.455,
+     "iou": 0.289
+    }
+   },
+   "landfire|central|30": {
+    "35": {
+     "km2": 0.072,
+     "downwindM": 886,
+     "perimeterCovered": 0.012,
+     "inPerimeterShare": 1,
+     "iou": 0.012
+    },
+    "60": {
+     "km2": 0.247,
+     "downwindM": 1437,
+     "perimeterCovered": 0.041,
+     "inPerimeterShare": 1,
+     "iou": 0.041
+    },
+    "64": {
+     "km2": 0.286,
+     "downwindM": 1504,
+     "perimeterCovered": 0.048,
+     "inPerimeterShare": 1,
+     "iou": 0.048
+    },
+    "120": {
+     "km2": 0.875,
+     "downwindM": 1943,
+     "perimeterCovered": 0.146,
+     "inPerimeterShare": 1,
+     "iou": 0.146
+    },
+    "240": {
+     "km2": 2.672,
+     "downwindM": 2961,
+     "perimeterCovered": 0.402,
+     "inPerimeterShare": 0.928,
+     "iou": 0.385
+    }
+   },
+   "landfire|central|45": {
+    "35": {
+     "km2": 0.096,
+     "downwindM": 894,
+     "perimeterCovered": 0.016,
+     "inPerimeterShare": 1,
+     "iou": 0.016
+    },
+    "60": {
+     "km2": 0.285,
+     "downwindM": 1360,
+     "perimeterCovered": 0.048,
+     "inPerimeterShare": 1,
+     "iou": 0.048
+    },
+    "64": {
+     "km2": 0.323,
+     "downwindM": 1403,
+     "perimeterCovered": 0.054,
+     "inPerimeterShare": 1,
+     "iou": 0.054
+    },
+    "120": {
+     "km2": 0.816,
+     "downwindM": 1869,
+     "perimeterCovered": 0.136,
+     "inPerimeterShare": 0.994,
+     "iou": 0.136
+    },
+    "240": {
+     "km2": 2.362,
+     "downwindM": 2718,
+     "perimeterCovered": 0.358,
+     "inPerimeterShare": 0.906,
+     "iou": 0.345
+    }
+   },
+   "landfire|central|60": {
+    "35": {
+     "km2": 0.104,
+     "downwindM": 985,
+     "perimeterCovered": 0.017,
+     "inPerimeterShare": 1,
+     "iou": 0.017
+    },
+    "60": {
+     "km2": 0.256,
+     "downwindM": 1738,
+     "perimeterCovered": 0.041,
+     "inPerimeterShare": 0.996,
+     "iou": 0.041
+    },
+    "64": {
+     "km2": 0.283,
+     "downwindM": 1738,
+     "perimeterCovered": 0.045,
+     "inPerimeterShare": 0.996,
+     "iou": 0.045
+    },
+    "120": {
+     "km2": 0.885,
+     "downwindM": 2128,
+     "perimeterCovered": 0.13,
+     "inPerimeterShare": 0.965,
+     "iou": 0.127
+    },
+    "240": {
+     "km2": 2.446,
+     "downwindM": 2916,
+     "perimeterCovered": 0.291,
+     "inPerimeterShare": 0.746,
+     "iou": 0.265
+    }
+   },
+   "landfire|high|30": {
+    "35": {
+     "km2": 0.366,
+     "downwindM": 1807,
+     "perimeterCovered": 0.061,
+     "inPerimeterShare": 1,
+     "iou": 0.061
+    },
+    "60": {
+     "km2": 1.048,
+     "downwindM": 2686,
+     "perimeterCovered": 0.175,
+     "inPerimeterShare": 0.995,
+     "iou": 0.173
+    },
+    "64": {
+     "km2": 1.183,
+     "downwindM": 2753,
+     "perimeterCovered": 0.197,
+     "inPerimeterShare": 0.99,
+     "iou": 0.194
+    },
+    "120": {
+     "km2": 3.236,
+     "downwindM": 3173,
+     "perimeterCovered": 0.452,
+     "inPerimeterShare": 0.842,
+     "iou": 0.415
+    },
+    "240": {
+     "km2": 5.3,
+     "downwindM": 3398,
+     "perimeterCovered": 0.718,
+     "inPerimeterShare": 0.81,
+     "iou": 0.617
+    }
+   },
+   "landfire|high|45": {
+    "35": {
+     "km2": 0.353,
+     "downwindM": 1869,
+     "perimeterCovered": 0.059,
+     "inPerimeterShare": 0.99,
+     "iou": 0.059
+    },
+    "60": {
+     "km2": 0.919,
+     "downwindM": 2718,
+     "perimeterCovered": 0.148,
+     "inPerimeterShare": 0.945,
+     "iou": 0.147
+    },
+    "64": {
+     "km2": 1.039,
+     "downwindM": 2760,
+     "perimeterCovered": 0.166,
+     "inPerimeterShare": 0.934,
+     "iou": 0.164
+    },
+    "120": {
+     "km2": 3.013,
+     "downwindM": 3397,
+     "perimeterCovered": 0.386,
+     "inPerimeterShare": 0.768,
+     "iou": 0.347
+    },
+    "240": {
+     "km2": 6.408,
+     "downwindM": 3906,
+     "perimeterCovered": 0.682,
+     "inPerimeterShare": 0.634,
+     "iou": 0.483
+    }
+   },
+   "landfire|high|60": {
+    "35": {
+     "km2": 0.314,
+     "downwindM": 2217,
+     "perimeterCovered": 0.049,
+     "inPerimeterShare": 0.979,
+     "iou": 0.049
+    },
+    "60": {
+     "km2": 0.959,
+     "downwindM": 2705,
+     "perimeterCovered": 0.136,
+     "inPerimeterShare": 0.825,
+     "iou": 0.134
+    },
+    "64": {
+     "km2": 1.115,
+     "downwindM": 2771,
+     "perimeterCovered": 0.156,
+     "inPerimeterShare": 0.792,
+     "iou": 0.153
+    },
+    "120": {
+     "km2": 3.101,
+     "downwindM": 3210,
+     "perimeterCovered": 0.337,
+     "inPerimeterShare": 0.612,
+     "iou": 0.28
+    },
+    "240": {
+     "km2": 6.78,
+     "downwindM": 3999,
+     "perimeterCovered": 0.521,
+     "inPerimeterShare": 0.461,
+     "iou": 0.32
+    }
+   }
+  }
+ },
+ "exposure": {
+  "note": "Today's plan (DEFAULT_PLAN), each fire's own time of day; exposed = people still there when embers arrived (exposedHome + exposedRoad + exposedNoVehicle + notOrderedExposed), front = still there when the fire front arrived; per seed. Not casualty counts.",
+  "seeds": [
+   1,
+   2,
+   3
+  ],
+  "rows": {
+   "ref1923|low": {
+    "proxy": {
+     "exposed": [
+      254,
+      188,
+      211
+     ],
+     "front": [
+      71,
+      52,
+      83
+     ],
+     "p90": [
+      95,
+      94.3,
+      95.6
+     ]
+    },
+    "landfire": {
+     "exposed": [
+      137,
+      100,
+      119
+     ],
+     "front": [
+      26,
+      14,
+      21
+     ],
+     "p90": [
+      95,
+      94.1,
+      95.3
+     ]
+    }
+   },
+   "ref1923|central": {
+    "proxy": {
+     "exposed": [
+      5496,
+      3331,
+      6843
+     ],
+     "front": [
+      571,
+      327,
+      571
+     ],
+     "p90": [
+      104.6,
+      101.8,
+      108.8
+     ]
+    },
+    "landfire": {
+     "exposed": [
+      3694,
+      2539,
+      5054
+     ],
+     "front": [
+      313,
+      180,
+      369
+     ],
+     "p90": [
+      102.2,
+      101.8,
+      105.8
+     ]
+    }
+   },
+   "ref1923|high": {
+    "proxy": {
+     "exposed": [
+      33497,
+      32768,
+      33586
+     ],
+     "front": [
+      3954,
+      4936,
+      4908
+     ],
+     "p90": [
+      147.8,
+      148.2,
+      148.9
+     ]
+    },
+    "landfire": {
+     "exposed": [
+      28852,
+      30551,
+      30356
+     ],
+     "front": [
+      2921,
+      4423,
+      3511
+     ],
+     "p90": [
+      134.2,
+      140.6,
+      132.3
+     ]
+    }
+   },
+   "eastWind|low": {
+    "proxy": {
+     "exposed": [
+      128,
+      116,
+      108
+     ],
+     "front": [
+      24,
+      9,
+      14
+     ],
+     "p90": [
+      91.4,
+      92.1,
+      91.8
+     ]
+    },
+    "landfire": {
+     "exposed": [
+      52,
+      35,
+      46
+     ],
+     "front": [
+      5,
+      0,
+      2
+     ],
+     "p90": [
+      91.4,
+      92,
+      91.8
+     ]
+    }
+   },
+   "eastWind|central": {
+    "proxy": {
+     "exposed": [
+      5641,
+      4130,
+      6073
+     ],
+     "front": [
+      228,
+      145,
+      296
+     ],
+     "p90": [
+      91.8,
+      92.3,
+      92.2
+     ]
+    },
+    "landfire": {
+     "exposed": [
+      2329,
+      2315,
+      4443
+     ],
+     "front": [
+      100,
+      85,
+      114
+     ],
+     "p90": [
+      91.7,
+      92.2,
+      92.1
+     ]
+    }
+   },
+   "eastWind|high": {
+    "proxy": {
+     "exposed": [
+      39355,
+      50013,
+      40585
+     ],
+     "front": [
+      5538,
+      13118,
+      6844
+     ],
+     "p90": [
+      95.5,
+      100.7,
+      97.3
+     ]
+    },
+    "landfire": {
+     "exposed": [
+      40027,
+      46359,
+      36076
+     ],
+     "front": [
+      5158,
+      9602,
+      6166
+     ],
+     "p90": [
+      93.6,
+      95.2,
+      93.5
+     ]
+    }
+   },
+   "panoramic|low": {
+    "proxy": {
+     "exposed": [
+      1516,
+      1301,
+      1292
+     ],
+     "front": [
+      265,
+      237,
+      232
+     ],
+     "p90": [
+      129.3,
+      104.6,
+      111.3
+     ]
+    },
+    "landfire": {
+     "exposed": [
+      881,
+      784,
+      813
+     ],
+     "front": [
+      43,
+      26,
+      26
+     ],
+     "p90": [
+      128.3,
+      101.7,
+      106.9
+     ]
+    }
+   },
+   "panoramic|central": {
+    "proxy": {
+     "exposed": [
+      13286,
+      12369,
+      14514
+     ],
+     "front": [
+      3772,
+      3194,
+      4197
+     ],
+     "p90": [
+      null,
+      null,
+      null
+     ]
+    },
+    "landfire": {
+     "exposed": [
+      12445,
+      11900,
+      12151
+     ],
+     "front": [
+      3230,
+      2007,
+      3140
+     ],
+     "p90": [
+      157.8,
+      null,
+      163.4
+     ]
+    }
+   },
+   "panoramic|high": {
+    "proxy": {
+     "exposed": [
+      43274,
+      39814,
+      45118
+     ],
+     "front": [
+      14384,
+      12058,
+      14263
+     ],
+     "p90": [
+      null,
+      null,
+      null
+     ]
+    },
+    "landfire": {
+     "exposed": [
+      38400,
+      38399,
+      41825
+     ],
+     "front": [
+      12617,
+      12753,
+      12687
+     ],
+     "p90": [
+      null,
+      null,
+      null
+     ]
+    }
+   },
+   "northHills|low": {
+    "proxy": {
+     "exposed": [
+      130,
+      116,
+      107
+     ],
+     "front": [
+      24,
+      17,
+      21
+     ],
+     "p90": [
+      91.4,
+      92.2,
+      92.4
+     ]
+    },
+    "landfire": {
+     "exposed": [
+      14,
+      5,
+      9
+     ],
+     "front": [
+      2,
+      0,
+      0
+     ],
+     "p90": [
+      91.4,
+      92.1,
+      92.4
+     ]
+    }
+   },
+   "northHills|central": {
+    "proxy": {
+     "exposed": [
+      3510,
+      3681,
+      4250
+     ],
+     "front": [
+      320,
+      230,
+      424
+     ],
+     "p90": [
+      91.6,
+      92.5,
+      93.2
+     ]
+    },
+    "landfire": {
+     "exposed": [
+      1454,
+      790,
+      2590
+     ],
+     "front": [
+      62,
+      19,
+      88
+     ],
+     "p90": [
+      91.5,
+      92.3,
+      92.7
+     ]
+    }
+   },
+   "northHills|high": {
+    "proxy": {
+     "exposed": [
+      22494,
+      31307,
+      28065
+     ],
+     "front": [
+      4784,
+      6801,
+      6574
+     ],
+     "p90": [
+      99.2,
+      99.7,
+      103.3
+     ]
+    },
+    "landfire": {
+     "exposed": [
+      23045,
+      24101,
+      22339
+     ],
+     "front": [
+      3919,
+      3709,
+      4413
+     ],
+     "p90": [
+      93.5,
+      94.2,
+      94.6
+     ]
+    }
+   }
+  }
+ }
+}

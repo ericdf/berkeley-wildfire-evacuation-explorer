@@ -12,3 +12,7 @@ data/raw/imagery/
 data/raw/widening/
 # Egress candidates: Overpass responses and lookups (tools/egress-candidates.mjs); re-fetched on demand. Parcel geometry is never saved.
 data/raw/egress/
+# LANDFIRE download cache (tools/fetch-fuel.mjs); data/terrain/fbfm40.u8 holds the same codes.
+data/raw/landfire/
+# Wind downloads (tools/wind-events.mjs): Red Flag lists, WRCC pages, OAK ASOS; the summary is data/model/wind-red-flag.json.
+data/raw/wind/

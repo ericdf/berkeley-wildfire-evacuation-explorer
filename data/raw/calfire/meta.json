@@ -1,0 +1,9 @@
+{
+  "service": "https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/arcgis/rest/services/California_Historic_Fire_Perimeters/FeatureServer/0",
+  "file": "tunnel-1991.geojson",
+  "query": "where=FIRE_NAME='TUNNEL' AND YEAR_=1991, outSR=4326, f=geojson",
+  "record": "TUNNEL, 1991, CDF unit SCU, INC_NUM 00002085, GIS_ACRES 1,622.755, CAUSE 14, C_METHOD 8",
+  "limits": "The service description warns of missing perimeters and over-generalization of large old fires (unburned islands shown as burned). No 1923 perimeter is in FRAP for the model area (query YEAR_ < 1950 in 122.40–122.10 W, 37.75–38.00 N returned none).",
+  "retrieved": "2026-11-03",
+  "category": "sourced (historical)"
+}

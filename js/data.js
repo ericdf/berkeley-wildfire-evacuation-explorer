@@ -12,9 +12,13 @@ export async function loadData(load = browserLoad) {
   // police-control, power-shutoff and contraflow settings. Every setting is off by default.
   const [signals, contraflow] = await Promise.all(['data/model/signals.json', 'data/model/contraflow-streets.json']
     .map(p => Promise.resolve().then(() => load(p, 'json')).catch(() => null)));
+  // Optional: LANDFIRE FBFM40 fuel classes on the fire grid (tools/fetch-fuel.mjs), for the opt-in "Fuel" scenario setting.
+  const [fuelMeta, fuelBuf] = await Promise.all([['data/terrain/fbfm40.json', 'json'], ['data/terrain/fbfm40.u8', 'buffer']]
+    .map(([p, k]) => Promise.resolve().then(() => load(p, k)).catch(() => null)));
+  const fuel40 = fuelMeta && fuelBuf ? { meta: fuelMeta, codes: new Uint8Array(fuelBuf) } : null;
   // Optional: workplaces and off-street parking (tools/workplaces.mjs), for the opt-in "by workplace" placement of non-residents.
   const workplaces = await Promise.resolve().then(() => load('data/model/workplaces.json', 'json')).catch(() => null);
-  return prepare({ net, layers, dem, Z: new Int16Array(demBuf), A, access, signals, contraflow, workplaces });
+  return prepare({ net, layers, dem, Z: new Int16Array(demBuf), A, access, signals, contraflow, fuel40, workplaces });
 }
 
 async function browserLoad(path, kind) {
