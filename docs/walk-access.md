@@ -1,6 +1,6 @@
 # Home-to-street walking and stair access in the hills
 
-Built 2026-11-03 by `node tools/walk-access.mjs` from 13,591 hill building footprints (Microsoft Global ML Building Footprints), the 4 m lidar DEM and OpenStreetMap stairways and paths. Synthetic households, not real ones; per-segment aggregates only, no building is listed. Not a prediction and not an official evacuation plan. Sources and checks: SOURCE_NOTES WA1–WA14.
+Built 2026-11-03 by `node tools/walk-access.mjs` from 13,591 hill building footprints (Microsoft Global ML Building Footprints), the 4 m lidar DEM and OpenStreetMap stairways and paths. Synthetic households, not real ones; per-segment aggregates only, no building is listed. Not a prediction and not an official evacuation plan. Sources and checks: SOURCE_NOTES WA1–WA15.
 
 ## Findings
 
@@ -102,6 +102,30 @@ Where stairways and paths shorten the walk to a shelter most (minutes saved agai
 
 Unnamed (OKL-002) 11.0; Unnamed (BER-029) 10.6; Unnamed (OKL-002) 9.9; Unnamed (OKL-002) 9.9; Centennial Dr (OKL-002) 9.9; Unnamed (OKL-002) 9.7; Centennial Dr (OKL-002) 9.4; Centennial Dr (OKL-002) 8.6; Tamalpais Rd (BER-029) 8.5; Tamalpais Rd (BER-029) 8.1.
 
+## Simulator: the opt-in setting on and off
+
+`node tools/walk-access-sim.mjs`, central (medium) severity, seeds 1–3, today's plan, each scenario's time of day; same fire, households, parked cars and seed with the setting off and on. People still there when embers arrived count each person once and are not a casualty count. ETE (evacuation time estimate): minutes after the order until 90% of the Berkeley order area's vehicles are out (Time Study region in brackets). Built 2026-11-03.
+
+Across the 15 pairs, people still there when embers arrived change by -80 to +251 (both directions, so no clear difference), people at the fire front by 0 to +10, and the 90% ETE by -0.4 to +0.6 min. The mean delay counts every departing household, most of them in the flats with none. A dash means 90% of the order area's vehicles were not out before the run ended.
+
+| Scenario | Seed | Still there when embers arrived, off → on | At the fire front, off → on | 90% ETE (min), off → on | Mean delay, all departing households (s) |
+|---|---:|---:|---:|---:|---:|
+| Reference: 1923 fire, present-day repeat (R02 1923 Fire) | 1 | 5,496 → 5,747 | 571 → 577 | 104.6 → 105.2 | 6 |
+| Reference: 1923 fire, present-day repeat (R02 1923 Fire) | 2 | 3,331 → 3,352 | 327 → 327 | 101.8 → 102.1 | 6 |
+| Reference: 1923 fire, present-day repeat (R02 1923 Fire) | 3 | 6,843 → 6,763 | 571 → 581 | 108.8 → 108.4 | 6 |
+| Extreme east wind (R05 Fire Zones 2 & 3) | 1 | 5,641 → 5,646 | 228 → 232 | 91.8 → 92.0 | 9 |
+| Extreme east wind (R05 Fire Zones 2 & 3) | 2 | 4,130 → 4,132 | 145 → 145 | 92.3 → 92.6 | 9 |
+| Extreme east wind (R05 Fire Zones 2 & 3) | 3 | 6,073 → 6,074 | 296 → 296 | 92.2 → 92.5 | 9 |
+| Constrained neighborhood: Panoramic Hill (R04 Panoramic Hill) | 1 | 13,286 → 13,372 | 3,772 → 3,773 | — → — | 6 |
+| Constrained neighborhood: Panoramic Hill (R04 Panoramic Hill) | 2 | 12,369 → 12,404 | 3,194 → 3,201 | — → — | 6 |
+| Constrained neighborhood: Panoramic Hill (R04 Panoramic Hill) | 3 | 14,514 → 14,502 | 4,197 → 4,204 | — → — | 6 |
+| Extreme east wind, weekday midday | 1 | 6,039 → 6,060 | 321 → 322 | 105.8 → 106.1 | 9 |
+| Extreme east wind, weekday midday | 2 | 4,629 → 4,660 | 201 → 201 | 105.2 → 105.3 | 9 |
+| Extreme east wind, weekday midday | 3 | 6,631 → 6,630 | 410 → 419 | 106.2 → 106.4 | 9 |
+| North hills: fire in Tilden above the Summit (R09 North Berkeley Hills) | 1 | 3,510 → 3,513 | 320 → 322 | 91.6 → 92.0 | 8 |
+| North hills: fire in Tilden above the Summit (R09 North Berkeley Hills) | 2 | 3,681 → 3,664 | 230 → 230 | 92.5 → 92.8 | 8 |
+| North hills: fire in Tilden above the Summit (R09 North Berkeley Hills) | 3 | 4,250 → 4,230 | 424 → 427 | 93.2 → 93.4 | 8 |
+
 ## Method
 
 - **Hill buildings** (model rule): footprint centroid in Berkeley's Fire Zones 2–3 (8,232), or outside Berkeley at 90 m DEM elevation or higher (5,359), the simulator's hill proxy. Footprints under 25 m² are dropped as sheds (assumption). 30 buildings with no household street within 150 m and 8 on DEM faults (a cell at sea level or a slope steeper than 1:1 to the curb) are left out.
@@ -109,13 +133,13 @@ Unnamed (OKL-002) 11.0; Unnamed (BER-029) 10.6; Unnamed (OKL-002) 9.9; Unnamed (
 - **Path or stair access** (model rule): a public OpenStreetMap stairway, footway, path or pedestrian way (not sidewalks or crossings, not access=private) within 30 m of the centroid and at least 10 m closer than the street.
 - **Door-to-curb route** (model rule): the straight line. Up to a 25% slope it is walked; steeper, stairs take the whole rise at Fruin's 178 mm riser and 286 mm tread (32°) and the rest is level walking.
 - **Speeds**: walking, Tobler's hiking function, 6·exp(−3.5·|s + 0.05|) km/h (1.4 m/s on the level); stairs, Fruin's free-flow horizontal speeds on that stair, 0.51 m/s up and 0.67 m/s down (sourced). Reduced mobility: 0.914 m/s on the level (MUTCD 3.0 ft/s), scaled by Tobler's slope factor (derived); stairs, NIST's mean 0.31 m/s for people with mobility impairments, taken as along the stair and converted to 0.26 m/s horizontal (derived), and 0.2 m/s up, scaled by Fruin's up/down ratio (assumption: no ascent figure was found).
-- **Departure delay** for the simulator setting (assumption + derived): the terrain's extra time over level ground for three legs, at central speeds, never below zero. Each segment keeps the 10th, 25th, 50th, 75th and 90th percentiles; a segment with fewer than 5 buildings uses its zone's pooled figures (877 of 1,862 hill segments). A household draws its delay from its own random stream.
+- **Departure delay** for the simulator setting (assumption + derived): the terrain's extra time over level ground for three legs, at central speeds, never below zero. Each segment keeps the 10th, 25th, 50th, 75th and 90th percentiles; a segment with fewer than 5 buildings uses its zone's pooled figures (877 of 1,862 hill segments). A household draws its delay from a separate random stream.
 - **Pedestrian network**: every network street except freeways and ramps, walkable both ways whatever the one-way coding, plus 8,360 public OpenStreetMap ways (stairways, footways including sidewalks, paths, pedestrian ways), 7,282 of their ends or road crossings joined to a street within 15 m. Times from the DEM profile every 8 m.
 
 ## Limits
 
 - The DEM is bare earth at 4 m: it shows no retaining walls, garages, decks, inside stairs or floor levels. A home on a steep lot may have its door at street level by a bridge, or many more steps than the ground between centroid and curb.
 - Public stairways in OpenStreetMap (456 in the hills) carry step counts on only 40; on those, DEM rise per step is a median 0.13 m (quartiles 0.07–0.18), lower than a typical 0.15–0.18 m riser, so the DEM rise along stairways is probably low and stair times short. The OSM extract is the server's copy as of 2026-06-01T08:52:28Z.
-- Building footprints are machine-learned (Microsoft) and include garages and outbuildings over 25 m²; a building is not a household. OpenStreetMap buildings could not be fetched for a coverage check (both Overpass servers timed out on 2026-11-03).
+- Building footprints are machine-learned (Microsoft) and include garages and outbuildings over 25 m²; a building is not a household. OpenStreetMap buildings could be fetched for only 3 of 9 tiles (Overpass timeouts on 2026-11-03); in those, OpenStreetMap has 25–30% more buildings than the Microsoft footprints of 25 m² or more, so building counts here are low, by an unknown share in the hills.
 - Carless households are the simulator's uniform 7.47% of households; no tenure, age or disability data by block. The walk ignores fire, smoke, darkness, traffic and crowding, and the order area is one seed's.
 - The Time Study's mobilization curves come from a survey of residents and may already include part of the walk to the car; the simulator setting adds the whole terrain excess on top.

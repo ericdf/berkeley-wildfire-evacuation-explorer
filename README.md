@@ -70,6 +70,8 @@ rebuild it after `tools/mitigations.mjs` or any model change.
    Evacuation Time Study's middle-housing case (870 units) or maximum ADU build-out (27,060),
    or a moderate case (2,706, an assumption). A Red Flag power shutoff (Expert view, both plans)
    turns the signals in and next to the hills, or all of them, into all-way stops.
+   Home-to-street access time (Expert view, both plans, off by default) delays each household's
+   departure by the terrain's extra walking time from its door to its street.
 2. **Operating plan.** Plan A and Plan B are edited in tabs: when zones are ordered,
    how long detection and the decision take, whether all hill zones are ordered at once,
    early departure on Red Flag days (from the City's Leave Early Zones, or all of Fire Zones 2–3),
@@ -330,6 +332,7 @@ add any parking-removal bonus.
 | `data/model/access-constraints.json` | Built by `tools/access-constraints.mjs`; the simulator runs without it |
 | `data/model/signals.json` | Signal junctions and control type (City `Signals` layer) and the Time Study's Appendix F congestion points, built by `tools/signals.mjs` |
 | `data/model/contraflow-streets.json` | Main hill exit streets for contraflow, built by `tools/contraflow-streets.mjs` from status-quo runs |
+| `data/model/walk-access.json` | Built by `tools/walk-access.mjs` (hill homes' height and distance to their street, door-to-curb and carless walking times, per street segment); optional; its report is `docs/walk-access.md` |
 | `data/model/retreat.json` | Built by `tools/retreat-sim.mjs` (managed retreat: block ranking, buyout runs, costs); its report is `docs/managed-retreat.md` |
 | `data/terrain/dem.i16`, `dem.json` | Elevation grid, built by `tools/fetch-dem.mjs` |
 | `data/field/` | Field and aerial observations (counts only), e.g. parked cars on 22 hill blocks |
@@ -456,6 +459,16 @@ Rerun it after `tools/build-network.mjs` and `tools/access-constraints.mjs`.
 node tools/retreat-sim.mjs                 # about 20 min on 7 workers; writes data/model/retreat.json and docs/managed-retreat.md
 node tools/retreat-sim.mjs --report-only   # rebuilds the report from data/model/retreat.json
 node tests/retreat-draws.mjs               # bought-out households leave every other draw unchanged
+## Home-to-street walking and stair access
+`tools/walk-access.mjs` joins hill building footprints (Microsoft Global ML Building Footprints) to their nearest household street and measures, from the 4 m lidar DEM, how far above or below the street each sits; it keeps only per-segment aggregates. Door-to-curb walking times use Tobler's hiking function and Fruin's stair speeds, with a reduced-mobility range from the MUTCD slower-pedestrian speed and NIST stair data. It also walks carless households over a pedestrian network of streets plus OpenStreetMap stairways and paths to the nearest street outside each scenario's order and warning area and to the City's 13 shelter sites. The Expert-view setting "Home-to-street access time: from terrain" (scenario, both plans, off by default) delays each departing household by its segment's terrain excess for three legs, drawn from a separate random stream; the map's "Homes above or below their street" street color shows the per-segment 90th percentile. Method, findings and the simulator comparison are in `docs/walk-access.md`; sources and checks in `SOURCE_NOTES.md` WA1–WA14. Rerun it after every network rebuild (edge ids change); the simulator ignores the file when it was built on another network.
+
+```
+node tools/walk-access.mjs --ms <Microsoft tile .csv.gz>  # first run: extracts building centroids to data/raw/walk/ (gitignored)
+node tools/walk-access.mjs                                 # later runs; writes data/model/walk-access.json and docs/walk-access.md
+node tools/walk-access-sim.mjs                             # setting off vs on, every scenario, medium severity, seeds 1-3 (about 6 min)
+node tests/walk-draws.mjs                                  # the setting moves departure times only
+```
+
 ### Second ways out
 `node tools/egress-all.mjs` screens candidate road connections that would give these areas a second way out: straight new roads up to 250 m, upgraded paths and stairways, opened barriers, and the City's "2nd Route Out" for Panoramic Hill. For each it reports length, grade from the lidar DEM, buildings and Alameda County parcels in a 40 ft corridor (counts only), park and campus land, the residents it takes out from behind a choke, a screening cost range from public figures, and the simulator's result with and without the link for the same seeds (the link is added at run time; `network.json` is unchanged). The candidates are a screening, not designs, and the results are a comparison, not a prediction. Method, ranked table, what was pruned and the Time Study benchmark are in `docs/egress-candidates.md`; the whole run takes 20–30 minutes on 8 cores. Rerun it after every network rebuild: candidate ids are built from the access-constraint area ids (AC-160-N3 is a link out of area AC-160), which shift when the network changes.
 

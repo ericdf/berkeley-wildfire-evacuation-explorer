@@ -12,7 +12,10 @@ export async function loadData(load = browserLoad) {
   // police-control, power-shutoff and contraflow settings. Every setting is off by default.
   const [signals, contraflow] = await Promise.all(['data/model/signals.json', 'data/model/contraflow-streets.json']
     .map(p => Promise.resolve().then(() => load(p, 'json')).catch(() => null)));
-  return prepare({ net, layers, dem, Z: new Int16Array(demBuf), A, access, signals, contraflow });
+  // Optional: home-to-street walking and stair access by street segment (tools/walk-access.mjs), for the
+  // opt-in "Home-to-street access time" scenario setting and its map layer. Off by default.
+  const walk = await Promise.resolve().then(() => load('data/model/walk-access.json', 'json')).catch(() => null);
+  return prepare({ net, layers, dem, Z: new Int16Array(demBuf), A, access, signals, contraflow, walk });
 }
 
 async function browserLoad(path, kind) {

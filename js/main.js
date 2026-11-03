@@ -4,7 +4,7 @@ import { makeScenarios, familyOf, comparisonCases, FAMILY_WINDS, SEVERITY, SEVER
 import { Evacuation, DEFAULT_PLAN, titleCase } from './sim.js';
 import { PARKING_PLANS } from './parking.js';
 import { PRESETS, FIRES } from './presets.js';
-import { MapView, STREET_MODES } from './map.js';
+import { MapView, STREET_MODES, RISE_BINS } from './map.js';
 import { fromUTM } from '../tools/utm.mjs';
 import { accessCard, accessSummary, accessTable, accessLegend } from './access.js';
 import { ROUTING, routingOf, complianceOf, worseOff, worseOffBeyondChance } from './guidance.js';
@@ -95,6 +95,13 @@ function shutoffNote() {
   $('shutoff-note').innerHTML = v === 'none' ? '' : `${esc(SHUTOFF[v])}: each dark signal runs as an all-way stop (California Vehicle Code §21800(d)) and passes at most about ${fmt(OPS().powerShutoff.allWayStopVph)} vehicles per hour ${badge('assumption', A_NOTE('operations.powerShutoff.allWayStopVph'))}. No signal is assumed to have battery backup. Grid-powered contraflow signs fail. ${badge('model rule', A_NOTE('operations.powerShutoff'))}`;
 }
 $('powerShutoff').onchange = () => { shutoffNote(); newRun(); };
+// Home-to-street access time (scenario, both plans, Expert view; tools/walk-access.mjs, SOURCE_NOTES WA13). Off by default.
+const walkNote = () => {
+  const W = data.walk, on = $('walkAccess').value === 'terrain';
+  $('walk-note').innerHTML = !on ? '' : !W ? 'data/model/walk-access.json is missing: no access time is applied.'
+    : `Each departing household leaves its street later by the terrain's extra walking time from door to curb for three legs (two trips out with belongings, one back) ${badge('assumption', 'Three legs is this project\'s assumption. Walking speed on slopes: Tobler\'s hiking function; stairs: Fruin\'s free-flow stair speeds (SOURCE_NOTES WA4–WA6).')}, drawn from its street segment's spread across hill homes ${badge('derived', 'Microsoft building footprints and the 4 m lidar DEM: height and distance from each footprint centroid to the nearest point of its street (tools/walk-access.mjs). Only per-segment percentiles are kept.')}. Across ${fmt(W.meta.counts.hillBuildings)} hill buildings the median is ${fmt(W.meta.counts.delayS.central[0])} s and the 90th percentile ${fmt(W.meta.counts.delayS.central[1])} s; for people with reduced mobility ${fmt(W.meta.counts.delayS.reduced[0])} and ${fmt(W.meta.counts.delayS.reduced[1])} s, which this setting does not apply. The Time Study's mobilization times may already include part of this walk.`;
+};
+$('walkAccess').onchange = () => { walkNote(); newRun(); };
 // Streets I choose: the clicked segment and the same-named two-way street running on from it.
 function sameStreet(id) {
   const edges = data.net.edges, name = edges[id].name, seen = new Set([id]), stack = [id];
@@ -111,7 +118,7 @@ function toggleContraflow(id) {
 }
 // ---------- future growth (scenario) and R0 (plan) ----------
 // Growth is part of the world both plans face. Simple view always runs today's population.
-const world = () => document.body.classList.contains('simple') ? { growth: 'none', powerShutoff: 'none' } : { growth: $('growth').value, powerShutoff: $('powerShutoff').value };
+const world = () => document.body.classList.contains('simple') ? { growth: 'none', powerShutoff: 'none' } : { growth: $('growth').value, powerShutoff: $('powerShutoff').value, ...($('walkAccess').value !== 'none' ? { walkAccess: $('walkAccess').value } : {}) };
 for (const [k, o] of Object.entries(data.A.growth.options)) $('growth').add(new Option(o.label, k));
 if (!data.access) { const o = $('p-r0').querySelector('option[value="access"]'); o.disabled = true; o.textContent += ' (needs data/model/access-constraints.json)'; }
 const growthNote = () => { const o = data.A.growth.options[$('growth').value]; $('growth-note').innerHTML = `${esc(o.note)} ${badge(o.category)}`; };
@@ -641,7 +648,7 @@ function applyPreset(idOrPreset) {
 }
 function setMode(m) {
   // Simple view runs without growth (world()), so a switch rebuilds the run once the class has changed.
-  const rerun = (document.body.classList.contains('simple') || document.body.classList.contains('expert')) && !document.body.classList.contains(m) && ($('growth').value !== 'none' || $('powerShutoff').value !== 'none');
+  const rerun = (document.body.classList.contains('simple') || document.body.classList.contains('expert')) && !document.body.classList.contains(m) && ($('growth').value !== 'none' || $('powerShutoff').value !== 'none' || $('walkAccess').value !== 'none');
   document.body.classList.toggle('simple', m === 'simple'); document.body.classList.toggle('expert', m === 'expert');
   document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
   localStorage.setItem('bhe-mode', m);
@@ -887,6 +894,7 @@ function legend() {
     grade: sw('#4f7f9b', '< 5%') + sw('#8fae4a', '5–10%') + sw('#e0b21e', '10–15%') + sw('#e07a1e', '15–20%') + sw('#c0262d', '≥ 20%') + sw('#aaa', 'unreliable (structure or DEM artefact)'),
     widthSource: sw('#2b6cb0', 'City pavement-management width') + sw('#8a3fb8', 'City narrow-roads survey') + sw('#aaa', 'no width data'),
     oneway: sw('#d1495b', 'One-way (arrow = direction)') + sw('#666', 'Two-way'),
+    walkRise: RISE_BINS.map(([, c, t]) => sw(c, t)).join('') + sw('#d4d4d4', 'not a hill street, or no data') + '<div class="small muted">90th percentile of hill homes\' height above or below the nearest point of their street (DEM at footprint centroids, Microsoft footprints). Segments with fewer than 5 buildings show their zone\'s figure.</div>',
     ops: sw('#1d4ed8', 'Contraflow running: both lanes out') + sw('#93c5fd', 'Contraflow planned, not started') + sw('#e07a1e', 'On the plan, too narrow for two lanes out') + sw('#9ca3af', 'On the plan, not running (see event log)') + '<div class="small muted">Junctions: <span class="dot" style="background:#7c3aed"></span>officer control · <span class="dot" style="background:#111"></span>dark signal (all-way stop)</div>',
   }[m];
   const extra = (map.layers.fire ? `<div><span class="dot" style="background:#ff7a00"></span>Active fire (last 15 min)</div><div><span class="dot" style="background:#5a1e19"></span>Burned</div><div><span class="dot" style="background:#ffb020;opacity:.6"></span>Ember exposure</div>` : '')
@@ -1144,6 +1152,7 @@ $('btn-assumptions').onclick = () => {
   <ul class="small">
     <li><b>Contraflow</b> (plan setting): once it starts, both lanes of a chosen two-way street carry traffic away from the order area and the inbound direction is closed. It runs only where at least ${fmt(2 * data.A.access.movingLaneM / 0.3048)} ft stays clear between the plan's parked cars (two 10-ft lanes); on narrower streets it gains nothing and the street stays two-way. The main hill exit streets are those that carried the most order-zone traffic out of the hills in status-quo runs, plus the entrances of the larger access-constrained areas (<code>tools/contraflow-streets.mjs</code>). A street runs contraflow only while its zone is ordered or warned: a segment in a zone told later starts later, and one in a zone the run never orders or warns stays two-way. Junction capacity is unchanged, so where the junction at the bottom of a street is the bottleneck, contraflow adds room to queue but not throughput. Costs it models: returning commuters cannot drive in (they turn back or reroute), and engines cannot drive up a contraflow street (they take another route or cannot reach). Officer-staffed contraflow needs one officer at every entry point (the street's outbound end and every side-street junction) and starts when they arrive; pre-installed signs and gates start ${OPS().contraflow.signDelayMin} min after the order. A sign fails if the fire reaches it first, or if it runs on grid power alone during a power shutoff; a failed sign falls back to officers or to no contraflow. Battery backup is assumed to last the whole run, which a shutoff that starts a day ahead of the fire might not allow. Not modeled: drivers who ignore the signs, wrong-way crashes, the time to clear inbound traffic off the street before it reverses, and rehearsal making people leave sooner.</li>
     <li><b>Police control of junctions</b> (plan setting): officers arrive a set time after the first order and staff contraflow entry points first, then target junctions on the evacuation routes, busiest first (by the households whose first route passes through). An officer-controlled junction passes ${Math.round(OPS().police.capacityUplift * 100)}% more vehicles than its model capacity and lets approaches heading toward safety go first. That uplift is an assumption kept modest: the Time Study models staffed control as actuated signal timing (§4.3, p. 4-7) and finds converting pre-timed signals to actuated cuts evacuation time by up to 13% (p. 10-9); manual control can also do worse than a signal. The simulator models signals only as a capacity per road class, so officer control acts on that capacity, not on real signal phases.</li>
+    <li><b>Home-to-street access time</b> (scenario setting, both plans; Expert view only; off by default): a household leaves its street later by the terrain's extra walking time from door to curb, for three legs (two trips out with belongings, one back) ${badge('assumption')}. Height and distance come from Microsoft building footprints and the 4 m lidar DEM, joined to the nearest street ${badge('derived')}; walking speed on slopes from Tobler's hiking function and stair speeds from Fruin (${badge('sourced')}). Each household's delay is drawn from a separate random stream, so turning the setting on moves no other draw. Reduced-mobility times (MUTCD 3.0 ft/s, NIST stair speeds) are reported in <code>docs/walk-access.md</code> and not applied. The DEM is bare earth: it shows no retaining walls, inside stairs or floor levels, and the route is a straight line, so a winding stair or driveway takes longer than this.</li>
     <li><b>Red Flag power shutoff</b> (scenario setting): dark signals run as all-way stops (California Vehicle Code §21800(d)) at about ${fmt(OPS().powerShutoff.allWayStopVph)} vehicles per hour through the junction, or less where the model's capacity was already lower. No public source says which Berkeley signals have battery backup, so none is assumed. An officer at a dark signal restores it to officer control. Streetlights, phones, alerts and water pressure, which a shutoff also affects, are not modeled.</li>
   </ul>
   <h3>Information gaps and how far off they make the simulator</h3>
@@ -1193,7 +1202,7 @@ if (data.access) {
 }
 
 // ---------- start ----------
-growthNote(); shutoffNote(); showScenario(); showPlan(); legend(); newRun();
+growthNote(); shutoffNote(); walkNote(); showScenario(); showPlan(); legend(); newRun();
 setMode(localStorage.getItem('bhe-mode') || 'simple');
 if (!localStorage.getItem('bhe-intro-seen')) intro();
 requestAnimationFrame(loop);

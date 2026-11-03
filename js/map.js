@@ -13,7 +13,12 @@ export const STREET_MODES = {
   widthSource: 'Width data source',
   oneway: 'Direction of travel',
   ops: 'Contraflow and officer control (this plan)',
+  walkRise: 'Homes above or below their street (hills)',
 };
+
+// Walk access (tools/walk-access.mjs): 90th-percentile height of hill homes above or below their street, m.
+export const RISE_BINS = [[0, '#dbe7f3', '< 3 m'], [3, '#9ec5f4', '3–5 m'], [5, '#3987e5', '5–10 m'], [10, '#184f95', '10–20 m'], [20, '#0b2545', '20 m or more']];
+export const riseColor = r => RISE_BINS.reduce((c, b) => r >= b[0] ? b[1] : c, RISE_BINS[0][1]);
 
 // Access-constrained areas: residents behind the choke (synthetic), one blue ramp light to dark.
 export const ACCESS_BINS = [[0, '#9ec5f4', '0'], [25, '#6da7ec', '25'], [100, '#3987e5', '100'], [250, '#256abf', '250'], [500, '#184f95', '500+']];
@@ -194,6 +199,9 @@ export class MapView {
     else if (m === 'grade') { const g = e.gradeReliable ? e.gradeMax : null; c = g == null ? '#aaa' : g < 5 ? '#4f7f9b' : g < 10 ? '#8fae4a' : g < 15 ? '#e0b21e' : g < 20 ? '#e07a1e' : '#c0262d'; }
     else if (m === 'widthSource') c = e.widthSrc === 'unknown' ? '#aaa' : e.narrow ? '#8a3fb8' : '#2b6cb0';
     else if (m === 'oneway') c = e.trav === 'FT' || e.trav === 'TF' ? '#d1495b' : e.trav === 'NT' ? '#aaa' : '#666';
+    else if (m === 'walkRise') { // the segment's figure, or its zone's pooled one where it has fewer than 5 buildings
+      const W = this.data.walk, sg = W?.segments?.[e.id], v = sg ? (sg.p90RiseM ?? W.zones?.[sg.zone]?.p90RiseM) : null;
+      c = v == null ? '#d4d4d4' : riseColor(v); if (v != null) w = Math.max(w, 2.5); }
     else if (m === 'ops') { // js/operations.js: contraflow status on this plan
       const st = sim?.ops?.cf?.status.get(e.id), comp = st && sim.ops.cf.comps[st.comp];
       c = !st ? '#d4d4d4' : !st.ok ? '#e07a1e' : comp?.state === 'running' ? '#1d4ed8' : comp?.state === 'scheduled' ? '#93c5fd' : '#9ca3af';
