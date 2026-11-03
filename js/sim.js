@@ -864,7 +864,20 @@ export class Evacuation {
     const { hh, v, t, data } = this, pph = data.A.demand.personsPerHousehold;
     const S = { orderedPeople: 0, warnedLeaving: 0, shadowLeaving: 0, leftEarly: 0, reachedSafety: 0, onRoad: 0, notLeft: 0, noVehicle: 0, riders: 0,
       notOrderedExposed: 0, otherCityOrderedPeople: 0, exposedHome: 0, exposedRoad: 0, exposedNoVehicle: 0, fireFrontHome: 0, fireFrontRoad: 0, waitingToEnter: this.waiting.length };
-    let drivingHH = 0, drivingVeh = 0;
+    // People still there when embers (or the fire front) arrived: each person counted once, where they
+    // were when embers first reached them (SOURCE_NOTES FO7). A household still at home then counts at
+    // home (ordered, no order, or no car); otherwise it counts on the road if any car of its trip (its
+    // own, the neighbor's it rides with, or its commuter's) was on a street under embers. Non-resident
+    // cars count on the road, each as persons per household / cars per driving household.
+    let drivingHH = 0, drivingVeh = 0, nrEmb = 0, nrFire = 0;
+    const roadEmb = new Uint8Array(hh.n), roadFire = new Uint8Array(hh.n);
+    for (let i = 0; i < v.n; i++) {
+      const h = v.hh[i];
+      if (v.exposed[i]) { if (h < 0) nrEmb++; else roadEmb[h] = 1; }
+      if (v.fireFront[i]) { if (h < 0) nrFire++; else roadFire[h] = 1; }
+    }
+    const where = this.exposedWhere = new Uint8Array(hh.n); // 1 home (ordered), 2 road, 3 no car, 4 no order
+    const whereFire = this.fireFrontWhere = new Uint8Array(hh.n); // 1 home, 2 road
     for (let h = 0; h < hh.n; h++) {
       if (hh.gone[h]) continue;
       if (hh.veh[h]) { drivingHH++; drivingVeh += hh.veh[h]; }
@@ -873,20 +886,22 @@ export class Evacuation {
       const e = hh.ride[h] >= 0 ? hh.ride[h] : h; // riders share their neighbor's trip
       const te = this.tEmber[hh.edge[h]];
       const exposedAtHome = te <= t && hh.leftHome[e] > te && !hh.early[h];
+      if (exposedAtHome) { const w = where[h] = !told ? 4 : !hh.veh[h] && hh.ride[h] < 0 ? 3 : 1; if (w === 4) S.notOrderedExposed += pph; else if (w === 3) S.exposedNoVehicle += pph; else S.exposedHome += pph; }
+      else if (!hh.early[h] && (roadEmb[h] || roadEmb[e])) { where[h] = 2; S.exposedRoad += pph; }
       // harsher measure: still home when the fire front itself reached the street
       const tf = this.tFire[hh.edge[h]];
-      if (tf <= t && hh.leftHome[e] > tf && !hh.early[h]) S.fireFrontHome += pph;
+      if (tf <= t && hh.leftHome[e] > tf && !hh.early[h]) { whereFire[h] = 1; S.fireFrontHome += pph; }
+      else if (!hh.early[h] && (roadFire[h] || roadFire[e])) { whereFire[h] = 2; S.fireFrontRoad += pph; }
       if (k === 3 && hh.leftHome[h] <= t) S.shadowLeaving += pph;
-      if (!told) { if (exposedAtHome) S.notOrderedExposed += pph; continue; }
+      if (!told) continue;
       // a household that left on a warning counts as ordered once its zone's order is out
       if (k === 1 || this.orderT[z] <= t) { S.orderedPeople += pph; if (this.otherCityOrder[z] && !this.cityOrdered[z]) S.otherCityOrderedPeople += pph; } else S.warnedLeaving += pph;
       if (hh.early[h]) { S.leftEarly += pph; continue; }
-      if (!hh.veh[h] && hh.ride[h] < 0) { S.noVehicle += pph; if (exposedAtHome) S.exposedNoVehicle += pph; continue; }
+      if (!hh.veh[h] && hh.ride[h] < 0) { S.noVehicle += pph; continue; }
       if (hh.ride[h] >= 0) S.riders += pph;
       if (hh.arrived[e] <= t) S.reachedSafety += pph;
       else if (hh.leftHome[e] <= t) S.onRoad += pph;
       else S.notLeft += pph;
-      if (exposedAtHome) S.exposedHome += pph;
     }
     // ETE as the Time Study measures it: minutes from the first order until 50/90/100% of
     // evacuating (non-shadow) vehicles have left the order and warning area.
@@ -900,8 +915,9 @@ export class Evacuation {
       if (v.fromOrder[i] === 2) { nOther++; if (x < Infinity) arrOther.push(x - this.firstOrderT); continue; }
       n0++; if (x < Infinity) arr.push(x - this.firstOrderT);
     }
-    S.exposedRoad = exposedVeh * pph / Math.max(1, drivingVeh / Math.max(1, drivingHH));
-    S.fireFrontRoad = fireVeh * pph / Math.max(1, drivingVeh / Math.max(1, drivingHH));
+    const perCar = pph / Math.max(1, drivingVeh / Math.max(1, drivingHH));
+    S.exposedRoad += nrEmb * perCar; S.fireFrontRoad += nrFire * perCar;
+    S.exposedNonResidentPeople = nrEmb * perCar; S.fireFrontNonResidentPeople = nrFire * perCar;
     S.vehicles = nEvac; S.orderVehicles = n0; S.nonResidentVehicles = this.nonResident; S.shadowVehicles = [...v.cls].filter(c => c === 1).length; S.vehiclesArrived = arr.length; S.vehiclesExposed = exposedVeh;
     S.vehiclesOnRoad = 0; S.vehiclesNoRoute = 0;
     let inbound = 0, inboundHome = 0;
