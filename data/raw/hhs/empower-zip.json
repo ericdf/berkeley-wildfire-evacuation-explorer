@@ -1,0 +1,233 @@
+{
+ "_meta": {
+  "url": "https://services2.arcgis.com/ZQ4jTQn6k7VPXEwO/arcgis/rest/services/HHS_emPOWER_REST_Service_Public/FeatureServer/1",
+  "retrieved": "2026-11-03",
+  "userAgent": "berkeley-wildfire-simulator/0.1",
+  "dataLastEdit": "2026-10-07",
+  "query": "ZIP polygons intersecting the envelope -122.334,37.836,-122.206,37.912",
+  "category": "sourced",
+  "note": "Medicare beneficiaries (Medicare fee-for-service and Medicare Advantage, per HHS emPOWER) who rely on electricity-dependent durable medical equipment, by ZIP. HHS publishes 11 for any count from 1 to 10 (suppression), so 11 means \"1 to 11\". Not by evacuation zone: ZIPs cross zone lines, and some ZIPs (94516 Canyon, 94563 Orinda, 94803 El Sobrante) lie mostly outside the model area."
+ },
+ "zips": {
+  "94516": {
+   "place": "Canyon",
+   "county": "Contra Costa",
+   "medicareBeneficiaries": 75,
+   "electricityDependentDME": 11,
+   "dialysisFacility": 0,
+   "oxygen": 11,
+   "homeHealth": 11,
+   "atHomeHospice": 0,
+   "anyHealthcareService": 22
+  },
+  "94530": {
+   "place": "El Cerrito",
+   "county": "Contra Costa",
+   "medicareBeneficiaries": 6079,
+   "electricityDependentDME": 176,
+   "dialysisFacility": 14,
+   "oxygen": 34,
+   "homeHealth": 42,
+   "atHomeHospice": 11,
+   "anyHealthcareService": 101
+  },
+  "94563": {
+   "place": "Orinda",
+   "county": "Contra Costa",
+   "medicareBeneficiaries": 4979,
+   "electricityDependentDME": 128,
+   "dialysisFacility": 11,
+   "oxygen": 16,
+   "homeHealth": 33,
+   "atHomeHospice": 11,
+   "anyHealthcareService": 71
+  },
+  "94608": {
+   "place": "Emeryville",
+   "county": "Alameda",
+   "medicareBeneficiaries": 4268,
+   "electricityDependentDME": 201,
+   "dialysisFacility": 36,
+   "oxygen": 26,
+   "homeHealth": 44,
+   "atHomeHospice": 11,
+   "anyHealthcareService": 117
+  },
+  "94609": {
+   "place": "Oakland",
+   "county": "Alameda",
+   "medicareBeneficiaries": 2875,
+   "electricityDependentDME": 109,
+   "dialysisFacility": 22,
+   "oxygen": 11,
+   "homeHealth": 16,
+   "atHomeHospice": 11,
+   "anyHealthcareService": 60
+  },
+  "94611": {
+   "place": "Oakland",
+   "county": "Alameda",
+   "medicareBeneficiaries": 8935,
+   "electricityDependentDME": 249,
+   "dialysisFacility": 17,
+   "oxygen": 33,
+   "homeHealth": 60,
+   "atHomeHospice": 11,
+   "anyHealthcareService": 121
+  },
+  "94618": {
+   "place": "Oakland",
+   "county": "Alameda",
+   "medicareBeneficiaries": 3924,
+   "electricityDependentDME": 90,
+   "dialysisFacility": 11,
+   "oxygen": 13,
+   "homeHealth": 27,
+   "atHomeHospice": 11,
+   "anyHealthcareService": 62
+  },
+  "94702": {
+   "place": "Berkeley",
+   "county": "Alameda",
+   "medicareBeneficiaries": 3465,
+   "electricityDependentDME": 120,
+   "dialysisFacility": 14,
+   "oxygen": 21,
+   "homeHealth": 33,
+   "atHomeHospice": 11,
+   "anyHealthcareService": 79
+  },
+  "94703": {
+   "place": "Berkeley",
+   "county": "Alameda",
+   "medicareBeneficiaries": 3669,
+   "electricityDependentDME": 127,
+   "dialysisFacility": 11,
+   "oxygen": 17,
+   "homeHealth": 34,
+   "atHomeHospice": 11,
+   "anyHealthcareService": 73
+  },
+  "94704": {
+   "place": "Berkeley",
+   "county": "Alameda",
+   "medicareBeneficiaries": 1769,
+   "electricityDependentDME": 64,
+   "dialysisFacility": 11,
+   "oxygen": 11,
+   "homeHealth": 15,
+   "atHomeHospice": 0,
+   "anyHealthcareService": 37
+  },
+  "94705": {
+   "place": "Berkeley",
+   "county": "Alameda",
+   "medicareBeneficiaries": 3516,
+   "electricityDependentDME": 102,
+   "dialysisFacility": 11,
+   "oxygen": 21,
+   "homeHealth": 28,
+   "atHomeHospice": 11,
+   "anyHealthcareService": 71
+  },
+  "94706": {
+   "place": "Albany",
+   "county": "Alameda",
+   "medicareBeneficiaries": 3721,
+   "electricityDependentDME": 96,
+   "dialysisFacility": 14,
+   "oxygen": 11,
+   "homeHealth": 20,
+   "atHomeHospice": 11,
+   "anyHealthcareService": 56
+  },
+  "94707": {
+   "place": "Berkeley",
+   "county": "Alameda",
+   "medicareBeneficiaries": 4243,
+   "electricityDependentDME": 101,
+   "dialysisFacility": 11,
+   "oxygen": 15,
+   "homeHealth": 20,
+   "atHomeHospice": 11,
+   "anyHealthcareService": 57
+  },
+  "94708": {
+   "place": "Berkeley",
+   "county": "Contra Costa",
+   "medicareBeneficiaries": 3454,
+   "electricityDependentDME": 85,
+   "dialysisFacility": 11,
+   "oxygen": 13,
+   "homeHealth": 15,
+   "atHomeHospice": 11,
+   "anyHealthcareService": 50
+  },
+  "94709": {
+   "place": "Berkeley",
+   "county": "Alameda",
+   "medicareBeneficiaries": 1745,
+   "electricityDependentDME": 52,
+   "dialysisFacility": 11,
+   "oxygen": 11,
+   "homeHealth": 11,
+   "atHomeHospice": 0,
+   "anyHealthcareService": 33
+  },
+  "94710": {
+   "place": "Berkeley",
+   "county": "Alameda",
+   "medicareBeneficiaries": 1304,
+   "electricityDependentDME": 42,
+   "dialysisFacility": 11,
+   "oxygen": 11,
+   "homeHealth": 12,
+   "atHomeHospice": 11,
+   "anyHealthcareService": 45
+  },
+  "94720": {
+   "place": "Berkeley",
+   "county": "Alameda",
+   "medicareBeneficiaries": 11,
+   "electricityDependentDME": 0,
+   "dialysisFacility": 0,
+   "oxygen": 0,
+   "homeHealth": 0,
+   "atHomeHospice": 0,
+   "anyHealthcareService": 0
+  },
+  "94803": {
+   "place": "El Sobrante",
+   "county": "Contra Costa",
+   "medicareBeneficiaries": 6036,
+   "electricityDependentDME": 227,
+   "dialysisFacility": 38,
+   "oxygen": 32,
+   "homeHealth": 49,
+   "atHomeHospice": 11,
+   "anyHealthcareService": 130
+  },
+  "94804": {
+   "place": "Richmond",
+   "county": "Contra Costa",
+   "medicareBeneficiaries": 6488,
+   "electricityDependentDME": 299,
+   "dialysisFacility": 60,
+   "oxygen": 62,
+   "homeHealth": 56,
+   "atHomeHospice": 11,
+   "anyHealthcareService": 189
+  },
+  "94805": {
+   "place": "Richmond",
+   "county": "Contra Costa",
+   "medicareBeneficiaries": 2853,
+   "electricityDependentDME": 87,
+   "dialysisFacility": 11,
+   "oxygen": 12,
+   "homeHealth": 18,
+   "atHomeHospice": 11,
+   "anyHealthcareService": 52
+  }
+ }
+}

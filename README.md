@@ -69,7 +69,10 @@ rebuild it after `tools/mitigations.mjs` or any model change.
    Future growth (Expert view) adds homes in the hills for both plans: none, the 2025
    Evacuation Time Study's middle-housing case (870 units) or maximum ADU build-out (27,060),
    or a moderate case (2,706, an assumption). A Red Flag power shutoff (Expert view, both plans)
-   turns the signals in and next to the hills, or all of them, into all-way stops.
+   turns the signals in and next to the hills, or all of them, into all-way stops. Weekday
+   non-resident placement (Expert view, both plans) keeps the Time Study's employee, student and
+   visitor vehicles per area and places them by area (default) or by workplace: LEHD LODES jobs,
+   UC and Lab off-street parking (`docs/weekday-placement.md`).
    Home-to-street access time (Expert view, both plans, off by default) delays each household's
    departure by the terrain's extra walking time from its door to its street.
 2. **Operating plan.** Plan A and Plan B are edited in tabs: when zones are ordered,
@@ -184,7 +187,11 @@ as driveways and the street loses capacity. Under 10 ft, a fire engine cannot ge
 
 **Fire and embers** (`js/fire.js`). An illustrative overlay on 30 m cells. A shortest-time
 search spreads fire from the ignition, using wind (an elliptical shape), slope, and a
-proxy fuel factor taken from the City fire zones. Random spot fires mean different seeds
+proxy fuel factor taken from the City fire zones. An opt-in Expert-view setting (Scenario →
+Fuel) uses LANDFIRE 2025 FBFM40 fuel models instead, each with a spread factor from Rothermel's
+relative rate for its Scott and Burgan model, a model rule (`node tools/fetch-fuel.mjs`;
+checks against 1923, 1991, the Ember Threat Zones and Red Flag winds in
+`docs/fire-validation.md`). Random spot fires mean different seeds
 give different footprints. A cell is ember-exposed once anything burns within the ember
 distance upwind of it. The overlay puts plausible, comparable pressure on the evacuation;
 it does not predict how a real fire would behave.
@@ -237,6 +244,20 @@ plan setting R0 drops the units on streets in its area and moves none elsewhere.
 about 29% of it and access-constrained areas about 11% (areas from
 `data/model/access-constraints.json`, written by `tools/access-constraints.mjs`; the option
 stays disabled until that file exists). Parked cars do not increase with growth.
+
+**Household mix by place (Expert view, off by default).** The default gives every zone the
+Time Study's 2.37 persons per household and 7.47% of households without a vehicle. The
+Scenario setting "Household mix: by place (ACS 2020–2024)" replaces both, zone by zone, with
+ACS block-group values allocated to the zone through 2020 Census blocks
+(`tools/build-demand.mjs`, `data/model/demand-by-zone.json`; SOURCE_NOTES DM1–DM9). The two
+sources disagree: the ACS puts about 20% of Berkeley households without a vehicle, the
+study's survey 7.47% (DM3); which to use is open. Draws follow the same pattern under both
+settings, so both plans still see the same households. The Inspector also shows each zone's
+people 75 and older, people with an ambulatory difficulty, one-person 65+ households and
+licensed care, hospital and school capacity, and a map layer shades the share 75+; none of
+these adds trips (design for assisted evacuation: `docs/design/assisted-evacuation.md`;
+comparison runs: `docs/demand-by-place.md`). Rebuild with `node tools/fetch-demand-acs.mjs`,
+`node tools/fetch-demand-facilities.mjs`, then `node tools/build-demand.mjs`.
 
 **Driver information and routing** (`js/guidance.js`; SOURCE_NOTES DG1–DG24). A plan setting,
 Expert view only, off by default: with it at "Today's model" the code path and every result
@@ -336,11 +357,11 @@ add any parking-removal bonus.
 | `data/model/retreat.json` | Built by `tools/retreat-sim.mjs` (managed retreat: block ranking, buyout runs, costs); its report is `docs/managed-retreat.md` |
 | `data/terrain/dem.i16`, `dem.json` | Elevation grid, built by `tools/fetch-dem.mjs` |
 | `data/field/` | Field and aerial observations (counts only), e.g. parked cars on 22 hill blocks |
-| `data/raw/` | Downloaded source data (reproducible, large; City layers and report PDFs are not in git). `osm/east-bay-roads.json` (OSM streets), `osm/lbnl-gate-roads.json` (the Lab's gate roads), `genasys/zones.json` (zone outlines), `census/` (2020 block counts) each have a retrieval note |
+| `data/raw/` | Downloaded source data (reproducible, large; City layers and report PDFs are not in git). `osm/east-bay-roads.json` (OSM streets), `osm/lbnl-gate-roads.json` (the Lab's gate roads), `genasys/zones.json` (zone outlines), `census/` (2020 block counts), `lodes/` (LODES 2023 jobs by block), `cde/` (schools) and `osm/parking*.json`, `osm/traffic-signals.json` each have a retrieval note |
 | `correspondence/` | Drafts of letters, such as the informal question to Berkeley Fire |
 | `tools/` | Data pipeline (Node 18+, no npm packages) |
 | `tests/headless.mjs` | Runs every scenario × two plans in Node and prints summaries |
-| `tests/calibration.mjs`, `tests/stuck.mjs`, `tests/leftover.mjs` | Compare with the Time Study (fire off); list jammed links; list order-zone vehicles that never leave |
+| `tests/calibration.mjs`, `tests/stuck.mjs`, `tests/leftover.mjs` | Compare with the Time Study (fire off; `PLACEMENT=workplace`, `CASES=S1,S4`, `REGIONS=ref1923` select the setting, cases and scenarios); list jammed links; list order-zone vehicles that never leave |
 | `tests/plan-draws.mjs` | Checks that Plan A and Plan B of every Simple-view question see the same households for a seed (each fire, seeds 1–3), the same with maximum growth under each R0 area, and that growth leaves today's households and the shared random stream unchanged |
 | `tests/growth.mjs` | Future growth and R0 with the fire on, seeds 1–5 (`SOURCE_NOTES.md` R4, R5); `GROWTH=max node tests/calibration.mjs` gives R3 |
 | `tests/routing.mjs` | Driver information and routing with the fire on, seeds 1–5: every option, households worse off against Habit (also beyond chance), and a check that every option sees the same households and shared random stream as Today's model (`SOURCE_NOTES.md` DG19–DG24) |
@@ -356,7 +377,9 @@ Every tool is plain Node (18+) with no dependencies.
 node tools/fetch-dem.mjs           # elevation: USGS 3DEP 1 m lidar DEM (4 m overview), ~1 minute
 node tools/fetch-city-layers.mjs   # City of Berkeley ArcGIS Online layers → data/raw/city/
 node tools/build-network.mjs       # rebuild data/model/*.json from everything above
-node tools/signals.mjs             # signal junctions for police control and the power shutoff (after every rebuild)
+node tools/signals.mjs             # signal junctions for police control and the power shutoff (after every rebuild); OSM signals outside Berkeley
+node tools/fetch-osm-parking.mjs   # OSM parking and traffic signals, addr:* tags removed (--clean cleans files on disk)
+node tools/workplaces.mjs          # LODES workplaces, OSM parking and CDE schools → data/model/workplaces.json (opt-in placement)
 node tools/contraflow-streets.mjs  # main hill exit streets for contraflow, ~30 s on 8 cores (after every rebuild)
 node tests/headless.mjs            # sanity-check the models (optionally: low | central | high)
 node tests/calibration.mjs         # compare evacuation times with the 2025 Evacuation Time Study (fire off)

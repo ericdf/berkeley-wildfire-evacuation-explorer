@@ -6,7 +6,9 @@
 //   - a scenario head spread rate (low / central / high),
 //   - wind alignment (elliptical spread shape, length-to-breadth from Anderson 1983),
 //   - slope (faster uphill, slower downhill), from the DEM,
-//   - a proxy "fuel" factor taken from the City fire zones (not vegetation data).
+//   - a proxy "fuel" factor taken from the City fire zones (not vegetation data), or, with the
+//     opt-in scenario setting "Fuel: LANDFIRE FBFM40", a factor per Scott and Burgan fuel model
+//     (withLandfireFuel below; data/terrain/fbfm40.json, tools/fetch-fuel.mjs).
 // Spot fires: when a hill or wildland cell ignites it may throw embers downwind;
 // a landing ember can start a new ignition. That is random, so different seeds
 // give different fire footprints; the simulator shows the spread across seeds.
@@ -50,6 +52,30 @@ export function buildFireGrid(data) {
   return { W, H, elev, fuel, fuelClass, zone, inCity };
 }
 
+// Opt-in fuel source (scenario setting, Expert view; off by default). Returns a copy of the proxy
+// grid whose spread factor comes from LANDFIRE FBFM40: each burnable fuel model's factor from
+// data/terrain/fbfm40.json (a model rule: Rothermel's relative rate, tools/fetch-fuel.mjs); NB1
+// (urban or suburban) keeps the cell's proxy factor; NB3, NB8 and NB9 are 0; cells the DEM marks as
+// water stay 0. Ember throw and landing keep the proxy factor (spotFuel), so the setting changes
+// only how fast the front crosses each cell. Every other array is shared with the proxy grid.
+export function withLandfireFuel(grid, codes, meta) {
+  const fuel = new Float32Array(grid.W * grid.H);
+  for (let i = 0; i < fuel.length; i++) {
+    const t = meta.spread[codes[i]];
+    fuel[i] = grid.fuel[i] <= 0 || !t ? 0 : t.factor === 'proxy' ? grid.fuel[i] : t.factor;
+  }
+  return { ...grid, fuel, spotFuel: grid.fuel, fuelSource: 'landfire' };
+}
+
+// The fire grid for a scenario's fuel setting ('proxy', the default, or 'landfire'); the LANDFIRE grid is
+// built once per proxy grid. Without the LANDFIRE files the proxy grid is used.
+const LF = new WeakMap();
+export function fireGridFor(grid, data, fuel) {
+  if (fuel !== 'landfire' || !data.fuel40) return grid;
+  if (!LF.has(grid)) LF.set(grid, withLandfireFuel(grid, data.fuel40.codes, data.fuel40.meta));
+  return LF.get(grid);
+}
+
 // Anderson (1983) length-to-breadth ratio from midflame wind speed (mph).
 export function lengthToBreadth(wind20ftMph) {
   const U = 0.4 * wind20ftMph;
@@ -60,6 +86,7 @@ export function lengthToBreadth(wind20ftMph) {
 // Run the overlay. Returns arrival and ember-exposure times in minutes (Infinity = never).
 export function runFire(grid, sc, sev, seed) {
   const { W, H, elev, fuel } = grid;
+  const spot = grid.spotFuel ?? fuel; // the proxy factor; only the LANDFIRE setting (withLandfireFuel) gives a separate one
   const N = W * H;
   const rand = mulberry32(seed * 7919 + 17);
   const arrival = new Float64Array(N).fill(Infinity); // Float64: heap keys are compared against it
@@ -105,13 +132,13 @@ export function runFire(grid, sc, sev, seed) {
       if (tj < arrival[j]) { arrival[j] = tj; heap.push(tj, j); }
     }
     // spotting from hill / wildland cells
-    if (fuel[i] >= 0.7 && rand() < sev.spotProb) {
+    if (spot[i] >= 0.7 && rand() < sev.spotProb) {
       const dist = sev.emberM * Math.sqrt(rand());
       const ang = windTo + normal(rand) * 0.26;
       const cc = c + Math.round(Math.sin(ang) * dist / CELL), rr = r + Math.round(Math.cos(ang) * dist / CELL);
       if (cc >= 0 && rr >= 0 && cc < W && rr < H) {
         const j = rr * W + cc;
-        if (allowed[j] && rand() < 0.25 + 0.6 * fuel[j]) {
+        if (allowed[j] && rand() < 0.25 + 0.6 * spot[j]) {
           const tj = t + sev.spotDelayMin + dist / Math.max(1, wind * 26.8); // ember flight + ignition delay
           if (tj < arrival[j]) { arrival[j] = tj; heap.push(tj, j); spots++; }
         }
