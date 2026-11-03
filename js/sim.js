@@ -418,11 +418,16 @@ export class Evacuation {
     const nRes = vHH.length, nrEdge = [];
     this.nonResident = {};
     const NR = A.nonResident, G = tod.groups || {}, areas = nonResidentAreas(this.data);
+    // Scenario setting "Weekday non-resident placement" (world.nrPlacement, default 'area'): 'workplace' keeps the
+    // Time Study's vehicles per area and group but chooses each vehicle's street from LODES workplaces and
+    // off-street parking (workplaceAreas). Each vehicle still takes one shared draw for its street.
+    const wp = this.world.nrPlacement === 'workplace' ? workplaceAreas(this.data, areas, G) : null;
+    this.nrPlacement = wp ? 'workplace' : 'area'; this.ucParkingShare = wp?.ucParkingShare ?? null;
     let nrIdx = 0;
     for (const [gk, g] of Object.entries(NR.groups)) {
       const f = G[g.factor] ?? 0;
       for (const [ak, n] of Object.entries(g.vehicles)) {
-        const list = areas[ak]; if (!list || !list.total) continue;
+        const list = wp?.[gk]?.[ak] || areas[ak]; if (!list || !list.total) continue;
         const count = Math.round(n * f); let made = 0;
         for (let k = 0; k < count; k++) {
           const iv = nrIdx++;
@@ -823,6 +828,7 @@ export class Evacuation {
       if (G.units) this.log(`Future growth "${opt.label}": ${G.units.toLocaleString()} added homes on Berkeley hill streets (Fire Zones 2–3, standing in for the Hillside Overlay), spread like today's households.${G.blocked ? ` R0 in ${R0_AREAS[G.r0]} bars ${G.blocked.toLocaleString()} of them (${Math.round(G.blocked * pph).toLocaleString()} people); none move elsewhere.` : ''} Built: ${G.built.toLocaleString()} homes, about ${Math.round(G.built * pph).toLocaleString()} added residents.`, 'plan');
       if (G.r0Missing) this.log('R0 in access-constrained areas has no effect in this build: data/model/access-constraints.json is missing.', 'warn');
       else if (G.r0 !== 'none' && !G.units) this.log(`R0 in ${R0_AREAS[G.r0]} has no effect: Future growth is set to none.`, 'plan'); }
+    if (this.nrPlacement === 'workplace') this.log(`Non-resident placement by workplace (scenario setting): employees park within ${this.data.workplaces.params.walkM} m of LODES workplaces, ${Math.round(100 * this.ucParkingShare)}% of UC employee and commuting-student cars in UC parking, Lab employees in the Lab's lots; the Time Study's totals by area are unchanged.`, 'plan');
     if (this.retreat.edges) this.log(`Managed retreat (analysis setting): ${this.retreat.households.toLocaleString()} synthetic households on ${this.retreat.edges.toLocaleString()} bought-out street segments are removed${this.world.retreat.clearParking ? ', with the parked cars on those segments' : ''}.`, 'plan');
     if (plan.hillsParking !== 'both') this.log(`Parking plan "${PARKING_PLANS[plan.hillsParking]}": ${parkingChanged(parkingStats)}.`, 'plan');
     if (warned) this.log(`${warned.toLocaleString()} households in warning zones choose to leave (Time Study: 50% of warned households).`, 'order');
@@ -1058,6 +1064,64 @@ function nonResidentAreas(data) {
     if (isTilden(m)) add('tilden', e.id, w);
   }
   return (data._nrAreas = out);
+}
+
+// Opt-in workplace placement (world.nrPlacement 'workplace'; tools/workplaces.mjs, SOURCE_NOTES WP1-WP12).
+// Returns { group: { area: list } } for the groups and areas it changes; the rest keep nonResidentAreas.
+//  - Employees in flats, northHills, southHills, west: each LODES workplace block's in-commuting jobs (home outside
+//    Berkeley) are spread evenly by street length over that area's streets within walkM of the block (Time Study
+//    §3.4: employee vehicles parked within a 10-minute walk, about 0.5 mi, of the workplace). The UC campus
+//    block, where LODES geocodes the University's jobs, is left to the UC area.
+//  - UC employees and off-campus students: a share of their cars is placed at UC off-street parking (OSM
+//    facilities, scaled to UC's published total), the share being UC spaces / these groups' vehicles in this case
+//    (at most 1); the rest park on streets as before.
+//  - LBNL employees: at the Lab's off-street lots, by capacity.
+// A facility enters at the nearest street that a non-resident may park on in that area (within snapM if there is one,
+// otherwise at any distance), so the UC parking share placed is exactly the share stated.
+function workplaceAreas(data, areas, G) {
+  const W = data.workplaces; if (!W) return null;
+  const NR = data.A.nonResident, P = W.params;
+  const key = JSON.stringify(Object.values(NR.groups).map(g => G[g.factor] ?? 0));
+  data._wpAreas ??= {}; if (data._wpAreas[key]) return data._wpAreas[key];
+  const net = data.net, mid = data.edgeMid;
+  const mk = pairs => { const o = { ids: [], cum: [], total: 0 }; for (const [id, w] of pairs) if (w > 0) { o.total += w; o.ids.push(id); o.cum.push(o.total); } return o; };
+  const cell = 200, gridOf = ids => { const g = new Map(); for (const id of ids) { const k = `${Math.floor(mid[id][0] / cell)},${Math.floor(mid[id][1] / cell)}`; (g.get(k) || g.set(k, []).get(k)).push(id); } return g; };
+  const within = (g, x, y, r) => { const out = [], R = Math.ceil(r / cell); const cx = Math.floor(x / cell), cy = Math.floor(y / cell);
+    for (let dx = -R; dx <= R; dx++) for (let dy = -R; dy <= R; dy++) for (const id of g.get(`${cx + dx},${cy + dy}`) || []) if (Math.hypot(mid[id][0] - x, mid[id][1] - y) <= r) out.push(id); return out; };
+  // nearest eligible street within snapM; failing that, the nearest at any distance, so no facility's spaces drop out
+  const nearest = (g, x, y) => { let best = -1, bd = Infinity; const pick = ids => { for (const id of ids) { const d = Math.hypot(mid[id][0] - x, mid[id][1] - y); if (d < bd) { bd = d; best = id; } } };
+    pick(within(g, x, y, P.snapM)); if (best < 0) for (const ids of g.values()) pick(ids); return best; };
+  // 1. employees by LODES workplace block
+  const empAreas = ['flats', 'northHills', 'southHills', 'west'], areaOf = new Map(), allIds = [];
+  for (const a of empAreas) for (const id of areas[a]?.ids || []) { areaOf.set(id, a); allIds.push(id); }
+  const gAll = gridOf(allIds), wEdge = new Map();
+  for (const [x, y, jobs] of W.jobs) {
+    const near = within(gAll, x, y, P.walkM); if (!near.length) continue;
+    const L = near.reduce((s, id) => s + net.edges[id].len, 0);
+    for (const id of near) wEdge.set(id, (wEdge.get(id) || 0) + jobs * net.edges[id].len / L);
+  }
+  const out = { employees: {}, offCampusStudents: {} };
+  for (const a of empAreas) { const l = mk((areas[a]?.ids || []).map(id => [id, wEdge.get(id) || 0])); if (l.total) out.employees[a] = l; }
+  // 2. UC off-street parking shared by UC employees and off-campus students
+  const pool = [['employees', 'uc'], ['offCampusStudents', 'ucStudents']];
+  const demand = pool.reduce((s, [gk, ak]) => s + (NR.groups[gk].vehicles[ak] || 0) * (G[NR.groups[gk].factor] ?? 0), 0);
+  const ucCap = W.parking.filter(f => f.kind === 'uc').reduce((s, f) => s + f.cap, 0);
+  const share = demand > 0 ? Math.min(1, ucCap / demand) : 0;
+  const gUC = gridOf(pool.flatMap(([, ak]) => areas[ak]?.ids || [])); // a facility enters at the nearest campus or near-campus street
+  for (const [gk, ak] of pool) {
+    const base = areas[ak]; if (!base?.total) continue;
+    const g = gUC, w = new Map();
+    for (const f of W.parking) if (f.kind === 'uc') { const id = nearest(g, f.x, f.y); if (id >= 0) w.set(id, (w.get(id) || 0) + share * f.cap / ucCap); }
+    const placed = [...w.values()].reduce((s, v) => s + v, 0); // equals share: every facility snaps to some street
+    for (const id of base.ids) w.set(id, (w.get(id) || 0) + (1 - placed) * net.edges[id].len / base.total);
+    out[gk][ak] = mk([...w]);
+  }
+  // 3. LBNL lots
+  const lab = areas.lbnl;
+  if (lab?.total) { const g = gridOf(lab.ids), w = new Map(); for (const f of W.parking) if (f.kind === 'lbnl') { const id = nearest(g, f.x, f.y); if (id >= 0) w.set(id, (w.get(id) || 0) + f.cap); }
+    const l = mk([...w]); if (l.total) out.employees.lbnl = l; }
+  out.ucParkingShare = share;
+  return (data._wpAreas[key] = out);
 }
 
 const parkingChanged = s => `${s.parkingChanged} hill segments lose parked cars on at least one side; ${s.engineFixed} segments that were too narrow for an engine become passable`;
