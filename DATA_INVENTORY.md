@@ -1,6 +1,6 @@
 # Data inventory
 
-Status as of 2026-11-01. Categories: **sourced** (published data used as-is), **derived**
+Status as of 2026-11-03. Categories: **sourced** (published data used as-is), **derived**
 (computed from sourced data), **assumption** (placeholder, editable), **synthetic**
 (generated).
 
@@ -28,6 +28,10 @@ Status as of 2026-11-01. Categories: **sourced** (published data used as-is), **
 | 2020 Census blocks (2,794; population and housing units at interior points) and the Kensington CDP (5,428 people) | Census TIGERweb, 2026-11-01 | JSON | Population of zones without a Genasys estimate (59 zones); check on the Genasys estimates | sourced |
 | ACS 2020–2024 5-year B25077, median value of owner-occupied homes, for the 7 block groups that managed-retreat buyout cases touch (block group of each bought-out segment from TIGERweb) | Census Reporter API and TIGERweb, 2026-11-01; cache `data/raw/census/acs-retreat.json` | JSON | Screening acquisition cost in `tools/retreat-costs.mjs` (SOURCE_NOTES RT7). Tenure (B25003) requests timed out, so owners and renters are not split | sourced; applying a block-group median to every home is an assumption |
 | FHSZ 2025, ember threat zones | City `CAL_FIRE_and_Berkeley_FHSZ_2025`, `Ember_Threat_Zones` | GeoJSON (100+ MB each) | Downloaded, not yet used | sourced |
+| Jobs by workplace block, 2023 (1,075 Berkeley blocks, 73,292 jobs; jobs held by people living outside Berkeley from the OD file) | LEHD LODES8 (WAC, OD main, crosswalk), retrieved 2026-11-03; `data/raw/lodes/` | CSV by 2020 block | Weights for the opt-in "by workplace" employee placement (`data/model/workplaces.json`) | sourced; in-commuter share derived |
+| Off-street parking (1,747 features; UC 33, Lab 45, City garages) with capacity tags or footprints | OpenStreetMap via Overpass, 2026-11-03; `data/raw/osm/parking*.json` | JSON | UC and Lab parking under the opt-in placement; UC capacities scaled to UC's published 5,500 spaces (pt.berkeley.edu) | sourced; footprint capacities assumption; scaling model rule |
+| Public schools and 2025-26 enrollment (36 in the model area); private school enrollment by district | California Department of Education, 2026-11-03; `data/raw/cde/` | CSV | Enrollment by evacuation zone (context; no school trips are modeled) | sourced |
+| Traffic signals outside Berkeley (119 junctions) | OpenStreetMap `highway=traffic_signals`, 2026-11-03; `data/model/signals-outside.json` | JSON | Context for a signal capacity rule (SOURCE_NOTES WP12) | sourced; snapping derived |
 
 ## Where width, grade and lane counts come from
 
@@ -63,7 +67,8 @@ California ADU and SB 9 statutes (Gov. Code §66314, §66323, §65852.21, §6630
 |---|---|---|---|
 | **KLD DYNEV model files** for the 2025 Time Study (link/node tables with lanes, speeds, signal timing; zone demand by group) | Tables | City of Berkeley / KLD Engineering | Replacing our per-class speeds and intersection capacities; exact employee/student/visitor demand by zone. *(The report itself is in hand.)* |
 | **City curb data** (where parking is permitted, one or both sides), as used by KLD for SB 99 / AB 747 | GeoJSON lines or segment table | City Public Works | Replaces the "parking both sides where it fits" assumption |
-| Locations of employees, UC students, visitors and schools by zone | Tables by zone or block group | Time Study §3 (counts), LEHD OnTheMap, UC | Weekday daytime demand (the simulator is too fast in case S4 without it) |
+| ~~Locations of employees, UC students, visitors and schools by zone~~ | — | **Partly resolved 2026-11-03**: LODES 2023 jobs by workplace block, OSM off-street parking with UC's published total, CDE schools by zone (In hand; SOURCE_NOTES WP1–WP9). Still missing: where visitors park, UC parking by permit type and occupancy today, the Lab's lot capacities from the Lab, private school locations | Weekday daytime demand; used by the opt-in "by workplace" placement |
+| Freeway detector counts (I-80, I-580, CA-24) | 5-min volumes and speeds | Caltrans PeMS (account required; not registered, WP13) | Checking the Time Study's through traffic and the freeway background load |
 | ~~Traffic diverters, traffic circles, bollards, gates~~ | GeoJSON points | **Resolved 2026-11-01**: City layer "Existing Traffic Calming Devices" (`data/raw/city/traffic_calming.geojson`, edited 2025-10-28; 75 diverters, 63 circles, 1 gate) is the list of record; each diverter's shape comes from OpenStreetMap (`data/raw/osm/east-bay-roads.json`, `diverter-surroundings.json`). Applied: 32 closures, 13 node splits, 17 one-way pieces, 13 left open; 9 more OSM barrier closures; 127 circle nodes (SOURCE_NOTES O2–O7, G6) | Network topology: the study treats diverters as closed links and circles at about 900 veh/h |
 | ~~Leave Early Zones~~ | — | **Resolved 2026-11-01**: City web page lists them as Genasys zones BER-006, 007, 008, 015, 016, 017, 030, 031, 057, 058 (SOURCE_NOTES W1) | Early-departure policy by real zone |
 | Building footprints, plus roof or hardening category in aggregate | GeoJSON polygons | City, County, Microsoft/Overture footprints; City `bldgs_in_COBVeryHighFire` | Structures exposed and lost; structure-to-structure spread; home-hardening intervention |
