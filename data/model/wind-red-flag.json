@@ -1,0 +1,125 @@
+{
+  "_note": "Derived by tools/wind-events.mjs; report only (docs/fire-validation.md §5). Directions are where the wind blows from, degrees true.",
+  "sources": {
+    "redFlag": "NWS MTR Red Flag Warnings (FW.W) whose zones include \"East Bay Hills\", Iowa Environmental Mesonet VTEC archive, 2008–2026",
+    "raws": "Oakland North RAWS (COKN), WRCC frequency tool, hourly mean wind (10-minute mean at 20 ft), local standard time days covered by a warning",
+    "asos": "Oakland International Airport ASOS (OAK), IEM, routine hourly reports (2-minute mean at 10 m), exact warning windows (UTC)"
+  },
+  "retrieved": "2026-11-03",
+  "redFlag": {
+    "events": 72,
+    "first": "2008-06-11T04:00:00Z",
+    "last": "2026-06-11T06:00:00Z",
+    "days": 203,
+    "dayRuns": 68,
+    "rawsRunsMissing": 0
+  },
+  "raws": {
+    "strongHours": 737,
+    "allHours": 4658,
+    "possibleHours": 4658,
+    "strongDirectionShares": {
+      "0-20": 12.3,
+      "20-40": 27.3,
+      "40-50": 22.1,
+      "50-70": 28.9,
+      "20-70": 78.3,
+      "70-90": 0.7,
+      "0-90": 91.3,
+      "150-240": 0.9,
+      "240-300": 0
+    },
+    "allDirectionShares": {
+      "0-20": 9.1,
+      "20-40": 12,
+      "40-50": 7.3,
+      "50-70": 11,
+      "20-70": 30.4,
+      "70-90": 2.4,
+      "0-90": 41.9,
+      "150-240": 30.5,
+      "240-300": 15.3
+    },
+    "strongBins": {
+      "0-10": 44,
+      "10-20": 47,
+      "20-30": 82,
+      "30-40": 119,
+      "40-50": 163,
+      "50-60": 174,
+      "60-70": 39,
+      "70-80": 5,
+      "80-90": 0,
+      "90-100": 0,
+      "100-110": 0,
+      "110-120": 0,
+      "120-130": 0,
+      "130-140": 2,
+      "140-150": 0,
+      "150-160": 0,
+      "160-170": 0,
+      "170-180": 0,
+      "180-190": 0,
+      "190-200": 1,
+      "200-210": 4,
+      "210-220": 2,
+      "220-230": 0,
+      "230-240": 0,
+      "240-250": 0,
+      "250-260": 0,
+      "260-270": 0,
+      "270-280": 0,
+      "280-290": 0,
+      "290-300": 0,
+      "300-310": 0,
+      "310-320": 0,
+      "320-330": 2,
+      "330-340": 2,
+      "340-350": 14,
+      "350-360": 35,
+      "360-370": 2
+    },
+    "offshoreSpeedBins": {
+      "0-5": 404,
+      "5-10": 431,
+      "10-15": 448,
+      "15-20": 363,
+      "20-25": 229,
+      "25-30": 66,
+      "30-35": 14,
+      "35-40": 1
+    },
+    "offshoreHours": 1956
+  },
+  "oak": {
+    "hours": 2761,
+    "calm": 610,
+    "offshoreHours": 450,
+    "directionShares": {
+      "0-20": 4.7,
+      "20-40": 4.9,
+      "40-50": 3.9,
+      "50-70": 6.9,
+      "20-70": 15.7,
+      "70-90": 2.3,
+      "0-90": 22.7,
+      "150-240": 6.1,
+      "240-300": 25.2
+    },
+    "offshoreSpeedBins": {
+      "0": 209,
+      "5": 83,
+      "10": 102,
+      "15": 40,
+      "20": 8,
+      "25": 7,
+      "30": 1
+    },
+    "offshoreGustMedian": 25.3,
+    "offshore15mphHours": {
+      "inRedFlag": 56,
+      "allHours2008to2026": 345,
+      "totalHours": 164560
+    }
+  }
+}

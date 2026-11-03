@@ -1,0 +1,9 @@
+{
+  "service": "https://services1.arcgis.com/IYiCpZoSIq9lAxi8/arcgis/rest/services/Berkeley_Fire_History/FeatureServer",
+  "layers": { "fire1923.geojson": "layer 0 Fire1923 (EBRPD research polygon, 3,076.6 GIS acres, REPORT_AC 130; and a 0.38 ha fragment)", "fire1991.geojson": "layer 3 Fire1991 (CAL FIRE FRAP TUNNEL, 1,622.5 GIS acres; and EBRPD, 1,828.1 GIS acres, REPORT_AC 1,520)" },
+  "description": "Compilation of EBRPD research by J. Kent and CAL FIRE FRAP data; EBRPD geometries are approximate (layer notes)",
+  "lastEdit": "2025-03-15",
+  "retrieved": "2026-11-03",
+  "query": "where=1=1, outFields=*, outSR=4326, f=geojson",
+  "category": "sourced (historical)"
+}
