@@ -15,7 +15,7 @@ Both options keep the Time Study's vehicles per group and area (Tables 3-5 and 3
 | LBNL employees | Lab streets by length | The Lab's 45 OSM lots by capacity (993 spaces in OSM) |
 | On-campus students, BCC students, visitors, Tilden | as by area | unchanged |
 
-Every vehicle still takes one draw from the shared stream for its street, so Plan A and Plan B see the same non-residents for a seed under either option.
+Every parking facility enters the network at the nearest street a non-resident may use in its area, within 300 m where one exists and otherwise at any distance (3 UC facilities in Strawberry Canyon, among them the Botanical Garden lot, 268 of the 5,500 scaled spaces, have none within 300 m and enter 807–862 m away, on the nearest campus or near-campus street), so the stated UC parking share is exactly the share placed. Every vehicle still takes one draw from the shared stream for its street, so Plan A and Plan B see the same non-residents for a seed under either option.
 
 Inputs, built by `node tools/workplaces.mjs` into `data/model/workplaces.json` (points in the network's local meters, so a network rebuild does not stale them): LEHD LODES8 2023 (SOURCE_NOTES WP1–WP4), OSM parking and UC's published total (WP5–WP7), CDE schools (WP8, WP9).
 
@@ -33,20 +33,20 @@ Inputs, built by `node tools/workplaces.mjs` into `data/model/workplaces.json` (
 
 | Region · case | Study | By area | By workplace | Change | Order-zone vehicles (seed 1), area → workplace |
 |---|---|---|---|---|---|
-| R02 1923 · S1 | 2:25 | 1:33 [1:32–1:33] | 1:33 [1:32–1:34] | 0 | 22,099 → 22,008 |
-| R02 1923 · S4 | 2:55 | 1:35 [1:35–1:36] | 1:40 [1:40–1:41] | +5 | 25,194 → 26,767 |
-| R05 Fire Zones 2–3 · S1 | 2:05 | 1:40 [1:40–1:40] | 1:40 [1:39–1:40] | 0 | 16,849 → 17,125 |
-| R05 · S4 | 2:20 | 1:45 [1:45–1:46] | 1:45 [1:44–1:45] | 0 | 17,089 → 17,904 |
-| R09 North Berkeley Hills · S1 | 2:10 | 1:40 [1:40–1:41] | 1:40 [1:40–1:41] | 0 | 12,817 → 12,646 |
-| R09 · S4 | 2:05 | 1:46 [1:46–1:46] | 1:46 [1:46–1:47] | 0 | 12,534 → 12,412 |
-| R04 Panoramic Hill · S1 | 1:40 | 1:40 [1:37–2:04] | 1:41 [1:38–2:05] | +1 | 1,242 → 1,204 |
+| R02 1923 · S1 | 2:25 | 1:33 [1:32–1:33] | 1:33 [1:33–1:33] | 0 | 22,099 → 22,059 |
+| R02 1923 · S4 | 2:55 | 1:35 [1:35–1:36] | 1:40 [1:40–1:41] | +5 | 25,194 → 26,950 |
+| R05 Fire Zones 2–3 · S1 | 2:05 | 1:40 [1:40–1:40] | 1:40 [1:39–1:40] | 0 | 16,849 → 17,324 |
+| R05 · S4 | 2:20 | 1:45 [1:45–1:46] | 1:44 [1:44–1:45] | −1 | 17,089 → 18,163 |
+| R09 North Berkeley Hills · S1 | 2:10 | 1:40 [1:40–1:41] | 1:40 [1:40–1:41] | 0 | 12,817 → 12,722 |
+| R09 · S4 | 2:05 | 1:46 [1:46–1:46] | 1:46 [1:46–1:46] | 0 | 12,534 → 12,506 |
+| R04 Panoramic Hill · S1 | 1:40 | 1:40 [1:37–2:04] | 1:40 [1:38–2:08] | 0 | 1,242 → 1,206 |
 | R04 · S4 | 1:45 | 1:47 [1:42–2:10] | 1:48 [1:44–2:09] | +1 | 1,218 → 1,182 |
 
-Nights and weekends (S2, S3, S5, S6), where few non-residents are present, move by at most 1 minute in every region. 100th percentiles move by at most 1 minute. Every vehicle finishes in every run. Gridlock relief in R02 S4 (seed 1) rises from 49 to 111, on the campus roads where UC parking now empties.
+Nights and weekends (S2, S3, S5, S6), where few non-residents are present, move by at most 1 minute in every region. 100th percentiles move by at most 1 minute. Every vehicle finishes in every run. Gridlock relief in R02 S4 (seed 1) rises from 49 to 104, on the campus roads where UC parking now empties.
 
-**Held-out regions.** Nothing was tuned: the 800 m walk comes from the study, the 5,500 spaces from UC, and no setting was chosen after seeing a result, so every region is a check. Where the setting moves a weekday result it moves toward the study (R02 S4 +5 min, against a gap of 80), and it moves no night case away from it. R04 Panoramic Hill, which already matched on weekdays, stays within 3 minutes of the study there. R02 S4 moves because UC's parking and the campus lie in its order zones: about 1,570 more non-resident cars start inside the order area (seed 1; most on campus roads and Gayley Rd). R05 S4 gains about 800 order-zone non-resident cars (Gayley Rd, Stadium Rim Rd) and does not move; R09 loses about 120 and does not move.
+**Held-out regions.** Nothing was tuned: the 800 m walk comes from the study, the 5,500 spaces from UC, and no setting was chosen after seeing a result, so every region is a check. R02 S4 moves 5 min toward the study (against a gap of 80); R05 S4 moves 1 min away from it, inside the seed range of either option; no night case moves by more than 1 min. R04 Panoramic Hill, which already matched on weekdays, stays within 3 minutes of the study there. R02 S4 moves because UC's parking and the campus lie in its order zones: about 1,760 more non-resident cars start inside the order area (seed 1; most on campus roads and Gayley Rd). R05 S4 gains about 1,070 order-zone non-resident cars (Gayley Rd, Stadium Rim Rd) and barely moves; R09 S4 loses about 30 and does not move.
 
-**Reading.** Under this rule, moving employees and UC and Lab cars to their workplaces and parking changes R02's weekday result by 5 of 80 minutes and R05's by none of 35. The run tests one placement rule: visitors (13,052 vehicles, the largest group) are placed as before, the study's totals per area are kept, and the UC parking share and the 800 m walk are fixed. It does not show what causes the rest of the gap. Hypotheses still open, none tested here: (a) signal timing and junction capacity, which the model sets by road class with no signal timing; (b) through traffic the model does not load beyond I-80 and CA-24 (E35); (c) where visitors park; (d) demand totals, for example LODES's larger employee counts (WP3) in place of the study's.
+**Reading.** Under this rule, moving employees and UC and Lab cars to their workplaces and parking changes R02's weekday result by 5 of 80 minutes and R05's by 1 of 35 (the other way, within seed noise). The run tests one placement rule: visitors (13,052 vehicles, the largest group) are placed as before, the study's totals per area are kept, and the UC parking share and the 800 m walk are fixed. It does not show what causes the rest of the gap. Hypotheses still open, none tested here: (a) signal timing and junction capacity, which the model sets by road class with no signal timing; (b) through traffic the model does not load beyond I-80 and CA-24 (E35); (c) where visitors park; (d) demand totals, for example LODES's larger employee counts (WP3) in place of the study's.
 
 ## What signal locations alone suggest (described, not tuned)
 

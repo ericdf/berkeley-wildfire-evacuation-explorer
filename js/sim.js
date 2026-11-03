@@ -1076,7 +1076,8 @@ function nonResidentAreas(data) {
 //    facilities, scaled to UC's published total), the share being UC spaces / these groups' vehicles in this case
 //    (at most 1); the rest park on streets as before.
 //  - LBNL employees: at the Lab's off-street lots, by capacity.
-// A facility or block enters at the nearest street that a non-resident may park on in that area, within snapM.
+// A facility enters at the nearest street that a non-resident may park on in that area (within snapM if there is one,
+// otherwise at any distance), so the UC parking share placed is exactly the share stated.
 function workplaceAreas(data, areas, G) {
   const W = data.workplaces; if (!W) return null;
   const NR = data.A.nonResident, P = W.params;
@@ -1087,7 +1088,9 @@ function workplaceAreas(data, areas, G) {
   const cell = 200, gridOf = ids => { const g = new Map(); for (const id of ids) { const k = `${Math.floor(mid[id][0] / cell)},${Math.floor(mid[id][1] / cell)}`; (g.get(k) || g.set(k, []).get(k)).push(id); } return g; };
   const within = (g, x, y, r) => { const out = [], R = Math.ceil(r / cell); const cx = Math.floor(x / cell), cy = Math.floor(y / cell);
     for (let dx = -R; dx <= R; dx++) for (let dy = -R; dy <= R; dy++) for (const id of g.get(`${cx + dx},${cy + dy}`) || []) if (Math.hypot(mid[id][0] - x, mid[id][1] - y) <= r) out.push(id); return out; };
-  const nearest = (g, x, y) => { let best = -1, bd = P.snapM; for (const id of within(g, x, y, P.snapM)) { const d = Math.hypot(mid[id][0] - x, mid[id][1] - y); if (d < bd) { bd = d; best = id; } } return best; };
+  // nearest eligible street within snapM; failing that, the nearest at any distance, so no facility's spaces drop out
+  const nearest = (g, x, y) => { let best = -1, bd = Infinity; const pick = ids => { for (const id of ids) { const d = Math.hypot(mid[id][0] - x, mid[id][1] - y); if (d < bd) { bd = d; best = id; } } };
+    pick(within(g, x, y, P.snapM)); if (best < 0) for (const ids of g.values()) pick(ids); return best; };
   // 1. employees by LODES workplace block
   const empAreas = ['flats', 'northHills', 'southHills', 'west'], areaOf = new Map(), allIds = [];
   for (const a of empAreas) for (const id of areas[a]?.ids || []) { areaOf.set(id, a); allIds.push(id); }
@@ -1109,7 +1112,7 @@ function workplaceAreas(data, areas, G) {
     const base = areas[ak]; if (!base?.total) continue;
     const g = gUC, w = new Map();
     for (const f of W.parking) if (f.kind === 'uc') { const id = nearest(g, f.x, f.y); if (id >= 0) w.set(id, (w.get(id) || 0) + share * f.cap / ucCap); }
-    const placed = [...w.values()].reduce((s, v) => s + v, 0); // facilities with no street nearby drop out; the street share fills in
+    const placed = [...w.values()].reduce((s, v) => s + v, 0); // equals share: every facility snaps to some street
     for (const id of base.ids) w.set(id, (w.get(id) || 0) + (1 - placed) * net.edges[id].len / base.total);
     out[gk][ak] = mk([...w]);
   }
