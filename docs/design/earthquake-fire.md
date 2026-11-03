@@ -1,6 +1,6 @@
 # A fire started by a Hayward Fault earthquake: design note
 
-Status: design note, 2026-11-02. Nothing here is built except a read-only check,
+Status: design note, 2026-11-02; decisions added 2026-11-03. Nothing here is built except a read-only check,
 `tools/fault-zone-check.mjs`. Sources were read on 2026-11-02 and are logged in
 `SOURCE_NOTES.md` under "Hayward Fault earthquake and fire" (rows EQ1–EQ8). The simulator
 is an educational comparison tool, not a prediction and not an official evacuation plan;
@@ -91,7 +91,7 @@ Builds on the staffing note (`docs/design/fire-staffing.md`).
 
 ## 5. Recommendation
 
-Build A first, as a scenario setting with both bounds and labeled as model rules. It answers
+Superseded in part on 2026-11-03: see "Where an earthquake fire starts" below; C now comes second. Build A first, as a scenario setting with both bounds and labeled as model rules. It answers
 the central question (does the hill evacuation still have a way out?) with data already in
 the repository, and it is the change most likely to alter which Simple-view plans hold up:
 plans that send traffic west (parking changes on the lower hill streets, police control at
@@ -111,9 +111,41 @@ changes the fire model.
    Wildcat faults.
 5. EBMUD's expected water outages after a Hayward earthquake.
 
+## Where an earthquake fire starts and which way it burns
+
+Eric, 2026-11-03: "Doesn't the earthquake create a radically different ignition point? If so
+then it's important to disclose and show that." It does, in two ways, and both reverse what
+the current fires assume:
+
+- **Where.** A wildfire starts at the wildland edge, uphill of the homes. Fires after an
+  earthquake start in buildings (broken gas lines, electrical faults), several at once:
+  about 450 large fires across the region in HayWired (EQ6). The HayWired data release gives
+  fire damage by fire station area (EQ6), which can place starts in Berkeley's flats as well
+  as the hills. How Scawthorn's model places ignitions is to be confirmed against chapter P
+  (gap 2) before any number reaches the simulator.
+- **Wind.** An earthquake can come on any day. The dry wind from the east the current fires
+  assume is rare: at the Oakland North weather station, hours with wind from 0–90° and
+  humidity at or below 25% were 7,340 from June 1992 to October 2026 (FF5), about 2.5% of the
+  roughly 300,000 hours in that span (derived). On an onshore day, with the wind off the Bay (the
+  share of hours to be measured from the same station record), a fire in the flats burns
+  uphill, toward the hills and the people evacuating from them.
+
+So an earthquake fire is a different fire, not the current fires with streets closed. Option
+A alone would show the current wildland starts on a Diablo wind with the fault's closures,
+and must say so on screen. Option C moves up to second: starts drawn from the HayWired
+station-area data, on an onshore wind as the main case and the Diablo wind as the worst case.
+
+## Decided (Eric, 2026-11-03)
+
+1. Both bounds are shown when the setting is on: the mapped trace (69 segments closed) as the
+   lower bound and the Earthquake Fault Zone (551) as the upper bound, each labeled a model
+   rule.
+2. The earthquake fire gets its own starts and an ordinary onshore wind (above), and the page
+   discloses how they differ from the wildfire scenarios. Order of work: A (closures, both
+   bounds, disclosed as wildland starts only), then C (HayWired starts, onshore and Diablo
+   winds), then B and D.
+
 ## Open for Eric
 
-1. Which bound is the default when the setting is on, or whether both are always shown.
-2. Whether to test an earthquake fire on an ordinary (non-Diablo) wind as well.
-3. Whether to share the liquefaction layer with the Bay Flood Explorer, which covers the
+1. Whether to share the liquefaction layer with the Bay Flood Explorer, which covers the
    same low ground.
