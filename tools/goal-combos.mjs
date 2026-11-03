@@ -5,7 +5,8 @@
 //
 //   node tools/goal-combos.mjs [--fires a,b] [--merge] [--workers N] [--max-size 3] [--limit N] [--out file]
 //        writes data/model/goal-combos.json
-//   --merge (with --fires): run only the fires named and keep the saved fires of the existing output.
+//   --merge (with --fires): run only the fires named, on every pass the saved output holds (including
+//        any added with --add-seeds), and keep the saved fires of the existing output.
 //   --limit N: only the first N combinations per fire (a quick test).
 //   --only ID (with --merge): rerun only the combinations that include change ID, on every fire named
 //        (or all), on every pass the saved output holds, and keep every other saved combination; for a change whose definition was rebuilt
@@ -130,9 +131,12 @@ for (const fire of runFires) {
 }
 
 const chunks = [];
-// --only reruns every pass the saved output holds, including any added with --add-seeds.
+// --merge (with or without --only) reruns every pass the saved output holds, including any added with
+// --add-seeds, so a partial rebuild never drops passes from the fires it keeps.
+const KEEP = MERGE && !ADD;
+if (KEEP && !MERGE.meta?.cases) throw new Error('--merge: the saved output has no cases; rebuild in full');
 const JOBS = ADD ? ADD_SEVS.flatMap(sev => ADD_SEEDS.map(seed => [sev, seed]))
-  : ONLY ? MERGE.meta.cases.map(k => k.split('|')).map(([sev, seed]) => [sev, +seed])
+  : KEEP ? MERGE.meta.cases.map(k => k.split('|')).map(([sev, seed]) => [sev, +seed])
   : SEVS.flatMap(sev => SEEDS.map(seed => [sev, seed]));
 for (const fire of runFires) for (const [sev, seed] of JOBS)
   chunks.push(plan[fire].combos.map(c => ({ fire, sev, seed, ids: c.ids, key: c.key })));
@@ -169,11 +173,11 @@ await Promise.all(Array.from({ length: WORKERS }, lane));
 const wallMin = Math.round((Date.now() - t0) / 6000) / 10;
 
 // Cases in a fixed order: the search passes (severity, then seed), then the held-out passes.
-const newCases = ONLY ? MERGE.meta.cases : ADD ? [...ADD_SEVS.flatMap(sev => ADD_SEARCH.map(seed => `${sev}|${seed}`)), ...ADD_SEVS.flatMap(sev => ADD_HOLD.map(seed => `${sev}|${seed}`))]
+const newCases = KEEP ? MERGE.meta.cases : ADD ? [...ADD_SEVS.flatMap(sev => ADD_SEARCH.map(seed => `${sev}|${seed}`)), ...ADD_SEVS.flatMap(sev => ADD_HOLD.map(seed => `${sev}|${seed}`))]
   : [...SEVS.flatMap(sev => SEARCH.map(seed => `${sev}|${seed}`)), ...SEVS.flatMap(sev => HOLD.map(seed => `${sev}|${seed}`))];
 const cases = ADD ? [...MERGE.meta.cases, ...newCases] : newCases;
-const searchSeeds = ADD ? [...MERGE.meta.searchSeeds, ...ADD_SEARCH] : ONLY ? MERGE.meta.searchSeeds : SEARCH;
-const holdoutSeeds = ADD ? [...MERGE.meta.holdoutSeeds, ...ADD_HOLD] : ONLY ? MERGE.meta.holdoutSeeds : HOLD;
+const searchSeeds = ADD ? [...MERGE.meta.searchSeeds, ...ADD_SEARCH] : KEEP ? MERGE.meta.searchSeeds : SEARCH;
+const holdoutSeeds = ADD ? [...MERGE.meta.holdoutSeeds, ...ADD_HOLD] : KEEP ? MERGE.meta.holdoutSeeds : HOLD;
 const byRun = new Map(results.map(x => [`${x.fire}|${x.key}|${x.sev}|${x.seed}`, x.m]));
 const firesOut = MERGE ? Object.fromEntries(Object.entries(MERGE.fires).filter(([f]) => ONLY || !runFires.includes(f))) : {};
 for (const fire of runFires) {
