@@ -243,6 +243,20 @@ about 29% of it and access-constrained areas about 11% (areas from
 `data/model/access-constraints.json`, written by `tools/access-constraints.mjs`; the option
 stays disabled until that file exists). Parked cars do not increase with growth.
 
+**Household mix by place (Expert view, off by default).** The default gives every zone the
+Time Study's 2.37 persons per household and 7.47% of households without a vehicle. The
+Scenario setting "Household mix: by place (ACS 2020–2024)" replaces both, zone by zone, with
+ACS block-group values allocated to the zone through 2020 Census blocks
+(`tools/build-demand.mjs`, `data/model/demand-by-zone.json`; SOURCE_NOTES DM1–DM9). The two
+sources disagree: the ACS puts about 20% of Berkeley households without a vehicle, the
+study's survey 7.47% (DM3); which to use is open. Draws follow the same pattern under both
+settings, so both plans still see the same households. The Inspector also shows each zone's
+people 75 and older, people with an ambulatory difficulty, one-person 65+ households and
+licensed care, hospital and school capacity, and a map layer shades the share 75+; none of
+these adds trips (design for assisted evacuation: `docs/design/assisted-evacuation.md`;
+comparison runs: `docs/demand-by-place.md`). Rebuild with `node tools/fetch-demand-acs.mjs`,
+`node tools/fetch-demand-facilities.mjs`, then `node tools/build-demand.mjs`.
+
 **Driver information and routing** (`js/guidance.js`; SOURCE_NOTES DG1–DG24). A plan setting,
 Expert view only, off by default: with it at "Today's model" the code path and every result
 are exactly as before. Today's model is idealized: every car re-plans every minute with full

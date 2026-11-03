@@ -68,7 +68,8 @@ export function otherCityOrders(data, grid, fire) {
 }
 
 export class Evacuation {
-  // world: settings shared by both plans, such as future growth ({ growth: 'none' | 'middle' | 'moderate' | 'max' }).
+  // world: settings shared by both plans, such as future growth ({ growth: 'none' | 'middle' | 'moderate' | 'max' })
+  // and the household mix ({ householdMix: 'citywide' (default) | 'place' }; 'place' needs data.demand).
   // world.retreat (analysis harness only, tools/retreat-sim.mjs): { edges: street segment ids whose
   // households are bought out, clearParking: also take the parked cars off those segments (true), or off
   // the listed segments only }.
@@ -279,6 +280,16 @@ export class Evacuation {
     const drawVehicles = (r = rand) => { let u = r() * vTot; for (const [k, p] of Object.entries(vs)) { if (u < p) return +k; u -= p; } return 1; };
     const zoneIdx = new Map(zones.map((z, i) => [z.id, i]));
     const lez = new Set(LEAVE_EARLY_ZONES);
+    // Household mix (world setting, SOURCE_NOTES DM1-DM9). 'citywide' (default): every zone uses the
+    // citywide persons per household and carless share. 'place': a zone with ACS households in its
+    // 2020 blocks (data/model/demand-by-zone.json, usable) uses its own two values; the others keep the
+    // citywide ones. Only the comparison thresholds and the household count change; the draws are
+    // taken in the same pattern, and both plans see the same households for a seed.
+    const mixZones = this.world.householdMix === 'place' && data.demand?.zones ? data.demand.zones : null;
+    const zPph = new Float64Array(zones.length).fill(D.personsPerHousehold), zCarless = new Float64Array(zones.length).fill(D.householdsWithoutVehicleShare);
+    let mixUsed = 0;
+    if (mixZones) zones.forEach((z, i) => { const m = mixZones[z.id]; if (m?.usable) { zPph[i] = m.personsPerHousehold.value; zCarless[i] = m.zeroVehicle.value; mixUsed++; } });
+    this.householdMix = { option: mixZones ? 'place' : 'citywide', zones: mixUsed, requested: this.world.householdMix || 'citywide' };
     const hhEdge = [], hhZone = [], hhVeh = [], hhEarly = [];
     let unplaced = 0;
     for (let zi = 0; zi < zones.length; zi++) {
@@ -287,13 +298,13 @@ export class Evacuation {
       const list = byZone.get(z.id);
       if (!list) { unplaced += pop; continue; }
       const W = list.reduce((s, [, w]) => s + w, 0);
-      const H = pop / D.personsPerHousehold;
+      const H = pop / zPph[zi];
       for (const [eid, w] of list) {
         const exp = H * w / W; let n = Math.floor(exp); if (rand() < exp - n) n++;
         const eligible = plan.earlyZones === 'fz23' ? net.edges[eid].fireZone >= 2 : lez.has(z.id);
         for (let k = 0; k < n; k++) {
           hhEdge.push(eid); hhZone.push(zoneIdx.get(z.id));
-          hhVeh.push(rand() < D.householdsWithoutVehicleShare ? 0 : drawVehicles());
+          hhVeh.push(rand() < zCarless[zi] ? 0 : drawVehicles());
           const uEarly = earlyRand();
           hhEarly.push(eligible && uEarly < plan.earlyShare ? 1 : 0);
         }
@@ -310,16 +321,24 @@ export class Evacuation {
     this.growth = { option: units.length ? this.world.growth : 'none', units: units.length, built: 0, blocked: 0, r0: plan.r0 || 'none', r0Missing: !!(plan.r0 && plan.r0 !== 'none' && !r0) };
     for (let k = 0; k < units.length; k++) {
       const eid = units[k];
-      if (r0 && r0.has(eid)) { this.growth.blocked++; continue; }
+      if (r0 && r0.has(eid)) { // barred: no draw; under 'place' its people count at its zone's household size
+        this.growth.blocked++;
+        if (mixZones) { const bz = zoneIdx.get(net.edges[eid].evacZone); this.growth.blockedPersons = (this.growth.blockedPersons || 0) + (bz == null ? D.personsPerHousehold : zPph[bz]); }
+        continue;
+      }
       const r = mulberry32((Math.imul(this.seed + 1, 0x9E3779B1) ^ Math.imul(k + 1, 0x85EBCA6B)) >>> 0);
       const zid = net.edges[eid].evacZone;
       const eligible = plan.earlyZones === 'fz23' ? net.edges[eid].fireZone >= 2 : lez.has(zid);
-      hhEdge.push(eid); hhZone.push(zoneIdx.get(zid));
-      hhVeh.push(r() < D.householdsWithoutVehicleShare ? 0 : drawVehicles(r));
+      const uz = zoneIdx.get(zid);
+      hhEdge.push(eid); hhZone.push(uz);
+      hhVeh.push(r() < (uz == null ? D.householdsWithoutVehicleShare : zCarless[uz]) ? 0 : drawVehicles(r));
       const u = r(); hhEarly.push(eligible && u < plan.earlyShare ? 1 : 0);
       unitRand.push(r); unitK.push(k); this.growth.built++;
     }
     const nH = hhEdge.length;
+    // persons per household, per household, under 'place' only (summary() uses the citywide value otherwise)
+    this.hhPersons = mixZones ? Float64Array.from(hhZone, zi => zi == null ? D.personsPerHousehold : zPph[zi]) : null;
+    if (this.hhPersons) { let p = 0; for (let h = nBase; h < nH; h++) p += this.hhPersons[h]; this.growth.persons = p; }
     const hh = this.hh = { n: nH, edge: Int32Array.from(hhEdge), zone: Int16Array.from(hhZone), veh: Uint8Array.from(hhVeh), early: Uint8Array.from(hhEarly),
       gone: new Uint8Array(nH), // 1 bought out (world.retreat): placed and drawn as usual, then no trip and not counted
       kind: new Uint8Array(nH), // 0 stays, 1 ordered, 2 warned and leaving, 3 shadow (voluntary)
@@ -760,12 +779,16 @@ export class Evacuation {
     const { hh, data } = this, pph = data.A.demand.personsPerHousehold, lim = data.A.access.engineServiceMin * 60;
     const zones = data.layers.evacZones, edges = data.net.edges;
     const z = { hill: [0, 0, 0], all: [0, 0, 0] }; // households: total, within the standard, no route
+    const P = this.hhPersons, zp = P && { hill: [0, 0, 0], all: [0, 0, 0] }; // persons, under household mix 'place'
     for (let h = 0; h < hh.n; h++) {
       if (hh.gone[h] || !String(zones[hh.zone[h]]?.id).startsWith('BER')) continue;
-      const tt = times[hh.edge[h]], g = edges[hh.edge[h]].fireZone >= 2 ? [z.hill, z.all] : [z.all];
+      const tt = times[hh.edge[h]], hill = edges[hh.edge[h]].fireZone >= 2, g = hill ? [z.hill, z.all] : [z.all];
       for (const c of g) { c[0]++; if (tt <= lim) c[1]++; if (tt === Infinity) c[2]++; }
+      if (P) for (const c of hill ? [zp.hill, zp.all] : [zp.all]) { c[0] += P[h]; if (tt <= lim) c[1] += P[h]; if (tt === Infinity) c[2] += P[h]; }
     }
-    const f = ([n, ok, none]) => ({ share: n ? ok / n : null, people: ok * pph, unreachable: none * pph, total: n * pph });
+    const f = ([n, ok, none], q) => q ? { share: q[0] ? q[1] / q[0] : null, people: q[1], unreachable: q[2], total: q[0] }
+      : { share: n ? ok / n : null, people: ok * pph, unreachable: none * pph, total: n * pph };
+    if (P) return { hill: f(z.hill, zp.hill), all: f(z.all, zp.all) };
     return { hill: f(z.hill), all: f(z.all) };
   }
 
@@ -825,7 +848,9 @@ export class Evacuation {
     { const ps = parkingStats;
       this.log(`Parked cars this run (seed ${this.seed}): of ${ps.hillsKnown} hill segments with a known width, ${ps.twoSides} parked on both sides and ${ps.oneSide} on one side; ${ps.pinched} segments have a bad parking job narrowing the gap. ${ps.engineBlocked} segments are too narrow for an engine; ${this.sharedLanes} two-way segments leave one lane, so oncoming drivers take turns.`, 'plan'); }
     { const G = this.growth, pph = this.data.A.demand.personsPerHousehold, opt = this.data.A.growth?.options?.[this.world.growth];
-      if (G.units) this.log(`Future growth "${opt.label}": ${G.units.toLocaleString()} added homes on Berkeley hill streets (Fire Zones 2–3, standing in for the Hillside Overlay), spread like today's households.${G.blocked ? ` R0 in ${R0_AREAS[G.r0]} bars ${G.blocked.toLocaleString()} of them (${Math.round(G.blocked * pph).toLocaleString()} people); none move elsewhere.` : ''} Built: ${G.built.toLocaleString()} homes, about ${Math.round(G.built * pph).toLocaleString()} added residents.`, 'plan');
+      if (G.units) this.log(`Future growth "${opt.label}": ${G.units.toLocaleString()} added homes on Berkeley hill streets (Fire Zones 2–3, standing in for the Hillside Overlay), spread like today's households.${G.blocked ? ` R0 in ${R0_AREAS[G.r0]} bars ${G.blocked.toLocaleString()} of them (${Math.round(this.hhPersons ? G.blockedPersons || 0 : G.blocked * pph).toLocaleString()} people); none move elsewhere.` : ''} Built: ${G.built.toLocaleString()} homes, about ${Math.round(this.hhPersons ? G.persons : G.built * pph).toLocaleString()} added residents.`, 'plan');
+      if (this.householdMix.option === 'place') this.log(`Household mix by place (ACS 2020–2024, Expert setting): ${this.householdMix.zones} zones use their own persons per household and share of households without a vehicle; the rest keep the citywide ${pph} and ${(this.data.A.demand.householdsWithoutVehicleShare * 100).toFixed(2)}%. ${this.hh.n.toLocaleString()} synthetic households.`, 'plan');
+      else if (this.householdMix.requested === 'place') this.log('Household mix by place was asked for, but data/model/demand-by-zone.json did not load; the citywide mix is used.', 'plan');
       if (G.r0Missing) this.log('R0 in access-constrained areas has no effect in this build: data/model/access-constraints.json is missing.', 'warn');
       else if (G.r0 !== 'none' && !G.units) this.log(`R0 in ${R0_AREAS[G.r0]} has no effect: Future growth is set to none.`, 'plan'); }
     if (this.nrPlacement === 'workplace') this.log(`Non-resident placement by workplace (scenario setting): employees park within ${this.data.workplaces.params.walkM} m of LODES workplaces, ${Math.round(100 * this.ucParkingShare)}% of UC employee and commuting-student cars in UC parking, Lab employees in the Lab's lots; the Time Study's totals by area are unchanged.`, 'plan');
@@ -867,7 +892,7 @@ export class Evacuation {
 
   // ---- results ----
   summary() {
-    const { hh, v, t, data } = this, pph = data.A.demand.personsPerHousehold;
+    const { hh, v, t, data } = this, pphAll = data.A.demand.personsPerHousehold, pph = pphAll;
     const S = { orderedPeople: 0, warnedLeaving: 0, shadowLeaving: 0, leftEarly: 0, reachedSafety: 0, onRoad: 0, notLeft: 0, noVehicle: 0, riders: 0,
       notOrderedExposed: 0, otherCityOrderedPeople: 0, exposedHome: 0, exposedRoad: 0, exposedNoVehicle: 0, fireFrontHome: 0, fireFrontRoad: 0, waitingToEnter: this.waiting.length };
     // People still there when embers (or the fire front) arrived: each person counted once, where they
@@ -884,9 +909,11 @@ export class Evacuation {
     }
     const where = this.exposedWhere = new Uint8Array(hh.n); // 1 home (ordered), 2 road, 3 no car, 4 no order
     const whereFire = this.fireFrontWhere = new Uint8Array(hh.n); // 1 home, 2 road
+    const P = this.hhPersons; let drivingPersons = 0; // P: persons per household under household mix 'place'
     for (let h = 0; h < hh.n; h++) {
       if (hh.gone[h]) continue;
-      if (hh.veh[h]) { drivingHH++; drivingVeh += hh.veh[h]; }
+      const pph = P ? P[h] : pphAll;
+      if (hh.veh[h]) { drivingHH++; drivingVeh += hh.veh[h]; drivingPersons += pph; }
       const k = hh.kind[h], z = hh.zone[h];
       const told = (k === 1 && this.orderT[z] <= t) || (k === 2 && this.warnT[z] <= t);
       const e = hh.ride[h] >= 0 ? hh.ride[h] : h; // riders share their neighbor's trip
@@ -921,7 +948,7 @@ export class Evacuation {
       if (v.fromOrder[i] === 2) { nOther++; if (x < Infinity) arrOther.push(x - this.firstOrderT); continue; }
       n0++; if (x < Infinity) arr.push(x - this.firstOrderT);
     }
-    const perCar = pph / Math.max(1, drivingVeh / Math.max(1, drivingHH));
+    const perCar = P ? (drivingVeh ? drivingPersons / drivingVeh : pph) : pph / Math.max(1, drivingVeh / Math.max(1, drivingHH));
     S.exposedRoad += nrEmb * perCar; S.fireFrontRoad += nrFire * perCar;
     S.exposedNonResidentPeople = nrEmb * perCar; S.fireFrontNonResidentPeople = nrFire * perCar;
     S.vehicles = nEvac; S.orderVehicles = n0; S.nonResidentVehicles = this.nonResident; S.shadowVehicles = [...v.cls].filter(c => c === 1).length; S.vehiclesArrived = arr.length; S.vehiclesExposed = exposedVeh;
@@ -955,7 +982,8 @@ export class Evacuation {
     S.bottlenecks = [...this.nodeWaitMax.entries()].filter(([, w]) => w > 0).sort((a, b) => b[1] - a[1]).slice(0, 5)
       .map(([n, w]) => ({ node: n, name: this.nodeName(n), max: w, at: this.nodeWaitAt[n] / 60 }));
     S.unplacedPeople = this.unplacedPeople;
-    S.addedUnits = this.growth.built; S.addedResidents = this.growth.built * pph; S.growthBlocked = this.growth.blocked; S.growthOption = this.growth.option;
+    S.addedUnits = this.growth.built; S.addedResidents = P ? this.growth.persons || 0 : this.growth.built * pph; S.growthBlocked = this.growth.blocked; S.growthOption = this.growth.option;
+    S.householdMix = this.householdMix.option; S.householdMixZones = this.householdMix.zones;
     S.zonesOrdered = this.orderT.filter(T => T <= t).length;
     S.zonesWarned = this.warnT.filter(T => T <= t).length;
     S.t = t / 60;
