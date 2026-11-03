@@ -49,16 +49,17 @@ guided routing, the Buena Vista link) are greyed out with that explanation, so p
 were considered (SOURCE_NOTES MS11). Ready-made A/B questions (`js/presets.js`) sit under
 "Ready-made comparisons".
 
-**Set a goal** (third tab) is the other path (SOURCE_NOTES GS1–GS6): pick one or more harms and how
+**Set a goal** (third tab) is the other path (SOURCE_NOTES GS1–GS7): pick one or more harms and how
 much each should be cut against today's plan, and the page lists the smallest combinations of up to
 three changes that did so on the chosen fire, at the pace picked ("Like 1923" or "Like 1991"), in
-every one of 10 passes: 5 search passes (seeds 1–5) and 5 fresh passes (seeds 6–10) used only to
-check. Answers are listed fewest changes first, then by screening cost ("not priced" is never read
+every one of 20 passes: 10 search passes (seeds 1–5 and 11–15) and 10 fresh passes (seeds 6–10 and
+16–20) used only to check. Each harm shows the best cut any combination made in every pass. Answers are listed fewest changes first, then by screening cost ("not priced" is never read
 as free); each opens in Change the plan, which reruns it live across all three severities.
 Combinations that met the goal on the search passes only are listed apart, and so are the changes the search
 left out (those that did not reliably help alone on that fire, such as contraflow), with their
 stored result. The answers come from `data/model/goal-combos.json`, built by
-`node tools/goal-combos.mjs` (about 9 h on 7 workers; `--fires <id> --merge` reruns one fire);
+`node tools/goal-combos.mjs` (seeds 1–10 at all three severities, about 9 h on 7 workers), then
+`node tools/goal-combos.mjs --merge --add-seeds 11-20 --sevs central,high` (about 4 h); `--fires <id> --merge` reruns one fire; `--merge --only <change id>` reruns only the combinations with one change, after its definition is rebuilt;
 rebuild it after `tools/mitigations.mjs` or any model change.
 
 **Expert view** opens every control:

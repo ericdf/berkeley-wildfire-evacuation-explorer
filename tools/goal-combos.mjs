@@ -8,7 +8,7 @@
 //   --merge (with --fires): run only the fires named and keep the saved fires of the existing output.
 //   --limit N: only the first N combinations per fire (a quick test).
 //   --only ID (with --merge): rerun only the combinations that include change ID, on every fire named
-//        (or all), and keep every other saved combination; for a change whose definition was rebuilt
+//        (or all), on every pass the saved output holds, and keep every other saved combination; for a change whose definition was rebuilt
 //        in data/model/mitigations.json. The candidates and left-out changes must match the saved ones.
 //   --add-seeds A-B [--sevs central,high] (with --merge): run every saved combination on seeds A..B at
 //        those severities and append them; the first half are search seeds, the second half held out
@@ -130,7 +130,10 @@ for (const fire of runFires) {
 }
 
 const chunks = [];
-const JOBS = ADD ? ADD_SEVS.flatMap(sev => ADD_SEEDS.map(seed => [sev, seed])) : SEVS.flatMap(sev => SEEDS.map(seed => [sev, seed]));
+// --only reruns every pass the saved output holds, including any added with --add-seeds.
+const JOBS = ADD ? ADD_SEVS.flatMap(sev => ADD_SEEDS.map(seed => [sev, seed]))
+  : ONLY ? MERGE.meta.cases.map(k => k.split('|')).map(([sev, seed]) => [sev, +seed])
+  : SEVS.flatMap(sev => SEEDS.map(seed => [sev, seed]));
 for (const fire of runFires) for (const [sev, seed] of JOBS)
   chunks.push(plan[fire].combos.map(c => ({ fire, sev, seed, ids: c.ids, key: c.key })));
 // A chunk's cache key: its jobs, the levers' definitions and the model they run on: every module in
@@ -166,12 +169,12 @@ await Promise.all(Array.from({ length: WORKERS }, lane));
 const wallMin = Math.round((Date.now() - t0) / 6000) / 10;
 
 // Cases in a fixed order: the search passes (severity, then seed), then the held-out passes.
-const newCases = ADD ? [...ADD_SEVS.flatMap(sev => ADD_SEARCH.map(seed => `${sev}|${seed}`)), ...ADD_SEVS.flatMap(sev => ADD_HOLD.map(seed => `${sev}|${seed}`))]
+const newCases = ONLY ? MERGE.meta.cases : ADD ? [...ADD_SEVS.flatMap(sev => ADD_SEARCH.map(seed => `${sev}|${seed}`)), ...ADD_SEVS.flatMap(sev => ADD_HOLD.map(seed => `${sev}|${seed}`))]
   : [...SEVS.flatMap(sev => SEARCH.map(seed => `${sev}|${seed}`)), ...SEVS.flatMap(sev => HOLD.map(seed => `${sev}|${seed}`))];
 const cases = ADD ? [...MERGE.meta.cases, ...newCases] : newCases;
-const searchSeeds = ADD ? [...MERGE.meta.searchSeeds, ...ADD_SEARCH] : SEARCH, holdoutSeeds = ADD ? [...MERGE.meta.holdoutSeeds, ...ADD_HOLD] : HOLD;
+const searchSeeds = ADD ? [...MERGE.meta.searchSeeds, ...ADD_SEARCH] : ONLY ? MERGE.meta.searchSeeds : SEARCH;
+const holdoutSeeds = ADD ? [...MERGE.meta.holdoutSeeds, ...ADD_HOLD] : ONLY ? MERGE.meta.holdoutSeeds : HOLD;
 const byRun = new Map(results.map(x => [`${x.fire}|${x.key}|${x.sev}|${x.seed}`, x.m]));
-if (ONLY && JSON.stringify(MERGE.meta.cases) !== JSON.stringify(newCases)) throw new Error('--only: the saved output has other passes (--add-seeds); rebuild in full');
 const firesOut = MERGE ? Object.fromEntries(Object.entries(MERGE.fires).filter(([f]) => ONLY || !runFires.includes(f))) : {};
 for (const fire of runFires) {
   const runs = ONLY ? { ...MERGE.fires[fire].runs } : {};
@@ -193,10 +196,11 @@ for (const fire of Object.keys(firesOut)) for (const [key, rows] of Object.entri
 }
 console.log(`check against data/model/mitigations.json: ${agree} of ${checked} single-change and baseline runs agree${off.length ? `; first differences: ${off.join(', ')}` : ''}`);
 
+const extraSevs = SEVS.filter(sv => cases.some(k => k.startsWith(sv + '|') && !SEEDS.includes(+k.split('|')[1])));
 const prevRuns = MERGE ? MERGE.meta.runs : 0, prevMin = MERGE ? MERGE.meta.wallMin : 0;
 const meta = {
   built: new Date().toISOString().slice(0, 10), tool: 'tools/goal-combos.mjs',
-  note: `Every combination of up to three changes that reliably helped alone on the fire, against today's plan on the same draws: low, medium and high severity × search seeds 1–5 and held-out seeds 6–10${ADD || (MERGE?.meta.searchSeeds || []).length > SEARCH.length ? `, plus ${(ADD ? ADD_SEVS : ['central', 'high']).join(' and ')} severity × search seeds ${searchSeeds.slice(SEARCH.length).join(', ')} and held-out seeds ${holdoutSeeds.slice(HOLD.length).join(', ')}` : ''}. Synthetic households on an illustrative fire; an educational comparison, not a prediction.`,
+  note: `Every combination of up to three changes that reliably helped alone on the fire, against today's plan on the same draws: low, medium and high severity × search seeds 1–5 and held-out seeds 6–10${searchSeeds.length > SEARCH.length ? `, plus ${extraSevs.join(' and ')} severity × search seeds ${searchSeeds.slice(SEARCH.length).join(', ')} and held-out seeds ${holdoutSeeds.slice(HOLD.length).join(', ')}` : ''}. Synthetic households on an illustrative fire; an educational comparison, not a prediction.`,
   baseline: 'DEFAULT_PLAN (js/sim.js), Time Study case S6 (fall night), no growth, no power shutoff', timeOfDay: TOD,
   fires: Object.keys(firesOut), severities: SEVS, searchSeeds, holdoutSeeds, cases, nSearch: cases.filter(k => searchSeeds.includes(+k.split('|')[1])).length, measures: MK, maxSize: MAXK,
   runs: prevRuns + total, wallMin: Math.round((prevMin + wallMin) * 10) / 10, workers: WORKERS,
