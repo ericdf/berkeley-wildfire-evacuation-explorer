@@ -104,9 +104,13 @@ for (const fire of runFires) {
 const chunks = [];
 for (const fire of runFires) for (const sev of SEVS) for (const seed of SEEDS)
   chunks.push(plan[fire].combos.map(c => ({ fire, sev, seed, ids: c.ids, key: c.key })));
-// A chunk's cache key: its jobs, the levers' definitions and the model code they run on.
+// A chunk's cache key: its jobs, the levers' definitions and the model they run on: every module in
+// js/ and every data file in data/model/ and data/, except this tool's own output (a list of named
+// files missed js/guidance.js, js/operations.js and data/model/layers.json, which sim.js and data.js load).
 const codeHash = crypto.createHash('sha1');
-for (const f of ['js/scenarios.js', 'js/sim.js', 'js/fire.js', 'js/parking.js', 'js/levers.js', 'js/mitigate.js', 'data/model/network.json', 'data/assumptions.json']) codeHash.update(fs.readFileSync(path.join(R, f)));
+const MODEL = [['js', /\.js$/], ['data/model', /\.json$/], ['data', /\.json$/]].flatMap(([d, re]) =>
+  fs.readdirSync(path.join(R, d)).filter(f => re.test(f) && !/^goal-combos/.test(f)).sort().map(f => `${d}/${f}`));
+for (const f of MODEL) codeHash.update(f + '\0').update(fs.readFileSync(path.join(R, f)));
 const CODE = codeHash.digest('hex');
 const hashOf = c => crypto.createHash('sha1').update(JSON.stringify(c) + JSON.stringify(M.levers.filter(l => c.some(j => j.ids.includes(l.id))).map(l => l.delta)) + CODE).digest('hex').slice(0, 16);
 const total = chunks.reduce((s, c) => s + c.length, 0);
