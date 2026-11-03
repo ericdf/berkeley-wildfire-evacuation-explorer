@@ -1,0 +1,9 @@
+LEHD LODES8 (version 8, 2020 Census blocks), California, job year 2023, all jobs (JT00), retrieved 2026-11-03:
+  https://lehd.ces.census.gov/data/lodes/LODES8/ca/wac/ca_wac_S000_JT00_2023.csv.gz   (workplace area characteristics)
+  https://lehd.ces.census.gov/data/lodes/LODES8/ca/od/ca_od_main_JT00_2023.csv.gz     (origin-destination, CA residents; 97 MB, streamed, not kept)
+  https://lehd.ces.census.gov/data/lodes/LODES8/ca/ca_xwalk.csv.gz                    (block crosswalk: place, block internal point)
+Extract: python3 -I tools/lodes-extract.py ca_xwalk.csv.gz ca_wac_S000_JT00_2023.csv.gz wac-od-2023-model-area.csv < (zcat ca_od_main_JT00_2023.csv.gz)
+Kept: blocks in Alameda and Contra Costa counties whose internal point lies in the model area (js AREA_LONLAT), with jobs > 0.
+Columns: jobs = C000 (all jobs), jobs_educ = CNS15 (educational services), jobs_health = CNS16, od_main_jobs = jobs in
+the OD main file, od_main_home_outside_place = of those, jobs whose home block lies in a different Census place (city).
+LODES adds noise to block counts and excludes most federal and self-employed jobs; 2023 is the latest job year in LODES8.
