@@ -74,10 +74,14 @@ console.log(`\nWildfire Risk to Structures (V6): ${riskAll} cells in the two cou
 for (const h of byHaz.sort((a, b) => a.NEIGHBORHOOD_HAZARD_CLASS - b.NEIGHBORHOOD_HAZARD_CLASS)) console.log(`  NEIGHBORHOOD_HAZARD_CLASS ${h.NEIGHBORHOOD_HAZARD_CLASS}: ${h.n}`);
 
 // 3. LANDFIRE 2025 FBFM40 (Scott and Burgan 40 fuel models), 30 m, nearest neighbor over the model area.
-const w = Math.round((env.xmax - env.xmin) / 30), h = Math.round((env.ymax - env.ymin) / 30);
-const buf = await get(FBFM40, { bbox: `${env.xmin},${env.ymin},${env.xmax},${env.ymax}`, bboxSR: '32610', imageSR: '32610',
+// The extent is widened to whole 30 m pixels from the north-west corner (xmin, ymax), so pixel
+// (r, c) is centered exactly at local x = 30c + 15, y = ymax - (30r + 15).
+const w = Math.ceil((env.xmax - env.xmin) / 30), h = Math.ceil((env.ymax - env.ymin) / 30);
+const lf = { xmin: env.xmin, xmax: env.xmin + 30 * w, ymin: env.ymax - 30 * h, ymax: env.ymax };
+const buf = await get(FBFM40, { bbox: `${lf.xmin},${lf.ymin},${lf.xmax},${lf.ymax}`, bboxSR: '32610', imageSR: '32610',
   size: `${w},${h}`, format: 'tiff', pixelType: 'S16', interpolation: 'RSP_NearestNeighbor', compression: 'None', f: 'image' }, 'buf');
 const img = readTiff(buf);
+if (img.width !== w || img.height !== h) throw new Error(`LANDFIRE returned ${img.width} × ${img.height}, asked ${w} × ${h}`);
 const NAMES = { 91: 'NB1 urban or developed (non-burnable)', 93: 'NB3 agriculture', 98: 'NB8 open water', 99: 'NB9 bare ground',
   101: 'GR1', 102: 'GR2', 103: 'GR3', 104: 'GR4', 121: 'GS1', 122: 'GS2', 123: 'GS3', 124: 'GS4',
   141: 'SH1', 142: 'SH2', 143: 'SH3', 144: 'SH4', 145: 'SH5', 146: 'SH6', 147: 'SH7', 148: 'SH8', 149: 'SH9',

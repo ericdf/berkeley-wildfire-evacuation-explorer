@@ -21,7 +21,7 @@ holds for everything proposed here.
   numbers, owner names, owner-occupancy and tract demographics, so the build must request only
   geometry and the separation field, and keep counts per fire cell, never footprints (section 7).
 - **The national fuel map calls most of the hill neighborhoods non-burnable.** LANDFIRE 2025
-  (FBFM40, 30 m) classes 76.8% of Fire Zone 2 as NB1, urban or developed (PH4). The houses that
+  (FBFM40, 30 m) classes 76.9% of Fire Zone 2 as NB1, urban or developed (PH4). The houses that
   burned in 1923 and 1991 are fuel the map leaves out, so LANDFIRE can set fuels only in the
   wildland, and the developed hills need a structure-based factor.
 - **Structures change the plan comparison only if a plan can change the fire.** The fire overlay
@@ -50,7 +50,7 @@ holds for everything proposed here.
 
 ## 2. What is public
 
-All figures from `node tools/phase3-sources.mjs`, run 2026-11-03.
+All figures from `node tools/phase3-sources.mjs`, run 2026-11-03. LANDFIRE figures use a 30 m grid aligned to the model area's north-west corner, 4–8 m wider and taller than the model area.
 
 | Item | Figure | Source | Category |
 |---|---|---|---|
@@ -60,7 +60,7 @@ All figures from `node tools/phase3-sources.mjs`, run 2026-11-03.
 | Structures in very high hazard zones | 1,874 in CAL FIRE's Very High zone; 215 in the City's Very High zone on Panoramic Hill | City `COB_VHFS_Parcels_Bldngs_WFL1`, edited 2025-06-16 (PH1) | sourced |
 | Wildfire Risk to Structures (V6) | 97,660 cells of about 6.4 ha in Alameda and Contra Costa counties; 1,907 touch the model area. Each has a hazard class, structures per acre and a neighborhood hazard class 1–6 | City `Alameda_and_Contra_Costa_Wildfire_Hazard_and_Risk_to_Structures_WFL1`, edited 2024-08-15; method at fuelsmapping.com (PH3) | sourced, method not yet read |
 | Fuel models, model area | 92,748 cells of 30 m: non-burnable 70.8% (NB1 urban 55.0%, NB8 water 15.6%), timber litter 14.5%, grass-shrub 7.3%, grass 3.6%, timber understory 2.0%, shrub 1.8% | LANDFIRE 2025, FBFM40 (Scott and Burgan 40 models), lfps.usgs.gov (PH4) | sourced |
-| Fuel models, by fire zone | NB1 urban covers 92.2% of Fire Zone 1, 76.8% of Fire Zone 2 (9,173 cells) and 64.5% of Fire Zone 3 (141 cells) | Same, cell centers against `layers.json` fire zones (PH4) | derived |
+| Fuel models, by fire zone | NB1 urban covers 92.2% of Fire Zone 1, 76.9% of Fire Zone 2 (9,173 cells) and 63.8% of Fire Zone 3 (141 cells) | Same, cell centers against `layers.json` fire zones (PH4) | derived |
 | Structures outside Fire Zones 2–3 | No City footprint layer found. 2020 Census housing units per block are in hand (`data/raw/census/blocks-2020.json`) | DATA_INVENTORY | sourced (counts, not footprints) |
 | Effect of hardening or Zone 0 on loss | No dose-response; "up to 75%" fewer losses with combined measures in Paradise (Milliman 2023); "extreme weather appears to nullify most interventions" | EMBER, SOURCE_NOTES M2, M3 | sourced (no Berkeley effect size) |
 
