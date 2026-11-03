@@ -1,0 +1,338 @@
+{
+  "product": "LANDFIRE 2025 (LF2025) 40 Scott and Burgan Fire Behavior Fuel Models, FBFM40, CONUS",
+  "version": "LF2025",
+  "layer": "LF2025_FBFM40_CONUS",
+  "service": "https://lfps.usgs.gov/arcgis/rest/services/Landfire_LF2025/LF2025_FBFM40_CONUS/ImageServer",
+  "query": {
+    "bbox": "558896,4188272,569516,4196132",
+    "bboxSR": 32610,
+    "imageSR": 32610,
+    "size": "354,262",
+    "format": "tiff",
+    "pixelType": "S16",
+    "interpolation": "RSP_NearestNeighbor",
+    "compression": "None",
+    "f": "image"
+  },
+  "retrieved": "2026-11-03",
+  "license": "US public domain (USGS / USDA Forest Service LANDFIRE program)",
+  "grid": {
+    "W": 354,
+    "H": 262,
+    "cell": 30,
+    "xmin": 558896,
+    "ymin": 4188272,
+    "crs": "EPSG:32610, shifted so (0, 0) = DEM (xmin, ymin)",
+    "encoding": "uint8 FBFM40 code per cell; rows run south to north (index = row * W + col)"
+  },
+  "resampling": "Nearest neighbor by the LANDFIRE image service from the native 30 m Albers grid (EPSG:5070) to the fire grid",
+  "provenance": {
+    "category": "sourced (fuel classes); model rule (spread factors)",
+    "factorRule": "Rothermel (1972) head-fire rate on flat ground at Scott and Burgan (2005) moisture scenario D2L2 (dead 1-h 6%, 10-h 7.000000000000001%, 100-h 8%, live herbaceous 60%, live woody 90%) and 5 mi/h midflame wind, parameters from RMRS-GTR-153 Table 7 (tools/fuel-models.mjs), divided by the mean rate over the 18604 burnable cells the fire-zone proxy rates 1.0, capped at 3. NB1 (urban or suburban) keeps the cell's fire-zone proxy factor; NB3, NB8 and NB9 are 0. Wind and slope effects stay the simulator's (js/fire.js), so the factor carries only the fuel's relative rate. Ember throw and landing keep the proxy.",
+    "referenceRosFtMin": 15.716
+  },
+  "spread": {
+    "91": {
+      "code": "NB1",
+      "factor": "proxy",
+      "cells": 51012
+    },
+    "92": {
+      "code": "NB2",
+      "factor": 0,
+      "cells": 0
+    },
+    "93": {
+      "code": "NB3",
+      "factor": 0,
+      "cells": 57
+    },
+    "98": {
+      "code": "NB8",
+      "factor": 0,
+      "cells": 14464
+    },
+    "99": {
+      "code": "NB9",
+      "factor": 0,
+      "cells": 87
+    },
+    "101": {
+      "code": "GR1",
+      "rosFtMin": 6.299,
+      "factor": 0.4008,
+      "cells": 911
+    },
+    "102": {
+      "code": "GR2",
+      "rosFtMin": 32.539,
+      "factor": 2.0704,
+      "cells": 2338
+    },
+    "103": {
+      "code": "GR3",
+      "rosFtMin": 46.592,
+      "factor": 2.9646,
+      "cells": 63
+    },
+    "104": {
+      "code": "GR4",
+      "rosFtMin": 63.539,
+      "factor": 3,
+      "cells": 0
+    },
+    "105": {
+      "code": "GR5",
+      "rosFtMin": 49.43,
+      "factor": 3,
+      "cells": 0
+    },
+    "106": {
+      "code": "GR6",
+      "rosFtMin": 74.792,
+      "factor": 3,
+      "cells": 0
+    },
+    "107": {
+      "code": "GR7",
+      "rosFtMin": 89.167,
+      "factor": 3,
+      "cells": 0
+    },
+    "108": {
+      "code": "GR8",
+      "rosFtMin": 101.136,
+      "factor": 3,
+      "cells": 0
+    },
+    "109": {
+      "code": "GR9",
+      "rosFtMin": 154.179,
+      "factor": 3,
+      "cells": 0
+    },
+    "121": {
+      "code": "GS1",
+      "rosFtMin": 10.246,
+      "factor": 0.6519,
+      "cells": 1711
+    },
+    "122": {
+      "code": "GS2",
+      "rosFtMin": 15.956,
+      "factor": 1.0153,
+      "cells": 1826
+    },
+    "123": {
+      "code": "GS3",
+      "rosFtMin": 21.926,
+      "factor": 1.3951,
+      "cells": 3215
+    },
+    "124": {
+      "code": "GS4",
+      "rosFtMin": 21.439,
+      "factor": 1.3642,
+      "cells": 0
+    },
+    "141": {
+      "code": "SH1",
+      "rosFtMin": 0.619,
+      "factor": 0.0394,
+      "cells": 0
+    },
+    "142": {
+      "code": "SH2",
+      "rosFtMin": 3.362,
+      "factor": 0.2139,
+      "cells": 133
+    },
+    "143": {
+      "code": "SH3",
+      "rosFtMin": 4.351,
+      "factor": 0.2769,
+      "cells": 4
+    },
+    "144": {
+      "code": "SH4",
+      "rosFtMin": 30.755,
+      "factor": 1.9569,
+      "cells": 434
+    },
+    "145": {
+      "code": "SH5",
+      "rosFtMin": 63.011,
+      "factor": 3,
+      "cells": 1113
+    },
+    "146": {
+      "code": "SH6",
+      "rosFtMin": 25.984,
+      "factor": 1.6533,
+      "cells": 0
+    },
+    "147": {
+      "code": "SH7",
+      "rosFtMin": 41.196,
+      "factor": 2.6213,
+      "cells": 8
+    },
+    "148": {
+      "code": "SH8",
+      "rosFtMin": 24.977,
+      "factor": 1.5892,
+      "cells": 0
+    },
+    "149": {
+      "code": "SH9",
+      "rosFtMin": 41.9,
+      "factor": 2.6661,
+      "cells": 0
+    },
+    "161": {
+      "code": "TU1",
+      "rosFtMin": 2.723,
+      "factor": 0.1732,
+      "cells": 0
+    },
+    "162": {
+      "code": "TU2",
+      "rosFtMin": 13.513,
+      "factor": 0.8598,
+      "cells": 1415
+    },
+    "163": {
+      "code": "TU3",
+      "rosFtMin": 19.02,
+      "factor": 1.2103,
+      "cells": 148
+    },
+    "164": {
+      "code": "TU4",
+      "rosFtMin": 13.66,
+      "factor": 0.8692,
+      "cells": 0
+    },
+    "165": {
+      "code": "TU5",
+      "rosFtMin": 10.189,
+      "factor": 0.6483,
+      "cells": 312
+    },
+    "181": {
+      "code": "TL1",
+      "rosFtMin": 0.961,
+      "factor": 0.0611,
+      "cells": 0
+    },
+    "182": {
+      "code": "TL2",
+      "rosFtMin": 1.534,
+      "factor": 0.0976,
+      "cells": 131
+    },
+    "183": {
+      "code": "TL3",
+      "rosFtMin": 1.915,
+      "factor": 0.1219,
+      "cells": 5277
+    },
+    "184": {
+      "code": "TL4",
+      "rosFtMin": 2.738,
+      "factor": 0.1742,
+      "cells": 328
+    },
+    "185": {
+      "code": "TL5",
+      "rosFtMin": 4.957,
+      "factor": 0.3154,
+      "cells": 3160
+    },
+    "186": {
+      "code": "TL6",
+      "rosFtMin": 6.583,
+      "factor": 0.4189,
+      "cells": 4107
+    },
+    "187": {
+      "code": "TL7",
+      "rosFtMin": 3.184,
+      "factor": 0.2026,
+      "cells": 0
+    },
+    "188": {
+      "code": "TL8",
+      "rosFtMin": 6.73,
+      "factor": 0.4282,
+      "cells": 412
+    },
+    "189": {
+      "code": "TL9",
+      "rosFtMin": 10.028,
+      "factor": 0.6381,
+      "cells": 9
+    },
+    "201": {
+      "code": "SB1",
+      "rosFtMin": 6.991,
+      "factor": 0.4449,
+      "cells": 0
+    },
+    "202": {
+      "code": "SB2",
+      "rosFtMin": 16.873,
+      "factor": 1.0736,
+      "cells": 73
+    },
+    "203": {
+      "code": "SB3",
+      "rosFtMin": 30.454,
+      "factor": 1.9378,
+      "cells": 0
+    },
+    "204": {
+      "code": "SB4",
+      "rosFtMin": 58.646,
+      "factor": 3,
+      "cells": 0
+    }
+  },
+  "byProxyClass": {
+    "water": {
+      "cells": 14300,
+      "proxy": 0,
+      "nb1": 856,
+      "zero": 14300,
+      "meanFactor": 0
+    },
+    "flats": {
+      "cells": 38128,
+      "proxy": 0.25,
+      "nb1": 34873,
+      "zero": 1196,
+      "meanFactor": 0.262
+    },
+    "hillResidential": {
+      "cells": 17001,
+      "proxy": 0.7,
+      "nb1": 10650,
+      "zero": 198,
+      "meanFactor": 0.63
+    },
+    "wildland": {
+      "cells": 23183,
+      "proxy": 1,
+      "nb1": 4549,
+      "zero": 82,
+      "meanFactor": 0.951
+    },
+    "wildlandInterface": {
+      "cells": 136,
+      "proxy": 1,
+      "nb1": 84,
+      "zero": 0,
+      "meanFactor": 0.753
+    }
+  }
+}
