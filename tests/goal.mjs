@@ -33,6 +33,13 @@ setGoalData({ meta: { measures: ['ember', 'front', 'cutOff', 'engine', 'clear90'
   fires: { f: { candidates: [], excluded: [], runs: { '': T([0, 0, 0, 0, null], [0, 0, 0, 0, 100]), p: T([0, 0, 0, 0, 80], [0, 0, 0, 0, 70]), q: T([5, 0, 0, 0, null], [0, 0, 0, 0, 70]) } } } });
 E = evaluate('f', { ember: 50, clear90: 25 });
 ok(keys(E.answers) === 'p', 'today at 0 stays 0 meets; reaching a clearance today never reaches meets; q fails (0 → 5)');
+// one severity: cases "sev|seed"; s fails at high severity only, so it meets a low-severity goal
+setGoalData({ meta: { measures: ['ember', 'front', 'cutOff', 'engine', 'clear90'], nSearch: 2, cases: ['low|1', 'high|1', 'low|2', 'high|2'], maxSize: 3 },
+  fires: { f: { candidates: [], excluded: [], runs: { '': T(row(100, 0), row(100, 0), row(100, 0), row(100, 0)), s: T(row(50, 0), row(95, 0), row(50, 0), row(95, 0)) } } } });
+ok(keys(evaluate('f', { ember: 25 }, 'low').answers) === 's', 'ember −25% at low severity: s (judged on low passes only)');
+ok(evaluate('f', { ember: 25 }, 'high').answers.length === 0, 'ember −25% at high severity: none');
+ok(evaluate('f', { ember: 25 }).answers.length === 0, 'ember −25% over all passes: none');
+ok(evaluate('f', { ember: 25 }, 'low').answers[0].nHold === 1, 'low severity: 1 held-out pass');
 // ranking: fewest changes, then all-priced cheapest, then unpriced
 const L = { a: { cost: { capital: [5, 9] } }, b: { cost: { capital: [1, 2] } }, c: { cost: { note: 'x' } } };
 const r = rank([{ key: 'c', ids: ['c'] }, { key: 'a', ids: ['a'] }, { key: 'a+b', ids: ['a', 'b'] }, { key: 'b', ids: ['b'] }], id => L[id]);

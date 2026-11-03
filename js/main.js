@@ -313,7 +313,7 @@ function renderTries() {
 // The playback controls' home is Expert view's Run section (index.html #playback).
 const homePlayback = () => $('run-section').querySelector('h2').after($('playback'));
 // Set a goal (js/goal.js): its stored combinations load on first use; an answer opens in Change the plan and runs there.
-const goalCtx = () => ({ state, FIRES, fmt, leverById, pickFire, render: renderSimple,
+const goalCtx = () => ({ state, FIRES, fmt, leverById, pickFire, render: renderSimple, paceHTML, paceShort: () => PACE[state.pace].short,
   openInTry: ids => { state.picked = new Set(ids.filter(leverById)); state.tab = 'try'; renderSimple(); compareStack(); } });
 function showTab(t) {
   state.tab = t;
