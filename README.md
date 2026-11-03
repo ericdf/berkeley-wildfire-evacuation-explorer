@@ -78,11 +78,14 @@ were considered (SOURCE_NOTES MS11). Ready-made A/B questions (`js/presets.js`) 
 
 ### Reading the results
 
-- **People still there when embers arrived** counts people at home or on the road when
-  embers first reached their street, split into four groups: still home with a car, on the
-  road, without a vehicle, and in zones that never got an order. A good average can hide
-  any one of them. **…when the fire front arrived** counts those still there when the fire
-  itself reached the street. Neither is a count of deaths or injuries: the simulator does not
+- **People still there when embers arrived** counts each person once, where they were when
+  embers first reached them: still home with a car, still home without a vehicle, still home
+  in a zone with no order, or on the road (gone from home before embers reached their street,
+  but in a car that later drove a street under embers; cars of employees and visitors count
+  here too, as persons per household / cars per driving household). A good average can hide
+  any one of them. **…when the fire front arrived** counts the same way for the fire front
+  itself (SOURCE_NOTES FO7, FO8: until 2026-11-02 a household still home when embers
+  arrived was counted again on the road when its car drove out under embers). Neither is a count of deaths or injuries: the simulator does not
   model house survival, sheltering, fire intensity or smoke.
 - **Clearance** is reported at 50%, 90% and 100% of evacuating vehicles, plus the time
   the last household with a car reaches safety. No single average is shown.
@@ -325,6 +328,7 @@ add any parking-removal bonus.
 | `tests/growth.mjs` | Future growth and R0 with the fire on, seeds 1–5 (`SOURCE_NOTES.md` R4, R5); `GROWTH=max node tests/calibration.mjs` gives R3 |
 | `tests/routing.mjs` | Driver information and routing with the fire on, seeds 1–5: every option, households worse off against Habit (also beyond chance), and a check that every option sees the same households and shared random stream as Today's model (`SOURCE_NOTES.md` DG19–DG24) |
 | `tools/other-city-orders.mjs` | Zones, residents and vehicles other cities' orders add, by city, per fire, family member, severity and seed; `--runs` adds today's plan's headline measures (SOURCE_NOTES FO3, FO4) |
+| `tests/exposure-once.mjs` | Checks that people still there when embers or the fire front arrived count each person once: the parts add up to the distinct people the run's state shows (SOURCE_NOTES FO8) |
 | `tests/retreat-draws.mjs` | Checks that a managed-retreat buyout (`world.retreat`) leaves every other household, every non-resident car and the shared random stream unchanged |
 
 ## Replacing datasets
