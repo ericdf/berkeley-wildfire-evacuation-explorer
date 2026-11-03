@@ -321,7 +321,11 @@ export class Evacuation {
     this.growth = { option: units.length ? this.world.growth : 'none', units: units.length, built: 0, blocked: 0, r0: plan.r0 || 'none', r0Missing: !!(plan.r0 && plan.r0 !== 'none' && !r0) };
     for (let k = 0; k < units.length; k++) {
       const eid = units[k];
-      if (r0 && r0.has(eid)) { this.growth.blocked++; continue; }
+      if (r0 && r0.has(eid)) { // barred: no draw; under 'place' its people count at its zone's household size
+        this.growth.blocked++;
+        if (mixZones) { const bz = zoneIdx.get(net.edges[eid].evacZone); this.growth.blockedPersons = (this.growth.blockedPersons || 0) + (bz == null ? D.personsPerHousehold : zPph[bz]); }
+        continue;
+      }
       const r = mulberry32((Math.imul(this.seed + 1, 0x9E3779B1) ^ Math.imul(k + 1, 0x85EBCA6B)) >>> 0);
       const zid = net.edges[eid].evacZone;
       const eligible = plan.earlyZones === 'fz23' ? net.edges[eid].fireZone >= 2 : lez.has(zid);
@@ -839,7 +843,7 @@ export class Evacuation {
     { const ps = parkingStats;
       this.log(`Parked cars this run (seed ${this.seed}): of ${ps.hillsKnown} hill segments with a known width, ${ps.twoSides} parked on both sides and ${ps.oneSide} on one side; ${ps.pinched} segments have a bad parking job narrowing the gap. ${ps.engineBlocked} segments are too narrow for an engine; ${this.sharedLanes} two-way segments leave one lane, so oncoming drivers take turns.`, 'plan'); }
     { const G = this.growth, pph = this.data.A.demand.personsPerHousehold, opt = this.data.A.growth?.options?.[this.world.growth];
-      if (G.units) this.log(`Future growth "${opt.label}": ${G.units.toLocaleString()} added homes on Berkeley hill streets (Fire Zones 2–3, standing in for the Hillside Overlay), spread like today's households.${G.blocked ? ` R0 in ${R0_AREAS[G.r0]} bars ${G.blocked.toLocaleString()} of them (${Math.round(G.blocked * pph).toLocaleString()} people); none move elsewhere.` : ''} Built: ${G.built.toLocaleString()} homes, about ${Math.round(this.hhPersons ? G.persons : G.built * pph).toLocaleString()} added residents.`, 'plan');
+      if (G.units) this.log(`Future growth "${opt.label}": ${G.units.toLocaleString()} added homes on Berkeley hill streets (Fire Zones 2–3, standing in for the Hillside Overlay), spread like today's households.${G.blocked ? ` R0 in ${R0_AREAS[G.r0]} bars ${G.blocked.toLocaleString()} of them (${Math.round(this.hhPersons ? G.blockedPersons || 0 : G.blocked * pph).toLocaleString()} people); none move elsewhere.` : ''} Built: ${G.built.toLocaleString()} homes, about ${Math.round(this.hhPersons ? G.persons : G.built * pph).toLocaleString()} added residents.`, 'plan');
       if (this.householdMix.option === 'place') this.log(`Household mix by place (ACS 2020–2024, Expert setting): ${this.householdMix.zones} zones use their own persons per household and share of households without a vehicle; the rest keep the citywide ${pph} and ${(this.data.A.demand.householdsWithoutVehicleShare * 100).toFixed(2)}%. ${this.hh.n.toLocaleString()} synthetic households.`, 'plan');
       else if (this.householdMix.requested === 'place') this.log('Household mix by place was asked for, but data/model/demand-by-zone.json did not load; the citywide mix is used.', 'plan');
       if (G.r0Missing) this.log('R0 in access-constrained areas has no effect in this build: data/model/access-constraints.json is missing.', 'warn');
