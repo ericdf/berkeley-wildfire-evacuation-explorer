@@ -125,7 +125,7 @@ export function makeScenarios(data) {
 // grid (fuel ≥ 0.7, js/fire.js buildFireGrid; tests/families.mjs). SOURCE_NOTES FF16.
 export const FAMILY_WINDS = [30, 45, 60];
 const FAMILY_POINTS = {
-  ref1923: [{ id: 'city', current: true, at: 'at the City\'s starting point', label: 'The City\'s 1923 repeat starting point (unchanged; only the wind varies, since the fire reproduces the City\'s scenario, SOURCE_NOTES S11)' }],
+  ref1923: [{ id: 'city', current: true, at: 'at the City\'s starting point', label: 'The City\'s 1923 repeat starting point (unchanged; only the wind varies, since the fire reproduces the City\'s scenario, SOURCE_NOTES S11). The fire burns only inside the City\'s 1923 footprint, so the winds vary it less than on the other fires: at medium severity the footprint removes 58% of what the fire would burn without it from 30°, 26% from 45° (today\'s fire) and 40% from 60° (SOURCE_NOTES FF17)' }],
   northHills: [
     { id: 'tilden', current: true, at: 'in Tilden east of the Summit', label: 'Tilden Regional Park, about 1.2 km east of Grizzly Peak Blvd at Spruce St (the fire\'s usual start)' },
     { id: 'anza', lonlat: [-122.2470, 37.8981], at: 'on Wildcat Canyon Rd near Lake Anza', label: 'Wildcat Canyon Rd about 150 m north-east of the shore of Lake Anza',
