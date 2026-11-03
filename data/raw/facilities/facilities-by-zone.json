@@ -1,0 +1,703 @@
+{
+ "_meta": {
+  "retrieved": "2026-11-03",
+  "userAgent": "berkeley-wildfire-simulator/0.1",
+  "category": "sourced (public licensing and school records), aggregated by evacuation zone (derived)",
+  "envelope": "-122.334,37.836,-122.206,37.912",
+  "note": "Counts and licensed capacity, beds or enrollment by type and Genasys zone. No names or addresses are kept. unknown = facilities in the count whose capacity or enrollment is not known.",
+  "outsideEveryZone": {
+   "childCareCenter": 3,
+   "publicSchool": 1
+  },
+  "sources": {
+   "ccl": {
+    "url": "https://services.arcgis.com/XLPEppdz2H9dOiqp/arcgis/rest/services/CDSS_CCL_Facilities/FeatureServer/0",
+    "retrieved": "2026-11-03",
+    "dataLastEdit": "2026-10-23",
+    "inEnvelope": 153,
+    "used": 131,
+    "skipped": {
+     "RESOURCE FAMILY HOME (status 12)": 13,
+     "DAY CARE CENTER (status 6)": 2,
+     "RESIDENTIAL-ELDERLY (status 6)": 1,
+     "TRANSITIONAL HOUSING (status 3)": 1,
+     "FOSTER FAMILY AGENCY (status 3)": 1,
+     "INFANT CENTER (status 6)": 1,
+     "ADOPTION AGENCY (status 3)": 2,
+     "SCHOOL-AGE DC CENTER (status 6)": 1
+    },
+    "rule": "STATUS 3 (licensed; every facility it shares with the CCL CSV of 2025-05-25 is LICENSED there). Capacity = licensed capacity."
+   },
+   "cdph": {
+    "url": "https://data.chhs.ca.gov/dataset/3b5b80e8-6b8d-4715-b3c0-2699af6e72e5/resource/f0ae5731-fef8-417f-839d-54a0ed3a126e/download/health_facility_locations.csv",
+    "retrieved": "2026-11-03",
+    "dataDate": "10/16/2026",
+    "used": 11,
+    "rule": "FAC_STATUS_TYPE_CODE OPEN; SNF = skilled nursing; ICF* and CLHF = intermediate care and congregate living; GACH and APH = hospitals. Beds = CAPACITY (licensed beds). A hospital listed twice at one address with 0 beds adds a facility and no beds."
+   },
+   "publicSchools": {
+    "url": "https://www.cde.ca.gov/schooldirectory/report?rid=dl1&tp=txt",
+    "enrollment": "https://www3.cde.ca.gov/demo-downloads/census/cdenroll2526.txt",
+    "retrieved": "2026-11-03",
+    "used": 41,
+    "withoutEnrollment": 4,
+    "rule": "Active schools in the directory (district offices left out); enrollment = Census Day 2025-26 total (ReportingCategory TA). Adult education and preschool sites have no Census Day enrollment and count with enrollment unknown."
+   },
+   "privateSchools": {
+    "locations": "https://nces.ed.gov/opengis/rest/services/K12_School_Locations/EDGE_GEOCODE_PRIVATESCH_2324/MapServer/0",
+    "enrollment": "https://www.cde.ca.gov/ds/si/ps/documents/privateschooldata2526.xlsx",
+    "retrieved": "2026-11-03",
+    "located": 26,
+    "matched": 20,
+    "unmatched": 6,
+    "cdeSchoolsInDistricts": 77,
+    "rule": "NCES 2023-24 locations in the envelope; enrollment from the CDE 2025-26 affidavit file where the normalized name matches exactly (Berkeley, Albany, Oakland, West Contra Costa and Emery districts); otherwise counted with enrollment unknown. Schools in the CDE file that NCES does not locate are not counted."
+   },
+   "empower": {
+    "url": "https://services2.arcgis.com/ZQ4jTQn6k7VPXEwO/arcgis/rest/services/HHS_emPOWER_REST_Service_Public/FeatureServer/1",
+    "zips": 20
+   }
+  }
+ },
+ "zones": {
+  "ECK-005": {
+   "childCareCenter": {
+    "n": 1,
+    "capacity": 77
+   }
+  },
+  "EMV-004": {
+   "childCareCenter": {
+    "n": 3,
+    "capacity": 218
+   },
+   "publicSchool": {
+    "n": 1,
+    "enrollment": 460
+   }
+  },
+  "ALB-007": {
+   "childCareCenter": {
+    "n": 1,
+    "capacity": 51
+   }
+  },
+  "BER-053": {
+   "rcfe": {
+    "n": 1,
+    "capacity": 138
+   },
+   "hospital": {
+    "n": 2,
+    "beds": 64
+   },
+   "publicSchool": {
+    "n": 4,
+    "enrollment": 479,
+    "unknown": 1
+   },
+   "privateSchool": {
+    "n": 1,
+    "enrollment": 65
+   }
+  },
+  "BER-028": {
+   "childCareCenter": {
+    "n": 1,
+    "capacity": 72
+   }
+  },
+  "BER-036": {
+   "childCareCenter": {
+    "n": 2,
+    "capacity": 109
+   },
+   "publicSchool": {
+    "n": 1,
+    "enrollment": 505
+   },
+   "privateSchool": {
+    "n": 1,
+    "enrollment": 0,
+    "unknown": 1
+   }
+  },
+  "ALB-009": {
+   "childCareCenter": {
+    "n": 2,
+    "capacity": 72
+   },
+   "rcfe": {
+    "n": 1,
+    "capacity": 225
+   },
+   "publicSchool": {
+    "n": 1,
+    "enrollment": 544
+   }
+  },
+  "BER-023": {
+   "childCareCenter": {
+    "n": 5,
+    "capacity": 479
+   }
+  },
+  "OKL-019": {
+   "childCareCenter": {
+    "n": 1,
+    "capacity": 100
+   }
+  },
+  "BER-047": {
+   "childCareCenter": {
+    "n": 2,
+    "capacity": 163
+   },
+   "rcfe": {
+    "n": 2,
+    "capacity": 130
+   },
+   "intermediateCare": {
+    "n": 1,
+    "beds": 6
+   },
+   "publicSchool": {
+    "n": 1,
+    "enrollment": 399
+   },
+   "privateSchool": {
+    "n": 3,
+    "enrollment": 315,
+    "unknown": 1
+   }
+  },
+  "BER-068": {
+   "rcfe": {
+    "n": 1,
+    "capacity": 12
+   },
+   "childCareCenter": {
+    "n": 4,
+    "capacity": 134
+   },
+   "skilledNursing": {
+    "n": 1,
+    "beds": 31
+   }
+  },
+  "ALB-005": {
+   "childCareCenter": {
+    "n": 2,
+    "capacity": 52
+   },
+   "publicSchool": {
+    "n": 3,
+    "enrollment": 2066
+   }
+  },
+  "BER-061": {
+   "adultResidential": {
+    "n": 1,
+    "capacity": 15
+   },
+   "skilledNursing": {
+    "n": 1,
+    "beds": 60
+   }
+  },
+  "ALB-008": {
+   "childCareCenter": {
+    "n": 2,
+    "capacity": 59
+   },
+   "rcfe": {
+    "n": 1,
+    "capacity": 13
+   },
+   "publicSchool": {
+    "n": 1,
+    "enrollment": 564
+   }
+  },
+  "EMV-003": {
+   "childCareCenter": {
+    "n": 3,
+    "capacity": 294
+   },
+   "adultResidential": {
+    "n": 5,
+    "capacity": 10
+   },
+   "publicSchool": {
+    "n": 1,
+    "enrollment": 0,
+    "unknown": 1
+   },
+   "privateSchool": {
+    "n": 2,
+    "enrollment": 0,
+    "unknown": 2
+   }
+  },
+  "OKL-020": {
+   "childCareCenter": {
+    "n": 4,
+    "capacity": 213
+   },
+   "publicSchool": {
+    "n": 1,
+    "enrollment": 339
+   }
+  },
+  "OKL-044": {
+   "childCareCenter": {
+    "n": 1,
+    "capacity": 10
+   },
+   "privateSchool": {
+    "n": 1,
+    "enrollment": 210
+   }
+  },
+  "ALB-006": {
+   "adultResidential": {
+    "n": 1,
+    "capacity": 5
+   },
+   "publicSchool": {
+    "n": 1,
+    "enrollment": 562
+   },
+   "privateSchool": {
+    "n": 1,
+    "enrollment": 623
+   }
+  },
+  "BER-024": {
+   "childCareCenter": {
+    "n": 1,
+    "capacity": 58
+   }
+  },
+  "BER-054": {
+   "childCareCenter": {
+    "n": 6,
+    "capacity": 284
+   }
+  },
+  "OKL-022": {
+   "childCareCenter": {
+    "n": 1,
+    "capacity": 32
+   },
+   "publicSchool": {
+    "n": 2,
+    "enrollment": 133
+   }
+  },
+  "OKL-030": {
+   "childCareCenter": {
+    "n": 5,
+    "capacity": 209
+   },
+   "privateSchool": {
+    "n": 1,
+    "enrollment": 0,
+    "unknown": 1
+   }
+  },
+  "BER-014": {
+   "childCareCenter": {
+    "n": 2,
+    "capacity": 110
+   },
+   "privateSchool": {
+    "n": 1,
+    "enrollment": 113
+   }
+  },
+  "BER-069": {
+   "childCareCenter": {
+    "n": 4,
+    "capacity": 182
+   },
+   "privateSchool": {
+    "n": 1,
+    "enrollment": 46
+   }
+  },
+  "BER-020": {
+   "childCareCenter": {
+    "n": 1,
+    "capacity": 52
+   }
+  },
+  "BER-035": {
+   "childCareCenter": {
+    "n": 3,
+    "capacity": 79
+   },
+   "privateSchool": {
+    "n": 1,
+    "enrollment": 23
+   }
+  },
+  "BER-017": {
+   "childCareCenter": {
+    "n": 1,
+    "capacity": 40
+   }
+  },
+  "OKL-021": {
+   "adultResidential": {
+    "n": 2,
+    "capacity": 10
+   },
+   "childCareCenter": {
+    "n": 1,
+    "capacity": 24
+   },
+   "hospital": {
+    "n": 1,
+    "beds": 163
+   },
+   "publicSchool": {
+    "n": 1,
+    "enrollment": 198
+   }
+  },
+  "BER-073": {
+   "childCareCenter": {
+    "n": 3,
+    "capacity": 75
+   },
+   "publicSchool": {
+    "n": 1,
+    "enrollment": 292
+   },
+   "privateSchool": {
+    "n": 1,
+    "enrollment": 101
+   }
+  },
+  "BER-070": {
+   "adultResidential": {
+    "n": 1,
+    "capacity": 32
+   },
+   "childCareCenter": {
+    "n": 1,
+    "capacity": 45
+   },
+   "publicSchool": {
+    "n": 1,
+    "enrollment": 513
+   }
+  },
+  "BER-063": {
+   "childCareCenter": {
+    "n": 2,
+    "capacity": 94
+   },
+   "adultResidential": {
+    "n": 1,
+    "capacity": 18
+   }
+  },
+  "BER-050": {
+   "childCareCenter": {
+    "n": 7,
+    "capacity": 420
+   },
+   "privateSchool": {
+    "n": 1,
+    "enrollment": 315
+   }
+  },
+  "BER-021": {
+   "childCareCenter": {
+    "n": 1,
+    "capacity": 24
+   }
+  },
+  "BER-045": {
+   "childCareCenter": {
+    "n": 4,
+    "capacity": 157
+   },
+   "rcfe": {
+    "n": 1,
+    "capacity": 90
+   },
+   "privateSchool": {
+    "n": 1,
+    "enrollment": 114
+   }
+  },
+  "RCH-048": {
+   "childCareCenter": {
+    "n": 2,
+    "capacity": 215
+   },
+   "publicSchool": {
+    "n": 1,
+    "enrollment": 0,
+    "unknown": 1
+   }
+  },
+  "ALB-012": {
+   "childCareCenter": {
+    "n": 1,
+    "capacity": 85
+   }
+  },
+  "ALB-004": {
+   "childCareCenter": {
+    "n": 1,
+    "capacity": 24
+   },
+   "rcfe": {
+    "n": 1,
+    "capacity": 6
+   },
+   "privateSchool": {
+    "n": 1,
+    "enrollment": 136
+   }
+  },
+  "BER-038": {
+   "childCareCenter": {
+    "n": 3,
+    "capacity": 212
+   },
+   "publicSchool": {
+    "n": 1,
+    "enrollment": 411
+   },
+   "privateSchool": {
+    "n": 2,
+    "enrollment": 67,
+    "unknown": 1
+   }
+  },
+  "OKL-017": {
+   "childCareCenter": {
+    "n": 2,
+    "capacity": 67
+   },
+   "publicSchool": {
+    "n": 1,
+    "enrollment": 506
+   }
+  },
+  "BER-065": {
+   "rcfe": {
+    "n": 1,
+    "capacity": 15
+   },
+   "publicSchool": {
+    "n": 1,
+    "enrollment": 602
+   }
+  },
+  "BER-046": {
+   "childCareCenter": {
+    "n": 6,
+    "capacity": 228
+   },
+   "skilledNursing": {
+    "n": 1,
+    "beds": 49
+   },
+   "publicSchool": {
+    "n": 2,
+    "enrollment": 254,
+    "unknown": 1
+   },
+   "privateSchool": {
+    "n": 1,
+    "enrollment": 96
+   }
+  },
+  "BER-006": {
+   "childCareCenter": {
+    "n": 1,
+    "capacity": 108
+   }
+  },
+  "BER-027": {
+   "adultResidential": {
+    "n": 1,
+    "capacity": 15
+   },
+   "privateSchool": {
+    "n": 1,
+    "enrollment": 227
+   }
+  },
+  "OKL-008": {
+   "childCareCenter": {
+    "n": 1,
+    "capacity": 22
+   }
+  },
+  "ECK-003": {
+   "childCareCenter": {
+    "n": 3,
+    "capacity": 110
+   },
+   "skilledNursing": {
+    "n": 1,
+    "beds": 45
+   },
+   "publicSchool": {
+    "n": 1,
+    "enrollment": 481
+   },
+   "privateSchool": {
+    "n": 1,
+    "enrollment": 67
+   }
+  },
+  "BER-022": {
+   "childCareCenter": {
+    "n": 1,
+    "capacity": 42
+   }
+  },
+  "BER-026": {
+   "childCareCenter": {
+    "n": 1,
+    "capacity": 140
+   },
+   "publicSchool": {
+    "n": 1,
+    "enrollment": 876
+   }
+  },
+  "BER-076": {
+   "childCareCenter": {
+    "n": 1,
+    "capacity": 70
+   },
+   "publicSchool": {
+    "n": 1,
+    "enrollment": 306
+   }
+  },
+  "BER-059": {
+   "childCareCenter": {
+    "n": 1,
+    "capacity": 29
+   }
+  },
+  "ECK-002": {
+   "rcfe": {
+    "n": 3,
+    "capacity": 18
+   },
+   "childCareCenter": {
+    "n": 1,
+    "capacity": 32
+   },
+   "publicSchool": {
+    "n": 1,
+    "enrollment": 544
+   }
+  },
+  "BER-075": {
+   "childCareCenter": {
+    "n": 1,
+    "capacity": 105
+   }
+  },
+  "OKL-015": {
+   "childCareCenter": {
+    "n": 1,
+    "capacity": 56
+   },
+   "publicSchool": {
+    "n": 1,
+    "enrollment": 116
+   }
+  },
+  "BER-064": {
+   "skilledNursing": {
+    "n": 2,
+    "beds": 113
+   },
+   "publicSchool": {
+    "n": 1,
+    "enrollment": 373
+   }
+  },
+  "BER-067": {
+   "hospital": {
+    "n": 1,
+    "beds": 339
+   }
+  },
+  "BER-044": {
+   "publicSchool": {
+    "n": 1,
+    "enrollment": 3279
+   }
+  },
+  "BER-015": {
+   "publicSchool": {
+    "n": 1,
+    "enrollment": 292
+   }
+  },
+  "BER-025": {
+   "publicSchool": {
+    "n": 1,
+    "enrollment": 409
+   },
+   "privateSchool": {
+    "n": 1,
+    "enrollment": 51
+   }
+  },
+  "BER-001": {
+   "publicSchool": {
+    "n": 1,
+    "enrollment": 362
+   }
+  },
+  "OKL-018": {
+   "publicSchool": {
+    "n": 1,
+    "enrollment": 582
+   }
+  },
+  "OKL-043": {
+   "publicSchool": {
+    "n": 1,
+    "enrollment": 403
+   },
+   "privateSchool": {
+    "n": 2,
+    "enrollment": 215
+   }
+  },
+  "ORI-006": {
+   "publicSchool": {
+    "n": 1,
+    "enrollment": 518
+   }
+  },
+  "ECK-004": {
+   "publicSchool": {
+    "n": 1,
+    "enrollment": 1361
+   }
+  },
+  "OKL-031": {
+   "privateSchool": {
+    "n": 1,
+    "enrollment": 372
+   }
+  }
+ }
+}
