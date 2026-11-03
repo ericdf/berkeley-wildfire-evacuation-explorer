@@ -7,7 +7,7 @@ Built 2026-11-03 by `node tools/walk-access.mjs` from 13,591 hill building footp
 - **Most hill homes sit near the level of their street.** Of 13,591 hill buildings, the median is 3.0 m above or below the nearest point of its street and the 90th percentile 7.6 m. 1,886 (14%) stand more than 5 m above their street and 412 (3%) more than 10 m; 1,470 (11%) are more than 5 m below and 196 (1%) more than 10 m below. 457 buildings (3%) are closer to a public path or stairway than to any street, 170 of them to a stairway.
 - **The walk to the curb takes seconds to a few minutes.** One way, door to curb, at the central speeds: median 21 s, 90th percentile 35 s, 99th 74 s. With reduced mobility: 34, 67 and 137 s. The terrain's extra time over level ground for three legs (two trips out with belongings, one back) is a median 18 s and a 90th percentile 44 s (reduced mobility 29 and 115 s). The Time Study's mobilization curves spread departures over 2.5 to 3.5 hours in 15-minute steps (`data/assumptions.json` demand.mobilization15min), so this is small against them.
 - **Carless households would walk a median 4 to 13 minutes, and a 90th percentile 12 to 23, to the edge of the order and warning area.** Weighted by expected carless households on hill streets inside each scenario's order and warning area (the simulator's uniform 7.47% share), median and 90th percentile walking times on the pedestrian network with stairways: 1923 fire, present-day repeat 13 and 23 min (reduced mobility 19 and 37); Extreme east wind 7 and 19 min (reduced mobility 10 and 28); Constrained neighborhood: Panoramic Hill 4 and 12 min (reduced mobility 7 and 19); North hills: fire in Tilden above the Summit 8 and 20 min (reduced mobility 13 and 31).
-- **Shelters are farther.** To the nearest of the City's 13 shelter sites: median 23 min and 90th percentile 53 min (reduced mobility 36 and 82); about 497 of 1,399 expected carless hill households are more than 30 minutes' walk away, 816 with reduced mobility.
+- **Shelters are farther.** To the nearest of the City's 13 shelter sites: median 23 min and 90th percentile 54 min (reduced mobility 36 and 84); about 500 of 1,399 expected carless hill households are more than 30 minutes' walk away, 818 with reduced mobility.
 - **Stairways and paths save little in aggregate.** Without them (streets only), the median walk out changes by at most 0.3 min in any scenario and the 90th percentile by at most 1.9 min; the segments where they save most are listed below.
 
 ## Where homes sit far above or below their street
@@ -80,15 +80,15 @@ A named path is often several OSM ways, some of them level footway; only the way
 
 ## Carless households: walking out
 
-Time on foot from the middle of each hill street segment to the nearest street the simulator counts as safe in that scenario (outside the order and warning zones, never reached by embers, at medium severity, seed 1), not past the fire's start; zones weighted by expected carless households (synthetic: the uniform citywide share). "All" uses stairways and paths, "streets" does not. Minutes, median / 90th percentile.
+Time on foot from the middle of each hill street segment to the nearest street the simulator counts as safe in that scenario (outside the order and warning zones, never reached by embers, at medium severity, seed 1), not past the fire's start; zones weighted by expected carless households (synthetic: the uniform citywide share). "All" uses stairways and paths, "streets" does not. Minutes, median / 90th percentile. A segment with no walking route counts as slower than any reached one (in the percentiles and as over 30 min); the last column gives those households.
 
-| Scenario | Expected carless hill households | Central, all | Central, streets | Reduced mobility, all | Reduced mobility, streets | Over 30 min, central / reduced |
-|---|---:|---:|---:|---:|---:|---:|
-| Reference: 1923 fire, present-day repeat | 808 | 12.5 / 23.4 | 12.8 / 25.3 | 19.2 / 36.5 | 19.6 / 38.8 | 32 / 166 |
-| Extreme east wind | 935 | 6.6 / 18.5 | 6.9 / 19.5 | 10.2 / 28.3 | 10.6 / 29.9 | 9 / 78 |
-| Constrained neighborhood: Panoramic Hill | 274 | 4.2 / 12.2 | 4.2 / 13.8 | 6.5 / 19.4 | 6.5 / 21.1 | 6 / 11 |
-| North hills: fire in Tilden above the Summit | 785 | 8.4 / 20.4 | 8.7 / 20.5 | 12.8 / 31.4 | 13.3 / 31.4 | 1 / 97 |
-| Nearest of the City's 13 shelter sites | 1,399 | 23.2 / 53.4 | 23.9 / 53.7 | 35.7 / 82.4 | 36.6 / 82.1 | 497 / 816 |
+| Scenario | Expected carless hill households | Central, all | Central, streets | Reduced mobility, all | Reduced mobility, streets | Over 30 min, central / reduced | No walking route, all / streets |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Reference: 1923 fire, present-day repeat | 808 | 12.5 / 23.4 | 12.8 / 25.3 | 19.2 / 36.5 | 19.6 / 38.8 | 32 / 166 | 0.0 / 0.0 |
+| Extreme east wind | 935 | 6.6 / 18.5 | 6.9 / 19.5 | 10.2 / 28.3 | 10.6 / 29.9 | 9 / 78 | 0.0 / 0.0 |
+| Constrained neighborhood: Panoramic Hill | 274 | 4.2 / 12.2 | 4.2 / 13.8 | 6.5 / 19.4 | 6.5 / 21.1 | 6 / 11 | 0.0 / 0.0 |
+| North hills: fire in Tilden above the Summit | 785 | 8.4 / 20.4 | 8.7 / 20.5 | 12.8 / 31.4 | 13.3 / 31.4 | 1 / 97 | 0.0 / 0.0 |
+| Nearest of the City's 13 shelter sites | 1,399 | 23.3 / 53.8 | 24.3 / 55.4 | 35.8 / 83.5 | 37.1 / 84.8 | 500 / 818 | 2.5 / 15.7 |
 
 Zones with the longest walks (90th percentile, central, with stairways), by scenario:
 
@@ -96,7 +96,7 @@ Zones with the longest walks (90th percentile, central, with stairways), by scen
 - Extreme east wind: CCC-154 51 min (reduced 79; 3 households); OKL-003 31 min (reduced 48; 10 households); BER-016 31 min (reduced 47; 9 households); BER-031 28 min (reduced 43; 20 households); BER-030 26 min (reduced 40; 13 households).
 - Constrained neighborhood: Panoramic Hill: CCC-154 49 min (reduced 75; 3 households); OKL-003 32 min (reduced 49; 10 households); BER-013 26 min (reduced 40; 4 households); OKL-006 15 min (reduced 22; 11 households); OKL-009 14 min (reduced 21; 12 households).
 - North hills: fire in Tilden above the Summit: CCC-154 53 min (reduced 81; 3 households); BER-016 29 min (reduced 44; 9 households); BER-015 27 min (reduced 41; 26 households); BER-017 25 min (reduced 38; 21 households); BER-008 23 min (reduced 35; 24 households).
-- Nearest of the City's 13 shelter sites: ORI-008 107 min (reduced 163; 5 households); OKL-035 102 min (reduced 160; 26 households); OKL-037 97 min (reduced 154; 9 households); OKL-079 91 min (reduced 144; 11 households); OKL-239 85 min (reduced 133; 11 households).
+- Nearest of the City's 13 shelter sites: ORI-008 107 min (reduced 163; 5 households); OKL-035 102 min (reduced 160; 26 households); OKL-079 91 min (reduced 144; 11 households); OKL-239 85 min (reduced 133; 11 households); OKL-040 77 min (reduced 121; 10 households).
 
 Where stairways and paths shorten the walk to a shelter most (minutes saved against streets only, central):
 

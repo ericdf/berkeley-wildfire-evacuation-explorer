@@ -279,7 +279,7 @@ for (const e of net.edges) {
   const cut = (from, to) => { const pts = []; const at = f => { let i = 1; while (i < cum.length - 1 && cum[i] < f) i++; const u = (f - cum[i - 1]) / Math.max(1e-9, cum[i] - cum[i - 1]); return [geom[i - 1][0] + u * (geom[i][0] - geom[i - 1][0]), geom[i - 1][1] + u * (geom[i][1] - geom[i - 1][1])]; }; pts.push(at(from)); for (let i = 1; i < geom.length - 1; i++) if (cum[i] > from && cum[i] < to) pts.push(geom[i]); pts.push(at(to)); return pts; };
   for (const p of sp) {
     const m = addNode(p.x, p.y);
-    addEdge(prev, m, 'street', withZ(densify(cut(prevAt, p.at))));
+    addEdge(prev, m, e.mode === 'path' ? 'path' : 'street', withZ(densify(cut(prevAt, p.at)))); // a split piece keeps its edge's class
     addEdge(m, p.node, 'connector', withZ([[p.x, p.y], [gx[p.node], gy[p.node]]]));
     chain.push([m, p.at]); prev = m; prevAt = p.at;
   }
@@ -357,7 +357,12 @@ for (const [k, T] of Object.entries(targetSets)) {
 }
 for (const eid of hillSegs) if (segWalk[eid]) segments[eid].walkMin = Object.fromEntries(Object.entries(segWalk[eid]).map(([k, v]) => [k, Object.fromEntries(Object.entries(v).map(([m, t]) => [m, Number.isFinite(t) ? r1(t / 60) : null]))]));
 // zone aggregates of carless households' walks (weighted by expected carless households)
-function wq(pairs, p) { const s = pairs.filter(([v]) => v != null).sort((a, b) => a[0] - b[0]); const W = s.reduce((t, [, w]) => t + w, 0); if (!W) return null; let acc = 0; for (const [v, w] of s) { acc += w; if (acc >= p * W) return v; } return s[s.length - 1][0]; }
+// Weighted quantile. A segment with no walking route (null) counts as slower than any reached one, so every
+// network's percentiles describe the same households; a percentile that lands on one is null ("not reached").
+function wq(pairs, p) { const s = pairs.map(([v, w]) => [v == null ? Infinity : v, w]).sort((a, b) => a[0] - b[0]); const W = s.reduce((t, [, w]) => t + w, 0); if (!W) return null; let acc = 0; let r = s[s.length - 1][0]; for (const [v, w] of s) { acc += w; if (acc >= p * W) { r = v; break; } } return Number.isFinite(r) ? r : null; }
+const wsum = (list, f) => r1(list.filter(f).reduce((t, [, c]) => t + c, 0));
+const wstats = (list, m) => ({ p50: wq(list.map(([w, c]) => [w[m], c]), 0.5), p90: wq(list.map(([w, c]) => [w[m], c]), 0.9),
+  over30: wsum(list, ([w]) => w[m] == null || w[m] > 30), over60: wsum(list, ([w]) => w[m] == null || w[m] > 60), unreachable: wsum(list, ([w]) => w[m] == null) });
 for (const [k, T] of Object.entries(targetSets)) {
   const zs = new Map();
   for (const eid of hillSegs) { const s = segments[eid], w = s.walkMin?.[k]; if (!w) continue; if (!zs.has(s.zone)) zs.set(s.zone, []); zs.get(s.zone).push([w, s.households * carless]); }
@@ -365,9 +370,9 @@ for (const [k, T] of Object.entries(targetSets)) {
   let all = [];
   for (const [z, list] of zs) {
     const ch = list.reduce((t, [, w]) => t + w, 0); all = all.concat(list);
-    walks[k].zones[z] = { carlessHouseholds: r1(ch), ...Object.fromEntries(['central_all', 'reduced_all', 'central_streets', 'reduced_streets'].map(m => [m, { p50: wq(list.map(([w, c]) => [w[m], c]), 0.5), p90: wq(list.map(([w, c]) => [w[m], c]), 0.9) }])) };
+    walks[k].zones[z] = { carlessHouseholds: r1(ch), ...Object.fromEntries(['central_all', 'reduced_all', 'central_streets', 'reduced_streets'].map(m => [m, wstats(list, m)])) };
   }
-  walks[k].total = { carlessHouseholds: r1(all.reduce((t, [, w]) => t + w, 0)), ...Object.fromEntries(['central_all', 'reduced_all', 'central_streets', 'reduced_streets'].map(m => [m, { p50: wq(all.map(([w, c]) => [w[m], c]), 0.5), p90: wq(all.map(([w, c]) => [w[m], c]), 0.9), over30: r1(all.filter(([w]) => w[m] > 30).reduce((t, [, c]) => t + c, 0)), over60: r1(all.filter(([w]) => w[m] > 60).reduce((t, [, c]) => t + c, 0)) }])) };
+  walks[k].total = { carlessHouseholds: r1(all.reduce((t, [, w]) => t + w, 0)), ...Object.fromEntries(['central_all', 'reduced_all', 'central_streets', 'reduced_streets'].map(m => [m, wstats(all, m)])) };
 }
 
 // ---------- 7. zone summaries and checks ----------
@@ -465,10 +470,10 @@ L.push('');
 
 // carless walks by scenario and zone
 L.push('## Carless households: walking out', '');
-L.push('Time on foot from the middle of each hill street segment to the nearest street the simulator counts as safe in that scenario (outside the order and warning zones, never reached by embers, at medium severity, seed 1), not past the fire\'s start; zones weighted by expected carless households (synthetic: the uniform citywide share). "All" uses stairways and paths, "streets" does not. Minutes, median / 90th percentile.', '');
-L.push('| Scenario | Expected carless hill households | Central, all | Central, streets | Reduced mobility, all | Reduced mobility, streets | Over 30 min, central / reduced |');
-L.push('|---|---:|---:|---:|---:|---:|---:|');
-for (const [, w] of Object.entries(wk)) { const t = w.total; L.push(`| ${w.name} | ${fmt(t.carlessHouseholds)} | ${fmt(t.central_all.p50, 1)} / ${fmt(t.central_all.p90, 1)} | ${fmt(t.central_streets.p50, 1)} / ${fmt(t.central_streets.p90, 1)} | ${fmt(t.reduced_all.p50, 1)} / ${fmt(t.reduced_all.p90, 1)} | ${fmt(t.reduced_streets.p50, 1)} / ${fmt(t.reduced_streets.p90, 1)} | ${fmt(t.central_all.over30)} / ${fmt(t.reduced_all.over30)} |`); }
+L.push('Time on foot from the middle of each hill street segment to the nearest street the simulator counts as safe in that scenario (outside the order and warning zones, never reached by embers, at medium severity, seed 1), not past the fire\'s start; zones weighted by expected carless households (synthetic: the uniform citywide share). "All" uses stairways and paths, "streets" does not. Minutes, median / 90th percentile. A segment with no walking route counts as slower than any reached one (in the percentiles and as over 30 min); the last column gives those households.', '');
+L.push('| Scenario | Expected carless hill households | Central, all | Central, streets | Reduced mobility, all | Reduced mobility, streets | Over 30 min, central / reduced | No walking route, all / streets |');
+L.push('|---|---:|---:|---:|---:|---:|---:|---:|');
+for (const [, w] of Object.entries(wk)) { const t = w.total; L.push(`| ${w.name} | ${fmt(t.carlessHouseholds)} | ${fmt(t.central_all.p50, 1)} / ${fmt(t.central_all.p90, 1)} | ${fmt(t.central_streets.p50, 1)} / ${fmt(t.central_streets.p90, 1)} | ${fmt(t.reduced_all.p50, 1)} / ${fmt(t.reduced_all.p90, 1)} | ${fmt(t.reduced_streets.p50, 1)} / ${fmt(t.reduced_streets.p90, 1)} | ${fmt(t.central_all.over30)} / ${fmt(t.reduced_all.over30)} | ${fmt(t.central_all.unreachable, 1)} / ${fmt(t.central_streets.unreachable, 1)} |`); }
 L.push('', 'Zones with the longest walks (90th percentile, central, with stairways), by scenario:', '');
 for (const [k, w] of Object.entries(wk)) {
   const zs = Object.entries(w.zones).filter(([, v]) => v.carlessHouseholds >= 2 && v.central_all.p90 != null).sort((a, b) => b[1].central_all.p90 - a[1].central_all.p90).slice(0, 5);
