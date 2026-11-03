@@ -182,7 +182,11 @@ as driveways and the street loses capacity. Under 10 ft, a fire engine cannot ge
 
 **Fire and embers** (`js/fire.js`). An illustrative overlay on 30 m cells. A shortest-time
 search spreads fire from the ignition, using wind (an elliptical shape), slope, and a
-proxy fuel factor taken from the City fire zones. Random spot fires mean different seeds
+proxy fuel factor taken from the City fire zones. An opt-in Expert-view setting (Scenario →
+Fuel) uses LANDFIRE 2025 FBFM40 fuel models instead, each with a spread factor from Rothermel's
+relative rate for its Scott and Burgan model, a model rule (`node tools/fetch-fuel.mjs`;
+checks against 1923, 1991, the Ember Threat Zones and Red Flag winds in
+`docs/fire-validation.md`). Random spot fires mean different seeds
 give different footprints. A cell is ember-exposed once anything burns within the ember
 distance upwind of it. The overlay puts plausible, comparable pressure on the evacuation;
 it does not predict how a real fire would behave.

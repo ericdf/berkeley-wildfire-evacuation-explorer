@@ -1,5 +1,5 @@
 import { loadData } from './data.js';
-import { buildFireGrid, runFire, cellOf, demAt, FUEL, LB_MAX, CELL } from './fire.js';
+import { buildFireGrid, runFire, fireGridFor, cellOf, demAt, FUEL, LB_MAX, CELL } from './fire.js';
 import { makeScenarios, familyOf, comparisonCases, FAMILY_WINDS, SEVERITY, SEVERITY_NOTE, TIME_OF_DAY, TIME_NOTE, ETE_TARGETS } from './scenarios.js';
 import { Evacuation, DEFAULT_PLAN, titleCase } from './sim.js';
 import { PARKING_PLANS } from './parking.js';
@@ -95,6 +95,13 @@ function shutoffNote() {
   $('shutoff-note').innerHTML = v === 'none' ? '' : `${esc(SHUTOFF[v])}: each dark signal runs as an all-way stop (California Vehicle Code §21800(d)) and passes at most about ${fmt(OPS().powerShutoff.allWayStopVph)} vehicles per hour ${badge('assumption', A_NOTE('operations.powerShutoff.allWayStopVph'))}. No signal is assumed to have battery backup. Grid-powered contraflow signs fail. ${badge('model rule', A_NOTE('operations.powerShutoff'))}`;
 }
 $('powerShutoff').onchange = () => { shutoffNote(); newRun(); };
+// Fuel (scenario setting, Expert view, off by default): LANDFIRE FBFM40 in place of the fire-zone proxy (js/fire.js withLandfireFuel).
+function fuelNote() {
+  const on = $('fuel').value === 'landfire', M = data.fuel40?.meta;
+  if (!data.fuel40) { $('fuel').value = 'proxy'; $('fuel').disabled = true; }
+  $('fuel-note').innerHTML = !on ? '' : `Spread factors from LANDFIRE ${esc(M.version)} FBFM40 fuel models on the fire grid ${badge('sourced', M.product)}, each factor Rothermel's relative surface spread rate for its Scott and Burgan (2005) fuel model ${badge('model rule', M.provenance.factorRule)}. Urban cells (NB1) keep the fire-zone proxy; ember throw and landing keep the proxy too. This changes the illustrative fire only; it is not a fire-behavior prediction. Comparison in docs/fire-validation.md.`;
+}
+$('fuel').onchange = () => { fuelNote(); newRun(); };
 // Streets I choose: the clicked segment and the same-named two-way street running on from it.
 function sameStreet(id) {
   const edges = data.net.edges, name = edges[id].name, seen = new Set([id]), stack = [id];
@@ -111,7 +118,8 @@ function toggleContraflow(id) {
 }
 // ---------- future growth (scenario) and R0 (plan) ----------
 // Growth is part of the world both plans face. Simple view always runs today's population.
-const world = () => document.body.classList.contains('simple') ? { growth: 'none', powerShutoff: 'none' } : { growth: $('growth').value, powerShutoff: $('powerShutoff').value };
+// The Fuel setting (Expert view) joins the world only when it is not today's proxy, so default jobs and keys are unchanged.
+const world = () => document.body.classList.contains('simple') ? { growth: 'none', powerShutoff: 'none' } : { growth: $('growth').value, powerShutoff: $('powerShutoff').value, ...($('fuel').value === 'landfire' ? { fuel: 'landfire' } : {}) };
 for (const [k, o] of Object.entries(data.A.growth.options)) $('growth').add(new Option(o.label, k));
 if (!data.access) { const o = $('p-r0').querySelector('option[value="access"]'); o.disabled = true; o.textContent += ' (needs data/model/access-constraints.json)'; }
 const growthNote = () => { const o = data.A.growth.options[$('growth').value]; $('growth-note').innerHTML = `${esc(o.note)} ${badge(o.category)}`; };
@@ -641,7 +649,7 @@ function applyPreset(idOrPreset) {
 }
 function setMode(m) {
   // Simple view runs without growth (world()), so a switch rebuilds the run once the class has changed.
-  const rerun = (document.body.classList.contains('simple') || document.body.classList.contains('expert')) && !document.body.classList.contains(m) && ($('growth').value !== 'none' || $('powerShutoff').value !== 'none');
+  const rerun = (document.body.classList.contains('simple') || document.body.classList.contains('expert')) && !document.body.classList.contains(m) && ($('growth').value !== 'none' || $('powerShutoff').value !== 'none' || $('fuel').value !== 'proxy');
   document.body.classList.toggle('simple', m === 'simple'); document.body.classList.toggle('expert', m === 'expert');
   document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
   localStorage.setItem('bhe-mode', m);
@@ -659,8 +667,8 @@ document.querySelectorAll('#left .expert-only select, #left .expert-only input')
 
 // ---------- runs ----------
 function getFire(sc, sev, seed) {
-  const k = `${sc.id}|${sev}|${seed}`;
-  if (!state.fires.has(k)) state.fires.set(k, runFire(grid, sc, SEVERITY[sev], seed));
+  const fuel = world().fuel || 'proxy', k = `${sc.id}|${sev}|${seed}|${fuel}`;
+  if (!state.fires.has(k)) state.fires.set(k, runFire(fireGridFor(grid, data, fuel), sc, SEVERITY[sev], seed));
   return state.fires.get(k);
 }
 function newRun() {
@@ -1110,7 +1118,7 @@ $('btn-assumptions').onclick = () => {
   <table>${Object.entries(F).map(([k, m]) => `<tr><td><code>${k}</code></td><td>${badge(m.category)} ${esc(m.source)}${m.note ? ' ' + esc(m.note) : ''}</td></tr>`).join('')}</table>
   <h3>Fire and ember overlay ${badge('model rule')}</h3>
   <p class="small"><b>Fire crews.</b> The fire's pace comes from real fires and the City's repeat of 1923 (Simple view: "Like 1923" and "Like 1991"), so it includes the firefighting effort seen in those fires. In a wind-driven fire the Fire Department expects crews to focus on supporting evacuation, and aircraft are grounded in high wind (SOURCE_NOTES FS14). The simulator does not add crews holding the fire's sides, or the fire stopping when the wind changes, as both 1923 and 1991 did (FS15). The scenario may exaggerate the spread as winds die and firefighters establish control. Engines in the simulator only drive, to measure whether they could reach homes.</p>
-  <p class="small">${esc(SEVERITY_NOTE)} Spread runs on ${CELL} m cells: wind sets an elliptical shape (Anderson 1983 length-to-breadth, capped at ${LB_MAX}); uphill is faster and downhill slower; a proxy fuel factor comes from the City fire zones (${Object.entries(FUEL).map(([k, v]) => `${k} ${v}`).join(', ')}), not from vegetation data. Spot fires are random, so seeds differ. A cell is "ember-exposed" once any burning cell lies within the ember distance upwind. The 1923 reference fire is confined to the City's archival boundary.</p>
+  <p class="small">${esc(SEVERITY_NOTE)} Spread runs on ${CELL} m cells: wind sets an elliptical shape (Anderson 1983 length-to-breadth, capped at ${LB_MAX}); uphill is faster and downhill slower; a proxy fuel factor comes from the City fire zones (${Object.entries(FUEL).map(([k, v]) => `${k} ${v}`).join(', ')}), not from vegetation data. The Fuel setting (Scenario, Expert view, off by default) swaps in LANDFIRE 2025 FBFM40 fuel models on the same cells, each with a factor from Rothermel's relative spread rate for its Scott and Burgan (2005) model ${badge('model rule', data.fuel40?.meta.provenance.factorRule || '')}; homes (LANDFIRE's NB1 urban class) keep the proxy, and the medium severity stays calibrated to the proxy (docs/fire-validation.md). Spot fires are random, so seeds differ. A cell is "ember-exposed" once any burning cell lies within the ember distance upwind. The 1923 reference fire is confined to the City's archival boundary.</p>
   <p class="small"><b>Wind.</b> Each fire's wind, 30 to 35 mph, is an extreme hour: dry north-east winds at the Oakland hills weather station average that strongly about 1% of the time (1992–2026). The 1923 and 1991 fires burned in such winds. In this model the speed sets only the fire's shape, which stops changing above about 18 mph, so a lower speed would give the same fires ${badge('derived', 'Oakland North RAWS, WRCC frequency tool, June 1992 – October 2026: of 7,340 hours with wind from 0–90° and humidity ≤ 25%, 1.3% averaged 30 mph or more (SOURCE_NOTES FF5). Length-to-breadth is capped at ' + LB_MAX + ', reached at about 11 mph (high severity), 14 mph (medium) and 18 mph (low); the head spread rate is calibrated, not computed from wind.')}.</p>
   <p class="small"><b>Fire families</b> ${badge('assumption')} (off by default; the box under the fire in Simple view, and in Expert view's Scenario section). With them on, a comparison also runs each fire from other starting points (the 1923 fire keeps the City's) and with wind from 30°, 45° and 60°, the core of dry, windy hours at that station (20–70° held 71.8% of them). The points are tied to past fire origins and the County's fire-pathway study and are our choices: no source gives where the next fire will start, so every start and wind counts equally. Speed, severity, time of day, duration and Berkeley's orders stay the fire's, so a start elsewhere can burn into Berkeley zones the fire's orders leave out; other cities' zones follow the rule below for every start. The 1923 fire stays inside the City's footprint at every wind, which cuts it more at 30° and 60° than at 45° (SOURCE_NOTES FF16–FF18).</p>
   <p class="small"><b>Other cities' orders</b> ${badge('model rule')} Berkeley and Lab zones are ordered as the scenario says: the City's region for that fire. Every other evacuation zone (Oakland, Kensington and El Cerrito, Albany, Emeryville, Richmond, Orinda and unincorporated Contra Costa) is ordered ${A.orders.firePathDelayMin} minutes after the fire front first comes within ${A.orders.firePathKm} km of it ${badge('assumption', 'Eric\'s choice, 2026-11-02, after comparing 2 km and 1 km. No source gives when these jurisdictions order a zone. The delay is the simulator\'s default decision delay; a plan\'s order delay changes the scenario\'s orders only.')}, on every fire and every start, the same under both plans. Their residents' cars use the same roads. Evacuation time (ETE) still counts only cars from zones Berkeley's plan orders, as the Time Study does for its regions; the cars from other cities' zones slow it as traffic (SOURCE_NOTES FO1–FO6). The plan setting "…plus any zone within N km of the fire" still adds Berkeley zones, and other cities' zones a little sooner, since it measures a square around the fire rather than a circle.</p>
@@ -1193,7 +1201,7 @@ if (data.access) {
 }
 
 // ---------- start ----------
-growthNote(); shutoffNote(); showScenario(); showPlan(); legend(); newRun();
+growthNote(); shutoffNote(); fuelNote(); showScenario(); showPlan(); legend(); newRun();
 setMode(localStorage.getItem('bhe-mode') || 'simple');
 if (!localStorage.getItem('bhe-intro-seen')) intro();
 requestAnimationFrame(loop);
