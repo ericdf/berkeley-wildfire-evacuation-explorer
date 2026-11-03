@@ -165,7 +165,7 @@ for (const w of pedWays) {
   const pts = w.geometry.map(p => toLocal(p.lon, p.lat)), mid = pts[Math.floor(pts.length / 2)];
   const hill = hillOf(...mid); if (!hill) continue;
   let len = 0; for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
-  const z0 = elev(...pts[0]), z1 = elev(...pts[pts.length - 1]);
+  const zOk = v => v == null || v < 0.5 ? null : v, z0 = zOk(elev(...pts[0])), z1 = zOk(elev(...pts[pts.length - 1]));
   const t = w.tags, hr = t.handrail || t['handrail:left'] || t['handrail:right'] || t['handrail:center'] || null;
   stairs.push({ osmWay: w.id, name: t.name || null, lengthM: r1(len), riseM: z0 != null && z1 != null ? r1(Math.abs(z1 - z0)) : null, stepCount: t.step_count ? +t.step_count || null : null, incline: t.incline || null, handrail: hr, hill });
 }
@@ -243,8 +243,13 @@ const edgesG = []; // [u, v, kind, horizontal length, cUV central, cVU central, 
 // overlapping it), so a County path drawn over OSM steps is costed as stairs, not as a sloped walk
 function addEdge(u, v, kind, pts, stairy = null) {
   let L = 0; const c = { central: [0, 0], reduced: [0, 0] };
+  // pieces under 0.5 m (duplicate vertices where a line is cut) merge into the next one, so a DEM step between two
+  // almost coincident points is not read as a near-vertical slope
+  let k0 = 0;
   for (let i = 1; i < pts.length; i++) {
-    const [x0, y0, z0] = pts[i - 1], [x1, y1, z1] = pts[i], d = Math.max(0.01, Math.hypot(x1 - x0, y1 - y0)), dz = z1 - z0; L += d;
+    if (i < pts.length - 1 && Math.hypot(pts[i][0] - pts[k0][0], pts[i][1] - pts[k0][1]) < 0.5) continue;
+    const [x0, y0, z0] = pts[k0], [x1, y1, z1] = pts[i]; k0 = i;
+    const d = Math.max(0.5, Math.hypot(x1 - x0, y1 - y0)), dz = z1 - z0; L += d;
     const stair = kind === 'steps' || (stairy && stairy((x0 + x1) / 2, (y0 + y1) / 2));
     if (stair && kind !== 'steps') netStairM += d;
     for (const p of ['central', 'reduced']) {
@@ -259,7 +264,10 @@ const stepSegs = [], stepGrid = new Map();
 for (const w of pedWays) if (w.tags.highway === 'steps') { const pts = w.geometry.map(p => toLocal(p.lon, p.lat)); for (let i = 1; i < pts.length; i++) { const k = stepSegs.length; stepSegs.push([w.id, pts[i - 1], pts[i]]); const n = Math.ceil(Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]) / (G / 2)) + 1; const seen = new Set(); for (let j = 0; j <= n; j++) { const x = pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * j / n, y = pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * j / n, key = `${Math.floor(x / G)},${Math.floor(y / G)}`; if (!seen.has(key)) { seen.add(key); addGrid(stepGrid, x, y, k); } } } }
 const stairNear = (x, y) => !!nearest(stepGrid, stepSegs, x, y, RULES.stairOverlapM);
 const densify = (pts, step = 8) => { const out = [pts[0]]; for (let i = 1; i < pts.length; i++) { const [a, b] = [pts[i - 1], pts[i]], n = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / step)); for (let j = 1; j <= n; j++) out.push([a[0] + (b[0] - a[0]) * j / n, a[1] + (b[1] - a[1]) * j / n]); } return out; };
-const withZ = pts => pts.map(([x, y]) => [x, y, elev(x, y) ?? 0]);
+// DEM no-data or 0 m (open water or missing coverage, as js/fire.js reads them) takes the nearest valid elevation along the line, so it is not read
+// as a cliff down to 0 m; a line with no valid cell is level
+const withZ = pts => { const z = pts.map(([x, y]) => { const v = elev(x, y); return v == null || v < 0.5 ? null : v; }); let last = z.find(v => v != null) ?? 0; for (let i = 0; i < z.length; i++) { if (z[i] == null) { const nx = z.slice(i).find(v => v != null); z[i] = nx != null && i === 0 ? nx : last; noDataPts++; } last = z[i]; } return pts.map(([x, y], i) => [x, y, z[i]]); };
+let noDataPts = 0;
 let snapped = 0;
 for (const w of pedWays) {
   const kind = w.tags.highway === 'steps' ? 'steps' : 'path';
@@ -278,7 +286,7 @@ for (const w of pedWays) {
     splits.get(eid).push({ at: acc + s.t * L, node: g, d: s.d, x: s.x, y: s.y }); snapped++;
   });
 }
-const edgeChain = new Map(); // network edge id → [[node, at]] in order, for segment midpoints
+const edgeChain = new Map(), edgeMid = new Map(); // network edge id → [[node, at]] in order; → the node at its middle
 for (const e of net.edges) {
   if (!walkNet(e)) continue;
   const sp = (splits.get(e.id) || []).sort((p, r) => p.at - r.at);
@@ -288,15 +296,20 @@ for (const e of net.edges) {
   const stairy = e.mode === 'vehicle' ? null : /\bSTEPS?\b/.test(e.name || '') ? () => true : stairNear;
   if (e.mode !== 'vehicle') netPathM += e.len;
   const cut = (from, to) => { const pts = []; const at = f => { let i = 1; while (i < cum.length - 1 && cum[i] < f) i++; const u = (f - cum[i - 1]) / Math.max(1e-9, cum[i] - cum[i - 1]); return [geom[i - 1][0] + u * (geom[i][0] - geom[i - 1][0]), geom[i - 1][1] + u * (geom[i][1] - geom[i - 1][1])]; }; pts.push(at(from)); for (let i = 1; i < geom.length - 1; i++) if (cum[i] > from && cum[i] < to) pts.push(geom[i]); pts.push(at(to)); return pts; };
+  // the segment's middle is a node of the costed graph, so the walk from it is priced by slope and direction like any piece
+  const midAt = acc / 2, pm = cut(0, midAt).pop();
+  sp.push({ at: midAt, node: null, x: pm[0], y: pm[1], mid: true }); sp.sort((p, r) => p.at - r.at);
+  let midNode = -1;
   for (const p of sp) {
     const m = addNode(p.x, p.y);
+    if (p.mid) { addEdge(prev, m, kindE, withZ(densify(cut(prevAt, p.at))), stairy); midNode = m; chain.push([m, p.at]); prev = m; prevAt = p.at; continue; }
     addEdge(prev, m, kindE, withZ(densify(cut(prevAt, p.at))), stairy); // a split piece keeps its edge's class
     addEdge(m, p.node, 'connector', withZ([[p.x, p.y], [gx[p.node], gy[p.node]]]));
     chain.push([m, p.at]); prev = m; prevAt = p.at;
   }
   addEdge(prev, e.b, kindE, withZ(densify(cut(prevAt, acc))), stairy);
   chain.push([e.b, acc]);
-  edgeChain.set(e.id, chain);
+  edgeChain.set(e.id, chain); edgeMid.set(e.id, midNode);
 }
 const NG = gx.length;
 function buildAdj(keep) {
@@ -312,11 +325,12 @@ function buildAdj(keep) {
   }
   return { off: deg, to, cIn };
 }
+// sources: node ids (time 0 there), or [node, {central, reduced}] with the time from that node to the target off the network
 function dijkstra(adj, prof, sources) {
   const dist = new Float64Array(NG).fill(Infinity), heap = [];
   const push = (d, n) => { heap.push([d, n]); let i = heap.length - 1; while (i > 0) { const p = (i - 1) >> 1; if (heap[p][0] <= heap[i][0]) break; [heap[p], heap[i]] = [heap[i], heap[p]]; i = p; } };
   const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < heap.length && heap[l][0] < heap[m][0]) m = l; if (r < heap.length && heap[r][0] < heap[m][0]) m = r; if (m === i) break; [heap[m], heap[i]] = [heap[i], heap[m]]; i = m; } } return top; };
-  for (const s of sources) { dist[s] = 0; push(0, s); }
+  for (const s of sources) { const [n, t0] = Array.isArray(s) ? [s[0], s[1][prof]] : [s, 0]; if (t0 < dist[n]) { dist[n] = t0; push(t0, n); } }
   const c = adj.cIn[prof];
   while (heap.length) {
     const [d, n] = pop(); if (d > dist[n]) continue;
@@ -327,10 +341,7 @@ function dijkstra(adj, prof, sources) {
 const adjAll = buildAdj(() => true);
 const adjStreets = buildAdj(e => e[2] === 'street');
 // time from a street segment's middle to the nearest target (min over the nodes on its chain)
-function segTime(dist, eid, prof) {
-  const ch = edgeChain.get(eid); if (!ch) return Infinity; const mid = ch[ch.length - 1][1] / 2, v = walkV(prof, 0);
-  let best = Infinity; for (const [n, at] of ch) best = Math.min(best, dist[n] + Math.abs(at - mid) / v); return best;
-}
+function segTime(dist, eid) { const m = edgeMid.get(eid); return m == null || m < 0 ? Infinity : dist[m]; }
 
 // targets: streets outside each scenario's order and warning area (the simulator's orders, medium severity, seed 1)
 const { loadData } = await import(R + '/js/data.js');
@@ -353,7 +364,13 @@ for (const sc of scenarios) {
   const toldZones = new Set(); layers.evacZones.forEach((z, i) => { if (told(i)) toldZones.add(z.id); });
   targetSets[sc.id] = { name: sc.name, nodes: t, toldZones };
 }
-const shelterNodes = layers.shelters.map(s => data.nearestNode(...s.pt));
+// shelter sites: the nearest street node, plus the straight walk from it to the site point, priced by slope and direction
+let shelterStubMax = 0;
+const shelterNodes = layers.shelters.map(sh => {
+  const n = data.nearestNode(...sh.pt), d = Math.max(1, Math.hypot(sh.pt[0] - gx[n], sh.pt[1] - gy[n])), [[, , z0], [, , z1]] = withZ([[gx[n], gy[n]], sh.pt]), dz = z1 - z0;
+  shelterStubMax = Math.max(shelterStubMax, d);
+  return [n, { central: d / walkV('central', dz / d), reduced: d / walkV('reduced', dz / d) }];
+});
 targetSets.shelter = { name: 'Nearest of the City\'s 13 shelter sites', nodes: shelterNodes, toldZones: null };
 
 const carless = D.householdsWithoutVehicleShare;
@@ -363,7 +380,7 @@ const segWalk = {};
 for (const [k, T] of Object.entries(targetSets)) {
   for (const prof of ['central', 'reduced']) for (const [netName, adj] of [['all', adjAll], ['streets', adjStreets]]) {
     const dist = dijkstra(adj, prof, T.nodes);
-    for (const eid of hillSegs) { const s = segments[eid]; if (T.toldZones && !T.toldZones.has(s.zone)) continue; ((segWalk[eid] ??= {})[k] ??= {})[`${prof}_${netName}`] = segTime(dist, eid, prof); }
+    for (const eid of hillSegs) { const s = segments[eid]; if (T.toldZones && !T.toldZones.has(s.zone)) continue; ((segWalk[eid] ??= {})[k] ??= {})[`${prof}_${netName}`] = segTime(dist, eid); }
   }
 }
 for (const eid of hillSegs) if (segWalk[eid]) segments[eid].walkMin = Object.fromEntries(Object.entries(segWalk[eid]).map(([k, v]) => [k, Object.fromEntries(Object.entries(v).map(([m, t]) => [m, Number.isFinite(t) ? r1(t / 60) : null]))]));
@@ -423,7 +440,7 @@ const out = {
       walkMin: 'derived: minutes on foot from the segment\'s middle to the nearest street outside the scenario\'s order and warning area (or to a shelter site), central and reduced mobility, with stairways and paths (all) and on streets only (streets)',
       households: 'derived: expected synthetic households on the segment, as js/sim.js places them (zone population / persons per household, by street length)',
     },
-    counts: { buildingsInFile: bpts.length, ...totals, stairsInHills: stairs.length, osmPathEndsSnapped: snapped, countyNoVehicleM: r0(netPathM), countyCostedAsStairsM: r0(netStairM), segments: Object.keys(segments).length, pooledSegments: pooledSegs, pedNodes: NG, pedEdges: edgesG.length,
+    counts: { buildingsInFile: bpts.length, ...totals, stairsInHills: stairs.length, osmPathEndsSnapped: snapped, countyNoVehicleM: r0(netPathM), countyCostedAsStairsM: r0(netStairM), shelterStubMaxM: r0(shelterStubMax), demNoDataProfilePoints: noDataPts, segments: Object.keys(segments).length, pooledSegments: pooledSegs, pedNodes: NG, pedEdges: edgesG.length,
       stairRiserCheck: { stairways: stairCheck.length, riserM: riser.length ? [r2(q(riser, 0.25)), r2(q(riser, 0.5)), r2(q(riser, 0.75))] : null } },
   },
   zones: zoneSummary, segments, walks, stairs,
@@ -515,7 +532,7 @@ L.push(`- **Path or stair access** (model rule): a public OpenStreetMap stairway
 L.push(`- **Door-to-curb route** (model rule): the straight line. Up to a ${RULES.maxWalkSlope * 100}% slope it is walked; steeper, stairs take the whole rise at Fruin's 178 mm riser and 286 mm tread (32°) and the rest is level walking.`);
 L.push(`- **Speeds**: walking, Tobler's hiking function, 6·exp(−3.5·|s + 0.05|) km/h (${out.meta.speeds.toblerLevelMps} m/s on the level); stairs, Fruin's free-flow horizontal speeds on that stair, ${SPEEDS.central.stairUp} m/s up and ${SPEEDS.central.stairDown} m/s down (sourced). Reduced mobility: ${SPEEDS.reducedFlat} m/s on the level (MUTCD 3.0 ft/s), scaled by Tobler's slope factor (derived); stairs, NIST's mean ${SPEEDS.reducedStairAlong} m/s for people with mobility impairments, taken as along the stair and converted to ${out.meta.speeds.reduced.stairDown} m/s horizontal (derived), and ${out.meta.speeds.reduced.stairUp} m/s up, scaled by Fruin's up/down ratio (assumption: no ascent figure was found).`);
 L.push(`- **Departure delay** for the simulator setting (assumption + derived): the terrain's extra time over level ground for three legs, at central speeds, never below zero. Each segment keeps the 10th, 25th, 50th, 75th and 90th percentiles; a segment with fewer than ${RULES.minBuildings} buildings uses its zone's pooled figures (${fmt(C.pooledSegments)} of ${fmt(C.segments)} hill segments). A household draws its delay from a separate random stream.`);
-L.push(`- **Pedestrian network**: every network street except freeways and ramps, walkable both ways whatever the one-way coding, plus ${fmt(pedWays.length)} public OpenStreetMap ways (stairways, footways including sidewalks, paths, pedestrian ways), ${fmt(C.osmPathEndsSnapped)} of their ends or road crossings joined to a street within ${RULES.snapM} m. Times from the DEM profile every 8 m. County path and no-vehicle segments are costed as stairs where they lie within ${RULES.stairOverlapM} m of an OSM stairway or are named STEPS (${fmt(C.countyCostedAsStairsM)} of ${fmt(C.countyNoVehicleM)} m).`);
+L.push(`- **Pedestrian network**: every network street except freeways and ramps, walkable both ways whatever the one-way coding, plus ${fmt(pedWays.length)} public OpenStreetMap ways (stairways, footways including sidewalks, paths, pedestrian ways), ${fmt(C.osmPathEndsSnapped)} of their ends or road crossings joined to a street within ${RULES.snapM} m. Times from the DEM profile every 8 m. County path and no-vehicle segments are costed as stairs where they lie within ${RULES.stairOverlapM} m of an OSM stairway or are named STEPS (${fmt(C.countyCostedAsStairsM)} of ${fmt(C.countyNoVehicleM)} m). A walk starts at the middle of its street segment, a node of the network; a shelter walk ends with the straight line from the nearest street node to the site (up to ${fmt(C.shelterStubMaxM)} m), priced by slope. DEM cells at 0 m or without data take the nearest valid elevation along the line.`);
 L.push('', '## Limits', '');
 L.push(`- The DEM is bare earth at 4 m: it shows no retaining walls, garages, decks, inside stairs or floor levels. A home on a steep lot may have its door at street level by a bridge, or many more steps than the ground between centroid and curb.`);
 L.push(`- Public stairways in OpenStreetMap (${fmt(C.stairsInHills)} in the hills) carry step counts on only ${fmt(C.stairRiserCheck.stairways)}; on those, DEM rise per step is a median ${fmt(C.stairRiserCheck.riserM?.[1], 2)} m (quartiles ${fmt(C.stairRiserCheck.riserM?.[0], 2)}–${fmt(C.stairRiserCheck.riserM?.[2], 2)}), lower than a typical 0.15–0.18 m riser, so the DEM rise along stairways is probably low and stair times short. The OSM extract is the server's copy as of ${WAYS_BASE}.`);
