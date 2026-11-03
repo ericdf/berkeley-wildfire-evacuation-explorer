@@ -178,3 +178,7 @@ label.famopt input { margin-right: 4px; }
 .bd { border-top: 1px solid #eee; padding: 5px 0; font-size: 12px; }
 .bd ul { margin: 3px 0 0 16px; padding: 0; }
 .tryres h3 { font-size: 12.5px; margin: 8px 0 2px; color: #4b3a2a; }
+/* Set a goal (js/goal.js) */
+.goals { display: grid; gap: 4px; margin: 6px 0; }
+.goal-row { display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center; }
+.goal-row select { font-size: 12px; }
