@@ -184,7 +184,7 @@ inside the model area are placed (about 74,700 outside Berkeley). Household size
 and to a Shadow Region around it) and departure times come from the 2025 Evacuation Time Study.
 Shadow evacuees drive out of the model area. Berkeley's and the Lab's orders and warnings use the study's zone lists
 (or the City's region). Other cities and the County (every zone id not starting `BER-` or `LBL-`) order a zone 10 minutes
-after the fire front first comes within 2 km of it, on every fire, under both plans (model rule; the distance and delay
+after the fire front first comes within 1 km of it, on every fire, under both plans (model rule; the distance and delay
 are assumptions in `data/assumptions.json` `orders`; SOURCE_NOTES FO1–FO4); a warning that comes first stays, and the
 households that heed it leave on it. Evacuation time is measured as the study's ETE, from the first order, over cars from
 the zones Berkeley's plan orders; cars from zones only another city orders are on the same roads but outside that count
