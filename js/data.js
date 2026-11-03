@@ -12,7 +12,9 @@ export async function loadData(load = browserLoad) {
   // police-control, power-shutoff and contraflow settings. Every setting is off by default.
   const [signals, contraflow] = await Promise.all(['data/model/signals.json', 'data/model/contraflow-streets.json']
     .map(p => Promise.resolve().then(() => load(p, 'json')).catch(() => null)));
-  return prepare({ net, layers, dem, Z: new Int16Array(demBuf), A, access, signals, contraflow });
+  // Optional: structures per fire cell (tools/build-structures.mjs), for exposure context and the map layer.
+  const structures = await Promise.resolve().then(() => load('data/model/structures.json', 'json')).catch(() => null);
+  return prepare({ net, layers, dem, Z: new Int16Array(demBuf), A, access, signals, contraflow, structures });
 }
 
 async function browserLoad(path, kind) {
