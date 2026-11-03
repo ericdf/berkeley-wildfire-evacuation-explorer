@@ -242,23 +242,42 @@ const edgesG = []; // [u, v, kind, horizontal length, cUV central, cVU central, 
 // stairy(x, y): for a network path, whether the piece at (x, y) is a stairway (County name, or an OSM stairway
 // overlapping it), so a County path drawn over OSM steps is costed as stairs, not as a sloped walk
 function addEdge(u, v, kind, pts, stairy = null) {
-  let L = 0; const c = { central: [0, 0], reduced: [0, 0] };
-  // pieces under 0.5 m (duplicate vertices where a line is cut) merge into the next one, so a DEM step between two
-  // almost coincident points is not read as a near-vertical slope
+  let L = 0; const c = { central: [0, 0], reduced: [0, 0] }, pieces = [];
+  // pieces under 0.5 m (duplicate vertices where a line is cut) merge into the next one
   let k0 = 0;
   for (let i = 1; i < pts.length; i++) {
     if (i < pts.length - 1 && Math.hypot(pts[i][0] - pts[k0][0], pts[i][1] - pts[k0][1]) < 0.5) continue;
     const [x0, y0, z0] = pts[k0], [x1, y1, z1] = pts[i]; k0 = i;
-    const d = Math.max(0.5, Math.hypot(x1 - x0, y1 - y0)), dz = z1 - z0; L += d;
-    const stair = kind === 'steps' || (stairy && stairy((x0 + x1) / 2, (y0 + y1) / 2));
-    if (stair && kind !== 'steps') netStairM += d;
+    // Slope is read over a horizontal run of at least one DEM cell: a piece shorter than the grid carries only its
+    // share of the height change, so the step between two neighboring cells is never read as a cliff.
+    const d = Math.max(0.01, Math.hypot(x1 - x0, y1 - y0)); let dz = (z1 - z0) * Math.min(1, d / DEM_RES); L += d;
+    // A steeper reading than the line can have is the 4 m grid catching a cut, wall, bridge or cliff beside it, and is
+    // capped (model rule; counted in demSlopeCapped): streets at 35%, the network builder's limit for any Berkeley
+    // street (gradeReliable); paths and stairways at twice a 32° stair (rise 1.24 per meter of run).
+    const cap = (kind === 'street' ? 0.35 : 2 * SPEEDS.stairRisePerRun) * d; if (Math.abs(dz) > cap) { dz = Math.sign(dz) * cap; slopeCapped++; }
+    const stairway = kind === 'steps' || (stairy && stairy((x0 + x1) / 2, (y0 + y1) / 2));
+    if (stairway && kind !== 'steps') netStairM += d;
+    // the door-to-curb rule on paths and connectors too: steeper than 25%, a walker takes the rise as stairs (model
+    // rule); streets keep Tobler's speed, since they are walked as they are
+    const steep = !stairway && kind !== 'street' && Math.abs(dz) / d > RULES.maxWalkSlope; if (steep) steepM += d;
+    const stair = stairway || steep;
+    const t = { central: [0, 0], reduced: [0, 0] };
     for (const p of ['central', 'reduced']) {
-      if (stair) { c[p][0] += Math.max(d, Math.abs(dz) / SPEEDS.stairRisePerRun) / stairV(p, dz > 0); c[p][1] += Math.max(d, Math.abs(dz) / SPEEDS.stairRisePerRun) / stairV(p, dz < 0); }
-      else { c[p][0] += d / walkV(p, dz / d); c[p][1] += d / walkV(p, -dz / d); }
+      if (stair) { const run = Math.max(d, Math.abs(dz) / SPEEDS.stairRisePerRun); t[p] = [run / stairV(p, dz > 0), run / stairV(p, dz < 0)]; }
+      else t[p] = [d / walkV(p, dz / d), d / walkV(p, -dz / d)];
+      c[p][0] += t[p][0]; c[p][1] += t[p][1];
     }
+    pieces.push([d, Math.max(...t.reduced) / d, Math.max(...t.central) / d, x0, y0]);
   }
   edgesG.push([u, v, kind, L, c.central[0], c.central[1], c.reduced[0], c.reduced[1]]);
+  // sanity check (run on every build, section 6b): pieces slower per meter than the slowest plausible stair climb
+  for (const [d, sr, sc, x, y] of pieces) if (sr > SANITY.maxSPerM) sanity.pieces.push({ kind, d: r2(d), sPerMReduced: r1(sr), sPerMCentral: r1(sc), at: [r0(x), r0(y)] });
 }
+const DEM_RES = dem.resolution; let steepM = 0, slopeCapped = 0;
+// Slowest plausible pace: the reduced-mobility stair climb (horizontal, per meter), with a margin of 2 for steep
+// stretches (model rule). An edge flags when it takes more than 5 times its length at level central speed.
+const SANITY = { maxSPerM: 2 / SPEEDS.reduced.stairUp, maxEdgeRatio: 5 };
+const sanity = { pieces: [], edges: [] };
 let netStairM = 0, netPathM = 0;
 const stepSegs = [], stepGrid = new Map();
 for (const w of pedWays) if (w.tags.highway === 'steps') { const pts = w.geometry.map(p => toLocal(p.lon, p.lat)); for (let i = 1; i < pts.length; i++) { const k = stepSegs.length; stepSegs.push([w.id, pts[i - 1], pts[i]]); const n = Math.ceil(Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]) / (G / 2)) + 1; const seen = new Set(); for (let j = 0; j <= n; j++) { const x = pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * j / n, y = pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * j / n, key = `${Math.floor(x / G)},${Math.floor(y / G)}`; if (!seen.has(key)) { seen.add(key); addGrid(stepGrid, x, y, k); } } } }
@@ -304,7 +323,9 @@ for (const e of net.edges) {
     const m = addNode(p.x, p.y);
     if (p.mid) { addEdge(prev, m, kindE, withZ(densify(cut(prevAt, p.at))), stairy); midNode = m; chain.push([m, p.at]); prev = m; prevAt = p.at; continue; }
     addEdge(prev, m, kindE, withZ(densify(cut(prevAt, p.at))), stairy); // a split piece keeps its edge's class
-    addEdge(m, p.node, 'connector', withZ([[p.x, p.y], [gx[p.node], gy[p.node]]]));
+    // a snapped end within 0.5 m of the street is the same point: a level link, so no DEM step is read across it
+    const cz = withZ([[p.x, p.y], [gx[p.node], gy[p.node]]]); if (p.d < 0.5) cz[1][2] = cz[0][2];
+    addEdge(m, p.node, 'connector', cz);
     chain.push([m, p.at]); prev = m; prevAt = p.at;
   }
   addEdge(prev, e.b, kindE, withZ(densify(cut(prevAt, acc))), stairy);
@@ -312,6 +333,12 @@ for (const e of net.edges) {
   edgeChain.set(e.id, chain); edgeMid.set(e.id, midNode);
 }
 const NG = gx.length;
+// ---------- 6b. sanity check on walking times (printed on every build; the build stops on a flagged piece) ----------
+for (const e of edgesG) { const lv = e[3] / walkV('central', 0), worst = Math.max(e[4], e[5]); if (e[3] >= 1 && worst > SANITY.maxEdgeRatio * lv) sanity.edges.push({ kind: e[2], lenM: r1(e[3]), ratio: r1(worst / lv), at: [r0(gx[e[0]]), r0(gy[e[0]])] }); }
+console.log(`sanity: ${sanity.pieces.length} pieces slower than ${r1(SANITY.maxSPerM)} s/m (reduced mobility); ${sanity.edges.length} edges over ${SANITY.maxEdgeRatio}× level time`);
+for (const x of sanity.pieces.slice(0, 10)) console.log('  piece', JSON.stringify(x));
+for (const x of sanity.edges.sort((a, b) => b.ratio - a.ratio).slice(0, 15)) console.log('  edge', JSON.stringify(x));
+if (sanity.pieces.length && !argv.includes('--allow-sanity')) throw new Error('walking-time sanity check failed (pass --allow-sanity to write anyway)');
 function buildAdj(keep) {
   const deg = new Int32Array(NG + 1);
   const es = edgesG.filter(keep);
@@ -440,7 +467,7 @@ const out = {
       walkMin: 'derived: minutes on foot from the segment\'s middle to the nearest street outside the scenario\'s order and warning area (or to a shelter site), central and reduced mobility, with stairways and paths (all) and on streets only (streets)',
       households: 'derived: expected synthetic households on the segment, as js/sim.js places them (zone population / persons per household, by street length)',
     },
-    counts: { buildingsInFile: bpts.length, ...totals, stairsInHills: stairs.length, osmPathEndsSnapped: snapped, countyNoVehicleM: r0(netPathM), countyCostedAsStairsM: r0(netStairM), shelterStubMaxM: r0(shelterStubMax), demNoDataProfilePoints: noDataPts, segments: Object.keys(segments).length, pooledSegments: pooledSegs, pedNodes: NG, pedEdges: edgesG.length,
+    counts: { buildingsInFile: bpts.length, ...totals, stairsInHills: stairs.length, osmPathEndsSnapped: snapped, countyNoVehicleM: r0(netPathM), countyCostedAsStairsM: r0(netStairM), steepPiecesAsStairsM: r0(steepM), demSlopeCapped: slopeCapped, sanity: { maxSPerM: r1(SANITY.maxSPerM), maxEdgeRatio: SANITY.maxEdgeRatio, pieces: sanity.pieces.length, edges: sanity.edges.length }, shelterStubMaxM: r0(shelterStubMax), demNoDataProfilePoints: noDataPts, segments: Object.keys(segments).length, pooledSegments: pooledSegs, pedNodes: NG, pedEdges: edgesG.length,
       stairRiserCheck: { stairways: stairCheck.length, riserM: riser.length ? [r2(q(riser, 0.25)), r2(q(riser, 0.5)), r2(q(riser, 0.75))] : null } },
   },
   zones: zoneSummary, segments, walks, stairs,
@@ -532,7 +559,7 @@ L.push(`- **Path or stair access** (model rule): a public OpenStreetMap stairway
 L.push(`- **Door-to-curb route** (model rule): the straight line. Up to a ${RULES.maxWalkSlope * 100}% slope it is walked; steeper, stairs take the whole rise at Fruin's 178 mm riser and 286 mm tread (32°) and the rest is level walking.`);
 L.push(`- **Speeds**: walking, Tobler's hiking function, 6·exp(−3.5·|s + 0.05|) km/h (${out.meta.speeds.toblerLevelMps} m/s on the level); stairs, Fruin's free-flow horizontal speeds on that stair, ${SPEEDS.central.stairUp} m/s up and ${SPEEDS.central.stairDown} m/s down (sourced). Reduced mobility: ${SPEEDS.reducedFlat} m/s on the level (MUTCD 3.0 ft/s), scaled by Tobler's slope factor (derived); stairs, NIST's mean ${SPEEDS.reducedStairAlong} m/s for people with mobility impairments, taken as along the stair and converted to ${out.meta.speeds.reduced.stairDown} m/s horizontal (derived), and ${out.meta.speeds.reduced.stairUp} m/s up, scaled by Fruin's up/down ratio (assumption: no ascent figure was found).`);
 L.push(`- **Departure delay** for the simulator setting (assumption + derived): the terrain's extra time over level ground for three legs, at central speeds, never below zero. Each segment keeps the 10th, 25th, 50th, 75th and 90th percentiles; a segment with fewer than ${RULES.minBuildings} buildings uses its zone's pooled figures (${fmt(C.pooledSegments)} of ${fmt(C.segments)} hill segments). A household draws its delay from a separate random stream.`);
-L.push(`- **Pedestrian network**: every network street except freeways and ramps, walkable both ways whatever the one-way coding, plus ${fmt(pedWays.length)} public OpenStreetMap ways (stairways, footways including sidewalks, paths, pedestrian ways), ${fmt(C.osmPathEndsSnapped)} of their ends or road crossings joined to a street within ${RULES.snapM} m. Times from the DEM profile every 8 m. County path and no-vehicle segments are costed as stairs where they lie within ${RULES.stairOverlapM} m of an OSM stairway or are named STEPS (${fmt(C.countyCostedAsStairsM)} of ${fmt(C.countyNoVehicleM)} m). A walk starts at the middle of its street segment, a node of the network; a shelter walk ends with the straight line from the nearest street node to the site (up to ${fmt(C.shelterStubMaxM)} m), priced by slope. DEM cells at 0 m or without data take the nearest valid elevation along the line.`);
+L.push(`- **Pedestrian network**: every network street except freeways and ramps, walkable both ways whatever the one-way coding, plus ${fmt(pedWays.length)} public OpenStreetMap ways (stairways, footways including sidewalks, paths, pedestrian ways), ${fmt(C.osmPathEndsSnapped)} of their ends or road crossings joined to a street within ${RULES.snapM} m. Times from the DEM profile every 8 m. County path and no-vehicle segments are costed as stairs where they lie within ${RULES.stairOverlapM} m of an OSM stairway or are named STEPS (${fmt(C.countyCostedAsStairsM)} of ${fmt(C.countyNoVehicleM)} m). A walk starts at the middle of its street segment, a node of the network; a shelter walk ends with the straight line from the nearest street node to the site (up to ${fmt(C.shelterStubMaxM)} m), priced by slope. DEM cells at 0 m or without data take the nearest valid elevation along the line. Slope is read over at least one DEM cell (4 m); paths and connectors steeper than ${RULES.maxWalkSlope * 100}% are costed as stairs (${fmt(C.steepPiecesAsStairsM)} m); readings steeper than 35% on streets (the network builder's limit) or twice a 32° stair on paths are capped (${fmt(C.demSlopeCapped)} pieces). A sanity check stops the build if any piece is slower than ${fmt(C.sanity.maxSPerM)} s per meter with reduced mobility; this build: ${fmt(C.sanity.pieces)} pieces, and ${fmt(C.sanity.edges)} edge over ${C.sanity.maxEdgeRatio} times its level walking time.`);
 L.push('', '## Limits', '');
 L.push(`- The DEM is bare earth at 4 m: it shows no retaining walls, garages, decks, inside stairs or floor levels. A home on a steep lot may have its door at street level by a bridge, or many more steps than the ground between centroid and curb.`);
 L.push(`- Public stairways in OpenStreetMap (${fmt(C.stairsInHills)} in the hills) carry step counts on only ${fmt(C.stairRiserCheck.stairways)}; on those, DEM rise per step is a median ${fmt(C.stairRiserCheck.riserM?.[1], 2)} m (quartiles ${fmt(C.stairRiserCheck.riserM?.[0], 2)}–${fmt(C.stairRiserCheck.riserM?.[2], 2)}), lower than a typical 0.15–0.18 m riser, so the DEM rise along stairways is probably low and stair times short. The OSM extract is the server's copy as of ${WAYS_BASE}.`);
