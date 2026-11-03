@@ -148,11 +148,11 @@ assumptions are scenario choices and stay assumptions.
    Structures layer; results have one row, the structures and housing units the fire front and
    embers had reached so far, the same under every plan. No model change, so calibration is
    untouched.
-2. **3b, LANDFIRE fuels in the wildland (scratch run first).** Option (i) for developed cells.
+2. **3b, LANDFIRE fuels in the wildland (scratch run first). Done 2026-11-03 in another session as the opt-in Fuel setting (`docs/fire-validation.md`, FV1–FV16); NB1 cells keep the proxy, option (i). Adopting it as the default is Eric's decision.** Option (i) for developed cells.
    Adopt only if the 1923 calibration and every Simple-view question hold. Option (ii) only as a
    second scratch run.
 3. **3c, no-parking signs to curb rules.** A model change with the full checks.
-4. **3d, ACS household tables.** A model change with the full checks.
+4. **3d, ACS household tables. Done 2026-11-03 in another session as the opt-in Household mix setting (DM1–DM17).** A model change with the full checks.
 5. **3e, structure ignition, house-to-house spread and loss: not before Eric decides.** It would
    rest on an effect size nobody has published for Berkeley (M2, M3), and it is the closest the
    simulator would come to predicting losses.

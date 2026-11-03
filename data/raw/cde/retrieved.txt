@@ -1,0 +1,7 @@
+California Department of Education, retrieved 2026-11-03:
+  https://www.cde.ca.gov/schooldirectory/report?rid=dl1&tp=txt  (public school directory, pubschls.txt, with latitude/longitude)
+  https://www3.cde.ca.gov/demo-downloads/census/cdenroll2526.txt (Census Day enrollment 2025-26; school total = AggregateLevel S, ReportingCategory TA)
+  https://www.cde.ca.gov/ds/si/ps/documents/privateschooldata2526.xlsx (2025-26 private school affidavits, schools with 6+ students, revised 2026-09-25; no addresses)
+Extract: python3 -I tools/cde-extract.py pubschls.txt cdenroll2526.txt privateschooldata2526.xlsx public-schools-model-area.csv private-schools-by-district.csv
+public-schools-model-area.csv: active public schools whose directory point is in the model area. private-schools-by-district.csv:
+private schools by the public school district they sit in (whole districts; Oakland and West Contra Costa extend far beyond the model area).

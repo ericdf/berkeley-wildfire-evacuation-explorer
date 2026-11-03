@@ -27,7 +27,7 @@ export class MapView {
     this.terrain = makeTerrainCanvas(data.dem, data.Z);
     this.contours = makeContours(data.dem, data.Z, 20, 3);
     this.layers = { terrain: true, contours: true, streets: true, paths: true, evacZones: false, fireZones: true, neighborhoods: false, fire1923: true,
-      cityBoundary: true, stations: true, noParking: false, tightTurns: false, access: false, structures: false, fire: true, vehicles: true, queues: true, responder: true };
+      cityBoundary: true, stations: true, noParking: false, tightTurns: false, access: false, demand: false, structures: false, fire: true, vehicles: true, queues: true, responder: true };
     this.streetMode = 'class';
     this.sim = null; this.selected = null; this.hover = null;
     this.family = []; // fire families on: [{ ignition, winds }] for the starting points a comparison tries (js/main.js syncFamilies)
@@ -109,6 +109,7 @@ export class MapView {
     }
     if (L.contours) this.drawContours();
     if (L.fireZones) this.drawPolys(data.layers.fireZones.filter(z => z.zone >= 2), z => z.zone === 3 ? 'rgba(200,60,30,0.13)' : 'rgba(230,140,40,0.12)', null);
+    if (L.demand && data.demand) this.drawDemand();
     if (L.evacZones) this.drawEvacZones();
     if (L.neighborhoods) this.drawPolys(data.layers.neighborhoods, null, 'rgba(70,70,120,0.55)', z => z.name);
     if (L.cityBoundary) this.drawPolys(data.layers.cityBoundary, null, 'rgba(40,40,40,0.7)', null, [6, 4], 1.5);
@@ -160,6 +161,12 @@ export class MapView {
         ctx.font = '11px system-ui, sans-serif'; ctx.fillStyle = stroke || '#333'; ctx.textAlign = 'center'; ctx.fillText(txt, x, y);
       }
     }
+  }
+  // Share of residents 75 and older by zone (ACS 2020–2024, data/model/demand-by-zone.json); figures only.
+  drawDemand() {
+    const D = this.data.demand.zones, Z = this.data.layers.evacZones;
+    this.drawPolys(Z.filter(z => D[z.id]?.age75), z => { const s = D[z.id].age75.value; return `rgba(13,110,140,${s < 0.05 ? 0.06 : s < 0.1 ? 0.18 : s < 0.15 ? 0.32 : 0.48})`; },
+      'rgba(13,110,140,0.45)', this.scale > 0.35 ? z => `${Math.round(D[z.id].age75.value * 100)}%` : null);
   }
   drawEvacZones() {
     const sim = this.sim, t = sim?.t ?? 0, Z = this.data.layers.evacZones;

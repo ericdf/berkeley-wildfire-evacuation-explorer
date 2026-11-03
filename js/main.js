@@ -1,5 +1,5 @@
 import { loadData } from './data.js';
-import { buildFireGrid, runFire, cellOf, demAt, FUEL, LB_MAX, CELL } from './fire.js';
+import { buildFireGrid, runFire, fireGridFor, cellOf, demAt, FUEL, LB_MAX, CELL } from './fire.js';
 import { makeScenarios, familyOf, comparisonCases, FAMILY_WINDS, SEVERITY, SEVERITY_NOTE, TIME_OF_DAY, TIME_NOTE, ETE_TARGETS } from './scenarios.js';
 import { Evacuation, DEFAULT_PLAN, titleCase } from './sim.js';
 import { PARKING_PLANS } from './parking.js';
@@ -44,11 +44,10 @@ for (const [k, v] of Object.entries(STREET_MODES)) $('street-mode').add(new Opti
 for (const n of data.names) $('street-names').append(new Option(titleCase(n)));
 for (const n of [...data.layers.neighborhoods].sort((a, b) => a.name.localeCompare(b.name))) $('nbhd').add(new Option(n.name, n.name));
 const LAYER_NAMES = { terrain: 'Terrain (DEM)', contours: 'Contours', streets: 'Streets', paths: 'Paths & stairways', evacZones: 'Evacuation zones', fireZones: 'Fire Zones 2–3',
-  neighborhoods: 'Neighborhoods', fire1923: '1923 boundary', cityBoundary: 'City limits', stations: 'Stations & shelters', noParking: 'No-parking signs', tightTurns: 'Tight turns', access: 'Access constraints', structures: 'Structures (Fire Zones 2–3)',
+  neighborhoods: 'Neighborhoods', fire1923: '1923 boundary', cityBoundary: 'City limits', stations: 'Stations & shelters', noParking: 'No-parking signs', tightTurns: 'Tight turns', access: 'Access constraints', demand: 'Residents 75+ (ACS)', structures: 'Structures (Fire Zones 2–3)',
   fire: 'Fire & embers', vehicles: 'Vehicles', queues: 'Queues', responder: 'Responder route' };
 for (const [k, label] of Object.entries(LAYER_NAMES)) {
-  if (k === 'access' && !data.access) continue; // optional data file
-  if (k === 'structures' && !data.structures) continue; // optional data file
+  if ((k === 'access' && !data.access) || (k === 'demand' && !data.demand) || (k === 'structures' && !data.structures)) continue; // optional data files
   const l = document.createElement('label');
   l.innerHTML = `<input type="checkbox" ${map.layers[k] ? 'checked' : ''}> ${label}`;
   l.querySelector('input').onchange = e => { map.layers[k] = e.target.checked; if (k === 'access') inspect(map.selected); map.draw(); legend(); };
@@ -96,6 +95,13 @@ function shutoffNote() {
   $('shutoff-note').innerHTML = v === 'none' ? '' : `${esc(SHUTOFF[v])}: each dark signal runs as an all-way stop (California Vehicle Code §21800(d)) and passes at most about ${fmt(OPS().powerShutoff.allWayStopVph)} vehicles per hour ${badge('assumption', A_NOTE('operations.powerShutoff.allWayStopVph'))}. No signal is assumed to have battery backup. Grid-powered contraflow signs fail. ${badge('model rule', A_NOTE('operations.powerShutoff'))}`;
 }
 $('powerShutoff').onchange = () => { shutoffNote(); newRun(); };
+// Fuel (scenario setting, Expert view, off by default): LANDFIRE FBFM40 in place of the fire-zone proxy (js/fire.js withLandfireFuel).
+function fuelNote() {
+  const on = $('fuel').value === 'landfire', M = data.fuel40?.meta;
+  if (!data.fuel40) { $('fuel').value = 'proxy'; $('fuel').disabled = true; }
+  $('fuel-note').innerHTML = !on ? '' : `Spread factors from LANDFIRE ${esc(M.version)} FBFM40 fuel models on the fire grid ${badge('sourced', M.product)}, each factor Rothermel's relative surface spread rate for its Scott and Burgan (2005) fuel model ${badge('model rule', M.provenance.factorRule)}. Urban cells (NB1) keep the fire-zone proxy; ember throw and landing keep the proxy too. This changes the illustrative fire only; it is not a fire-behavior prediction. Comparison in docs/fire-validation.md.`;
+}
+$('fuel').onchange = () => { fuelNote(); newRun(); };
 // Streets I choose: the clicked segment and the same-named two-way street running on from it.
 function sameStreet(id) {
   const edges = data.net.edges, name = edges[id].name, seen = new Set([id]), stack = [id];
@@ -112,7 +118,25 @@ function toggleContraflow(id) {
 }
 // ---------- future growth (scenario) and R0 (plan) ----------
 // Growth is part of the world both plans face. Simple view always runs today's population.
-const world = () => document.body.classList.contains('simple') ? { growth: 'none', powerShutoff: 'none' } : { growth: $('growth').value, powerShutoff: $('powerShutoff').value };
+// Household mix, Fuel and weekday placement (Expert view) join the world only when they are not today's, so default jobs and keys are unchanged.
+const world = () => document.body.classList.contains('simple') ? { growth: 'none', powerShutoff: 'none' }
+  : { growth: $('growth').value, powerShutoff: $('powerShutoff').value, ...($('householdMix').value === 'place' ? { householdMix: 'place' } : {}), ...($('fuel').value === 'landfire' ? { fuel: 'landfire' } : {}), ...($('nrPlacement').value !== 'area' ? { nrPlacement: $('nrPlacement').value } : {}) };
+// Household mix (Expert view, both plans; SOURCE_NOTES DM1–DM9). Off unless data/model/demand-by-zone.json loaded.
+if (!data.demand) { const o = $('householdMix').querySelector('option[value="place"]'); o.disabled = true; o.textContent += ' (needs data/model/demand-by-zone.json)'; }
+function mixNote() {
+  const D = data.A.demand, g = data.demand?.aggregate?.berkeley, pct = s => s ? `${(s.value * 100).toFixed(1)}% (${(s.range[0] * 100).toFixed(1)}–${(s.range[1] * 100).toFixed(1)}%)` : '—';
+  $('mix-note').innerHTML = $('householdMix').value !== 'place'
+    ? `Every zone: ${D.personsPerHousehold} persons per household and ${(D.householdsWithoutVehicleShare * 100).toFixed(2)}% of households without a vehicle (2025 Evacuation Time Study) ${badge('sourced')}.`
+    : `Each zone with households in its 2020 Census blocks (${fmt(data.demand._meta.zonesUsable)} of ${fmt(data.layers.evacZones.length)}) uses its own persons per household and share of households without a vehicle, from ACS 2020–2024 block groups allocated by housing units ${badge('derived', 'tools/build-demand.mjs; the block group\'s rates are assumed to hold in each of its blocks')}. Berkeley's zones together: ${pct(g?.zeroVehicle)} without a vehicle, ${g?.personsPerHousehold?.value.toFixed(2)} persons per household. The citywide 7.47% comes from the Time Study's resident survey, so the two sources disagree (SOURCE_NOTES DM3); which to use is open. Vehicles per driving household, mobilization and ridesharing are unchanged. People 75+, people with an ambulatory difficulty and licensed care capacity are reported per zone in the Inspector; they add no trips.`;
+};
+$('householdMix').onchange = () => { mixNote(); newRun(); };
+function placementNote() {
+  const wp = data.workplaces, on = $('nrPlacement').value === 'workplace';
+  if (!wp) { const o = $('nrPlacement').querySelector('option[value="workplace"]'); o.disabled = true; o.textContent += ' (needs data/model/workplaces.json)'; }
+  $('placement-note').innerHTML = !on ? '' : `The 2025 Evacuation Time Study's employee, student and visitor vehicles per area stay the same ${badge('sourced')}. Employees park on streets within ${wp.params.walkM} m of the workplace blocks where LEHD LODES 2023 counts jobs held by people living outside Berkeley ${badge('derived')}; UC employee and commuting-student cars fill UC's off-street parking first (OpenStreetMap facilities scaled to UC's published 5,500 spaces), the rest park on streets near campus as before; Lab employees park in the Lab's lots ${badge('model rule')}. Visitors and on-campus students are placed as before. See docs/weekday-placement.md.`;
+}
+placementNote();
+$('nrPlacement').onchange = () => { placementNote(); newRun(); };
 for (const [k, o] of Object.entries(data.A.growth.options)) $('growth').add(new Option(o.label, k));
 if (!data.access) { const o = $('p-r0').querySelector('option[value="access"]'); o.disabled = true; o.textContent += ' (needs data/model/access-constraints.json)'; }
 const growthNote = () => { const o = data.A.growth.options[$('growth').value]; $('growth-note').innerHTML = `${esc(o.note)} ${badge(o.category)}`; };
@@ -191,6 +215,7 @@ function showScenario() {
 $('scenario').onchange = () => { showScenario(); newRun(); };
 const todNote = () => { $('tod-note').textContent = TIME_OF_DAY[$('tod').value].note; };
 $('growth').onchange = () => { growthNote(); r0Note(); newRun(); };
+mixNote();
 ['severity', 'seed', 'tod'].forEach(id => $(id).onchange = () => { todNote(); newRun(); });
 $('street-mode').onchange = e => { map.streetMode = e.target.value; map.draw(); legend(); };
 $('speed').onchange = e => state.speed = +e.target.value;
@@ -642,7 +667,7 @@ function applyPreset(idOrPreset) {
 }
 function setMode(m) {
   // Simple view runs without growth (world()), so a switch rebuilds the run once the class has changed.
-  const rerun = (document.body.classList.contains('simple') || document.body.classList.contains('expert')) && !document.body.classList.contains(m) && ($('growth').value !== 'none' || $('powerShutoff').value !== 'none');
+  const rerun = (document.body.classList.contains('simple') || document.body.classList.contains('expert')) && !document.body.classList.contains(m) && ($('growth').value !== 'none' || $('powerShutoff').value !== 'none' || $('householdMix').value !== 'citywide' || $('fuel').value !== 'proxy' || $('nrPlacement').value !== 'area');
   document.body.classList.toggle('simple', m === 'simple'); document.body.classList.toggle('expert', m === 'expert');
   document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
   localStorage.setItem('bhe-mode', m);
@@ -660,8 +685,8 @@ document.querySelectorAll('#left .expert-only select, #left .expert-only input')
 
 // ---------- runs ----------
 function getFire(sc, sev, seed) {
-  const k = `${sc.id}|${sev}|${seed}`;
-  if (!state.fires.has(k)) state.fires.set(k, runFire(grid, sc, SEVERITY[sev], seed));
+  const fuel = world().fuel || 'proxy', k = `${sc.id}|${sev}|${seed}|${fuel}`;
+  if (!state.fires.has(k)) state.fires.set(k, runFire(fireGridFor(grid, data, fuel), sc, SEVERITY[sev], seed));
   return state.fires.get(k);
 }
 function newRun() {
@@ -740,7 +765,7 @@ function update(full) {
     <canvas class="spark" id="spark" width="330" height="60"></canvas>
     <div class="small muted"><span style="color:#b91c1c">■</span> vehicles queued &nbsp; <span style="color:#1d4ed8">■</span> on roads &nbsp; <span style="color:#0e7490">■</span> engine ETA (scaled)</div>
     ${S.bottlenecks.length ? `<h3>Worst queues so far</h3><table>${S.bottlenecks.map(b => `<tr><td>${esc(b.name)}</td><td class="num">${b.max} veh</td><td class="num">t+${fmt(b.at)}m</td></tr>`).join('')}</table>` : ''}
-    <p class="small muted">Not shown yet: structures exposed or lost (needs building footprints, Phase 3); households behind stairs (Phase 2). Population outside the modeled street network: ${fmt(S.unplacedPeople)}.</p>`;
+    <p class="small muted">Not shown yet: structures igniting or lost (Phase 3, step 3e); the row above counts exposure only. Households behind stairs (Phase 2). Population outside the modeled street network: ${fmt(S.unplacedPeople)}.</p>`;
   spark(sim);
   $('events').innerHTML = sim.events.map(e => `<li class="k-${e.kind}"><span class="t">t+${hm(e.t)}</span>${esc(e.text)}</li>`).join('');
   if (map.selected) inspect(map.selected, true);
@@ -773,6 +798,22 @@ map.onHover = (x, y) => {
   const z = demAt(data.dem, data.Z, x, y); const [lon, lat] = fromUTM(x + data.net.meta.origin[0], y + data.net.meta.origin[1]);
   $('status').textContent = `${lat.toFixed(5)}, ${lon.toFixed(5)} · elevation ${z == null ? '—' : z.toFixed(0) + ' m'} (bare-earth DEM)`;
 };
+// ACS and licensing figures for one zone (data/model/demand-by-zone.json): reported, never trips.
+function zoneDemandRows(id, row) {
+  const d = data.demand?.zones?.[id]; if (!d) return '';
+  const pct = s => s ? `${(s.value * 100).toFixed(1)}% <span class="muted">(${(s.range[0] * 100).toFixed(1)}–${(s.range[1] * 100).toFixed(1)}%)</span>` : '—';
+  const n = c => c ? `${fmt(c.value)} <span class="muted">(${fmt(c.range[0])}–${fmt(c.range[1])})</span>` : '—';
+  const acs = `ACS 2020–2024 5-year, block groups ${d.blockGroups.join(', ') || 'none'}, allocated to the zone by 2020 housing units or population (tools/build-demand.mjs). Range: estimate ± 90% margin of error.`;
+  let out = row('Households without a vehicle (ACS)', pct(d.zeroVehicle), 'derived', acs + ' Used only under Household mix: by place.')
+    + row('Persons per household (ACS)', d.personsPerHousehold ? `${d.personsPerHousehold.value.toFixed(2)} <span class="muted">(${d.personsPerHousehold.range.map(v => v.toFixed(2)).join('–')})</span>` : '—', 'derived', acs + ' Used only under Household mix: by place.')
+    + row('People 75 and older', n(d.implied.peopleAge75), 'derived', acs + ' Share of population applied to the zone\'s modeled population. Reported only; no trips.')
+    + row('People with an ambulatory difficulty', n(d.implied.peopleAmbulatory), 'derived', 'ACS 2020–2024 B18105, tract level (no block-group table exists), share of the civilian noninstitutionalized population 5 and older, applied to the zone\'s modeled population. Reported only; no trips.')
+    + row('Households of one person 65+', n(d.implied.households65Alone), 'derived', acs + ' B11007. Reported only; no trips.');
+  const F = d.facilities, L = { rcfe: 'Residential care for the elderly', adultResidential: 'Adult residential', skilledNursing: 'Skilled nursing', intermediateCare: 'Intermediate care', hospital: 'Hospitals', childCareCenter: 'Child care centers', publicSchool: 'Public schools', privateSchool: 'Private schools' };
+  if (F) out += row('Licensed facilities and schools', Object.entries(L).filter(([k]) => F[k]).map(([k, l]) => { const f = F[k], c = f.capacity ?? f.beds ?? f.enrollment; return `${l}: ${f.n} (${fmt(c)} ${f.beds != null ? 'beds' : f.enrollment != null ? 'enrolled' : 'licensed capacity'}${f.unknown ? `; ${f.unknown} unknown` : ''})`; }).join('<br>'), 'sourced',
+    'CDSS Community Care Licensing (licensed facilities, capacity), CDPH licensed healthcare facilities (beds), CDE school directory with 2025-26 enrollment and NCES private school locations (tools/fetch-demand-facilities.mjs). Counts by zone only. Reported only; no trips.');
+  return out;
+}
 function inspect(sel, quiet) {
   const box = $('inspector');
   map.selectedArea = sel?.kind === 'edge' && map.layers.access ? data.access?.edgeAreas.get(sel.id)?.[0] ?? null : null;
@@ -848,11 +889,12 @@ function inspect(sel, quiet) {
       let hh = 0, left = 0, noCar = 0;
       for (let h = 0; h < sim.hh.n; h++) if (sim.hh.zone[h] === sel.id) { hh++; if (sim.hh.leftHome[h] <= sim.t || sim.hh.early[h]) left++; if (!sim.hh.veh[h]) noCar++; }
       rows += row('Share inside the modeled area', `${fmt(sim.zoneModeledShare[sel.id] * 100)}%`, 'derived', 'Share of the zone\'s population inside the model area (the elevation grid\'s extent): 2020 Census blocks for zones without a Genasys estimate, the zone\'s area share otherwise')
-        + row('Modeled households', fmt(hh), 'synthetic', `Population inside the modeled area ÷ ${data.A.demand.personsPerHousehold} persons per household`)
+        + row('Modeled households', fmt(hh), 'synthetic', sim.hhPersons ? `Population inside the modeled area ÷ the zone's persons per household (household mix by place)` : `Population inside the modeled area ÷ ${data.A.demand.personsPerHousehold} persons per household`)
         + row('Households without a vehicle', fmt(noCar), 'synthetic')
         + row('Order issued', sim.orderT[sel.id] === Infinity ? 'no order in this run' : `t+${hm(sim.orderT[sel.id])}`, 'model rule')
         + row('Households gone so far', fmt(left), 'synthetic');
     }
+    rows += zoneDemandRows(z.id, row);
     box.innerHTML = `<h2>Evacuation zone</h2><table class="kv">${rows}</table>`;
   }
 }
@@ -896,6 +938,7 @@ function legend() {
     + (map.layers.queues ? sw('rgba(200,20,40,.8)', 'Queue (width = how full)') : '')
     + (map.layers.responder ? sw('#0e7490', 'Engine route to fire edge') : '')
     + (map.layers.streets ? '<div><b style="color:#111">✕</b> diverter or bollard, closed to cars · <b style="color:#7c3aed">✕</b> engines can pass (City diverter list, OpenStreetMap)</div>' : '')
+    + (map.layers.demand && data.demand ? `<div><b>Residents 75 and older</b>, share by zone (ACS 2020–2024 block groups, allocated by 2020 Census population; figures only, no trips)</div>${[[0.06, 'under 5%'], [0.18, '5–10%'], [0.32, '10–15%'], [0.48, '15% or more']].map(([a, l]) => sw(`rgba(13,110,140,${a})`, l)).join('')}` : '')
     + (map.layers.paths ? `<div><span class="sw" style="background:repeating-linear-gradient(90deg,#8a5a2b 0 3px,transparent 3px 6px)"></span>Paths &amp; stairways (no vehicles)</div>` : '')
     + (map.layers.structures && data.structures ? `<div><span class="dot" style="background:rgb(60,30,100)"></span>30 m square with structures (Fire Zones 2–3): darker where more stand under 25 ft apart; more opaque with more structures</div>` : '');
   const access = map.layers.access && data.access ? accessLegend() : '';
@@ -973,7 +1016,7 @@ function renderCompare(results, scope, fam = null) {
   const med = a => { const s = a.filter(x => x != null && !Number.isNaN(x)).sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : null; };
   const range = a => { const s = a.filter(x => x != null && !Number.isNaN(x)); return s.length ? `${fmt(Math.min(...s))}–${fmt(Math.max(...s))}` : '—'; };
   let html = `<h2>Plan comparison ${badge('synthetic')}</h2>
-    <p class="small">Green or red means B is better or worse than A in every run, by at least 10%; gray means the change is smaller or points different ways across runs, so there is no clear difference. A: <b>${esc(state.plans.A.name)}</b> · B: <b>${esc(state.plans.B.name)}</b>.${results[0]?.job.world?.growth && results[0].job.world.growth !== 'none' ? ` Future growth for both: ${esc(data.A.growth.options[results[0].job.world.growth].label)}.` : ''} ${fam ? ` Fire families on: each severity ran ${esc(fam.words)} (${fam.n / 3} runs per plan per severity, our choices, counted equally; Berkeley's orders stay the scenario's, other cities order their zones within ${data.A.orders.firePathKm} km of each fire). Both plans ran the same fires, households and seeds. Values are the median of those runs with the min–max range under it.` : ' Both plans ran the same fires, households and random seeds (1–3). Values are the median of 3 seeds with the min–max range under it.'} A difference smaller than the range is not a robust result.</p>`;
+    <p class="small">Green or red means B is better or worse than A in every run, by at least 10%; gray means the change is smaller or points different ways across runs, so there is no clear difference. A: <b>${esc(state.plans.A.name)}</b> · B: <b>${esc(state.plans.B.name)}</b>.${results[0]?.job.world?.growth && results[0].job.world.growth !== 'none' ? ` Future growth for both: ${esc(data.A.growth.options[results[0].job.world.growth].label)}.` : ''}${results[0]?.job.world?.householdMix === 'place' ? ' Household mix for both: by place (ACS 2020–2024).' : ''} ${fam ? ` Fire families on: each severity ran ${esc(fam.words)} (${fam.n / 3} runs per plan per severity, our choices, counted equally; Berkeley's orders stay the scenario's, other cities order their zones within ${data.A.orders.firePathKm} km of each fire). Both plans ran the same fires, households and seeds. Values are the median of those runs with the min–max range under it.` : ' Both plans ran the same fires, households and random seeds (1–3). Values are the median of 3 seeds with the min–max range under it.'} A difference smaller than the range is not a robust result.</p>`;
   html += takeaway(results, scope) + householdTakeaway(results, scope);
   for (const g of groups) {
     const A = pick('A', g), B = pick('B', g);
@@ -1113,7 +1156,7 @@ $('btn-assumptions').onclick = () => {
   <table>${Object.entries(F).map(([k, m]) => `<tr><td><code>${k}</code></td><td>${badge(m.category)} ${esc(m.source)}${m.note ? ' ' + esc(m.note) : ''}</td></tr>`).join('')}</table>
   <h3>Fire and ember overlay ${badge('model rule')}</h3>
   <p class="small"><b>Fire crews.</b> The fire's pace comes from real fires and the City's repeat of 1923 (Simple view: "Like 1923" and "Like 1991"), so it includes the firefighting effort seen in those fires. In a wind-driven fire the Fire Department expects crews to focus on supporting evacuation, and aircraft are grounded in high wind (SOURCE_NOTES FS14). The simulator does not add crews holding the fire's sides, or the fire stopping when the wind changes, as both 1923 and 1991 did (FS15). The scenario may exaggerate the spread as winds die and firefighters establish control. Engines in the simulator only drive, to measure whether they could reach homes.</p>
-  <p class="small">${esc(SEVERITY_NOTE)} Spread runs on ${CELL} m cells: wind sets an elliptical shape (Anderson 1983 length-to-breadth, capped at ${LB_MAX}); uphill is faster and downhill slower; a proxy fuel factor comes from the City fire zones (${Object.entries(FUEL).map(([k, v]) => `${k} ${v}`).join(', ')}), not from vegetation data. Spot fires are random, so seeds differ. A cell is "ember-exposed" once any burning cell lies within the ember distance upwind. The 1923 reference fire is confined to the City's archival boundary.</p>
+  <p class="small">${esc(SEVERITY_NOTE)} Spread runs on ${CELL} m cells: wind sets an elliptical shape (Anderson 1983 length-to-breadth, capped at ${LB_MAX}); uphill is faster and downhill slower; a proxy fuel factor comes from the City fire zones (${Object.entries(FUEL).map(([k, v]) => `${k} ${v}`).join(', ')}), not from vegetation data. The Fuel setting (Scenario, Expert view, off by default) swaps in LANDFIRE 2025 FBFM40 fuel models on the same cells, each with a factor from Rothermel's relative spread rate for its Scott and Burgan (2005) model ${badge('model rule', data.fuel40?.meta.provenance.factorRule || '')}; homes (LANDFIRE's NB1 urban class) keep the proxy, and the medium severity stays calibrated to the proxy (docs/fire-validation.md). Spot fires are random, so seeds differ. A cell is "ember-exposed" once any burning cell lies within the ember distance upwind. The 1923 reference fire is confined to the City's archival boundary.</p>
   <p class="small"><b>Wind.</b> Each fire's wind, 30 to 35 mph, is an extreme hour: dry north-east winds at the Oakland hills weather station average that strongly about 1% of the time (1992–2026). The 1923 and 1991 fires burned in such winds. In this model the speed sets only the fire's shape, which stops changing above about 18 mph, so a lower speed would give the same fires ${badge('derived', 'Oakland North RAWS, WRCC frequency tool, June 1992 – October 2026: of 7,340 hours with wind from 0–90° and humidity ≤ 25%, 1.3% averaged 30 mph or more (SOURCE_NOTES FF5). Length-to-breadth is capped at ' + LB_MAX + ', reached at about 11 mph (high severity), 14 mph (medium) and 18 mph (low); the head spread rate is calibrated, not computed from wind.')}.</p>
   <p class="small"><b>Fire families</b> ${badge('assumption')} (off by default; the box under the fire in Simple view, and in Expert view's Scenario section). With them on, a comparison also runs each fire from other starting points (the 1923 fire keeps the City's) and with wind from 30°, 45° and 60°, the core of dry, windy hours at that station (20–70° held 71.8% of them). The points are tied to past fire origins and the County's fire-pathway study and are our choices: no source gives where the next fire will start, so every start and wind counts equally. Speed, severity, time of day, duration and Berkeley's orders stay the fire's, so a start elsewhere can burn into Berkeley zones the fire's orders leave out; other cities' zones follow the rule below for every start. The 1923 fire stays inside the City's footprint at every wind, which cuts it more at 30° and 60° than at 45° (SOURCE_NOTES FF16–FF18).</p>
   <p class="small"><b>Other cities' orders</b> ${badge('model rule')} Berkeley and Lab zones are ordered as the scenario says: the City's region for that fire. Every other evacuation zone (Oakland, Kensington and El Cerrito, Albany, Emeryville, Richmond, Orinda and unincorporated Contra Costa) is ordered ${A.orders.firePathDelayMin} minutes after the fire front first comes within ${A.orders.firePathKm} km of it ${badge('assumption', 'Eric\'s choice, 2026-11-02, after comparing 2 km and 1 km. No source gives when these jurisdictions order a zone. The delay is the simulator\'s default decision delay; a plan\'s order delay changes the scenario\'s orders only.')}, on every fire and every start, the same under both plans. Their residents' cars use the same roads. Evacuation time (ETE) still counts only cars from zones Berkeley's plan orders, as the Time Study does for its regions; the cars from other cities' zones slow it as traffic (SOURCE_NOTES FO1–FO6). The plan setting "…plus any zone within N km of the fire" still adds Berkeley zones, and other cities' zones a little sooner, since it measures a square around the fire rather than a circle.</p>
@@ -1125,6 +1168,7 @@ $('btn-assumptions').onclick = () => {
     <li>Households are synthetic. Each zone's Genasys population estimate (sourced; the 2020 Census count of the zone's blocks where Genasys publishes none, as in Oakland's hills beyond the City's layer, Kensington and El Cerrito) is cut to the share inside the model area, divided by ${A.demand.personsPerHousehold} persons per household (Time Study), and spread over the zone's streets in proportion to length. Residents are not reduced by time of day (Time Study).</li>
     <li><b>Future growth</b> (Scenario, both plans; Expert view only): added homes from the 2025 Evacuation Time Study's Hillside Overlay figures (${badge('sourced')} middle housing 870 units, maximum ADU build-out 27,060) or a moderate case (${badge('assumption')} ${A.growth.options.moderate.units.toLocaleString()} units). The study gives no split by street, so units go to Berkeley's Fire Zones 2–3 in proportion to today's households on each street ${badge('assumption')}. Each unit is a synthetic household drawn like today's (${A.demand.personsPerHousehold} persons, about 1.12 vehicles against the study's 1.14) and is counted in every result. Parked cars do not increase with growth. With the maximum build-out the simulator's 90% evacuation time in the large regions rises less than the study's (fall weekday, fire off: 1923 region +42% against +58%, Fire Zones 2–3 +3% against +97%), because its junctions pass traffic faster than the study's signals, so read growth's effect there as a lower bound. On Panoramic Hill it rises more (+120% against +25%): with one way out, its streets lock up and the simulator's gridlock rule decides much of the result, so that figure is less certain. <b>R0</b> (plan setting ${badge('model rule')}) bars added homes in one area and moves none elsewhere; it does not treat homes lost to fire as people moving out. Legal status: ${esc(A.growth.r0.legal)}</li>
     <li>${(A.demand.householdsWithoutVehicleShare * 100).toFixed(2)}% of households have no vehicle; ${A.demand.carlessRideshareShare * 100}% of those ride with a neighbor on the same street; the rest are stranded and counted as at risk. Households that drive take 1–4 vehicles (Time Study survey). Age is not used at all.</li>
+    <li><b>Household mix</b> (Scenario, both plans; Expert view only, off by default): <i>by place</i> gives each zone its own persons per household and share of households without a vehicle from ACS 2020–2024 block groups ${badge('derived')}, allocated to zones by 2020 Census housing units ${badge('assumption', 'A block group\'s rates are assumed to hold in each of its blocks.')}; zones without households in their 2020 blocks keep the citywide values ${badge('model rule')}. The ACS puts ${data.demand ? `${(data.demand.aggregate.berkeley.zeroVehicle.value * 100).toFixed(1)}%` : 'about a fifth'} of households in Berkeley's zones without a vehicle, against the Time Study survey's 7.47%; which source is right for an evacuation is open (SOURCE_NOTES DM3). Each zone's people 75 and older, people with an ambulatory difficulty (ACS, tract level), households of one person 65+, and licensed care, hospital and school capacity are shown in the Inspector as figures only. Nobody in the simulator needs help to leave: no pickup, no paratransit, no facility evacuation, and stairs and walking to the car take no time. A design for assisted evacuation is in <code>docs/design/assisted-evacuation.md</code>.</li>
     <li>Who leaves: everyone in Order zones, ${A.demand.compliance.warning * 100}% of Warning zones, and ${A.demand.compliance.shadow * 100}% of all other households in the model area (Berkeley and the neighboring parts of Oakland, Emeryville, Albany, Kensington, El Cerrito and Richmond, which roughly match the Time Study's Shadow Region) as shadow evacuees driving out of the modeled area (Time Study). Orders follow the Time Study's zone lists for the 1923 and Panoramic Hill regions, the City's Fire Zones 2–3 region for the east-wind fires, and optionally the plan's distance rule.</li>
     <li>When: each household's departure after the order is drawn from the Time Study's survey-based mobilization tables (Table 5-9), which include noticing the order and getting ready. Households waiting for a commuter, or picking up children on school days, leave later.</li>
     <li>Evacuation time is measured like the Time Study's ETE: from the first order until 90% (and 100%) of evacuating vehicles have left the order and warning area. <code>node tests/calibration.mjs</code> compares the simulator with the study's results with the fire switched off.</li>
@@ -1148,6 +1192,7 @@ $('btn-assumptions').onclick = () => {
     <li><b>Contraflow</b> (plan setting): once it starts, both lanes of a chosen two-way street carry traffic away from the order area and the inbound direction is closed. It runs only where at least ${fmt(2 * data.A.access.movingLaneM / 0.3048)} ft stays clear between the plan's parked cars (two 10-ft lanes); on narrower streets it gains nothing and the street stays two-way. The main hill exit streets are those that carried the most order-zone traffic out of the hills in status-quo runs, plus the entrances of the larger access-constrained areas (<code>tools/contraflow-streets.mjs</code>). A street runs contraflow only while its zone is ordered or warned: a segment in a zone told later starts later, and one in a zone the run never orders or warns stays two-way. Junction capacity is unchanged, so where the junction at the bottom of a street is the bottleneck, contraflow adds room to queue but not throughput. Costs it models: returning commuters cannot drive in (they turn back or reroute), and engines cannot drive up a contraflow street (they take another route or cannot reach). Officer-staffed contraflow needs one officer at every entry point (the street's outbound end and every side-street junction) and starts when they arrive; pre-installed signs and gates start ${OPS().contraflow.signDelayMin} min after the order. A sign fails if the fire reaches it first, or if it runs on grid power alone during a power shutoff; a failed sign falls back to officers or to no contraflow. Battery backup is assumed to last the whole run, which a shutoff that starts a day ahead of the fire might not allow. Not modeled: drivers who ignore the signs, wrong-way crashes, the time to clear inbound traffic off the street before it reverses, and rehearsal making people leave sooner.</li>
     <li><b>Police control of junctions</b> (plan setting): officers arrive a set time after the first order and staff contraflow entry points first, then target junctions on the evacuation routes, busiest first (by the households whose first route passes through). An officer-controlled junction passes ${Math.round(OPS().police.capacityUplift * 100)}% more vehicles than its model capacity and lets approaches heading toward safety go first. That uplift is an assumption kept modest: the Time Study models staffed control as actuated signal timing (§4.3, p. 4-7) and finds converting pre-timed signals to actuated cuts evacuation time by up to 13% (p. 10-9); manual control can also do worse than a signal. The simulator models signals only as a capacity per road class, so officer control acts on that capacity, not on real signal phases.</li>
     <li><b>Red Flag power shutoff</b> (scenario setting): dark signals run as all-way stops (California Vehicle Code §21800(d)) at about ${fmt(OPS().powerShutoff.allWayStopVph)} vehicles per hour through the junction, or less where the model's capacity was already lower. No public source says which Berkeley signals have battery backup, so none is assumed. An officer at a dark signal restores it to officer control. Streetlights, phones, alerts and water pressure, which a shutoff also affects, are not modeled.</li>
+    <li><b>Weekday non-resident placement</b> (scenario setting, Expert view; default by area): the Time Study gives employee, student and visitor vehicles by area, not by street ${badge('sourced')}. By area spreads each area's vehicles over its streets by length ${badge('model rule')}. By workplace keeps those totals and places employees within a 10-minute walk (800 m) of the blocks where LEHD LODES 2023 counts jobs held by people living outside Berkeley ${badge('derived')}, and UC and Lab cars in off-street parking from OpenStreetMap, scaled to UC's published 5,500 spaces ${badge('model rule')}. LODES counts every employer, the study only those with 100 or more staff, and LODES puts all of UC's jobs on one block, so UC uses parking instead. With it on, weekday 90% times move by 0–5 min (calibration, fire off); the weekday gap to the study stays (docs/weekday-placement.md).</li>
   </ul>
   <h3>Information gaps and how far off they make the simulator</h3>
   <ul class="small">
@@ -1164,7 +1209,7 @@ $('btn-assumptions').onclick = () => {
   <ul class="small">
     <li>Engines do not fight the fire. The simulator times an engine's drive from the nearest station to the fire edge, but nothing an engine does slows the fire, protects homes or helps people leave, so better engine access has no effect on the fire. Parking rules still change how much traffic hill streets carry; in the runs tested, the parking options made no consistent difference to people still there when embers arrived.</li>
     <li>No deaths or injuries. "Still there when embers arrived" counts people at home or on the road when embers first reached their street (any burning cell within the ember distance upwind); "…when the fire front arrived" counts those still there when the fire itself reached the street. Whether they would be hurt depends on house survival, sheltering, fire intensity and smoke, none of which the simulator models.</li>
-    <li>No buildings yet, so no structures exposed or lost; no home hardening or vegetation effects.</li>
+    <li>Structures are counted for exposure only (below): none ignite or burn, so there are no homes lost and no home-hardening or vegetation effects yet (Phase 3, step 3e).</li>
     <li>No stairway or steep-path access time between homes and the street, and no assistance for people who need help (Phase 2).</li>
     <li>Employees, students, visitors and I-80 and CA-24 through traffic use the Time Study's vehicle counts, placed by area (an approximation).</li>
     <li>Intersection capacities are illustrative per road class; the study models each signal and stop sign. Traffic circles (900 vehicles per hour, Time Study) and diverters come from the City's list of traffic-calming devices (75 diverters, 63 circles); how each one channels traffic is read from OpenStreetMap. 13 of the 75 stay open: OpenStreetMap shows no restriction at 6 and only banned turns at 1 (turn bans are not modeled), 2 could not be placed on the network, and 4 would cut streets off or leave cars on one-way streets with no way out.</li>
@@ -1199,7 +1244,7 @@ if (data.access) {
 }
 
 // ---------- start ----------
-growthNote(); shutoffNote(); showScenario(); showPlan(); legend(); newRun();
+growthNote(); shutoffNote(); fuelNote(); showScenario(); showPlan(); legend(); newRun();
 setMode(localStorage.getItem('bhe-mode') || 'simple');
 if (!localStorage.getItem('bhe-intro-seen')) intro();
 requestAnimationFrame(loop);
