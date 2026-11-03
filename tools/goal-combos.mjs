@@ -7,6 +7,12 @@
 //        writes data/model/goal-combos.json
 //   --merge (with --fires): run only the fires named and keep the saved fires of the existing output.
 //   --limit N: only the first N combinations per fire (a quick test).
+//   --only ID (with --merge): rerun only the combinations that include change ID, on every fire named
+//        (or all), and keep every other saved combination; for a change whose definition was rebuilt
+//        in data/model/mitigations.json. The candidates and left-out changes must match the saved ones.
+//   --add-seeds A-B [--sevs central,high] (with --merge): run every saved combination on seeds A..B at
+//        those severities and append them; the first half are search seeds, the second half held out
+//        (Eric, 2026-11-03: 10 search and 10 held-out passes at each Simple-view pace).
 //
 // Runs use the browser's own code path (js/worker.js): js/levers.js stackOf and dataFor build each
 // stack, js/mitigate.js MEASURES reads the outcomes, the world is the Simple view's (no growth, no
@@ -72,9 +78,19 @@ const FIRES = M.meta.fires, SEVS = M.meta.severities;
 // answer is shown as holding only if it also meets the goal on them, since checking hundreds of
 // combinations on the same 15 passes finds some that clear a target by luck (Eric, 2026-11-02).
 const SEARCH = M.meta.seeds, HOLD = SEARCH.map(s => s + SEARCH.length), SEEDS = [...SEARCH, ...HOLD];
-const runFires = arg('--fires', null)?.split(',') ?? FIRES;
-for (const f of runFires) if (!FIRES.includes(f)) throw new Error(`unknown fire ${f}`);
 const MERGE = argv.includes('--merge') && fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : null;
+// --add-seeds extends every fire in the saved output
+const runFires = arg('--fires', null)?.split(',') ?? (argv.includes('--add-seeds') && MERGE ? Object.keys(MERGE.fires) : FIRES);
+for (const f of runFires) if (!FIRES.includes(f)) throw new Error(`unknown fire ${f}`);
+const ONLY = arg('--only', null);
+if (ONLY && !MERGE) throw new Error('--only needs --merge and an existing output');
+const ADD = arg('--add-seeds', null)?.split('-').map(Number);
+if (ADD && (!MERGE || ONLY || arg('--fires', null))) throw new Error('--add-seeds needs --merge, every fire, and no --only');
+const ADD_SEEDS = ADD ? Array.from({ length: ADD[1] - ADD[0] + 1 }, (_, i) => ADD[0] + i) : [];
+if (ADD && (ADD_SEEDS.length < 2 || ADD_SEEDS.length % 2)) throw new Error('--add-seeds needs an even number of seeds');
+const ADD_SEVS = arg('--sevs', 'central,high').split(',');
+const ADD_SEARCH = ADD_SEEDS.slice(0, ADD_SEEDS.length / 2), ADD_HOLD = ADD_SEEDS.slice(ADD_SEEDS.length / 2);
+if (ADD && ADD_SEEDS.some(x => (MERGE.meta.searchSeeds || []).includes(x) || (MERGE.meta.holdoutSeeds || []).includes(x))) throw new Error('--add-seeds: seeds already in the output');
 const MAXK = +arg('--max-size', 3), LIMIT = +arg('--limit', 0), WORKERS = +arg('--workers', Math.max(1, os.cpus().length - 1));
 const CACHE = arg('--cache', path.join(os.tmpdir(), 'goal-combos-cache'));
 fs.mkdirSync(CACHE, { recursive: true });
@@ -96,13 +112,26 @@ for (const fire of runFires) {
     for (let i = start; i < cand.length; i++) if (cur.every(x => !conflict(x, cand[i]))) grow(i + 1, [...cur, cand[i]]); };
   grow(0, []);
   combos.sort((a, b) => a.length - b.length);
-  const use = LIMIT ? combos.slice(0, LIMIT + 1) : combos;
+  let use = LIMIT ? combos.slice(0, LIMIT + 1) : combos;
+  if (ONLY) {
+    const saved = MERGE.fires[fire];
+    if (!saved || JSON.stringify(saved.candidates) !== JSON.stringify(cand.map(l => l.id))) throw new Error(`--only: ${fire}'s candidates differ from the saved output; rebuild the fire in full`);
+    if (!cand.some(l => l.id === ONLY)) throw new Error(`--only: ${ONLY} is not a candidate on ${fire}`);
+    use = use.filter(ls => ls.some(l => l.id === ONLY));
+  }
+  if (ADD) {
+    const saved = MERGE.fires[fire];
+    if (!saved || JSON.stringify(saved.candidates) !== JSON.stringify(cand.map(l => l.id))) throw new Error(`--add-seeds: ${fire}'s candidates differ from the saved output`);
+    const keys = use.map(ls => ls.length ? stackOf(ls).key : '');
+    if (keys.length !== Object.keys(saved.runs).length || keys.some(k => !(k in saved.runs))) throw new Error(`--add-seeds: ${fire}'s combinations differ from the saved output`);
+  }
   plan[fire] = { candidates: cand.map(l => l.id), excluded, combos: use.map(ls => ({ ids: ls.map(l => l.id), key: ls.length ? stackOf(ls).key : '' })) };
   console.log(`${fire}: ${cand.length} changes combined, ${excluded.length} left out, ${use.length - 1} combinations + today's plan`);
 }
 
 const chunks = [];
-for (const fire of runFires) for (const sev of SEVS) for (const seed of SEEDS)
+const JOBS = ADD ? ADD_SEVS.flatMap(sev => ADD_SEEDS.map(seed => [sev, seed])) : SEVS.flatMap(sev => SEEDS.map(seed => [sev, seed]));
+for (const fire of runFires) for (const [sev, seed] of JOBS)
   chunks.push(plan[fire].combos.map(c => ({ fire, sev, seed, ids: c.ids, key: c.key })));
 // A chunk's cache key: its jobs, the levers' definitions and the model they run on: every module in
 // js/ and every data file in data/model/ and data/, except this tool's own output (a list of named
@@ -137,19 +166,26 @@ await Promise.all(Array.from({ length: WORKERS }, lane));
 const wallMin = Math.round((Date.now() - t0) / 6000) / 10;
 
 // Cases in a fixed order: the search passes (severity, then seed), then the held-out passes.
-const cases = [...SEVS.flatMap(sev => SEARCH.map(seed => `${sev}|${seed}`)), ...SEVS.flatMap(sev => HOLD.map(seed => `${sev}|${seed}`))];
-const firesOut = MERGE ? Object.fromEntries(Object.entries(MERGE.fires).filter(([f]) => !runFires.includes(f))) : {};
+const newCases = ADD ? [...ADD_SEVS.flatMap(sev => ADD_SEARCH.map(seed => `${sev}|${seed}`)), ...ADD_SEVS.flatMap(sev => ADD_HOLD.map(seed => `${sev}|${seed}`))]
+  : [...SEVS.flatMap(sev => SEARCH.map(seed => `${sev}|${seed}`)), ...SEVS.flatMap(sev => HOLD.map(seed => `${sev}|${seed}`))];
+const cases = ADD ? [...MERGE.meta.cases, ...newCases] : newCases;
+const searchSeeds = ADD ? [...MERGE.meta.searchSeeds, ...ADD_SEARCH] : SEARCH, holdoutSeeds = ADD ? [...MERGE.meta.holdoutSeeds, ...ADD_HOLD] : HOLD;
+const byRun = new Map(results.map(x => [`${x.fire}|${x.key}|${x.sev}|${x.seed}`, x.m]));
+if (ONLY && JSON.stringify(MERGE.meta.cases) !== JSON.stringify(newCases)) throw new Error('--only: the saved output has other passes (--add-seeds); rebuild in full');
+const firesOut = MERGE ? Object.fromEntries(Object.entries(MERGE.fires).filter(([f]) => ONLY || !runFires.includes(f))) : {};
 for (const fire of runFires) {
-  const runs = {};
-  for (const c of plan[fire].combos) runs[c.key] = cases.map(k => { const r = results.find(x => x.fire === fire && x.key === c.key && `${x.sev}|${x.seed}` === k); return r ? r.m : null; });
+  const runs = ONLY ? { ...MERGE.fires[fire].runs } : {};
+  for (const c of plan[fire].combos) runs[c.key] = [...(ADD ? MERGE.fires[fire].runs[c.key] : []), ...newCases.map(k => byRun.get(`${fire}|${c.key}|${k}`) ?? null)];
   firesOut[fire] = { candidates: plan[fire].candidates, excluded: plan[fire].excluded, runs };
+  if (ONLY && Object.keys(runs).length !== Object.keys(MERGE.fires[fire].runs).length) throw new Error(`--only: ${fire} gained combinations`);
 }
 
 // Check: single changes and today's plan reproduce the stored table on the measures defined alike
-// (ember, cutOff, engine, clear90; the table's "front" counts people at home only).
+// (ember, cutOff, engine, clear90; the table's "front" counts people at home only). Every fire in the
+// output is checked, saved or new, against the table as it is now.
 const same = (a, b) => (a == null && b == null) || (a != null && b != null && Math.abs(a - b) <= 0.01 + 1e-6 * Math.abs(b));
 let checked = 0, agree = 0; const off = [];
-for (const fire of runFires) for (const [key, rows] of Object.entries(firesOut[fire].runs)) {
+for (const fire of Object.keys(firesOut)) for (const [key, rows] of Object.entries(firesOut[fire].runs)) {
   if (key.includes('+')) continue;
   const lever = key || 'baseline';
   cases.forEach((k, i) => { const [sev, seed] = k.split('|'); const t = M.runs.find(r => r.lever === lever && r.fire === fire && r.sev === sev && r.seed === +seed); if (!t || !rows[i]) return;
@@ -160,11 +196,11 @@ console.log(`check against data/model/mitigations.json: ${agree} of ${checked} s
 const prevRuns = MERGE ? MERGE.meta.runs : 0, prevMin = MERGE ? MERGE.meta.wallMin : 0;
 const meta = {
   built: new Date().toISOString().slice(0, 10), tool: 'tools/goal-combos.mjs',
-  note: 'Every combination of up to three changes that reliably helped alone on the fire, against today\'s plan on the same draws: 15 search passes (seeds 1–5) and 15 held-out passes (seeds 6–10). Synthetic households on an illustrative fire; an educational comparison, not a prediction.',
+  note: `Every combination of up to three changes that reliably helped alone on the fire, against today's plan on the same draws: low, medium and high severity × search seeds 1–5 and held-out seeds 6–10${ADD || (MERGE?.meta.searchSeeds || []).length > SEARCH.length ? `, plus ${(ADD ? ADD_SEVS : ['central', 'high']).join(' and ')} severity × search seeds ${searchSeeds.slice(SEARCH.length).join(', ')} and held-out seeds ${holdoutSeeds.slice(HOLD.length).join(', ')}` : ''}. Synthetic households on an illustrative fire; an educational comparison, not a prediction.`,
   baseline: 'DEFAULT_PLAN (js/sim.js), Time Study case S6 (fall night), no growth, no power shutoff', timeOfDay: TOD,
-  fires: Object.keys(firesOut), severities: SEVS, searchSeeds: SEARCH, holdoutSeeds: HOLD, cases, nSearch: SEVS.length * SEARCH.length, measures: MK, maxSize: MAXK,
+  fires: Object.keys(firesOut), severities: SEVS, searchSeeds, holdoutSeeds, cases, nSearch: cases.filter(k => searchSeeds.includes(+k.split('|')[1])).length, measures: MK, maxSize: MAXK,
   runs: prevRuns + total, wallMin: Math.round((prevMin + wallMin) * 10) / 10, workers: WORKERS,
-  check: { checked: (MERGE?.meta.check.checked || 0) + checked, agree: (MERGE?.meta.check.agree || 0) + agree },
+  check: { checked, agree },
   mitigationsBuilt: M.meta.built,
 };
 fs.writeFileSync(OUT, JSON.stringify({ meta, fires: firesOut }));

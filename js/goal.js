@@ -18,6 +18,12 @@ export function loadGoal() {
 }
 
 export const CUTS = [10, 25, 50, 75];
+// "1–5, 11–15" from the seeds of a list of pass indexes
+const seedText = idx => {
+  const s = [...new Set(idx.map(i => +String(G.meta.cases[i]).split('|')[1]))].sort((a, b) => a - b), out = [];
+  for (let i = 0; i < s.length;) { let j = i; while (j + 1 < s.length && s[j + 1] === s[j] + 1) j++; out.push(j > i ? `${s[i]}–${s[j]}` : `${s[i]}`); i = j + 1; }
+  return out.join(', ');
+};
 const asNum = x => x == null ? Infinity : x;
 const median = xs => { const s = xs.map(asNum).sort((a, b) => a - b), n = s.length; if (!n) return null; const v = n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2; return Number.isFinite(v) ? v : null; };
 // The cut a pass achieved, as a share of today's plan (1 = harm gone). Today at 0: nothing to cut,
@@ -30,11 +36,25 @@ const cutOf = (a, b) => {
   return (a - b) / a;
 };
 
-// The passes a goal is judged on: those at one severity (meta.cases are "severity|seed"), or all.
+// The passes a goal is judged on: those at one severity (meta.cases are "severity|seed"), or all. A pass
+// is held out when its seed is in meta.holdoutSeeds (older files: when it comes after the nSearch
+// search passes).
 export function passes(sev) {
-  const ns = G.meta.nSearch, pick = i => !sev || String(G.meta.cases[i]).split('|')[0] === sev;
-  const idx = G.meta.cases.map((_, i) => i).filter(pick);
-  return { search: idx.filter(i => i < ns), hold: idx.filter(i => i >= ns) };
+  const M = G.meta, hold = new Set(M.holdoutSeeds || []);
+  const isHold = i => hold.size ? hold.has(+String(M.cases[i]).split('|')[1]) : i >= M.nSearch;
+  const idx = M.cases.map((_, i) => i).filter(i => !sev || String(M.cases[i]).split('|')[0] === sev);
+  return { search: idx.filter(i => !isHold(i)), hold: idx.filter(isHold) };
+}
+
+// The largest cut of each harm that some stored combination made in every pass at this severity:
+// what a goal on that harm can reach on this fire (Eric, 2026-11-03: show what is reachable).
+// never[m]: today's plan never reaches that clearance within the run in any of these passes.
+export function reach(fire, sev) {
+  const F = G?.fires[fire]; if (!F) return null;
+  const MI = Object.fromEntries(G.meta.measures.map((k, i) => [k, i])), P = passes(sev), idx = [...P.search, ...P.hold], base = F.runs[''];
+  const best = Object.fromEntries(G.meta.measures.map(m => [m, Math.max(...Object.entries(F.runs).filter(([k]) => k).map(([, R]) => Math.min(...idx.map(i => cutOf(base[i][MI[m]], R[i][MI[m]])))))]));
+  const never = Object.fromEntries(G.meta.measures.map(m => [m, idx.every(i => base[i][MI[m]] == null)]));
+  return { best, never };
 }
 
 // Evaluate every stored combination on one fire against the targets ({ measure: percent }), on the
@@ -51,7 +71,10 @@ export function evaluate(fire, targets, sev) {
     const ws = worst(P.search), wh = worst(P.hold);
     const meets = w => ms.every(m => w[m] >= targets[m] / 100 - 1e-9);
     const holdPasses = P.hold.filter(i => ms.every(m => met(R, i, m))).length;
-    const mid = Object.fromEntries(ms.map(m => [m, { today: median(P.search.map(i => base[i][MI[m]])), plan: median(P.search.map(i => R[i][MI[m]])), worst: Math.min(ws[m], wh[m]) }]));
+    // reached: passes where today's plan never reached the clearance within the run and this plan did
+    const all = [...P.search, ...P.hold];
+    const mid = Object.fromEntries(ms.map(m => [m, { today: median(P.search.map(i => base[i][MI[m]])), plan: median(P.search.map(i => R[i][MI[m]])), worst: Math.min(ws[m], wh[m]),
+      reached: all.filter(i => base[i][MI[m]] == null && R[i][MI[m]] != null).length, n: all.length }]));
     // shortfall: how far the worst pass is from the goal, the largest over the harms picked
     const short = Math.max(...ms.map(m => targets[m] / 100 - Math.min(ws[m], wh[m])));
     return { key, ids, search: meets(ws), hold: meets(wh), holdPasses, nSearch: P.search.length, nHold: P.hold.length, mid, short };
@@ -75,20 +98,22 @@ export function rank(list, leverById) {
 }
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const pct = x => x === -Infinity ? 'worse' : x >= 1 ? '100%' : `${Math.round(x * 100)}%`;
+const pct = x => x === -Infinity ? 'worse' : x >= 1 ? '100%' : `${Math.floor(x * 100)}%`;
 
 // Controls (left panel). ctx: { state, FIRES, fmt, leverById, paceHTML, paceShort }.
 export function goalHTML(ctx) {
   const { state, FIRES } = ctx, T = state.goal;
   if (!G) return `<p class="small muted">${loading ? 'Loading the stored combinations…' : 'The stored combinations (data/model/goal-combos.json) did not load.'}</p>`;
-  const ok = G.meta.fires.includes(state.fire), P = passes(state.pace);
+  const ok = G.meta.fires.includes(state.fire), P = passes(state.pace), RB = ok ? reach(state.fire, state.pace) : null, B = RB?.best || {};
   return `<h2>Fire scenario: <select id="goal-fire">${FIRES.map(f => `<option value="${f.id}"${f.id === state.fire ? ' selected' : ''}>${esc(f.title)}</option>`).join('')}</select></h2>
     <p class="small">Say what you want a plan to achieve on this fire, and see the smallest combinations of changes that did it. Pick one or more harms and how much each should be cut, compared with today's plan.</p>
     ${ctx.paceHTML()}
     ${ok ? '' : '<p class="small bad">This fire has no stored combinations yet.</p>'}
-    <div class="goals">${Object.entries(MEASURES).map(([m, d]) => `<div class="goal-row" title="${esc(d.tip)}"><label class="small">${esc(d.label)} <span class="tip">ⓘ</span></label>
-      <select data-goal="${m}"><option value="">not a goal</option>${CUTS.map(c => `<option value="${c}"${T[m] === c ? ' selected' : ''}>cut by at least ${c}%</option>`).join('')}</select></div>`).join('')}</div>
-    <p class="small muted">A combination meets the goal only if it cut every harm you picked by at least that much in every pass at the pace you picked: ${P.search.length} passes (seeds ${G.meta.searchSeeds[0]}–${G.meta.searchSeeds.at(-1)}) to search and ${P.hold.length} fresh passes (seeds ${G.meta.holdoutSeeds[0]}–${G.meta.holdoutSeeds.at(-1)}) used only to check. The answers change with the pace: a plan that meets a goal at the 1923 pace may not at the 1991 pace. Each pass runs both plans on the same fire and the same synthetic households. The fire starts where this scenario starts it, with its usual wind, on a fall night.</p>
+    <div class="goals">${Object.entries(MEASURES).map(([m, d]) => { const b = B[m], can = c => b >= c / 100 - 1e-9;
+      return `<div class="goal-row" title="${esc(d.tip)}"><label class="small">${esc(d.label)} <span class="tip">ⓘ</span></label>
+      <select data-goal="${m}"><option value="">not a goal</option>${CUTS.map(c => `<option value="${c}"${T[m] === c ? ' selected' : ''}${b == null || can(c) ? '' : ' class="unreached"'}>cut by at least ${c}%${b == null || can(c) ? '' : ' (none did)'}</option>`).join('')}</select>${b == null ? '' : `<span class="muted reach"> ${RB.never[m] ? `Today's plan never gets there within the run at this pace${b >= 1 ? '; some plans do in every pass (counted as a full cut)' : '; no plan does in every pass'}` : `Best cut in every pass: ${b > 0 ? `${Math.floor(b * 100)}%` : 'none'}`}</span>`}</div>`; }).join('')}</div>
+    <p class="small muted">"Best cut in every pass" is the most any stored combination cut that harm in its worst pass at this pace on this fire; cuts no plan reached are marked "none did".</p>
+    <p class="small muted">A combination meets the goal only if it cut every harm you picked by at least that much in every pass at the pace you picked: ${P.search.length} passes (seeds ${seedText(P.search)}) to search and ${P.hold.length} fresh passes (seeds ${seedText(P.hold)}) used only to check. The answers change with the pace: a plan that meets a goal at the 1923 pace may not at the 1991 pace. Each pass runs both plans on the same fire and the same synthetic households. The fire starts where this scenario starts it, with its usual wind, on a fall night.</p>
     <p class="small muted">The search tried every combination of up to ${G.meta.maxSize} changes that helped reliably on their own on this fire; the changes it left out are listed with the answers. Answers are listed fewest changes first, then by screening cost.</p>`;
 }
 
@@ -113,6 +138,7 @@ export function goalOutHTML(ctx) {
     return `<div class="tryres goal-ans"><div><b>Today's plan + ${ls.map(l => esc(l.title)).join(' + ')}</b></div>
       <div class="small">${status}</div>
       <table class="cmp small"><tr><th></th><th>Today's plan</th><th>With these changes</th><th>Smallest cut in any pass</th></tr>${rowsHTML}</table>
+      ${ms.filter(m => r.mid[m].reached).map(m => `<div class="small muted">${esc(MEASURES[m].label)}: in ${r.mid[m].reached} of ${r.mid[m].n} passes today's plan never got there within the run and this plan did; those passes count as a full cut.</div>`).join('')}
       <div class="small">${ls.map(l => `${esc(l.title)}: ${esc(costText(l.cost))} ${costBadge(l.cost)}`).join('<br>')}</div>
       <div class="btns"><button data-goal-try="${esc(r.ids.join(','))}">Open in Change the plan</button></div></div>`;
   };

@@ -100,7 +100,7 @@ header nav .modes button.on { background: #f5efe6; color: #2b2118; font-weight: 
 .takeaway.mixed { background: #fefce8; border-color: #ca8a04; }
 #modal.intro { max-width: 760px; }
 .intro h2 { text-transform: none; letter-spacing: 0; font-size: 18px; }
-.intro .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 8px 0; }
+.intro .steps { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 8px 0; }
 .intro .steps div { background: #fbfaf7; border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-size: 12px; }
 .intro .steps b { display: block; color: var(--accent); }
 .intro .start { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
@@ -181,4 +181,6 @@ label.famopt input { margin-right: 4px; }
 /* Set a goal (js/goal.js) */
 .goals { display: grid; gap: 4px; margin: 6px 0; }
 .goal-row { display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center; }
-.goal-row select { font-size: 12px; }
+.goal-row select { font-size: 12px; width: 165px; }
+.goal-row .reach { grid-column: 1 / -1; font-size: 11px; margin: -5px 0 6px; }
+.goal-row option.unreached { color: #888; }
