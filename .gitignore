@@ -12,3 +12,6 @@ data/raw/imagery/
 data/raw/widening/
 # Egress candidates: Overpass responses and lookups (tools/egress-candidates.mjs); re-fetched on demand. Parcel geometry is never saved.
 data/raw/egress/
+
+# Walk access: building footprint centroids extracted from the Microsoft tile (tools/walk-access.mjs); refetch from the URL in SOURCE_NOTES WA2.
+data/raw/walk/
