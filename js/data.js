@@ -16,7 +16,9 @@ export async function loadData(load = browserLoad) {
   const [fuelMeta, fuelBuf] = await Promise.all([['data/terrain/fbfm40.json', 'json'], ['data/terrain/fbfm40.u8', 'buffer']]
     .map(([p, k]) => Promise.resolve().then(() => load(p, k)).catch(() => null)));
   const fuel40 = fuelMeta && fuelBuf ? { meta: fuelMeta, codes: new Uint8Array(fuelBuf) } : null;
-  return prepare({ net, layers, dem, Z: new Int16Array(demBuf), A, access, signals, contraflow, fuel40 });
+  // Optional: workplaces and off-street parking (tools/workplaces.mjs), for the opt-in "by workplace" placement of non-residents.
+  const workplaces = await Promise.resolve().then(() => load('data/model/workplaces.json', 'json')).catch(() => null);
+  return prepare({ net, layers, dem, Z: new Int16Array(demBuf), A, access, signals, contraflow, fuel40, workplaces });
 }
 
 async function browserLoad(path, kind) {

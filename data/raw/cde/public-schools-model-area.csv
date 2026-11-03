@@ -1,0 +1,37 @@
+cds,district,school,type,virtual,lat,lon,enrollment_2025_26
+01611270130294,Albany City Unified,MacGregor High (Continuation),Continuation High Schools,N,37.89642,-122.29211,3
+01611270130450,Albany City Unified,Albany High,High Schools (Public),N,37.896661,-122.29257,1123
+01611276090146,Albany City Unified,Cornell Elementary,Elementary Schools (Public),N,37.889826,-122.29518,564
+01611276090161,Albany City Unified,Albany Middle,Intermediate/Middle Schools (Public),N,37.897851,-122.2953,940
+01611276095376,Albany City Unified,Marin Elementary,Elementary Schools (Public),N,37.888559,-122.28817,562
+01611276116222,Albany City Unified,Ocean View Elementary,Elementary Schools (Public),N,37.887539,-122.30092,544
+01611430122804,Berkeley Unified,Berkeley Special Education Preschool,Preschool,N,37.869165,-122.28842,
+01611430131078,Berkeley Unified,Berkeley Adult,Adult Education Centers,N,37.859274,-122.26982,
+01611430131177,Berkeley Unified,Berkeley High,High Schools (Public),N,37.868913,-122.2712,3279
+01611430134924,Berkeley Unified,Berkeley Technology Academy,Continuation High Schools,N,37.85974,-122.27171,52
+01611430141655,Berkeley Unified,Berkeley Independent Study K-8,Alternative Schools of Choice,C,37.859409,-122.27057,16
+01611436056857,Berkeley Unified,Martin Luther King Middle,Intermediate/Middle Schools (Public),N,37.881113,-122.277,876
+01611436056865,Berkeley Unified,Willard Middle,Intermediate/Middle Schools (Public),N,37.859666,-122.25862,602
+01611436090187,Berkeley Unified,Rosa Parks Environmental Science,Elementary Schools (Public),N,37.865652,-122.29471,399
+01611436090195,Berkeley Unified,Cragmont Elementary,Elementary Schools (Public),N,37.892673,-122.26355,292
+01611436090211,Berkeley Unified,Emerson Elementary,Elementary Schools (Public),N,37.86149,-122.25111,292
+01611436090252,Berkeley Unified,Ruth Acty Elementary,Elementary Schools (Public),N,37.878938,-122.2851,409
+01611436090278,Berkeley Unified,Sylvia Mendez Elementary,Elementary Schools (Public),N,37.858258,-122.2617,373
+01611436090286,Berkeley Unified,Malcolm X Elementary,Elementary Schools (Public),N,37.8522,-122.27373,513
+01611436090294,Berkeley Unified,Longfellow Arts and Technology Middle,Intermediate/Middle Schools (Public),N,37.872727,-122.29304,505
+01611436090302,Berkeley Unified,Oxford Elementary at West Campus,Elementary Schools (Public),N,37.869063,-122.28851,254
+01611436090310,Berkeley Unified,Thousand Oaks Elementary,Elementary Schools (Public),N,37.893082,-122.2804,362
+01611436090328,Berkeley Unified,Washington Elementary,Elementary Schools (Public),N,37.866959,-122.27257,411
+01611436097729,Berkeley Unified,Berkeley Arts Magnet at Whittier,Elementary Schools (Public),N,37.876876,-122.27052,411
+01611436105316,Berkeley Unified,John Muir Elementary,Elementary Schools (Public),N,37.857194,-122.24593,306
+01611680119933,Emery Unified,Emeryville Preschool Students,Preschool,N,37.842955,-122.28843,
+01612590110254,Oakland Unified,Sankofa United Elementary,Elementary Schools (Public),N,37.847125,-122.26443,198
+01612590141804,Oakland Unified,Kaiser Early Childhood Center,Elementary Schools (Public),N,37.852602,-122.23226,116
+01612596001648,Oakland Unified,Chabot Elementary,Elementary Schools (Public),N,37.850664,-122.24293,582
+01612596001911,Oakland Unified,Hillcrest,Elementary Schools (Public),N,37.840442,-122.23287,403
+01612596002109,Oakland Unified,Peralta Elementary,Elementary Schools (Public),N,37.848963,-122.25881,339
+01612596057004,Oakland Unified,Claremont Middle,Intermediate/Middle Schools (Public),N,37.845752,-122.25184,506
+07617960732941,West Contra Costa Unified,El Cerrito High,High Schools (Public),C,37.906601,-122.29484,1361
+07617960735928,West Contra Costa Unified,West Contra Costa Adult Education,Adult Education Centers,C,37.907827,-122.31265,
+07617966004758,West Contra Costa Unified,Fairmont Elementary,Elementary Schools (Public),C,37.90686,-122.30439,544
+07617966004782,West Contra Costa Unified,Harding Elementary,Elementary Schools (Public),C,37.903076,-122.29459,481
