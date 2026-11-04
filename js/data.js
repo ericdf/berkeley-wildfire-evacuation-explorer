@@ -26,7 +26,9 @@ export async function loadData(load = browserLoad) {
   const walk = await Promise.resolve().then(() => load('data/model/walk-access.json', 'json')).catch(() => null);
   // Optional: structures per fire cell (tools/build-structures.mjs), for exposure context and the map layer.
   const structures = await Promise.resolve().then(() => load('data/model/structures.json', 'json')).catch(() => null);
-  return prepare({ net, layers, dem, Z: new Int16Array(demBuf), A, fireZones2025, access, signals, contraflow, demand, fuel40, workplaces, walk, structures });
+  // Optional: street segments a Hayward Fault rupture closes, two bounds (tools/fault-zone-check.mjs --write), for the opt-in earthquake setting.
+  const faultClosures = await Promise.resolve().then(() => load('data/model/fault-closures.json', 'json')).catch(() => null);
+  return prepare({ net, layers, dem, Z: new Int16Array(demBuf), A, fireZones2025, access, signals, contraflow, demand, fuel40, workplaces, walk, structures, faultClosures });
 }
 
 async function browserLoad(path, kind) {

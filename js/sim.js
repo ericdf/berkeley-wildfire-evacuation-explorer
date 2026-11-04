@@ -74,7 +74,14 @@ export class Evacuation {
   // households are bought out, clearParking: also take the parked cars off those segments (true), or off
   // the listed segments only }.
   constructor(data, grid, fire, scenario, sevKey, plan, seed, tod, world = {}) {
+    // Hayward Fault earthquake (scenario setting, Expert view; SOURCE_NOTES EQ10): world.quake 'trace' or 'zone'
+    // closes the street segments data/model/fault-closures.json lists for that bound (model rule) to through
+    // traffic and engines, and darkens every City signal, as the citywide power shutoff does (assumption).
+    if (world.quake && world.quake !== 'none') world = { ...world, powerShutoff: 'all' };
     Object.assign(this, { data, grid, fire, scenario, sevKey, plan, seed, tod, world });
+    const faultList = world.quake && world.quake !== 'none' ? data.faultClosures?.[world.quake] : null;
+    this.faultEdges = faultList ? new Set(faultList) : null;
+    this.quake = { option: world.quake || 'none', segments: faultList ? faultList.length : 0, missing: !!(world.quake && world.quake !== 'none' && !faultList) };
     const A = data.A, net = data.net;
     this.rand = mulberry32(seed * 104729 + 3);
     this.t = 0; this.dt = 5; this.end = scenario.durationMin * 60;
@@ -204,6 +211,9 @@ export class Evacuation {
         const thr = A.nonResident.through[e.name];
         if (thr && cap > 0) L.through = Math.min(0.9, thr.vehicles / A.nonResident.throughHours / 3600 * ((tod.groups || {}).external ?? 0) / cap);
         if (share) share.links.push(id);
+        // A segment the fault closes: no through traffic (L.closed, as routing and guidance read it); a household
+        // on it can still drive off it (enter() lets a car onto its own segment's closed links). Model rule.
+        if (this.faultEdges?.has(e.id)) { L.closed = true; L.fault = true; }
         this.links.push(L); this.outL[L.from].push(id); this.inL[L.to].push(id);
         if (!this.edgeLinks.has(e.id)) this.edgeLinks.set(e.id, []);
         this.edgeLinks.get(e.id).push(id);
@@ -587,7 +597,7 @@ export class Evacuation {
           const path = this.paths.get(i), nl = path?.[v.pidx[i]];
           if (L.to === v.dest[i] || L.e === hh.edge[v.hh[i]] || nl == null) { L.q.shift(); L.lastOut = t; B.budget--; if (L.share) L.share.used[L.dir]++; this.commuterHome(i, true); continue; } // reached their street
           if (nb[L.to] < 1) break;
-          if (this.linkCost[nl] === Infinity) { if (links[nl].closed && t < this.tFire[links[nl].e]) this.commutersTurnedBackCf = (this.commutersTurnedBackCf || 0) + 1; L.q.shift(); L.lastOut = t; B.budget--; this.commuterHome(i, false); continue; } // fire ahead, or a contraflow street: turned back
+          if (this.linkCost[nl] === Infinity) { if (links[nl].closed && !links[nl].fault && t < this.tFire[links[nl].e]) this.commutersTurnedBackCf = (this.commutersTurnedBackCf || 0) + 1; L.q.shift(); L.lastOut = t; B.budget--; this.commuterHome(i, false); continue; } // fire ahead, or a contraflow street: turned back
           const N = links[nl]; if (N.q.length >= N.storage && !this.relieve(i, L, N)) break;
           L.q.shift(); L.lastOut = t; B.budget--; nb[L.to]--; if (L.share) L.share.used[L.dir]++;
           N.q.push(i); v.link[i] = nl; v.enter[i] = t; v.pidx[i]++; this.active.add(nl);
@@ -633,7 +643,7 @@ export class Evacuation {
     const { v, hh, links } = this;
     if (v.cls[i] === 2) return this.enterInbound(i);
     const h = v.hh[i], eid = v.edge[i];
-    const cand = (this.edgeLinks.get(eid) || []).filter(l => links[l].q.length < links[l].storage && !links[l].closed);
+    const cand = (this.edgeLinks.get(eid) || []).filter(l => links[l].q.length < links[l].storage && (!links[l].closed || links[l].fault));
     if (!cand.length) return false;
     let L;
     if (this.guidance) L = links[this.guidance.departOrder(i, v.cls[i], eid, cand)[0]]; // js/guidance.js: checked against the Habit departure
@@ -753,6 +763,7 @@ export class Evacuation {
         if (e.mode !== 'vehicle' || e.disconnected) continue;
         if (fire && t >= this.tFire[eid]) continue;
         if (e.barrier?.closed && !e.barrier.engines) continue; // fixed bollards or barriers
+        if (this.faultEdges?.has(eid)) continue; // cut by the fault (world.quake)
         if (!this.engineOK[eid] && !ignoreParking) continue;
         if (cfBlocked && cfBlocked[eid] >= 0 && e.a !== e.b && (n === e.a ? 0 : 1) === cfBlocked[eid]) continue;
         let c = e.len / (e.speedMps * 1.15) + (e.barrier?.closed ? A_ACC.barrierDelayS : 0); // removable bollard or gate: crew opens it
@@ -863,6 +874,8 @@ export class Evacuation {
       if (W.on) this.log(`Home-to-street access time (scenario setting): ${W.delayed.toLocaleString()} of ${W.households.toLocaleString()} departing households leave later by their street's terrain walking time, on average ${(W.delaySum / Math.max(1, W.households)).toFixed(0)} s (tools/walk-access.mjs).`, 'plan');
       else if (W.stale) this.log('Home-to-street access time is set to "from terrain", but data/model/walk-access.json is missing or was built on another network; no access time is applied. Rerun node tools/walk-access.mjs.', 'warn'); }
     if (this.nrPlacement === 'workplace') this.log(`Non-resident placement by workplace (scenario setting): employees park within ${this.data.workplaces.params.walkM} m of LODES workplaces, ${Math.round(100 * this.ucParkingShare)}% of UC employee and commuting-student cars in UC parking, Lab employees in the Lab's lots; the Time Study's totals by area are unchanged.`, 'plan');
+    if (this.quake.option !== 'none') this.log(this.quake.missing ? 'Hayward Fault earthquake: data/model/fault-closures.json did not load, so no street is closed; signals are still dark citywide.'
+      : `Hayward Fault earthquake (${this.quake.option === 'trace' ? 'lower bound: segments crossing the mapped fault trace' : 'upper bound: segments touching the Earthquake Fault Zone'}): ${this.quake.segments.toLocaleString()} street segments are closed to through traffic and engines, and every City signal is dark. The fire is still the wildfire scenario's: an earthquake fire would start in buildings, several at once, on any wind.`, 'plan');
     if (this.retreat.edges) this.log(`Managed retreat (analysis setting): ${this.retreat.households.toLocaleString()} synthetic households on ${this.retreat.edges.toLocaleString()} bought-out street segments are removed${this.world.retreat.clearParking ? ', with the parked cars on those segments' : ''}.`, 'plan');
     if (plan.hillsParking !== 'both') this.log(`Parking plan "${PARKING_PLANS[plan.hillsParking]}": ${parkingChanged(parkingStats)}.`, 'plan');
     if ((plan.parkingEnforce || 'none') !== 'none') this.log(`${ENFORCE_PLANS[plan.parkingEnforce]} (plan setting): ${parkingStats.signsEnforced} segments lose parked cars on a signed side${parkingStats.daylightCleared ? `; on ${parkingStats.daylightCleared} short segments daylighting leaves no room to park on at least one side` : ''}; other blocks keep fewer parked cars, so fewer bad parking jobs. ${parkingStats.engineFixed} segments that were too narrow for an engine become passable. Which curb a sign governs, and where daylighting takes curb, are model rules (SOURCE_NOTES PH15).`, 'plan');
@@ -903,7 +916,7 @@ export class Evacuation {
   // ---- results ----
   summary() {
     const { hh, v, t, data } = this, pphAll = data.A.demand.personsPerHousehold, pph = pphAll;
-    const S = { orderedPeople: 0, warnedLeaving: 0, shadowLeaving: 0, leftEarly: 0, reachedSafety: 0, onRoad: 0, notLeft: 0, noVehicle: 0, riders: 0,
+    const S = { quake: this.quake.option, quakeSegments: this.quake.segments, orderedPeople: 0, warnedLeaving: 0, shadowLeaving: 0, leftEarly: 0, reachedSafety: 0, onRoad: 0, notLeft: 0, noVehicle: 0, riders: 0,
       notOrderedExposed: 0, otherCityOrderedPeople: 0, exposedHome: 0, exposedRoad: 0, exposedNoVehicle: 0, fireFrontHome: 0, fireFrontRoad: 0, waitingToEnter: this.waiting.length };
     // People still there when embers (or the fire front) arrived: each person counted once, where they
     // were when embers first reached them (SOURCE_NOTES FO7). A household still at home then counts at

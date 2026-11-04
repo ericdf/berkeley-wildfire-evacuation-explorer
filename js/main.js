@@ -97,6 +97,13 @@ function shutoffNote() {
   $('shutoff-note').innerHTML = v === 'none' ? '' : `${esc(SHUTOFF[v])}: each dark signal runs as an all-way stop (California Vehicle Code §21800(d)) and passes at most about ${fmt(OPS().powerShutoff.allWayStopVph)} vehicles per hour ${badge('assumption', A_NOTE('operations.powerShutoff.allWayStopVph'))}. No signal is assumed to have battery backup. Grid-powered contraflow signs fail. ${badge('model rule', A_NOTE('operations.powerShutoff'))}`;
 }
 $('powerShutoff').onchange = () => { shutoffNote(); newRun(); };
+// Hayward Fault earthquake (scenario setting, Expert view, off by default; SOURCE_NOTES EQ10, docs/design/earthquake-fire.md option A).
+function quakeNote() {
+  const v = $('quake').value, F = data.faultClosures;
+  $('quake-note').innerHTML = v === 'none' ? '' : !F ? 'The closure list (data/model/fault-closures.json) did not load; no street closes.'
+    : `${fmt(F[v].length)} street segments close to through traffic and fire engines before the fire starts ${badge('model rule', F.meta[v])}; residents on a closed segment can still drive off it. Every City signal is dark, as in the citywide power shutoff ${badge('assumption', 'No source gives power outages for a Hayward Fault rupture; the USGS HayWired scenario describes shaking, not outages (SOURCE_NOTES EQ3).')}. <b>The fire is still the wildfire scenario's</b>: one start at the wildland edge on a dry east wind. An earthquake fire would start in buildings, several at once, on whatever wind is blowing, often onshore, so it could burn uphill toward the people leaving the hills. That fire is not modeled yet.`;
+}
+$('quake').onchange = () => { quakeNote(); newRun(); };
 // Home-to-street access time (scenario, both plans, Expert view; tools/walk-access.mjs, SOURCE_NOTES WA13). Off by default.
 const walkNote = () => {
   const W = data.walk, on = $('walkAccess').value === 'terrain';
@@ -129,7 +136,7 @@ function toggleContraflow(id) {
 // Growth is part of the world both plans face. Guided view always runs today's population.
 // Household mix, Fuel and weekday placement (Expert view) join the world only when they are not today's, so default jobs and keys are unchanged.
 const world = () => document.body.classList.contains('simple') ? { growth: 'none', powerShutoff: 'none' }
-  : { growth: $('growth').value, powerShutoff: $('powerShutoff').value, ...($('householdMix').value === 'place' ? { householdMix: 'place' } : {}), ...($('fuel').value === 'landfire' ? { fuel: 'landfire' } : {}), ...($('nrPlacement').value !== 'area' ? { nrPlacement: $('nrPlacement').value } : {}), ...($('walkAccess').value !== 'none' ? { walkAccess: $('walkAccess').value } : {}) };
+  : { growth: $('growth').value, powerShutoff: $('powerShutoff').value, ...($('quake').value !== 'none' ? { quake: $('quake').value } : {}), ...($('householdMix').value === 'place' ? { householdMix: 'place' } : {}), ...($('fuel').value === 'landfire' ? { fuel: 'landfire' } : {}), ...($('nrPlacement').value !== 'area' ? { nrPlacement: $('nrPlacement').value } : {}), ...($('walkAccess').value !== 'none' ? { walkAccess: $('walkAccess').value } : {}) };
 // Household mix (Expert view, both plans; SOURCE_NOTES DM1–DM9). Off unless data/model/demand-by-zone.json loaded.
 if (!data.demand) { const o = $('householdMix').querySelector('option[value="place"]'); o.disabled = true; o.textContent += ' (needs data/model/demand-by-zone.json)'; }
 function mixNote() {
@@ -677,7 +684,7 @@ function applyPreset(idOrPreset) {
 }
 function setMode(m) {
   // Guided view runs without growth (world()), so a switch rebuilds the run once the class has changed.
-  const rerun = (document.body.classList.contains('simple') || document.body.classList.contains('expert')) && !document.body.classList.contains(m) && ($('growth').value !== 'none' || $('powerShutoff').value !== 'none' || $('householdMix').value !== 'citywide' || $('fuel').value !== 'proxy' || $('nrPlacement').value !== 'area' || $('walkAccess').value !== 'none');
+  const rerun = (document.body.classList.contains('simple') || document.body.classList.contains('expert')) && !document.body.classList.contains(m) && ($('growth').value !== 'none' || $('powerShutoff').value !== 'none' || $('quake').value !== 'none' || $('householdMix').value !== 'citywide' || $('fuel').value !== 'proxy' || $('nrPlacement').value !== 'area' || $('walkAccess').value !== 'none');
   document.body.classList.toggle('simple', m === 'simple'); document.body.classList.toggle('expert', m === 'expert');
   document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
   localStorage.setItem('bhe-mode', m);
@@ -1131,6 +1138,7 @@ const INPUTS = [
   ['Future growth', 'Added homes in the hills, from none to the 2025 Evacuation Time Study\'s maximum ADU build-out (27,060 units). Both plans face the same growth.', 'Evacuation time and people still there when embers arrived.'],
   ['R0', 'A plan setting that bars added units in one area: Leave Early Zones, Fire Zones 2–3 or areas behind a choke point.', 'How much of the growth\'s effect R0 removes.'],
   ['Driver information and routing', 'How drivers find their way: Today\'s model (everyone well informed, idealized), habit, an ordinary navigation app, constrained egress guidance, or unconstrained system-optimal routing (comparison only), and the share of drivers who follow.', 'Households worse off, household by household, and people still there when embers arrived. Expert view only.'],
+  ['Hayward Fault earthquake', 'A scenario setting: street segments at the fault close before the fire starts, at a lower bound (crossing the mapped fault) or an upper bound (in the State Earthquake Fault Zone), and every City signal goes dark. The fire is still the wildfire scenario\'s.', 'Cars with no route out, engine reach, evacuation time.'],
   ['Red Flag power shutoff', 'A scenario setting: signals in the hills, or all 146 City signals, go dark and run as all-way stops; grid-powered contraflow signs fail.', 'Evacuation time and queues at the dark junctions.'],
   ['Contraflow', 'Both lanes of chosen two-way streets run outbound once officers or pre-installed signs start it. Only where at least 20 ft stays clear between parked cars.', 'Commuters turned back, live engine reach, evacuation time.'],
   ['Police control of junctions', 'Officers from a shared pool take over pre-timed signals and the Time Study\'s congestion points after an arrival delay.', 'Evacuation time and queues at the controlled junctions.'],
@@ -1277,7 +1285,7 @@ if (data.access) {
 }
 
 // ---------- start ----------
-growthNote(); shutoffNote(); fuelNote(); walkNote(); showScenario(); showPlan(); legend(); newRun();
+growthNote(); shutoffNote(); quakeNote(); fuelNote(); walkNote(); showScenario(); showPlan(); legend(); newRun();
 setMode(localStorage.getItem('bhe-mode') || 'simple');
 if (!localStorage.getItem('bhe-intro-seen')) intro();
 requestAnimationFrame(loop);
