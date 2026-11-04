@@ -153,8 +153,10 @@ export class Evacuation {
     } else if (scenario.ordersByFire) {
       // Earthquake fire (SOURCE_NOTES EQ11): no pre-defined region. Each zone is ordered the plan's decision delay
       // after the fire first comes within orders.quakeKm (0.3 km) of it: only zones the fire threatens (assumption, Eric).
-      const nearT = fireNearZones(data, grid, fire, data.A.orders.quakeKm ?? 0.3);
-      zones.forEach((_, z) => { if (nearT[z] * 60 <= this.end) { this.orderT[z] = Math.min(this.orderT[z], nearT[z] * 60 + decided); scenOrd[z] = 1; } });
+      // Berkeley and Lab zones only: other cities' zones keep their own 1 km rule (otherCityOrders), so they stay out
+      // of the ETE and appear in otherCityOrderedPeople (Codex review of PR #59).
+      const nearT = fireNearZones(data, grid, fire, data.A.orders.quakeKm ?? 0.3), BP = data.A.orders.berkeleyPrefixes;
+      zones.forEach((zn, z) => { if (BP.includes(zn.id.split('-')[0]) && nearT[z] * 60 <= this.end) { this.orderT[z] = Math.min(this.orderT[z], nearT[z] * 60 + decided); scenOrd[z] = 1; } });
     } else if (scenario.orderRegion) {
       // a region can be several polygons (MultiPolygon parts are stored separately)
       const parts = data.layers.evacRegions.filter(r => r.id === scenario.orderRegion).map(r => ({ rings: r.rings, bb: bbox(r.rings) }));
