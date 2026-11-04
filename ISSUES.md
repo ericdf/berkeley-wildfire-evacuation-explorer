@@ -134,3 +134,29 @@ requested, and nothing from it is stored or used (SOURCE_NOTES PH8).
 
 **If we tell the City.** Point the City's GIS staff to the layer name and suggest restricting its sharing. Do not quote
 any record.
+
+---
+
+## I3. The City's fire-zone layers show the 2013 zones, and the new zones' area fields read high
+
+**Status:** open. Found 2026-11-04 (Claude Code). Nobody at the City has been told.
+
+**What is wrong.**
+- *Stale map.* The 2025 Fire Code (Special Item 02, Council 2025-04-15, Attachment 1) renamed Fire Zones 1–3
+  as the Flatlands, Hills and Panoramic Mitigation Zones and added a Grizzly Peak Mitigation Zone (Zone 4). Every
+  City fire-zone layer found still shows Zones 1–3 of the 2013 map (`FireZones_WFL1`, `FireZonesBerkeley_WFL1`,
+  `HFZ_shp` and the Genasys copies; edited 2019–2024). Only `grizz_pano_mitigation` (edited 2026-03-13) has the new
+  Panoramic and Grizzly Peak areas, as two polygons without zone names.
+- *Area fields.* In `grizz_pano_mitigation`, the field `area_acre` gives 136.2 and 451.8 acres and `Shape__Area` gives
+  115.7 and 436.3 acres. Measured in UTM, the polygons are 72.0 and 271.0 acres; counting 30 m cells inside them gives
+  72 and 274. `Shape__Area` reads high by Web Mercator's 1.6 (I1). `area_acre` reads about 1.67–1.89 times high, by a
+  method not stated.
+
+**Evidence.** SOURCE_NOTES PH26; the cell count is reproduced by intersecting the polygons with the fire grid.
+
+**What the simulator does.** Its proxy fuel still uses the 2013 zones (`data/model/layers.json` from
+`FireZones_WFL1`). Re-keying it to the 2025 zones is a model change for Eric (HANDOFF item 5).
+
+**If we tell the City.** Point the City's GIS staff to the layers above and the Fire Code's zone definitions, and to
+the `area_acre` values.
+

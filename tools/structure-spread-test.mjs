@@ -12,7 +12,8 @@
 //   separation factor rises with the share of a cell's structures under 25 ft from the nearest one
 //              (weights 1 under 25 ft, 0.6 at 25-50 ft, 0.3 at 50 ft or more; model rule, after NIST TN 2205 p. 28)
 //   coverage   factor rises with the cell's building footprint share (Hamada-style; model rule)
-// Cells: Fire Zone 2-3 cells holding City footprints (data/model/structures.json). Ember throw keeps the proxy.
+// Cells: every cell holding structures, City footprints in Fire Zones 2-3 and OpenStreetMap outlines elsewhere
+// (data/model/structures.json); means are kept within each proxy fuel class. Ember throw keeps the proxy.
 //
 //   node tools/structure-spread-test.mjs [seeds=3]
 
@@ -35,19 +36,26 @@ const st = data.structures;
 if (st.meta.W !== W || st.meta.H !== H) throw new Error('structures.json was built on another grid');
 
 // per-cell structure counts
-const n = new Float32Array(N), w = new Float32Array(N), cov = new Float32Array(N), hu = new Float32Array(N);
-for (const [c, k, b25, b50, bFar, area] of st.structures) { n[c] = k; w[c] = (b25 * 1 + b50 * 0.6 + bFar * 0.3) / k; cov[c] = area / (CELL * CELL); }
+// City footprints in Fire Zones 2–3 and OpenStreetMap outlines elsewhere (SOURCE_NOTES PH24); a cell has one source or the other.
+const n = new Float32Array(N), nCity = new Float32Array(N), w = new Float32Array(N), cov = new Float32Array(N), hu = new Float32Array(N);
+for (const [src, list] of [['city', st.structures], ['osm', st.structuresOther || []]]) for (const [c, k, b25, b50, bFar, area] of list) {
+  const m = n[c] + k; w[c] = (w[c] * n[c] + (b25 * 1 + b50 * 0.6 + bFar * 0.3)) / m; cov[c] = Math.min(1, cov[c] + area / (CELL * CELL)); n[c] = m;
+  if (src === 'city') nCity[c] += k;
+}
 for (const [c, k] of st.housingUnits) hu[c] = k;
 const built = []; for (let i = 0; i < N; i++) if (n[i] > 0 && proxy.fuel[i] > 0) built.push(i);
 
 const CAP = 1.5;
-function variant(score) { // factor ∝ score, capped at CAP, scaled so the mean over built cells equals the proxy mean there
-  const fuel = Float32Array.from(proxy.fuel);
-  let mp = 0, ms = 0; for (const i of built) { mp += proxy.fuel[i]; ms += score(i); }
-  let k = mp / ms;
-  // the cap lowers the mean, so raise k until the capped mean matches (Codex review of PR #55)
-  for (let it = 0; it < 60; it++) { let m = 0; for (const i of built) m += Math.min(CAP, score(i) * k); if (Math.abs(m - mp) < 1e-6 * mp) break; k *= mp / m; }
-  for (const i of built) fuel[i] = Math.min(CAP, score(i) * k);
+function variant(score) { // factor ∝ score × proxy, capped at CAP, scaled within each proxy class so its mean over built cells is kept
+  const fuel = Float32Array.from(proxy.fuel), groups = new Map();
+  for (const i of built) { const g = proxy.fuel[i]; if (!groups.has(g)) groups.set(g, []); groups.get(g).push(i); }
+  for (const [pf, cells] of groups) {
+    const mp = pf * cells.length; let ms = 0; for (const i of cells) ms += score(i);
+    let k = mp / ms;
+    // the cap lowers the mean, so raise k until the capped mean matches (Codex review of PR #55)
+    for (let it = 0; it < 60; it++) { let m = 0; for (const i of cells) m += Math.min(CAP, score(i) * k); if (Math.abs(m - mp) < 1e-6 * mp) break; k *= mp / m; }
+    for (const i of cells) fuel[i] = Math.min(CAP, score(i) * k);
+  }
   return { ...proxy, fuel, spotFuel: proxy.fuel };
 }
 const VARIANTS = {
@@ -71,6 +79,7 @@ const O = data.net.meta.origin, [ox, oy] = toUTM(-122.2205, 37.8625), origin = [
 
 console.log(`built cells changed: ${built.length}; seeds ${seeds.join(',')}`);
 for (const [name, g] of Object.entries(VARIANTS)) { let m = 0, capped = 0; for (const i of built) { m += g.fuel[i]; if (g.fuel[i] >= CAP) capped++; } console.log(`  ${name}: mean factor over built cells ${(m / built.length).toFixed(6)}, cells at the cap ${capped}`); }
+console.log(`  structures on the grid: City ${st.structures.reduce((a, x) => a + x[1], 0)}, OpenStreetMap ${(st.structuresOther || []).reduce((a, x) => a + x[1], 0)}`);
 for (const [name, g] of Object.entries(VARIANTS)) {
   const t = seeds.map(seed => { const F = runFire(g, sc23, SEVERITY.central, seed);
     const entry = Math.min(...[-1, 0, 1].flatMap(dr => [-1, 0, 1].map(dc => F.arrival[neCell + dr * W + dc])));
@@ -78,10 +87,10 @@ for (const [name, g] of Object.entries(VARIANTS)) {
   const r91 = [];
   for (const wf of [30, 45, 60]) for (const seed of seeds) {
     const F = runFire(g, { id: 'like1991', ignition: origin, windFrom: wf, windMph: 30, durationMin: 240 }, SEVERITY.high, seed);
-    const at = T => { let s = 0, u = 0; for (let i = 0; i < N; i++) if (F.arrival[i] <= T) { s += n[i]; u += hu[i]; } return { s, u }; };
+    const at = T => { let s = 0, sc = 0, u = 0; for (let i = 0; i < N; i++) if (F.arrival[i] <= T) { s += n[i]; sc += nCity[i]; u += hu[i]; } return { s, sc, u }; };
     r91.push({ wf, h1: at(60), h2: at(120), h4: at(240) });
   }
-  const f = k => med(r91.map(x => x[k].s)), fu = k => med(r91.map(x => x[k].u));
+  const f = k => med(r91.map(x => x[k].s)), fc = k => med(r91.map(x => x[k].sc)), fu = k => med(r91.map(x => x[k].u));
   console.log(`${name.padEnd(10)} 1923 medium: entry ${t.map(x => x.entry).join('/')} min (StoryMap ~150), Shattuck ${t.map(x => x.west).join('/')} min (~300) | ` +
-    `1991-like high, median of 30/45/60° × seeds: City structures reached 1 h ${f('h1')}, 2 h ${f('h2')}, 4 h ${f('h4')}; Census housing units 1 h ${fu('h1')}, 2 h ${fu('h2')}, 4 h ${fu('h4')}`);
+    `1991-like high, median of 30/45/60° × seeds: structures reached (City + OSM) 1 h ${f('h1')}, 2 h ${f('h2')}, 4 h ${f('h4')} (City only 1 h ${fc('h1')}); Census housing units 1 h ${fu('h1')}, 4 h ${fu('h4')}`);
 }

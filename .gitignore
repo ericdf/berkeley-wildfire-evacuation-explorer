@@ -18,3 +18,7 @@ data/raw/landfire/
 data/raw/wind/
 # Walk access: building footprint centroids extracted from the Microsoft tile (tools/walk-access.mjs); refetch from the URL in SOURCE_NOTES WA2.
 data/raw/walk/
+
+# OSM building outlines (tools/fetch-osm-buildings.mjs): large; geometry only; reduced to per-cell counts in data/model/structures.json.
+data/raw/osm/buildings.json
+data/raw/osm/buildings-tiles/
