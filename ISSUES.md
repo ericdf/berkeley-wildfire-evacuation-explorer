@@ -40,12 +40,19 @@ The City's band edges of 25 and 50 ft correspond to about 19.7 and 39.4 ft on th
 2. *Areas.* The layer's stored areas (`Shape__Area`, which ArcGIS Online computes in the layer's own projection) total
    2,619,654 m². The same footprints measured in UTM total 1,627,936 m². The ratio is 1.609; Web Mercator's area
    stretch at 37.87° N is 1 / cos² = 1.605. The layer's spatial reference is wkid 102100 (EPSG:3857, Web Mercator).
-3. *Reproduce:* `node tools/build-structures.mjs` prints the distance check as "NEAR_DIST units check". The area check
+3. *Independent of the City's geometry (2026-11-04).* OpenStreetMap building outlines (Overpass API mirror
+   overpass.kumi.systems, box 37.875–37.885° N, 122.255–122.240° W, 560 buildings; © OpenStreetMap contributors, ODbL;
+   not stored) were matched one-to-one to 352 City footprints by centroid. City area ÷ OSM area, both in UTM: median 0.992
+   (25th–75th percentile 0.943–1.051), so the City's footprints are the right size on the ground. Gaps measured on the OSM
+   outlines alone, against `NEAR_DIST`, for 160 of them with `NEAR_DIST` ≥ 10: median 0.2371 m per unit (25th–75th
+   percentile 0.212–0.262), close to Web Mercator feet (0.2406) and far from ground feet (0.3048). The wider spread is
+   expected, because two mapping sources draw the same houses a little differently.
+4. *Reproduce:* `node tools/build-structures.mjs` prints the distance check as "NEAR_DIST units check". The area check
    is one statistics query: sum of `Shape__Area` on the layer above (`outStatistics`, no records needed).
 
 The likely cause is a "Near" analysis run on the layer in its Web Mercator projection rather than in a projected
 coordinate system for California (for example State Plane Zone III, EPSG:2227, the City's imagery projection). That is
-our inference from the two ratios; the City's layer does not say how `NEAR_DIST` was computed.
+our inference from the ratios above; the City's layer does not say how `NEAR_DIST` was computed.
 
 **How much it changes the counts** (all 7,706 structures):
 
