@@ -9,9 +9,9 @@ export const LEAVE_EARLY_ZONES = ['BER-006', 'BER-007', 'BER-008', 'BER-015', 'B
 export const SEVERITY = {
   low:     { label: 'Low',     rosMpm: 7,  windFactor: 0.75, emberM: 300,  spotProb: 0.004, spotDelayMin: 4 },
   central: { label: 'Medium', rosMpm: 14, windFactor: 1.0,  emberM: 800,  spotProb: 0.012, spotDelayMin: 3 },
-  high:    { label: 'High',    rosMpm: 28, windFactor: 1.3,  emberM: 1500, spotProb: 0.03,  spotDelayMin: 2 },
+  high:    { label: 'High',    rosMpm: 28, windFactor: 1.3,  emberM: 1500, spotProb: 0.03,  spotDelayMin: 2, slowAfterMin: 60, slowFactor: 0.2 },
 };
-export const SEVERITY_NOTE = 'Medium severity ("central" in the code and data files): its head spread rate is calibrated to the City StoryMap\'s 1923 present-day repeat (about 5 h from the eastern edge to Shattuck; SOURCE_NOTES S11); low and high are half and double. Ember distance and spot-fire probability are illustrative. The Evacuation Time Study contains no fire modeling (E31). This is not a fire-behavior model.';
+export const SEVERITY_NOTE = 'Medium severity ("central" in the code and data files): its head spread rate is calibrated to the City StoryMap\'s 1923 present-day repeat (about 5 h from the eastern edge to Shattuck; SOURCE_NOTES S11); low and high are half and double. High severity slows after its first hour to a fifth of its head spread rate, as the 1991 fire\'s head did ("more than a mile in the first hour", then "only three quarters of a mile in the next seven hours"); fitted to 1991\'s structures burned by 2 and 4 hours (SOURCE_NOTES FV17). Medium and low keep their rate: the 1923 fire kept its pace until the wind changed. Ember distance and spot-fire probability are illustrative. The Evacuation Time Study contains no fire modeling (E31). This is not a fire-behavior model.';
 
 // The Evacuation Time Study's six scenarios (Table 6-5, p. 6-11; SOURCE_NOTES E11).
 // Residents are never reduced. commuterShare = households waiting for a returning commuter
@@ -114,7 +114,7 @@ export function makeScenarios(data) {
   ];
 }
 
-// ---- Fire families (opt-in, Simple view "Change the plan" and Expert Compare; docs/design/fire-families.md) ----
+// ---- Fire families (opt-in, Guided view "Change the plan" and Expert Compare; docs/design/fire-families.md) ----
 // A member is one ignition point × one wind direction; speed, severity, time of day, duration and
 // orders stay the fire's. Winds 30°, 45° and 60°: the core of dry, windy hours at the Oakland North
 // weather station (20–70° held 71.8% of them, SOURCE_NOTES FF4) and the spread within one Diablo

@@ -165,8 +165,11 @@ Nobody at the City has been told.
 
 **Evidence.** SOURCE_NOTES PH26; the cell count is reproduced by intersecting the polygons with the fire grid.
 
-**What the simulator does.** Its proxy fuel still uses the 2013 zones (`data/model/layers.json` from
-`FireZones_WFL1`). Re-keying it to the 2025 zones is a model change for Eric (HANDOFF item 5).
+**What the simulator does.** Since 2026-11-04 its proxy fuel uses the 2025 zones (SOURCE_NOTES FV18): the two
+`grizz_pano_mitigation` polygons, measured in UTM (`data/model/fire-zones-2025.json`), are wildland interface, and the
+Hills zone keeps the 2013 Fire Zones 2–3 outline less those two, because no City layer draws it. Evacuation zones,
+"Fire Zones 2–3" in the questions and the map's Fire zones layer still use the 2013 map (`data/model/layers.json` from
+`FireZones_WFL1`).
 
 **If we tell the City.** Point the City's GIS staff to the layers above and the Fire Code's zone definitions, and to
 the `area_acre` values.

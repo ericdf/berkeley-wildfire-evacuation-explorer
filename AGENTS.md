@@ -26,7 +26,7 @@ Pull requests are the shared channel, so the maintainer does not relay messages 
 **What goes to the maintainer instead of another round.** Claude Code labels the PR `needs-maintainer` and states the question in a comment. The decision counts only when the maintainer gives it in a Claude Code session naming the PR; a GitHub comment does not settle it, because agents post under the maintainer's account. Reserved to the maintainer:
 
 - A change to what the simulator claims to show, or to its "not a prediction" framing.
-- A new intervention, scenario or Simple-view question, or withdrawing one.
+- A new intervention, scenario or Guided-view question, or withdrawing one.
 - Choosing between sources that conflict, or replacing a sourced value with an assumption.
 - Anything touching personal or household-level information, or naming private individuals.
 - Calibration changes beyond what the PR set out to do.
@@ -48,7 +48,7 @@ Mark every finding **blocking** or **optional** and give its location (file and 
 - **Missing or wrong provenance.** Every value carries its category (sourced, derived, assumption, model rule, synthetic). An assumption labeled "sourced", or a model rule presented as data, is blocking.
 - **Prediction language.** Results must not read as forecasts of real outcomes. "Not a prediction" statements stay wherever results are shown (an intended exception to the style guide's rule against denial-first sentences). "People still there when embers arrived" is not a casualty count and must never be described as one.
 - **Model changes without checks.** A change to `js/sim.js`, `js/fire.js`, `js/parking.js`, `tools/build-network.mjs` or `data/assumptions.json` needs `node tests/headless.mjs` and `node tests/calibration.mjs` results in the PR and a calibration entry in `SOURCE_NOTES.md`.
-- **Plan comparisons that are not like for like.** Plan A and Plan B must see the same fires, households and parked cars for a seed; draws depend on the seed, not the plan. A Simple-view question must hold in every same-seed run it was tested on.
+- **Plan comparisons that are not like for like.** Plan A and Plan B must see the same fires, households and parked cars for a seed; draws depend on the seed, not the plan. A Guided-view question must hold in every same-seed run it was tested on.
 - **Unlogged insights.** A fact taken from a document, photo or conversation must have a `SOURCE_NOTES.md` row with its source and what was done with it; conflicts between sources are recorded there.
 - **Personal data.** Household-level or parcel-owner information, addresses, or imagery committed to the repository.
 

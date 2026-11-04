@@ -36,7 +36,7 @@ export class MapView {
     this.streetMode = 'class';
     this.sim = null; this.selected = null; this.hover = null;
     this.family = []; // fire families on: [{ ignition, winds }] for the starting points a comparison tries (js/main.js syncFamilies)
-    this.marks = []; // Simple view, Change the plan: [{ geom, kind: 'street' | 'link' | 'buyout', focus }] for the picked changes
+    this.marks = []; // Guided view, Change the plan: [{ geom, kind: 'street' | 'link' | 'buyout', focus }] for the picked changes
     this.zoneShapes = data.layers.evacZones.map((z, i) => ({ i, rings: z.rings, bb: bbox(z.rings) }));
     this.resize();
     this.fit();

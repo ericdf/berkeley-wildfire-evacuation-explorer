@@ -2,9 +2,10 @@
 // Node tests (pass a loader that reads files).
 
 export async function loadData(load = browserLoad) {
-  const [net, layers, dem, demBuf, A] = await Promise.all([
+  const [net, layers, dem, demBuf, A, fireZones2025] = await Promise.all([
     load('data/model/network.json', 'json'), load('data/model/layers.json', 'json'),
     load('data/terrain/dem.json', 'json'), load('data/terrain/dem.i16', 'buffer'), load('data/assumptions.json', 'json'),
+    load('data/model/fire-zones-2025.json', 'json'), // the 2025 Panoramic and Grizzly Peak zones for the proxy fuel (tools/build-fire-zones-2025.mjs)
   ]);
   // Optional: access-constrained areas (tools/access-constraints.mjs), for the map layer and the R0 plan setting. The simulator runs without them.
   const access = await Promise.resolve().then(() => load('data/model/access-constraints.json', 'json')).catch(() => null);
@@ -25,7 +26,7 @@ export async function loadData(load = browserLoad) {
   const walk = await Promise.resolve().then(() => load('data/model/walk-access.json', 'json')).catch(() => null);
   // Optional: structures per fire cell (tools/build-structures.mjs), for exposure context and the map layer.
   const structures = await Promise.resolve().then(() => load('data/model/structures.json', 'json')).catch(() => null);
-  return prepare({ net, layers, dem, Z: new Int16Array(demBuf), A, access, signals, contraflow, demand, fuel40, workplaces, walk, structures });
+  return prepare({ net, layers, dem, Z: new Int16Array(demBuf), A, fireZones2025, access, signals, contraflow, demand, fuel40, workplaces, walk, structures });
 }
 
 async function browserLoad(path, kind) {

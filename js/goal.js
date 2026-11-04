@@ -1,4 +1,4 @@
-// Simple view, "Set a goal" (Eric, 2026-11-02; SOURCE_NOTES GS1–GS5): the user picks one or more harms
+// Guided view, "Set a goal" (Eric, 2026-11-02; SOURCE_NOTES GS1–GS5): the user picks one or more harms
 // and how much each should be cut against today's plan, and the page lists the smallest combinations
 // of changes that did so, from data/model/goal-combos.json (tools/goal-combos.mjs). The other path,
 // picking changes yourself and running them, stays in "Change the plan".

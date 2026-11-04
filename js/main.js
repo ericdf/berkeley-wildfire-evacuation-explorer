@@ -13,6 +13,8 @@ import { loadMitigations, mit, MEASURES, GROUPS, stored, costText, costBadge } f
 import { stackable, conflict, stackOf, dataFor } from './levers.js';
 import { loadGoal, goalData, goalHTML, goalOutHTML, wireGoal } from './goal.js';
 import { LINK_PROVENANCE } from '../tools/egress-link.mjs';
+// localStorage can be missing or throw (private windows, blocked site data); the page works without it.
+const store = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
 
 const $ = id => document.getElementById(id);
 const fmt = (x, d = 0) => x == null || Number.isNaN(x) ? '—' : x === Infinity ? '∞' : Number(x).toLocaleString(undefined, { maximumFractionDigits: d, minimumFractionDigits: d });
@@ -124,7 +126,7 @@ function toggleContraflow(id) {
   opsNote(); newRun();
 }
 // ---------- future growth (scenario) and R0 (plan) ----------
-// Growth is part of the world both plans face. Simple view always runs today's population.
+// Growth is part of the world both plans face. Guided view always runs today's population.
 // Household mix, Fuel and weekday placement (Expert view) join the world only when they are not today's, so default jobs and keys are unchanged.
 const world = () => document.body.classList.contains('simple') ? { growth: 'none', powerShutoff: 'none' }
   : { growth: $('growth').value, powerShutoff: $('powerShutoff').value, ...($('householdMix').value === 'place' ? { householdMix: 'place' } : {}), ...($('fuel').value === 'landfire' ? { fuel: 'landfire' } : {}), ...($('nrPlacement').value !== 'area' ? { nrPlacement: $('nrPlacement').value } : {}), ...($('walkAccess').value !== 'none' ? { walkAccess: $('walkAccess').value } : {}) };
@@ -264,15 +266,15 @@ const leverById = id => mit()?.levers.find(l => l.id === id);
 const pickedLevers = () => [...state.picked].map(leverById).filter(Boolean);
 const simDone = () => state.sim && state.sim.t >= state.sim.end;
 // How fast the fire moves (Eric, 2026-11-02: "a fine line between alarmist and complacency"; SOURCE_NOTES S19).
-// Simple view offers two historical paces: medium severity, calibrated to the City's 1923 repeat (the
-// default), and high severity, whose front in this model is a median 1.1 to 1.4 miles downwind (by fire; runs 1.02–1.54) 64 minutes after
+// Guided view offers two historical paces: medium severity, calibrated to the City's 1923 repeat (the
+// default), and high severity, whose front in this model is a median 1.2 to 1.5 miles downwind (by fire; runs 0.99–1.60; 2025 zones, SOURCE_NOTES FV18) 64 minutes after
 // ignition, the pace of the 1991 fire ("more than a mile" in 64 minutes). Low stays in Expert view.
 // It changes the watched run only; comparisons already run low, medium and high.
 const PACE = {
   central: { label: 'Like 1923 (the City\'s repeat)', short: '1923 pace (medium severity)',
-    tip: 'Medium severity, calibrated to the City StoryMap\'s present-day repeat of the 1923 fire: about 5 h from the eastern edge to Shattuck Ave. In this model the front is downwind a median of about half a mile (0.5 to 0.6 mi by fire, five seeds each) 64 minutes after ignition; single runs range from 0.4 to 0.9 mi.' },
+    tip: 'Medium severity, calibrated to the City StoryMap\'s present-day repeat of the 1923 fire: about 5 h from the eastern edge to Shattuck Ave. In this model the front is downwind a median of about half a mile (0.5 to 0.7 mi by fire, five seeds each) 64 minutes after ignition; single runs range from 0.4 to 0.9 mi.' },
   high: { label: 'Like 1991', short: '1991 pace (high severity)',
-    tip: 'High severity: twice the medium spread rate, with embers carried farther. In this model the front is downwind a median of 1.1 to 1.4 miles (by fire, five seeds each) 64 minutes after ignition; single runs range from about 1.0 to 1.5 mi. The 1991 Oakland-Berkeley Hills fire was more than a mile downwind 64 minutes after it broke out (US Fire Administration report).' },
+    tip: 'High severity: twice the medium spread rate, with embers carried farther. In this model the front is downwind a median of 1.2 to 1.5 miles (by fire, five seeds each) 64 minutes after ignition; single runs range from about 1.0 to 1.6 mi. The 1991 Oakland-Berkeley Hills fire was more than a mile downwind 64 minutes after it broke out (US Fire Administration report). After the first hour the model\'s front slows to a fifth of its speed, as the 1991 head did: it advanced "only three quarters of a mile in the next seven hours".' },
 };
 state.pace = PACE[localStorage.getItem('bhe-pace')] ? localStorage.getItem('bhe-pace') : 'central';
 const paceHTML = () => `<div class="pace"><span class="small"><b>How fast the fire moves:</b></span> ${Object.entries(PACE).map(([k, v]) => `<button class="pace-pick${state.pace === k ? ' on' : ''}" data-pace="${k}" title="${esc(v.tip)}">${esc(v.label)}</button>`).join('')}
@@ -309,7 +311,7 @@ function setFamilies(on) {
   state.families = on; cancelTry(); syncFamilies();
   if (document.body.classList.contains('simple')) renderSimple();
 }
-// The opt-in boxes (Simple view, Expert Scenario section) and the map marks follow state.families.
+// The opt-in boxes (Guided view, Expert Scenario section) and the map marks follow state.families.
 function syncFamilies() {
   document.querySelectorAll('.fam-box').forEach(b => b.checked = state.families);
   $('families').checked = state.families;
@@ -674,16 +676,17 @@ function applyPreset(idOrPreset) {
   $('compare-out').innerHTML = ''; newRun(); renderSimple();
 }
 function setMode(m) {
-  // Simple view runs without growth (world()), so a switch rebuilds the run once the class has changed.
+  // Guided view runs without growth (world()), so a switch rebuilds the run once the class has changed.
   const rerun = (document.body.classList.contains('simple') || document.body.classList.contains('expert')) && !document.body.classList.contains(m) && ($('growth').value !== 'none' || $('powerShutoff').value !== 'none' || $('householdMix').value !== 'citywide' || $('fuel').value !== 'proxy' || $('nrPlacement').value !== 'area' || $('walkAccess').value !== 'none');
   document.body.classList.toggle('simple', m === 'simple'); document.body.classList.toggle('expert', m === 'expert');
   document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
   localStorage.setItem('bhe-mode', m);
-  if (m !== 'simple') { map.marks = []; map.draw(); homePlayback(); } // Change-the-plan outlines and the moved playback controls belong to the Simple view
-  // Street, road and buyout changes run only in the Simple view (Expert's controls and Compare carry plan
+  if (m !== 'simple') { map.marks = []; map.draw(); homePlayback(); } // Change-the-plan outlines and the moved playback controls belong to the Guided view
+  // Street, road and buyout changes run only in the Guided view (Expert's controls and Compare carry plan
   // settings only), so leaving it drops the stack: Plan B keeps its plan settings under a name that says so.
   const dropStack = m !== 'simple' && !!state.preset?.stack;
-  if (dropStack) { cancelTry(); state.preset = null; state.plans.B = { ...state.plans.B, name: 'B: your plan settings only (street, road and buyout changes are in Simple view)' }; }
+  if (dropStack) { cancelTry(); state.preset = null; state.plans.B = { ...state.plans.B, name: 'B: your plan settings only (street, road and buyout changes are in Guided view)' }; }
+  if (m === 'simple' && store.get('bhe-intro-seen')) setTimeout(guidedNote, 0); // first visit to Guided view
   if (m === 'simple' && !state.preset) pickFire(state.fire); // pickFire starts a new run
   else { if (rerun || dropStack) { if (dropStack) showPlan(); newRun(); } if (m === 'simple') renderSimple(); }
 }
@@ -1147,13 +1150,31 @@ function intro() {
     <li><b>Fire-engine travel</b> from the nearest station to the fire edge, and streets where parked cars leave less than an engine's width.</li>
     <li><b>Hill homes an engine can reach within 5 minutes</b>: the share of residents of Berkeley's Fire Zones 2–3 whose street an engine can reach from the nearest station within the City's 5-minute standard, given the plan's parked cars, before traffic and fire. It measures access only: engines do not fight the fire in this simulator.</li>
   </ul>
-  <p class="small muted">In Simple view, changes that did not reliably help on the chosen fire in earlier tests (15 passes per fire) are shown greyed out with that explanation, so you can see they were considered. Expert view (the Simple / Expert switch at the top right of the page) opens every control: scenario, severity, seed, time of day and both plans. Every number shows whether it is sourced, derived, an assumption, a model rule or synthetic; see Assumptions &amp; limits and Data sources. Streets and residents beyond Berkeley (Oakland, Albany, Kensington, El Cerrito) are included up to the edge of the elevation data; north Kensington and Oakland south of about 37.84° N are not.</p>
+  <p class="small muted">In Guided view, changes that did not reliably help on the chosen fire in earlier tests (15 passes per fire) are shown greyed out with that explanation, so you can see they were considered. Expert view (the Guided / Expert switch at the top right of the page) opens every control: scenario, severity, seed, time of day and both plans. Every number shows whether it is sourced, derived, an assumption, a model rule or synthetic; see Assumptions &amp; limits and Data sources. Streets and residents beyond Berkeley (Oakland, Albany, Kensington, El Cerrito) are included up to the edge of the elevation data; north Kensington and Oakland south of about 37.84° N are not.</p>
   <div class="start"><button id="intro-expert">Open expert view</button><button class="primary" id="intro-simple">Start: pick a fire</button></div></div>`, 'intro');
   const go = m => { localStorage.setItem('bhe-intro-seen', '1'); $('modal').close(); setMode(m); };
   $('intro-simple').onclick = () => go('simple'); $('intro-expert').onclick = () => go('expert');
 }
 $('btn-intro').onclick = intro;
-$('modal').addEventListener('close', () => localStorage.setItem('bhe-intro-seen', '1'));
+// First visit to Guided view, after How to use: what Guided view fixes, with two of the most consequential choices (Eric, 2026-11-04).
+function guidedNote() {
+  if (store.get('bhe-guided-seen') || $('modal').open || !document.body.classList.contains('simple')) return;
+  modal(`<div class="guided-note"><h2>Guided view sets most inputs for you</h2>
+  <p>Guided view runs each fire with fixed settings, most of them in the middle of their range, so you can compare plans without tuning dozens of inputs. A real fire can go better or worse. Two of those choices matter most:</p>
+  <ul>
+    <li><b>When the order goes out.</b> The first evacuation order comes 10 minutes after the fire starts. A fire spotted late, or a slow decision, pushes it later; a fast one brings it sooner. The question "Decide faster" shows how much the timing alone changes who is still home when embers arrive.</li>
+    <li><b>How well traffic flows.</b> Traffic signals keep working, and every driver knows the best way out. On a Red Flag day the utility may cut power to the hills and leave signals dark, and many drivers take their usual route instead of the best one.</li>
+  </ul>
+  <p>Expert view (the switch at the top right) lets you set these and every other input: when the order goes out, power shutoffs, how drivers pick routes, time of day, future housing growth and more.</p>
+  <div class="start"><button class="primary" id="guided-ok">Got it!</button></div></div>`, 'guided');
+  $('guided-ok').onclick = () => $('modal').close();
+}
+$('modal').addEventListener('close', () => {
+  const was = $('modal').className;
+  if (was === 'guided') store.set('bhe-guided-seen', '1');
+  else store.set('bhe-intro-seen', '1');
+  if (was === 'intro') setTimeout(guidedNote, 0); // after How to use closes; setMode has run if a start button closed it
+});
 $('btn-assumptions').onclick = () => {
   const A = data.A, F = data.net.meta.fields;
   const val = path => { const v = path.split('.').reduce((o, k) => o?.[k], A);
@@ -1166,12 +1187,12 @@ $('btn-assumptions').onclick = () => {
   <h3>Street network fields</h3>
   <table>${Object.entries(F).map(([k, m]) => `<tr><td><code>${k}</code></td><td>${badge(m.category)} ${esc(m.source)}${m.note ? ' ' + esc(m.note) : ''}</td></tr>`).join('')}</table>
   <h3>Fire and ember overlay ${badge('model rule')}</h3>
-  <p class="small"><b>Fire crews.</b> The fire's pace comes from real fires and the City's repeat of 1923 (Simple view: "Like 1923" and "Like 1991"), so it includes the firefighting effort seen in those fires. In a wind-driven fire the Fire Department expects crews to focus on supporting evacuation, and aircraft are grounded in high wind (SOURCE_NOTES FS14). The simulator does not add crews holding the fire's sides, or the fire stopping when the wind changes, as both 1923 and 1991 did (FS15). The scenario may exaggerate the spread as winds die and firefighters establish control. Engines in the simulator only drive, to measure whether they could reach homes.</p>
-  <p class="small">${esc(SEVERITY_NOTE)} Spread runs on ${CELL} m cells: wind sets an elliptical shape (Anderson 1983 length-to-breadth, capped at ${LB_MAX}); uphill is faster and downhill slower; a proxy fuel factor comes from the City fire zones (${Object.entries(FUEL).map(([k, v]) => `${k} ${v}`).join(', ')}), not from vegetation data. The Fuel setting (Scenario, Expert view, off by default) swaps in LANDFIRE 2025 FBFM40 fuel models on the same cells, each with a factor from Rothermel's relative spread rate for its Scott and Burgan (2005) model ${badge('model rule', data.fuel40?.meta.provenance.factorRule || '')}; homes (LANDFIRE's NB1 urban class) keep the proxy, and the medium severity stays calibrated to the proxy (docs/fire-validation.md). Spot fires are random, so seeds differ. A cell is "ember-exposed" once any burning cell lies within the ember distance upwind. The 1923 reference fire is confined to the City's archival boundary.</p>
+  <p class="small"><b>Fire crews.</b> The fire's pace comes from real fires and the City's repeat of 1923 (Guided view: "Like 1923" and "Like 1991"), so it includes the firefighting effort seen in those fires. In a wind-driven fire the Fire Department expects crews to focus on supporting evacuation, and aircraft are grounded in high wind (SOURCE_NOTES FS14). The simulator does not add crews holding the fire's sides, or the fire stopping when the wind changes, as both 1923 and 1991 did (FS15). High severity ("Like 1991") slows after its first hour, as the 1991 head did in the built-up neighborhoods while crews arrived ${badge('model rule', 'After 60 minutes every spread rate at high severity is multiplied by 0.2; ember throw continues, as the 1991 wind blew until about 7:30 p.m. Fitted to the 1991 record: a 1991-like fire in the model reaches a median of 693 structures in its first hour, 1,067 by 2 h, 1,772 by 4 h and 2,995 by 8.5 h, against about 800, 1,100, 1,700 and 2,900 ("almost 800 structures were ignited within the first hour and more than 300 per hour for the next seven hours", USFA-TR-060). Its burned area, 3.9 km² by 8.5 h, is under the 1991 fire\'s 6.0 km² on the model\'s grid. SOURCE_NOTES FV17.')}. Medium and low severity keep their rate for the whole run, so they may exaggerate the spread as winds die and firefighters establish control. Engines in the simulator only drive, to measure whether they could reach homes.</p>
+  <p class="small">${esc(SEVERITY_NOTE)} Spread runs on ${CELL} m cells: wind sets an elliptical shape (Anderson 1983 length-to-breadth, capped at ${LB_MAX}); uphill is faster and downhill slower; a proxy fuel factor comes from the City fire zones of the 2025 Fire Code (${Object.entries(FUEL).map(([k, v]) => `${k} ${v}`).join(', ')}; the Panoramic and Grizzly Peak Mitigation Zones are wildland interface, the rest of the hill fire zones hill residential), not from vegetation data ${badge('sourced', 'Zones: Berkeley Fire Code 2025 (Council 2025-04-15, Special Item 02, Attachment 1); outlines from the City layer grizz_pano_mitigation (72 and 271 acres). No City layer draws the 2025 Hills zone, so it keeps the 2013 Fire Zones 2–3 outline less the two new zones (SOURCE_NOTES FV18, ISSUES.md I3).')}. The Fuel setting (Scenario, Expert view, off by default) swaps in LANDFIRE 2025 FBFM40 fuel models on the same cells, each with a factor from Rothermel's relative spread rate for its Scott and Burgan (2005) model ${badge('model rule', data.fuel40?.meta.provenance.factorRule || '')}; homes (LANDFIRE's NB1 urban class) keep the proxy, and the medium severity stays calibrated to the proxy (docs/fire-validation.md). Spot fires are random, so seeds differ. A cell is "ember-exposed" once any burning cell lies within the ember distance upwind. The 1923 reference fire is confined to the City's archival boundary.</p>
   <p class="small"><b>Wind.</b> Each fire's wind, 30 to 35 mph, is an extreme hour: dry north-east winds at the Oakland hills weather station average that strongly about 1% of the time (1992–2026). The 1923 and 1991 fires burned in such winds. In this model the speed sets only the fire's shape, which stops changing above about 18 mph, so a lower speed would give the same fires ${badge('derived', 'Oakland North RAWS, WRCC frequency tool, June 1992 – October 2026: of 7,340 hours with wind from 0–90° and humidity ≤ 25%, 1.3% averaged 30 mph or more (SOURCE_NOTES FF5). Length-to-breadth is capped at ' + LB_MAX + ', reached at about 11 mph (high severity), 14 mph (medium) and 18 mph (low); the head spread rate is calibrated, not computed from wind.')}.</p>
-  <p class="small"><b>Fire families</b> ${badge('assumption')} (off by default; the box under the fire in Simple view, and in Expert view's Scenario section). With them on, a comparison also runs each fire from other starting points (the 1923 fire keeps the City's) and with wind from 30°, 45° and 60°, the core of dry, windy hours at that station (20–70° held 71.8% of them). The points are tied to past fire origins and the County's fire-pathway study and are our choices: no source gives where the next fire will start, so every start and wind counts equally. Speed, severity, time of day, duration and Berkeley's orders stay the fire's, so a start elsewhere can burn into Berkeley zones the fire's orders leave out; other cities' zones follow the rule below for every start. The 1923 fire stays inside the City's footprint at every wind, which cuts it more at 30° and 60° than at 45° (SOURCE_NOTES FF16–FF18).</p>
+  <p class="small"><b>Fire families</b> ${badge('assumption')} (off by default; the box under the fire in Guided view, and in Expert view's Scenario section). With them on, a comparison also runs each fire from other starting points (the 1923 fire keeps the City's) and with wind from 30°, 45° and 60°, the core of dry, windy hours at that station (20–70° held 71.8% of them). The points are tied to past fire origins and the County's fire-pathway study and are our choices: no source gives where the next fire will start, so every start and wind counts equally. Speed, severity, time of day, duration and Berkeley's orders stay the fire's, so a start elsewhere can burn into Berkeley zones the fire's orders leave out; other cities' zones follow the rule below for every start. The 1923 fire stays inside the City's footprint at every wind, which cuts it more at 30° and 60° than at 45° (SOURCE_NOTES FF16–FF18).</p>
   <p class="small"><b>Other cities' orders</b> ${badge('model rule')} Berkeley and Lab zones are ordered as the scenario says: the City's region for that fire. Every other evacuation zone (Oakland, Kensington and El Cerrito, Albany, Emeryville, Richmond, Orinda and unincorporated Contra Costa) is ordered ${A.orders.firePathDelayMin} minutes after the fire front first comes within ${A.orders.firePathKm} km of it ${badge('assumption', 'Eric\'s choice, 2026-11-02, after comparing 2 km and 1 km. No source gives when these jurisdictions order a zone. The delay is the simulator\'s default decision delay; a plan\'s order delay changes the scenario\'s orders only.')}, on every fire and every start, the same under both plans. Their residents' cars use the same roads. Evacuation time (ETE) still counts only cars from zones Berkeley's plan orders, as the Time Study does for its regions; the cars from other cities' zones slow it as traffic (SOURCE_NOTES FO1–FO6). The plan setting "…plus any zone within N km of the fire" still adds Berkeley zones, and other cities' zones a little sooner, since it measures a square around the fire rather than a circle.</p>
-  <table><tr><th>Severity</th><th>Head spread (m/min)</th><th>Wind ×</th><th>Ember distance (m)</th><th>Spot probability</th></tr>${Object.values(SEVERITY).map(s => `<tr><td>${s.label}</td><td>${s.rosMpm}</td><td>${s.windFactor}</td><td>${s.emberM}</td><td>${s.spotProb}</td></tr>`).join('')}</table>
+  <table><tr><th>Severity</th><th>Head spread (m/min)</th><th>Wind ×</th><th>Ember distance (m)</th><th>Spot probability</th><th>After the first hour</th></tr>${Object.values(SEVERITY).map(s => `<tr><td>${s.label}</td><td>${s.rosMpm}</td><td>${s.windFactor}</td><td>${s.emberM}</td><td>${s.spotProb}</td><td>${s.slowFactor ? `spread × ${s.slowFactor} after ${s.slowAfterMin} min` : 'same rate'}</td></tr>`).join('')}</table>
   <h3>Time of day ${badge('assumption')}</h3><p class="small">${esc(TIME_NOTE)}</p>
   <table>${Object.values(TIME_OF_DAY).map(t => `<tr><td>${t.label}</td><td>households awaiting a commuter ${t.commuterShare * 100}%, school in session ${t.schoolInSession * 100}%, background traffic allowance ${t.background * 100}%</td><td class="small">${esc(t.note)}</td></tr>`).join('')}</table>
   <h3>How people and vehicles are modeled ${badge('synthetic')}</h3>

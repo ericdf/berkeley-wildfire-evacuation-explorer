@@ -1,4 +1,4 @@
-// Simple-view fires and questions. A question is offered on a fire only where Plan B beat Plan A
+// Guided-view fires and questions. A question is offered on a fire only where Plan B beat Plan A
 // on its headline measure in all 15 same-seed runs (low, central and high severity x seeds 1-5)
 // by a clear margin (central-severity median change of 5% or more); SOURCE_NOTES P19-P22,
 // 2026-11-01, P31 for the north-hills fire, P32 for the east-wind fire from 60° and P33 after other cities' orders (FO1), P34 at 1 km (FO6) and P35 with each person counted once (FO8), 2026-11-02. Each question fixes the time of day
