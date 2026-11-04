@@ -42,7 +42,15 @@ for (let i = 0; i < W * H; i++) {
   t.n++; if (d > 0) { t.canopy++; t.hs.push(h); t.ds.push(d); if (h <= 2) t.low++; if (d >= 0.10) t.dense++; if (h <= 2 && d >= 0.10) t.screen++; }
   G.set(g, t);
 }
+// The same screen by fuel model for the timber classes, with each model's spread factor under the LANDFIRE setting.
+const SP = (() => { const p = meta.provenance?.spread ?? meta.spread; return typeof p === 'string' ? null : p; })();
+const byCode = new Map();
+for (let i = 0; i < W * H; i++) { const c = codes[i]; if (c < 160 || c >= 200) continue;
+  const t = byCode.get(c) || { n: 0, screen: 0 }; t.n++; if (cbh[i] / 10 <= 2 && cbd[i] / 100 >= 0.10) t.screen++; byCode.set(c, t); }
 const med = a => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
 console.log('LANDFIRE 2025 canopy over burnable FBFM40 cells (30 m), by fuel group');
 for (const [g, t] of [...G].sort((a, b) => b[1].n - a[1].n))
   console.log(`  ${g}: ${t.n} cells; with canopy ${t.canopy} (${(100 * t.canopy / t.n).toFixed(0)}%); median CBH ${med(t.hs)} m, median CBD ${med(t.ds)} kg/m³; CBH ≤ 2 m ${t.low}; CBD ≥ 0.10 ${t.dense}; both ${t.screen} (${(100 * t.screen / t.n).toFixed(1)}% of the group)`);
+console.log('Timber models: cells passing the screen, and the spread factor the LANDFIRE setting gives them (data/terrain/fbfm40.json)');
+for (const [c, t] of [...byCode].sort((a, b) => a[0] - b[0])) console.log(`  ${SP?.[c]?.code ?? c}: ${t.screen} of ${t.n}; factor ${SP?.[c]?.factor ?? 'see fbfm40.json'}`);
+
