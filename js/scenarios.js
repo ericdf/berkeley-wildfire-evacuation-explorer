@@ -158,7 +158,7 @@ export function makeScenarios(data) {
         sources: ['Starts: USGS HayWired scenario, fire following the M7.0 Hayward Fault mainshock (Scawthorn 2018, chap. P; data release ScienceBase 5d83a79be4b0c4f70d067ae0): expected ignitions per Berkeley fire station area, about 20 in all; each pass draws the number per area (Poisson) and puts each start in a building cell (our rule)',
           'Spread: the wildfire spread rules with a rate fitted so the fire reaches about as many structures as HayWired burns in Berkeley (3.44 million sq ft of floor area, about 2,300 single-family-home equivalents at the 1,515 sq ft per equivalent of the regional summary); model rule',
           'Streets: segments crossing the mapped Hayward Fault trace are closed and every City signal is dark (the Hayward Fault earthquake setting, lower bound; its upper bound is in the scenario settings)',
-          'Orders: each zone is ordered the plan\'s decision delay after the fire first comes within 1 km of it, the rule other cities follow; no pre-defined region',
+          'Orders: each zone is ordered the plan\'s decision delay after the fire first comes within 300 m of it, so only zones the fire threatens (assumption); no pre-defined region. Other cities\' zones follow their 1 km rule',
           'Time: a weekday afternoon (Time Study S4), as in HayWired, whose earthquake strikes at 4:18 p.m.'],
       };
       return [

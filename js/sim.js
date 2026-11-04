@@ -51,8 +51,7 @@ export const DEFAULT_PLAN = { name: 'Baseline', alertKm: 0, orderDelayMin: 10, h
 // within firePathKm of any of its 30 m cells. Depends on the fire alone, never on the plan.
 // Returns per zone the order time in seconds (Infinity: no such order). Cached on the fire object.
 // Per evacuation zone, the first time (minutes) the fire comes within orders.firePathKm of it; cached on the fire.
-export function fireNearZones(data, grid, fire) {
-  const km = data.A.orders.firePathKm;
+export function fireNearZones(data, grid, fire, km = data.A.orders.firePathKm) {
   if (fire.nearZones?.km === km) return fire.nearZones.t;
   const t = new Float64Array(data.layers.evacZones.length).fill(Infinity);
   const near = diskMinFilter(fire.arrival, grid.W, grid.H, km * 1000);
@@ -153,8 +152,8 @@ export class Evacuation {
       });
     } else if (scenario.ordersByFire) {
       // Earthquake fire (SOURCE_NOTES EQ11): no pre-defined region. Each zone is ordered the plan's decision delay
-      // after the fire first comes within orders.firePathKm of it, the rule other cities follow (model rule).
-      const nearT = fireNearZones(data, grid, fire);
+      // after the fire first comes within orders.quakeKm (0.3 km) of it: only zones the fire threatens (assumption, Eric).
+      const nearT = fireNearZones(data, grid, fire, data.A.orders.quakeKm ?? 0.3);
       zones.forEach((_, z) => { if (nearT[z] * 60 <= this.end) { this.orderT[z] = Math.min(this.orderT[z], nearT[z] * 60 + decided); scenOrd[z] = 1; } });
     } else if (scenario.orderRegion) {
       // a region can be several polygons (MultiPolygon parts are stored separately)
