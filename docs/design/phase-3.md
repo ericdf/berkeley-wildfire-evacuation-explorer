@@ -12,7 +12,7 @@ holds for everything proposed here.
 - **Phase 3 has six parts** (`specification.md`, "Phase 3"): verified inputs in place of
   placeholders, building footprints, fire zones, vegetation and fuel categories, actual parking
   restrictions, and the best local elevation. Two are done (fire zones; 1 m lidar elevation), one
-  is half done (782 no-parking signs are on the map but set no parking), and three have not
+  is half done (589 no-parking signs, 782 records in two overlapping City layers, are on the map but set no parking), and three have not
   started: structures, fuels and the remaining placeholders (25 values in
   `data/assumptions.json` are still labeled assumption).
 - **The City publishes footprints for every structure in Fire Zones 2–3, with the distance to the
@@ -48,7 +48,7 @@ holds for everything proposed here.
 | Building footprints | Not used | Section 3 |
 | Fire zones | Built: Berkeley Fire Zones 1–3 set the proxy fuel factor (`js/fire.js`, `FUEL`) and the hills/flats split | FHSZ 2025 and the Ember Threat Zones are downloaded and unused (DATA_INVENTORY) |
 | Vegetation and fuel categories | Proxy only: a spread factor by fire zone, "not vegetation data" (`js/fire.js`, header) | Section 4 |
-| Actual parking restrictions | Parking shares come from aerial counts on 22 hill blocks and Eric's photos; 782 no-parking signs (`layers.json` `noParkingSigns`) are drawn on the map only | Section 5 |
+| Actual parking restrictions | Parking shares come from aerial counts on 22 hill blocks and Eric's photos; 589 no-parking signs (782 records in `layers.json` `noParkingSigns`) are drawn on the map only | Section 5 |
 | Best local elevation | Built: USGS 3DEP 1 m lidar, read at 4 m (DATA_INVENTORY) | None |
 
 ## 2. What is public
@@ -110,7 +110,7 @@ run, the way the staffing note did (`docs/design/fire-staffing.md`, FS12): adopt
 
 ## 5. Parking restrictions
 
-**Checked 2026-11-04; not built as a status-quo change (PH11, PH12).** The 782 signs touch 245 of 1,934 hill
+**Checked 2026-11-04; not built as a status-quo change (PH11, PH12).** The 589 distinct signs (782 records in two overlapping City layers) touch 245 of 1,934 hill
 segments. They have no facing direction or extent, and the City describes them as lacking tow-away language, with 188
 due for replacement. On the 22 aerially counted blocks, signed blocks still had parked cars in 2020. The daylighting law
 (Vehicle Code §22500(n), citations from 2025) adds a 20 ft no-parking zone before every crosswalk; its compliance in
