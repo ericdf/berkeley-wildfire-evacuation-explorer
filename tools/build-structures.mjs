@@ -15,7 +15,8 @@
 //
 // Also checks the City's statement that NEAR_DIST is in feet, by comparing it with the measured gap.
 //
-//   node tools/build-structures.mjs
+//   node tools/build-structures.mjs           (needs data/raw/osm/buildings.json from tools/fetch-osm-buildings.mjs)
+//   node tools/build-structures.mjs --no-osm  (City footprints and Census units only; outside counts shown as not available)
 
 import fs from 'fs';
 import path from 'path';
@@ -77,6 +78,9 @@ for (const f of feats) {
 const fz23 = layers.fireZones.filter(z => z.zone >= 2).map(z => ({ ...z, bb: bbox(z.rings) }));
 const inFZ23 = (x, y) => fz23.some(z => inBB(z.bb, x, y) && inPoly(x, y, z.rings));
 const OSMF = path.join(ROOT, 'data/raw/osm/buildings.json');
+// Without the OSM file the counts outside the zones would read as zero exposure, so the build stops unless told
+// to go on without them (--no-osm); the page then shows those counts as not available (meta.osmBuilt false).
+if (!fs.existsSync(OSMF) && !process.argv.includes('--no-osm')) throw new Error('data/raw/osm/buildings.json missing: run node tools/fetch-osm-buildings.mjs, or pass --no-osm to build without structures outside Fire Zones 2–3');
 const osmMeta = fs.existsSync(OSMF) ? JSON.parse(fs.readFileSync(OSMF, 'utf8')) : null;
 const others = [];
 let osmInFZ23 = 0, osmOnCity = 0;
@@ -173,7 +177,7 @@ for (const b of blocks) {
 const sum = (m, k) => [...m.values()].reduce((s, t) => s + (k == null ? t : t[k]), 0);
 const out = {
   meta: {
-    built: new Date().toISOString().slice(0, 10), tool: 'tools/build-structures.mjs', cell: CELL, W, H,
+    built: new Date().toISOString().slice(0, 10), tool: 'tools/build-structures.mjs', cell: CELL, W, H, osmBuilt: !!osmMeta,
     note: 'Counts per 30 m fire cell (index r * W + c, r from the south edge; js/fire.js cellOf). Exposure context only: not ignition, not loss. No footprints, addresses or parcel data are stored.',
     sources: {
       structures: 'City of Berkeley ArcGIS Online, Distance_between_structures_in_Fire_Zones_2_and_3_WFL1 layer 3 (edited 2023-09-13), fields NEAR_DIST and geometry only; counted at footprint centroids; gaps measured from the geometry (SOURCE_NOTES PH1, PH10)',
