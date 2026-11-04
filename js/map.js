@@ -27,7 +27,7 @@ export class MapView {
     this.terrain = makeTerrainCanvas(data.dem, data.Z);
     this.contours = makeContours(data.dem, data.Z, 20, 3);
     this.layers = { terrain: true, contours: true, streets: true, paths: true, evacZones: false, fireZones: true, neighborhoods: false, fire1923: true,
-      cityBoundary: true, stations: true, noParking: false, tightTurns: false, access: false, demand: false, fire: true, vehicles: true, queues: true, responder: true };
+      cityBoundary: true, stations: true, noParking: false, tightTurns: false, access: false, demand: false, structures: false, fire: true, vehicles: true, queues: true, responder: true };
     this.streetMode = 'class';
     this.sim = null; this.selected = null; this.hover = null;
     this.family = []; // fire families on: [{ ignition, winds }] for the starting points a comparison tries (js/main.js syncFamilies)
@@ -114,6 +114,7 @@ export class MapView {
     if (L.neighborhoods) this.drawPolys(data.layers.neighborhoods, null, 'rgba(70,70,120,0.55)', z => z.name);
     if (L.cityBoundary) this.drawPolys(data.layers.cityBoundary, null, 'rgba(40,40,40,0.7)', null, [6, 4], 1.5);
     if (L.fire1923) this.drawPolys(data.layers.fire1923, null, 'rgba(150,20,20,0.8)', () => '1923 fire (archival boundary)', [3, 3], 1.5);
+    if (L.structures && data.structures) this.drawStructures();
     if (L.fire && this.sim) this.drawFire();
     if (L.access && data.access) this.drawAccessUnder();
     if (L.streets) this.drawStreets();
@@ -366,6 +367,19 @@ export class MapView {
     const { ctx } = this; ctx.strokeStyle = '#d97706'; ctx.lineWidth = 4;
     for (const t of this.data.layers.tightTurns) { ctx.beginPath(); this.path(t.pts); ctx.stroke(); }
   }
+  // Structures per 30 m fire cell (tools/build-structures.mjs): darker where more of the cell's
+  // structures stand under 25 ft from their nearest neighbor.
+  drawStructures() {
+    const { ctx } = this, st = this.data.structures, W = st.meta.W, C = st.meta.cell, s = C * this.scale;
+    ctx.save();
+    for (const [c, n, b25] of st.structures) {
+      const x = (c % W) * C, y = (Math.floor(c / W) + 1) * C, f = b25 / n;
+      ctx.fillStyle = `rgba(${Math.round(120 - 60 * f)},${Math.round(70 - 40 * f)},${Math.round(150 - 50 * f)},${0.25 + 0.15 * Math.min(n, 4)})`;
+      ctx.fillRect(this.sx(x), this.sy(y), s, s);
+    }
+    ctx.restore();
+  }
+
   drawPoints(pts, color, r) {
     const { ctx } = this; ctx.fillStyle = color;
     for (const p of pts) { const x = this.sx(p.pt[0]), y = this.sy(p.pt[1]); if (x < -5 || y < -5 || x > this.w + 5 || y > this.h + 5) continue; ctx.fillRect(x - r, y - r, 2 * r, 2 * r); }

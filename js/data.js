@@ -20,7 +20,9 @@ export async function loadData(load = browserLoad) {
   const fuel40 = fuelMeta && fuelBuf ? { meta: fuelMeta, codes: new Uint8Array(fuelBuf) } : null;
   // Optional: workplaces and off-street parking (tools/workplaces.mjs), for the opt-in "by workplace" placement of non-residents.
   const workplaces = await Promise.resolve().then(() => load('data/model/workplaces.json', 'json')).catch(() => null);
-  return prepare({ net, layers, dem, Z: new Int16Array(demBuf), A, access, signals, contraflow, demand, fuel40, workplaces });
+  // Optional: structures per fire cell (tools/build-structures.mjs), for exposure context and the map layer.
+  const structures = await Promise.resolve().then(() => load('data/model/structures.json', 'json')).catch(() => null);
+  return prepare({ net, layers, dem, Z: new Int16Array(demBuf), A, access, signals, contraflow, demand, fuel40, workplaces, structures });
 }
 
 async function browserLoad(path, kind) {

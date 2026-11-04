@@ -1,7 +1,8 @@
 # Phase 3, evidence-backed Berkeley scenario: design note
 
-Status: design note, 2026-11-03. Nothing here is built except a read-only check,
-`tools/phase3-sources.mjs`, which reproduces every figure in section 2. Sources are logged in
+Status: design note, 2026-11-03. Decisions taken 2026-11-03 (SOURCE_NOTES PH9): all five in section 9,
+as recommended, with 3e in scope. Step 3a is built (PH10). `tools/phase3-sources.mjs` reproduces
+every figure in section 2. Sources are logged in
 `SOURCE_NOTES.md` under "Phase 3 sources: structures and fuels" (rows PH1–PH8). The simulator is
 an educational comparison tool, not a prediction and not an official evacuation plan; the same
 holds for everything proposed here.
@@ -15,8 +16,10 @@ holds for everything proposed here.
   started: structures, fuels and the remaining placeholders (25 values in
   `data/assumptions.json` are still labeled assumption).
 - **The City publishes footprints for every structure in Fire Zones 2–3, with the distance to the
-  nearest structure.** 7,706 structures; 6,995 of them (90.8%) stand less than 25 ft from the next
-  one, the closest of the three NIST bands the City's map uses, and 4,668 (60.6%) less than 10 ft.
+  nearest structure.** 7,706 structures. Measured from the footprints, 7,053 (91.5%) stand less than
+  25 ft from the next one, the closest of the three NIST bands the City's map uses; the median gap
+  is 7.5 ft. The City's distance field reads about 27% high, as Web Mercator distances do at
+  Berkeley's latitude, and gives 6,995 (90.8%) (PH10).
   5,564 (72.2%) were built before 1950 (PH1, PH2). The same layer carries addresses, parcel
   numbers, owner names, owner-occupancy and tract demographics, so the build must request only
   geometry and the separation field, and keep counts per fire cell, never footprints (section 7).
@@ -55,7 +58,7 @@ All figures from `node tools/phase3-sources.mjs`, run 2026-11-03. LANDFIRE figur
 | Item | Figure | Source | Category |
 |---|---|---|---|
 | Structures in Fire Zones 2–3 | 7,706 footprints; `NEAR_DIST`, the distance to the nearest structure, in feet per the City's map description | City layers `Distance_between_structures_in_Fire_Zones_2_and_3_WFL1` (layer 3) and `Structure_Distance_in_Berkeley_Fire_Zones_2_and_3_WFL1`, both edited 2023-09-13 (PH1) | sourced |
-| Separation, by the City map's NIST bands | under 25 ft: 6,995 (90.8%); 25–50 ft: 520 (6.7%); 50 ft or more: 191 (2.5%). Under 10 ft: 4,668 (60.6%); 0 ft (touching): 29. Mean 12.1 ft, maximum 177.5 ft | Same layer (PH1) | sourced |
+| Separation, by the City map's NIST bands | By the City's `NEAR_DIST`: under 25 ft: 6,995 (90.8%); 25–50 ft: 520 (6.7%); 50 ft or more: 191 (2.5%). `NEAR_DIST` reads about 27% high (PH10). Measured from the footprints: 7,053 (91.5%), 496 and 157; median 7.5 ft | Same layer (PH1); measured by `tools/build-structures.mjs` (PH10) | sourced (field); derived (measured) |
 | Vintage | before 1950: 5,564 (72.2%); 1950–1978: 1,617 (21.0%); 1979–1990: 134; 1991–2019: 182; blank: 209 | Same layer, `vintage` (PH2) | sourced |
 | Structures in very high hazard zones | 1,874 in CAL FIRE's Very High zone; 215 in the City's Very High zone on Panoramic Hill | City `COB_VHFS_Parcels_Bldngs_WFL1`, edited 2025-06-16 (PH1) | sourced |
 | Wildfire Risk to Structures (V6) | 97,660 cells of about 6.4 ha in Alameda and Contra Costa counties; 1,907 touch the model area. Each has a hazard class, structures per acre and a neighborhood hazard class 1–6 | City `Alameda_and_Contra_Costa_Wildfire_Hazard_and_Risk_to_Structures_WFL1`, edited 2024-08-15; method at fuelsmapping.com (PH3) | sourced, method not yet read |
@@ -139,16 +142,17 @@ assumptions are scenario choices and stay assumptions.
 
 ## 8. Recommendation and order
 
-1. **3a, structure exposure (data and context only).** `tools/build-structures.mjs` writes
-   per-cell counts (`data/model/structures.json`): structures and separation bands in Fire Zones
-   2–3 from the City layer, Census housing units elsewhere, each labeled. The map gets a layer;
-   results get one context line per scenario ("structures the fire front reached in the first
-   2 h", both plans equal). No model change, so calibration is untouched.
-2. **3b, LANDFIRE fuels in the wildland (scratch run first).** Option (i) for developed cells.
+1. **3a, structure exposure (data and context only). Built 2026-11-03 (PH10).** `tools/build-structures.mjs` writes
+   per-cell counts (`data/model/structures.json`): structures and measured separation bands in
+   Fire Zones 2–3 from the City layer, Census housing units elsewhere, each labeled. The map has a
+   Structures layer; results have one row, the structures and housing units the fire front and
+   embers had reached so far, the same under every plan. No model change, so calibration is
+   untouched.
+2. **3b, LANDFIRE fuels in the wildland (scratch run first). Done 2026-11-03 in another session as the opt-in Fuel setting (`docs/fire-validation.md`, FV1–FV16); NB1 cells keep the proxy, option (i). Adopting it as the default is Eric's decision.** Option (i) for developed cells.
    Adopt only if the 1923 calibration and every Simple-view question hold. Option (ii) only as a
    second scratch run.
 3. **3c, no-parking signs to curb rules.** A model change with the full checks.
-4. **3d, ACS household tables.** A model change with the full checks.
+4. **3d, ACS household tables. Done 2026-11-03 in another session as the opt-in Household mix setting (DM1–DM17).** A model change with the full checks.
 5. **3e, structure ignition, house-to-house spread and loss: not before Eric decides.** It would
    rest on an effect size nobody has published for Berkeley (M2, M3), and it is the closest the
    simulator would come to predicting losses.
