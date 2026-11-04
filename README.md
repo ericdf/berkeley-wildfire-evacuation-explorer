@@ -331,6 +331,15 @@ one side only, or enforcing parking tight to the curb. That matches the City's 2
 finding that broad restrictions are unlikely to improve evacuation flow. The simulator does not
 add any parking-removal bonus.
 
+**Enforcing posted signs and daylighting** (plan setting, off by default; SOURCE_NOTES PH11, PH12,
+PH15). The status quo is what the 2020 aerial counts show people doing, which includes parking at
+many of the City's 589 no-parking signs; daylighting (Vehicle Code §22500(n), no parking 20 ft
+before a crosswalk) came after those counts. The setting keeps each signed side of a segment clear
+and takes 20 ft of curb at each corner end. Which curb a sign governs, and where daylighting takes
+curb, are model rules: the sign layers give no extent or facing, and the model does not place cars
+along the block. Like the other parking options, it changes engine access far more than evacuation
+flow.
+
 ## Files
 
 | Path | What it is |

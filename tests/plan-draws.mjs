@@ -102,6 +102,8 @@ for (const F of FIRES) {
       compare(`${F.id} seed ${seed} ${P.id}: A vs B`, build(P.A, tk), build(P.B, tk));
     }
     compare(`${F.id} seed ${seed} ${EXPERT.name}`, build(DEFAULT_PLAN, 'S6'), build(EXPERT, 'S6'), { sameZoneOnly: true });
+    // Enforcement of signs and daylighting changes parked cars only, never the household draws (SOURCE_NOTES PH15).
+    for (const tk of ['S1', 'S6']) compare(`${F.id} seed ${seed} enforce signs and daylighting ${tk}`, build(DEFAULT_PLAN, tk), build({ ...DEFAULT_PLAN, parkingEnforce: 'both' }, tk));
     // maximum growth: R0 and leave early, Plan A vs Plan B
     const tk = LE.tods?.B ?? LE.tod, G = 'max';
     const base = build(DEFAULT_PLAN, tk, G);

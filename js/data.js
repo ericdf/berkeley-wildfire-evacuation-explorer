@@ -55,9 +55,39 @@ export function prepare(data) {
   };
   data.vehicleNodes = []; for (let n = 0; n < nN; n++) if (vehNode[n]) data.vehicleNodes.push(n);
   data.stationNodes = layers.fireStations.map(s => data.nearestNode(...s.pt));
+  prepareParkingRules(data);
   if (data.access?.areas) prepareAccess(data.access);
   data.names = [...new Set(net.edges.map(e => e.name).filter(n => n && n !== 'UNNAMED'))].sort();
   return data;
+}
+
+// For the plan setting "Enforce no-parking signs and daylighting" (js/parking.js; SOURCE_NOTES PH11, PH12, PH15):
+//   signSides[e]  bit 1 = a sign stands left of the segment's drawn direction, bit 2 = right
+//   (one record per point and MUTCD code: the City's two sign layers overlap);
+//   cornerEnds[e] how many of the segment's two ends meet an intersection (3+ vehicle segments).
+function prepareParkingRules(data) {
+  const { net, layers } = data, nE = net.edges.length, G = data.gridSize;
+  const maxM = data.A.parking?.enforce?.signMatchM ?? 20;
+  data.signSides = new Uint8Array(nE); data.cornerEnds = new Uint8Array(nE);
+  const seen = new Set();
+  for (const s of layers.noParkingSigns || []) {
+    const k = `${s.pt}|${s.mutcd}`; if (seen.has(k)) continue; seen.add(k);
+    const [x, y] = s.pt; let best = -1, bd = maxM, side = 0;
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (const id of data.grid.get(`${Math.floor(x / G) + dx},${Math.floor(y / G) + dy}`) || []) {
+      const e = net.edges[id]; if (e.mode !== 'vehicle') continue;
+      const g = e.geom;
+      for (let i = 1; i < g.length; i++) {
+        const [ax, ay] = g[i - 1], [bx, by] = g[i], vx = bx - ax, vy = by - ay, L2 = vx * vx + vy * vy;
+        const u = L2 ? Math.max(0, Math.min(1, ((x - ax) * vx + (y - ay) * vy) / L2)) : 0;
+        const d = Math.hypot(x - ax - u * vx, y - ay - u * vy);
+        if (d < bd) { bd = d; best = id; side = vx * (y - ay) - vy * (x - ax) > 0 ? 1 : 2; }
+      }
+    }
+    if (best >= 0) data.signSides[best] |= side;
+  }
+  const vdeg = new Uint16Array(net.nodes.length);
+  for (const e of net.edges) if (e.mode === 'vehicle') { vdeg[e.a]++; if (e.b !== e.a) vdeg[e.b]++; }
+  for (const e of net.edges) if (e.mode === 'vehicle') data.cornerEnds[e.id] = (vdeg[e.a] >= 3) + (vdeg[e.b] >= 3);
 }
 
 // Index access-constrained areas by id and by member street. Areas nest, so an edge can lie
