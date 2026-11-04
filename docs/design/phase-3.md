@@ -12,7 +12,7 @@ holds for everything proposed here.
 - **Phase 3 has six parts** (`specification.md`, "Phase 3"): verified inputs in place of
   placeholders, building footprints, fire zones, vegetation and fuel categories, actual parking
   restrictions, and the best local elevation. Two are done (fire zones; 1 m lidar elevation), one
-  is half done (782 no-parking signs are on the map but set no parking), and three have not
+  is half done (589 no-parking signs, 782 records in two overlapping City layers, are on the map but set no parking), and three have not
   started: structures, fuels and the remaining placeholders (25 values in
   `data/assumptions.json` are still labeled assumption).
 - **The City publishes footprints for every structure in Fire Zones 2–3, with the distance to the
@@ -48,7 +48,7 @@ holds for everything proposed here.
 | Building footprints | Not used | Section 3 |
 | Fire zones | Built: Berkeley Fire Zones 1–3 set the proxy fuel factor (`js/fire.js`, `FUEL`) and the hills/flats split | FHSZ 2025 and the Ember Threat Zones are downloaded and unused (DATA_INVENTORY) |
 | Vegetation and fuel categories | Proxy only: a spread factor by fire zone, "not vegetation data" (`js/fire.js`, header) | Section 4 |
-| Actual parking restrictions | Parking shares come from aerial counts on 22 hill blocks and Eric's photos; 782 no-parking signs (`layers.json` `noParkingSigns`) are drawn on the map only | Section 5 |
+| Actual parking restrictions | Parking shares come from aerial counts on 22 hill blocks and Eric's photos; 589 no-parking signs (782 records in `layers.json` `noParkingSigns`) are drawn on the map only | Section 5 |
 | Best local elevation | Built: USGS 3DEP 1 m lidar, read at 4 m (DATA_INVENTORY) | None |
 
 ## 2. What is public
@@ -61,7 +61,7 @@ All figures from `node tools/phase3-sources.mjs`, run 2026-11-03. LANDFIRE figur
 | Separation, by the City map's NIST bands | By the City's `NEAR_DIST`: under 25 ft: 6,995 (90.8%); 25–50 ft: 520 (6.7%); 50 ft or more: 191 (2.5%). `NEAR_DIST` reads about 27% high (PH10). Measured from the footprints: 7,053 (91.5%), 496 and 157; median 7.5 ft | Same layer (PH1); measured by `tools/build-structures.mjs` (PH10) | sourced (field); derived (measured) |
 | Vintage | before 1950: 5,564 (72.2%); 1950–1978: 1,617 (21.0%); 1979–1990: 134; 1991–2019: 182; blank: 209 | Same layer, `vintage` (PH2) | sourced |
 | Structures in very high hazard zones | 1,874 in CAL FIRE's Very High zone; 215 in the City's Very High zone on Panoramic Hill | City `COB_VHFS_Parcels_Bldngs_WFL1`, edited 2025-06-16 (PH1) | sourced |
-| Wildfire Risk to Structures (V6) | 97,660 cells of about 6.4 ha in Alameda and Contra Costa counties; 1,907 touch the model area. Each has a hazard class, structures per acre and a neighborhood hazard class 1–6 | City `Alameda_and_Contra_Costa_Wildfire_Hazard_and_Risk_to_Structures_WFL1`, edited 2024-08-15; method at fuelsmapping.com (PH3) | sourced, method not yet read |
+| Wildfire Risk to Structures (V6) | 97,660 hexagonal cells of 10 acres (about 4.0 ha) in Alameda and Contra Costa counties; 1,907 touch the model area. Each has a hazard class, structures per acre and a neighborhood hazard class 1–6 | City `Alameda_and_Contra_Costa_Wildfire_Hazard_and_Risk_to_Structures_WFL1`, edited 2024-08-15; method at fuelsmapping.com (PH3) | sourced, method not yet read |
 | Fuel models, model area | 92,748 cells of 30 m: non-burnable 70.8% (NB1 urban 55.0%, NB8 water 15.6%), timber litter 14.5%, grass-shrub 7.3%, grass 3.6%, timber understory 2.0%, shrub 1.8% | LANDFIRE 2025, FBFM40 (Scott and Burgan 40 models), lfps.usgs.gov (PH4) | sourced |
 | Fuel models, by fire zone | NB1 urban covers 92.2% of Fire Zone 1, 76.9% of Fire Zone 2 (9,173 cells) and 63.8% of Fire Zone 3 (141 cells) | Same, cell centers against `layers.json` fire zones (PH4) | derived |
 | Structures outside Fire Zones 2–3 | No City footprint layer found. 2020 Census housing units per block are in hand (`data/raw/census/blocks-2020.json`) | DATA_INVENTORY | sourced (counts, not footprints) |
@@ -100,7 +100,7 @@ fire. Three ways to set fuel in developed cells:
   25 ft apart spreads faster than one with homes 50 ft apart. The direction is supported (EMBER
   M4: house-to-house spread is "the main danger"); the size is a model rule.
 - (iii) Use the neighborhood hazard class from Wildfire Risk to Structures. A published product,
-  but its method has not been read, and its 6.4 ha cells are coarser than the 30 m grid.
+  but its method has not been read, and its 4 ha cells are coarser than the 30 m grid.
 
 **Calibration cost.** The 1923 central spread is calibrated (×0.55) to reach the 1923 footprint's
 west end in about 5 hours (change log, 2026-10-31, S11). Any fuel change shifts that, and every
@@ -110,13 +110,17 @@ run, the way the staffing note did (`docs/design/fire-staffing.md`, FS12): adopt
 
 ## 5. Parking restrictions
 
-The City's two sign layers give 782 no-parking signs in Fire Zones 2–3 and on narrow roads,
-with their MUTCD code. Turning them into curb rules needs a rule for how far a sign governs
-(to the next sign or intersection, on the side it faces) and a check against the 22 counted
-blocks. The sign layers have no facing direction, so the side is inferred from the nearest
-curb (model rule). This changes the parking draws, so it needs the headless and calibration
-checks and a Simple-view recheck. A City curb inventory, if one exists, would replace it
-(DATA_INVENTORY, Missing inputs).
+**Checked 2026-11-04; not built as a status-quo change (PH11, PH12).** The 589 distinct signs (782 records in two overlapping City layers) touch 245 of 1,934 hill
+segments. They have no facing direction or extent, and the City describes them as lacking tow-away language, with 188
+due for replacement. On the 22 aerially counted blocks, signed blocks still had parked cars in 2020. The daylighting law
+(Vehicle Code §22500(n), citations from 2025) adds a 20 ft no-parking zone before every crosswalk; its compliance in
+the hills is unmeasured, and Eric expects it is often ignored. Both are rules on the books whose effect on the street is
+unknown, so the status quo stays built from what people were seen doing.
+
+The natural use of both is a **plan setting**, "Enforce no-parking signs and daylighting": signed curbs and the 20 ft
+before each corner kept clear. That is a new intervention, so it waits for Eric. Two things to settle first: how far a
+sign governs (to the next sign or corner, on the side it stands; model rule), and how daylighting acts in a model that
+does not place parked cars along the block (through the City's 45 tight turns and segment ends; model rule).
 
 ## 6. Placeholders that public data can replace now
 
@@ -151,7 +155,7 @@ assumptions are scenario choices and stay assumptions.
 2. **3b, LANDFIRE fuels in the wildland (scratch run first). Done 2026-11-03 in another session as the opt-in Fuel setting (`docs/fire-validation.md`, FV1–FV16); NB1 cells keep the proxy, option (i). Adopting it as the default is Eric's decision.** Option (i) for developed cells.
    Adopt only if the 1923 calibration and every Simple-view question hold. Option (ii) only as a
    second scratch run.
-3. **3c, no-parking signs to curb rules.** A model change with the full checks.
+3. **3c, no-parking signs to curb rules. Checked 2026-11-04: not built as a status-quo change; proposed as a plan setting with daylighting, Eric's decision (section 5).**
 4. **3d, ACS household tables. Done 2026-11-03 in another session as the opt-in Household mix setting (DM1–DM17).** A model change with the full checks.
 5. **3e, structure ignition, house-to-house spread and loss: not before Eric decides.** It would
    rest on an effect size nobody has published for Berkeley (M2, M3), and it is the closest the
