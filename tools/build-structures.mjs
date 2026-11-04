@@ -146,6 +146,8 @@ const out = {
       under25ft: sum(cells, 1), from25to50ft: sum(cells, 2), atLeast50ft: sum(cells, 3),
       cityNearDistBands: { under25: cityBands[1], from25to50: cityBands[2], atLeast50: cityBands[3] },
       measuredGapFt: { p10: gapFt(0.1), median: gapFt(0.5), p90: gapFt(0.9), touchingOrOverlapping: feats.filter(f => f.gapM === 0).length },
+      // Structures under each distance, by the City's NEAR_DIST and by the measured gap (ISSUES.md I1).
+      underFt: Object.fromEntries([5, 10, 20, 25, 30, 50, 100].map(ft => [ft, { city: feats.filter(f => f.d < ft).length, measured: feats.filter(f => f.gapM < ft * FT).length }])),
       footprintM2: Math.round(sum(cells, 4)),
       housingUnitsOutsideFZ23: huIn, housingUnitsOutsideGrid: huOut, housingUnitsInFZ23NotUsed: huSkipped,
     },

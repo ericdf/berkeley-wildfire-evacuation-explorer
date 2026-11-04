@@ -61,7 +61,7 @@ All figures from `node tools/phase3-sources.mjs`, run 2026-11-03. LANDFIRE figur
 | Separation, by the City map's NIST bands | By the City's `NEAR_DIST`: under 25 ft: 6,995 (90.8%); 25–50 ft: 520 (6.7%); 50 ft or more: 191 (2.5%). `NEAR_DIST` reads about 27% high (PH10). Measured from the footprints: 7,053 (91.5%), 496 and 157; median 7.5 ft | Same layer (PH1); measured by `tools/build-structures.mjs` (PH10) | sourced (field); derived (measured) |
 | Vintage | before 1950: 5,564 (72.2%); 1950–1978: 1,617 (21.0%); 1979–1990: 134; 1991–2019: 182; blank: 209 | Same layer, `vintage` (PH2) | sourced |
 | Structures in very high hazard zones | 1,874 in CAL FIRE's Very High zone; 215 in the City's Very High zone on Panoramic Hill | City `COB_VHFS_Parcels_Bldngs_WFL1`, edited 2025-06-16 (PH1) | sourced |
-| Wildfire Risk to Structures (V6) | 97,660 cells of about 6.4 ha in Alameda and Contra Costa counties; 1,907 touch the model area. Each has a hazard class, structures per acre and a neighborhood hazard class 1–6 | City `Alameda_and_Contra_Costa_Wildfire_Hazard_and_Risk_to_Structures_WFL1`, edited 2024-08-15; method at fuelsmapping.com (PH3) | sourced, method not yet read |
+| Wildfire Risk to Structures (V6) | 97,660 hexagonal cells of 10 acres (about 4.0 ha) in Alameda and Contra Costa counties; 1,907 touch the model area. Each has a hazard class, structures per acre and a neighborhood hazard class 1–6 | City `Alameda_and_Contra_Costa_Wildfire_Hazard_and_Risk_to_Structures_WFL1`, edited 2024-08-15; method at fuelsmapping.com (PH3) | sourced, method not yet read |
 | Fuel models, model area | 92,748 cells of 30 m: non-burnable 70.8% (NB1 urban 55.0%, NB8 water 15.6%), timber litter 14.5%, grass-shrub 7.3%, grass 3.6%, timber understory 2.0%, shrub 1.8% | LANDFIRE 2025, FBFM40 (Scott and Burgan 40 models), lfps.usgs.gov (PH4) | sourced |
 | Fuel models, by fire zone | NB1 urban covers 92.2% of Fire Zone 1, 76.9% of Fire Zone 2 (9,173 cells) and 63.8% of Fire Zone 3 (141 cells) | Same, cell centers against `layers.json` fire zones (PH4) | derived |
 | Structures outside Fire Zones 2–3 | No City footprint layer found. 2020 Census housing units per block are in hand (`data/raw/census/blocks-2020.json`) | DATA_INVENTORY | sourced (counts, not footprints) |
@@ -100,7 +100,7 @@ fire. Three ways to set fuel in developed cells:
   25 ft apart spreads faster than one with homes 50 ft apart. The direction is supported (EMBER
   M4: house-to-house spread is "the main danger"); the size is a model rule.
 - (iii) Use the neighborhood hazard class from Wildfire Risk to Structures. A published product,
-  but its method has not been read, and its 6.4 ha cells are coarser than the 30 m grid.
+  but its method has not been read, and its 4 ha cells are coarser than the 30 m grid.
 
 **Calibration cost.** The 1923 central spread is calibrated (×0.55) to reach the 1923 footprint's
 west end in about 5 hours (change log, 2026-10-31, S11). Any fuel change shifts that, and every

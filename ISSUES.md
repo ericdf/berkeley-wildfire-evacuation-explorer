@@ -58,10 +58,44 @@ our inference from the two ratios; the City's layer does not say how `NEAR_DIST`
 Measured median gap: 7.5 ft (10th percentile 3.2 ft, 90th 22.3 ft); 23 footprints touch or overlap another. The City's
 mean `NEAR_DIST` is 12.1 "ft", about 9.5 ft on the ground.
 
+Counts under tighter thresholds (`meta.totals.underFt` in `data/model/structures.json`):
+
+| Structures closer than | By `NEAR_DIST` | Measured |
+|---|---|---|
+| 5 ft | 1,571 | 1,844 (+17%) |
+| 10 ft | 4,668 | 5,077 (+9%) |
+| 20 ft | 6,693 | 6,786 |
+| 50 ft | 7,515 | 7,549 |
+| 100 ft | 7,690 | 7,692 |
+
 The share in the closest band changes little, because most hill structures are far closer than 25 ft. The error matters
 more for anything that uses the distances themselves: the outer bands, a defensible-space or Zone 0 analysis (5 ft), or
 a structure-to-structure ignition model keyed to separation distance (NIST's 25 ft and 50 ft scenarios are about real
 distances).
+
+**Where else it shows up.** The cause is general: every hosted layer on the City's ArcGIS Online account is stored in Web
+Mercator, and anything measured in its native units is stretched by 1.267 in length and 1.605 in area at Berkeley.
+
+- *`Shape__Length` and `Shape__Area` on every hosted layer.* ArcGIS Online fills these in Web Mercator units. Anyone who
+  reads them as meters and square meters overstates lengths by 27% and areas by 60%. Examples: the City's Fire Zone 2
+  polygons store 13,308,580 "m²" against about 8.3 km² on the ground, and the Narrow_Roads segments store `Shape__Length`
+  the same way. Attribute fields typed in from the field or from other systems (pavement width `PAV_WIDTH_RD`,
+  `Width_w_Parking`) are unaffected.
+- *This project made the same mistake once.* The Phase 3 note gave the County's Wildfire Risk to Structures cells as
+  "about 6.4 ha", read from `Shape__Area` (64,370). They are 10-acre hexagons, about 4.0 ha on the ground. Corrected
+  2026-11-04 (SOURCE_NOTES PH3). The layer's own `STRUCTURES_PER_ACRE` uses the true 10 acres, so the vendor's figures
+  are right; only our reading was wrong.
+- *City density layers, unverified.* `Structure_Density_Per_Acre_in_Fire_Zones` and
+  `DensityAnalysis_Buildings_in_Fire_Zone_2_and_3_Ver3` report structures per acre and per km². If either was computed
+  with planar areas in Web Mercator, its densities are about 38% low (divided by 1.605). Not checked; their methods are
+  not stated.
+- *Our own tools are not affected.* Every tool asks the server for longitude and latitude (`outSR: 4326`) and projects to
+  UTM Zone 10N itself; no tool reads `Shape__Length`, `Shape__Area` or `NEAR_DIST` as a measurement. The simulator's
+  repository text cites those fields only in SOURCE_NOTES, as described here. A search of the council analysis
+  repository found no use of them.
+- *Rule for future work.* Never take a length, area, distance or density from an ArcGIS Online layer's stored fields or
+  from an analysis run on it without checking the projection. Request `outSR=4326` and measure in UTM, or confirm the
+  layer's stated method.
 
 **What the simulator does.** It ignores `NEAR_DIST` for its bands and uses distances measured from the footprints
 (`data/model/structures.json`, built by `tools/build-structures.mjs`). The City's band counts are kept in the file's
