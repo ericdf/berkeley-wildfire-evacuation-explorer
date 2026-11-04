@@ -110,13 +110,17 @@ run, the way the staffing note did (`docs/design/fire-staffing.md`, FS12): adopt
 
 ## 5. Parking restrictions
 
-The City's two sign layers give 782 no-parking signs in Fire Zones 2–3 and on narrow roads,
-with their MUTCD code. Turning them into curb rules needs a rule for how far a sign governs
-(to the next sign or intersection, on the side it faces) and a check against the 22 counted
-blocks. The sign layers have no facing direction, so the side is inferred from the nearest
-curb (model rule). This changes the parking draws, so it needs the headless and calibration
-checks and a Simple-view recheck. A City curb inventory, if one exists, would replace it
-(DATA_INVENTORY, Missing inputs).
+**Checked 2026-11-04; not built as a status-quo change (PH11, PH12).** The 782 signs touch 245 of 1,934 hill
+segments. They have no facing direction or extent, and the City describes them as lacking tow-away language, with 188
+due for replacement. On the 22 aerially counted blocks, signed blocks still had parked cars in 2020. The daylighting law
+(Vehicle Code §22500(n), citations from 2025) adds a 20 ft no-parking zone before every crosswalk; its compliance in
+the hills is unmeasured, and Eric expects it is often ignored. Both are rules on the books whose effect on the street is
+unknown, so the status quo stays built from what people were seen doing.
+
+The natural use of both is a **plan setting**, "Enforce no-parking signs and daylighting": signed curbs and the 20 ft
+before each corner kept clear. That is a new intervention, so it waits for Eric. Two things to settle first: how far a
+sign governs (to the next sign or corner, on the side it stands; model rule), and how daylighting acts in a model that
+does not place parked cars along the block (through the City's 45 tight turns and segment ends; model rule).
 
 ## 6. Placeholders that public data can replace now
 
@@ -151,7 +155,7 @@ assumptions are scenario choices and stay assumptions.
 2. **3b, LANDFIRE fuels in the wildland (scratch run first). Done 2026-11-03 in another session as the opt-in Fuel setting (`docs/fire-validation.md`, FV1–FV16); NB1 cells keep the proxy, option (i). Adopting it as the default is Eric's decision.** Option (i) for developed cells.
    Adopt only if the 1923 calibration and every Simple-view question hold. Option (ii) only as a
    second scratch run.
-3. **3c, no-parking signs to curb rules.** A model change with the full checks.
+3. **3c, no-parking signs to curb rules. Checked 2026-11-04: not built as a status-quo change; proposed as a plan setting with daylighting, Eric's decision (section 5).**
 4. **3d, ACS household tables. Done 2026-11-03 in another session as the opt-in Household mix setting (DM1–DM17).** A model change with the full checks.
 5. **3e, structure ignition, house-to-house spread and loss: not before Eric decides.** It would
    rest on an effect size nobody has published for Berkeley (M2, M3), and it is the closest the
