@@ -152,7 +152,7 @@ assumptions are scenario choices and stay assumptions.
    Structures layer; results have one row, the structures and housing units the fire front and
    embers had reached so far, the same under every plan. No model change, so calibration is
    untouched.
-2. **3b, LANDFIRE fuels in the wildland (scratch run first). Done 2026-11-03 in another session as the opt-in Fuel setting (`docs/fire-validation.md`, FV1–FV16); NB1 cells keep the proxy, option (i). Adopting it as the default is Eric's decision.** Option (i) for developed cells.
+2. **3b, LANDFIRE fuels in the wildland (scratch run first). Done 2026-11-03 in another session as the opt-in Fuel setting (`docs/fire-validation.md`, FV1–FV16); NB1 cells keep the proxy, option (i). Adopting it as the default is Eric's decision.** Tested 2026-11-04 (SOURCE_NOTES PH28, `docs/mitigations-landfire.md`) and not adopted: the default stays the proxy. Option (i) for developed cells.
    Adopt only if the 1923 calibration and every Simple-view question hold. Option (ii) only as a
    second scratch run.
 3. **3c, no-parking signs to curb rules. Checked 2026-11-04: not built as a status-quo change; proposed as a plan setting with daylighting, Eric's decision (section 5).**
