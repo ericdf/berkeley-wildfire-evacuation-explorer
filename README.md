@@ -379,6 +379,7 @@ flow.
 | `data/model/fire-validation.json`, `data/model/wind-red-flag.json` | Fire overlay checks against 1923, 1991, ember zones and Red Flag winds, built by `tools/fire-validation.mjs` and `tools/wind-events.mjs`; report `docs/fire-validation.md` |
 | `data/terrain/fbfm40.u8`, `fbfm40.json` | LANDFIRE 2025 fuel models on the fire grid, built by `tools/fetch-fuel.mjs` (opt-in Fuel setting) |
 | `data/model/demand-by-zone.json`, `data/model/workplaces.json` | ACS household mix by zone (`tools/build-demand.mjs`) and workplaces and off-street parking (`tools/workplaces.mjs`), for the opt-in Household mix and placement settings |
+| `data/model/mitigations-landfire.json`, `docs/mitigations-landfire.md` | The mitigation runs with LANDFIRE fuel (`node tools/mitigations.mjs --fuel landfire`), the test behind keeping the proxy fuel as the default (SOURCE_NOTES PH28) |
 | `data/model/retreat.json` | Built by `tools/retreat-sim.mjs` (managed retreat: block ranking, buyout runs, costs); its report is `docs/managed-retreat.md` |
 | `data/terrain/dem.i16`, `dem.json` | Elevation grid, built by `tools/fetch-dem.mjs` |
 | `data/field/` | Field and aerial observations (counts only), e.g. parked cars on 22 hill blocks |
