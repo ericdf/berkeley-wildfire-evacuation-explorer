@@ -1,0 +1,401 @@
+{
+ "meta": {
+  "built": "2026-11-03",
+  "severity": "central (medium)",
+  "seeds": 3,
+  "plan": "DEFAULT_PLAN (today's plan)",
+  "note": "Same fire, households, parked cars and seed with the setting off (none) and on (terrain). People still there when embers arrived: each person counted once (SOURCE_NOTES FO7); not a casualty count. ETE p90: minutes after the order for 90% of the Berkeley order area's vehicles to get out."
+ },
+ "runs": [
+  {
+   "scenario": "ref1923",
+   "name": "Reference: 1923 fire, present-day repeat",
+   "region": "R02 1923 Fire",
+   "seed": 1,
+   "none": {
+    "embers": 5496,
+    "embersHome": 3249,
+    "embersRoad": 799,
+    "fireFront": 571,
+    "eteP90": 104.6,
+    "eteP50": 56.9,
+    "meanDelayS": 0,
+    "on": false
+   },
+   "terrain": {
+    "embers": 5747,
+    "embersHome": 3266,
+    "embersRoad": 1033,
+    "fireFront": 577,
+    "eteP90": 105.2,
+    "eteP50": 57,
+    "meanDelayS": 6,
+    "on": true
+   }
+  },
+  {
+   "scenario": "ref1923",
+   "name": "Reference: 1923 fire, present-day repeat",
+   "region": "R02 1923 Fire",
+   "seed": 2,
+   "none": {
+    "embers": 3331,
+    "embersHome": 1661,
+    "embersRoad": 283,
+    "fireFront": 327,
+    "eteP90": 101.8,
+    "eteP50": 56.1,
+    "meanDelayS": 0,
+    "on": false
+   },
+   "terrain": {
+    "embers": 3352,
+    "embersHome": 1668,
+    "embersRoad": 297,
+    "fireFront": 327,
+    "eteP90": 102.1,
+    "eteP50": 56.5,
+    "meanDelayS": 6,
+    "on": true
+   }
+  },
+  {
+   "scenario": "ref1923",
+   "name": "Reference: 1923 fire, present-day repeat",
+   "region": "R02 1923 Fire",
+   "seed": 3,
+   "none": {
+    "embers": 6843,
+    "embersHome": 3669,
+    "embersRoad": 1714,
+    "fireFront": 571,
+    "eteP90": 108.8,
+    "eteP50": 57.6,
+    "meanDelayS": 0,
+    "on": false
+   },
+   "terrain": {
+    "embers": 6763,
+    "embersHome": 3683,
+    "embersRoad": 1622,
+    "fireFront": 581,
+    "eteP90": 108.4,
+    "eteP50": 57.4,
+    "meanDelayS": 6,
+    "on": true
+   }
+  },
+  {
+   "scenario": "eastWind",
+   "name": "Extreme east wind",
+   "region": "R05 Fire Zones 2 & 3",
+   "seed": 1,
+   "none": {
+    "embers": 5641,
+    "embersHome": 1939,
+    "embersRoad": 98,
+    "fireFront": 228,
+    "eteP90": 91.8,
+    "eteP50": 55.5,
+    "meanDelayS": 0,
+    "on": false
+   },
+   "terrain": {
+    "embers": 5646,
+    "embersHome": 1943,
+    "embersRoad": 98,
+    "fireFront": 232,
+    "eteP90": 92,
+    "eteP50": 55.8,
+    "meanDelayS": 9,
+    "on": true
+   }
+  },
+  {
+   "scenario": "eastWind",
+   "name": "Extreme east wind",
+   "region": "R05 Fire Zones 2 & 3",
+   "seed": 2,
+   "none": {
+    "embers": 4130,
+    "embersHome": 1204,
+    "embersRoad": 46,
+    "fireFront": 145,
+    "eteP90": 92.3,
+    "eteP50": 56.3,
+    "meanDelayS": 0,
+    "on": false
+   },
+   "terrain": {
+    "embers": 4132,
+    "embersHome": 1221,
+    "embersRoad": 32,
+    "fireFront": 145,
+    "eteP90": 92.6,
+    "eteP50": 56.4,
+    "meanDelayS": 9,
+    "on": true
+   }
+  },
+  {
+   "scenario": "eastWind",
+   "name": "Extreme east wind",
+   "region": "R05 Fire Zones 2 & 3",
+   "seed": 3,
+   "none": {
+    "embers": 6073,
+    "embersHome": 2088,
+    "embersRoad": 54,
+    "fireFront": 296,
+    "eteP90": 92.2,
+    "eteP50": 56.3,
+    "meanDelayS": 0,
+    "on": false
+   },
+   "terrain": {
+    "embers": 6074,
+    "embersHome": 2090,
+    "embersRoad": 52,
+    "fireFront": 296,
+    "eteP90": 92.5,
+    "eteP50": 56.7,
+    "meanDelayS": 9,
+    "on": true
+   }
+  },
+  {
+   "scenario": "panoramic",
+   "name": "Constrained neighborhood: Panoramic Hill",
+   "region": "R04 Panoramic Hill",
+   "seed": 1,
+   "none": {
+    "embers": 13286,
+    "embersHome": 2922,
+    "embersRoad": 841,
+    "fireFront": 3772,
+    "eteP90": null,
+    "eteP50": 61.9,
+    "meanDelayS": 0,
+    "on": false
+   },
+   "terrain": {
+    "embers": 13372,
+    "embersHome": 2927,
+    "embersRoad": 922,
+    "fireFront": 3773,
+    "eteP90": null,
+    "eteP50": 62.2,
+    "meanDelayS": 6,
+    "on": true
+   }
+  },
+  {
+   "scenario": "panoramic",
+   "name": "Constrained neighborhood: Panoramic Hill",
+   "region": "R04 Panoramic Hill",
+   "seed": 2,
+   "none": {
+    "embers": 12369,
+    "embersHome": 2946,
+    "embersRoad": 540,
+    "fireFront": 3194,
+    "eteP90": null,
+    "eteP50": 58.8,
+    "meanDelayS": 0,
+    "on": false
+   },
+   "terrain": {
+    "embers": 12404,
+    "embersHome": 2951,
+    "embersRoad": 570,
+    "fireFront": 3201,
+    "eteP90": null,
+    "eteP50": 59.2,
+    "meanDelayS": 6,
+    "on": true
+   }
+  },
+  {
+   "scenario": "panoramic",
+   "name": "Constrained neighborhood: Panoramic Hill",
+   "region": "R04 Panoramic Hill",
+   "seed": 3,
+   "none": {
+    "embers": 14514,
+    "embersHome": 2910,
+    "embersRoad": 747,
+    "fireFront": 4197,
+    "eteP90": null,
+    "eteP50": 57.8,
+    "meanDelayS": 0,
+    "on": false
+   },
+   "terrain": {
+    "embers": 14502,
+    "embersHome": 2915,
+    "embersRoad": 730,
+    "fireFront": 4204,
+    "eteP90": null,
+    "eteP50": 58.5,
+    "meanDelayS": 6,
+    "on": true
+   }
+  },
+  {
+   "scenario": "eastWindDay",
+   "name": "Extreme east wind, weekday midday",
+   "region": null,
+   "seed": 1,
+   "none": {
+    "embers": 6039,
+    "embersHome": 2308,
+    "embersRoad": 237,
+    "fireFront": 321,
+    "eteP90": 105.8,
+    "eteP50": 57.3,
+    "meanDelayS": 0,
+    "on": false
+   },
+   "terrain": {
+    "embers": 6060,
+    "embersHome": 2315,
+    "embersRoad": 251,
+    "fireFront": 322,
+    "eteP90": 106.1,
+    "eteP50": 57.6,
+    "meanDelayS": 9,
+    "on": true
+   }
+  },
+  {
+   "scenario": "eastWindDay",
+   "name": "Extreme east wind, weekday midday",
+   "region": null,
+   "seed": 2,
+   "none": {
+    "embers": 4629,
+    "embersHome": 1628,
+    "embersRoad": 100,
+    "fireFront": 201,
+    "eteP90": 105.2,
+    "eteP50": 58.2,
+    "meanDelayS": 0,
+    "on": false
+   },
+   "terrain": {
+    "embers": 4660,
+    "embersHome": 1642,
+    "embersRoad": 119,
+    "fireFront": 201,
+    "eteP90": 105.3,
+    "eteP50": 58.3,
+    "meanDelayS": 9,
+    "on": true
+   }
+  },
+  {
+   "scenario": "eastWindDay",
+   "name": "Extreme east wind, weekday midday",
+   "region": null,
+   "seed": 3,
+   "none": {
+    "embers": 6631,
+    "embersHome": 2534,
+    "embersRoad": 180,
+    "fireFront": 410,
+    "eteP90": 106.2,
+    "eteP50": 58.8,
+    "meanDelayS": 0,
+    "on": false
+   },
+   "terrain": {
+    "embers": 6630,
+    "embersHome": 2541,
+    "embersRoad": 171,
+    "fireFront": 419,
+    "eteP90": 106.4,
+    "eteP50": 59.1,
+    "meanDelayS": 9,
+    "on": true
+   }
+  },
+  {
+   "scenario": "northHills",
+   "name": "North hills: fire in Tilden above the Summit",
+   "region": "R09 North Berkeley Hills",
+   "seed": 1,
+   "none": {
+    "embers": 3510,
+    "embersHome": 1759,
+    "embersRoad": 114,
+    "fireFront": 320,
+    "eteP90": 91.6,
+    "eteP50": 55.4,
+    "meanDelayS": 0,
+    "on": false
+   },
+   "terrain": {
+    "embers": 3513,
+    "embersHome": 1768,
+    "embersRoad": 108,
+    "fireFront": 322,
+    "eteP90": 92,
+    "eteP50": 55.7,
+    "meanDelayS": 8,
+    "on": true
+   }
+  },
+  {
+   "scenario": "northHills",
+   "name": "North hills: fire in Tilden above the Summit",
+   "region": "R09 North Berkeley Hills",
+   "seed": 2,
+   "none": {
+    "embers": 3681,
+    "embersHome": 1595,
+    "embersRoad": 116,
+    "fireFront": 230,
+    "eteP90": 92.5,
+    "eteP50": 57,
+    "meanDelayS": 0,
+    "on": false
+   },
+   "terrain": {
+    "embers": 3664,
+    "embersHome": 1607,
+    "embersRoad": 88,
+    "fireFront": 230,
+    "eteP90": 92.8,
+    "eteP50": 57.2,
+    "meanDelayS": 8,
+    "on": true
+   }
+  },
+  {
+   "scenario": "northHills",
+   "name": "North hills: fire in Tilden above the Summit",
+   "region": "R09 North Berkeley Hills",
+   "seed": 3,
+   "none": {
+    "embers": 4250,
+    "embersHome": 2057,
+    "embersRoad": 169,
+    "fireFront": 424,
+    "eteP90": 93.2,
+    "eteP50": 56.9,
+    "meanDelayS": 0,
+    "on": false
+   },
+   "terrain": {
+    "embers": 4230,
+    "embersHome": 2069,
+    "embersRoad": 137,
+    "fireFront": 427,
+    "eteP90": 93.4,
+    "eteP50": 57.3,
+    "meanDelayS": 8,
+    "on": true
+   }
+  }
+ ]
+}

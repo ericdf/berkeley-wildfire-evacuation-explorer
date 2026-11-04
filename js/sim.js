@@ -354,6 +354,8 @@ export class Evacuation {
     // Who leaves and when (Time Study: 100% of Order zones, 50% of Warning zones, 20% shadow
     // elsewhere in the city and its Shadow Region, here the whole model area; mobilization histograms by household type; SOURCE_NOTES E8, E9).
     const M = D.mobilization15min, C = D.compliance;
+    const wa = walkAccessData(data, this.world.walkAccess);
+    this.walkAccess = { option: this.world.walkAccess || 'none', on: !!wa, stale: this.world.walkAccess === 'terrain' && !wa, households: 0, delayed: 0, delaySum: 0 };
     const vHH = [], vDep = [], vCls = [], donors = new Map(), scenDonors = new Map();
     const scenAny = this.scenAny, scenKind = new Uint8Array(nH);
     // Draw slots: 0 warning compliance, 1 shadow, 2 commuter, 3 child pickup, 4 commuter leaves
@@ -398,7 +400,11 @@ export class Evacuation {
           if (entry < this.end) { hh.commuter[h] = 1; vHH.push(h); vDep.push(entry); vCls.push(2); }
         }
       }
-      const dep = T + 60 * sampleHist(curve, () => g(6));
+      let dep = T + 60 * sampleHist(curve, () => g(6));
+      // Home-to-street access time (world.walkAccess 'terrain', opt-in): the household leaves its street
+      // later by its segment's terrain walking time, drawn from a supplementary stream of its household (salt 4 for
+      // today's households, 5 for added units), never the shared stream.
+      if (wa) { const d = walkDelayS(wa, hh.edge[h], extra(base ? 4 : 5, base ? h : unitK[h - nBase])[0]); dep += d; this.walkAccess.households++; this.walkAccess.delaySum += d; if (d > 0) this.walkAccess.delayed++; }
       hh.depart[h] = dep;
       if (!hh.veh[h]) continue;
       if (kind !== 3) { if (!donors.has(hh.edge[h])) donors.set(hh.edge[h], []); donors.get(hh.edge[h]).push(h); }
@@ -853,6 +859,9 @@ export class Evacuation {
       else if (this.householdMix.requested === 'place') this.log('Household mix by place was asked for, but data/model/demand-by-zone.json did not load; the citywide mix is used.', 'plan');
       if (G.r0Missing) this.log('R0 in access-constrained areas has no effect in this build: data/model/access-constraints.json is missing.', 'warn');
       else if (G.r0 !== 'none' && !G.units) this.log(`R0 in ${R0_AREAS[G.r0]} has no effect: Future growth is set to none.`, 'plan'); }
+    { const W = this.walkAccess;
+      if (W.on) this.log(`Home-to-street access time (scenario setting): ${W.delayed.toLocaleString()} of ${W.households.toLocaleString()} departing households leave later by their street's terrain walking time, on average ${(W.delaySum / Math.max(1, W.households)).toFixed(0)} s (tools/walk-access.mjs).`, 'plan');
+      else if (W.stale) this.log('Home-to-street access time is set to "from terrain", but data/model/walk-access.json is missing or was built on another network; no access time is applied. Rerun node tools/walk-access.mjs.', 'warn'); }
     if (this.nrPlacement === 'workplace') this.log(`Non-resident placement by workplace (scenario setting): employees park within ${this.data.workplaces.params.walkM} m of LODES workplaces, ${Math.round(100 * this.ucParkingShare)}% of UC employee and commuting-student cars in UC parking, Lab employees in the Lab's lots; the Time Study's totals by area are unchanged.`, 'plan');
     if (this.retreat.edges) this.log(`Managed retreat (analysis setting): ${this.retreat.households.toLocaleString()} synthetic households on ${this.retreat.edges.toLocaleString()} bought-out street segments are removed${this.world.retreat.clearParking ? ', with the parked cars on those segments' : ''}.`, 'plan');
     if (plan.hillsParking !== 'both') this.log(`Parking plan "${PARKING_PLANS[plan.hillsParking]}": ${parkingChanged(parkingStats)}.`, 'plan');
@@ -982,6 +991,7 @@ export class Evacuation {
     S.bottlenecks = [...this.nodeWaitMax.entries()].filter(([, w]) => w > 0).sort((a, b) => b[1] - a[1]).slice(0, 5)
       .map(([n, w]) => ({ node: n, name: this.nodeName(n), max: w, at: this.nodeWaitAt[n] / 60 }));
     S.unplacedPeople = this.unplacedPeople;
+    S.walkAccessOn = this.walkAccess.on; S.walkAccessMeanS = this.walkAccess.households ? this.walkAccess.delaySum / this.walkAccess.households : 0;
     S.addedUnits = this.growth.built; S.addedResidents = P ? this.growth.persons || 0 : this.growth.built * pph; S.growthBlocked = this.growth.blocked; S.growthOption = this.growth.option;
     S.householdMix = this.householdMix.option; S.householdMixZones = this.householdMix.zones;
     // Structure exposure (context; the fire is the same under every plan for a seed): City footprints
@@ -1006,6 +1016,26 @@ export class Evacuation {
 
 // Streets where each zone's residents live (model rule): drivable, not freeway or ramp, weighted
 // by length (Principal Arterials 0.7). Map zone id → [[edge id, weight], ...] in edge order.
+// Home-to-street access time (opt-in world setting walkAccess: 'terrain'; tools/walk-access.mjs, SOURCE_NOTES WA13).
+// The data is keyed by network edge id, so it applies only to the network it was built on.
+export function walkAccessData(data, option) {
+  const w = data.walk;
+  if (option !== 'terrain' || !w?.segments) return null;
+  return w.meta?.networkEdges === data.net.edges.length && w.meta?.network === data.net.meta.built ? w : null;
+}
+// Departure delay (s) for a household on segment eid, from the segment's stored 10th–90th percentiles of the
+// terrain's extra walking time (its zone's pooled figures where the segment has fewer than 5 buildings).
+// Linear between the stored percentiles; below the 10th and above the 90th the end values hold.
+const WALK_P = [0.1, 0.25, 0.5, 0.75, 0.9];
+export function walkDelayS(w, eid, u) {
+  const s = w.segments[eid]; if (!s) return 0;
+  const Q = s.delayQ || w.zones?.[s.zone]?.delayQ; if (!Q) return 0;
+  if (u <= WALK_P[0]) return Q[0];
+  if (u >= WALK_P[4]) return Q[4];
+  let i = 1; while (u > WALK_P[i]) i++;
+  return Q[i - 1] + (u - WALK_P[i - 1]) / (WALK_P[i] - WALK_P[i - 1]) * (Q[i] - Q[i - 1]);
+}
+
 export function residentialStreets(data) {
   if (data._resStreets) return data._resStreets;
   const byZone = new Map();
