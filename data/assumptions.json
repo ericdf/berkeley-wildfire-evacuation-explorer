@@ -392,6 +392,10 @@
     "parking.enforce": {
       "category": "model rule",
       "note": "Plan setting \"Enforce no-parking signs and daylighting\" (off by default; SOURCE_NOTES PH11, PH12, PH15). Signs: each distinct City no-parking sign (589) governs the side of the street it stands on for the whole segment it lies within signMatchM of; a segment signed on both sides keeps no parked cars, one signed side leaves at most one parked side. The City layers give no extent or facing, so 'whole segment, the side it stands on' is our rule. Daylighting: Vehicle Code §22500(n) bars parking within daylightFt (20 ft) of the approach side of a crosswalk; at each segment end that meets an intersection (3 or more vehicle segments) one parked side loses daylightFt of curb, which lowers the number of parked cars and so the chance of a bad parking job, and clears a parked side whose curb is used up. The model does not place cars along the block, so daylighting does not widen the street at corners. Status quo (off): signs and daylighting are not enforced, as the 2020 aerial counts and Eric's photos show (PH11)."
+    },
+    "structures.lossIfFront": {
+      "category": "assumption",
+      "note": "Share of City-footprint structures in Fire Zones 2–3 lost once the fire front reaches their 30 m cell, as a low–high range (step 3e option A; docs/design/structure-spread.md; SOURCE_NOTES PH18, PH23). within18m applies to structures under 50 ft (15 m) from the nearest one, beyond18m to those 50 ft or more apart. Upper ends and the beyond-18 m range from the 2018 Camp Fire (Knapp et al. 2021, Fig. 5a): survival 0.058 within 18 m of a destroyed structure (0.94 lost); beyond 18 m, survival 0.354 to 0.733 by canopy, age and slope (0.27–0.65 lost). The 0.85 lower end is our allowance for differences between Paradise and Berkeley (construction, suppression); not sourced. Knapp measured distance to the nearest destroyed structure, these bands distance to the nearest structure. Structures reached only by embers get no loss figure: no source gives that share. Not a prediction."
     }
   },
   "routing": {
@@ -632,5 +636,17 @@
       "BER",
       "LBL"
     ]
+  },
+  "structures": {
+    "lossIfFront": {
+      "within18m": [
+        0.85,
+        0.94
+      ],
+      "beyond18m": [
+        0.27,
+        0.65
+      ]
+    }
   }
 }

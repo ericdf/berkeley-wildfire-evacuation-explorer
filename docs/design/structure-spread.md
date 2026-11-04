@@ -1,6 +1,6 @@
 # Structure ignition and house-to-house spread (Phase 3, step 3e): design note
 
-Status: design note, 2026-11-04. Nothing here is built. Step 3e is in scope (Eric, 2026-11-03, SOURCE_NOTES PH9);
+Status: design note, 2026-11-04. Option A is built without hardening or Zone 0 settings (Eric, 2026-11-04; SOURCE_NOTES PH23); the option B scratch test is reported in PH22 and not adopted; hardening and Zone 0 wait. Step 3e is in scope (Eric, 2026-11-03, SOURCE_NOTES PH9);
 the size of any hardening or Zone 0 effect is a labeled assumption range. Sources are logged in `SOURCE_NOTES.md` as
 PH16–PH21. The simulator is an educational comparison tool, not a prediction and not an official evacuation plan; the
 same holds for everything proposed here.
@@ -111,7 +111,16 @@ the evidence is.
    also needs the 3a counts outside Fire Zones 2–3 to stand in for structures.
 3. **Decide B after the scratch test.**
 
-## 7. Decisions for Eric
+## 7. Decisions (Eric, 2026-11-04)
+
+- (a) Option A: yes, as built, with one change from section 4: structures reached only by embers get no loss figure,
+  since no source gives that share (PH23).
+- (b) Hardening and Zone 0: not yet. With the fire fixed, a setting could act only on losses at 25–50 ft and would
+  understate hardening.
+- (c) Option B scratch test: run, not adopted (PH22). Redistributing the factor by building spacing barely moves the 1923
+  marks, and the 1991 check needs footprints in Oakland.
+
+## 7a. Questions as first put
 
 - (a) Build option A, losses as an assumption range beside exposure?
 - (b) Add hardening and Zone 0 as plan settings acting on losses only (new interventions)?
