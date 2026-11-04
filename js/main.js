@@ -795,7 +795,8 @@ function update(full) {
     <canvas class="spark" id="spark" width="330" height="60"></canvas>
     <div class="small muted"><span style="color:#b91c1c">■</span> vehicles queued &nbsp; <span style="color:#1d4ed8">■</span> on roads &nbsp; <span style="color:#0e7490">■</span> engine ETA (scaled)</div>
     ${S.bottlenecks.length ? `<h3>Worst queues so far</h3><table>${S.bottlenecks.map(b => `<tr><td>${esc(b.name)}</td><td class="num">${b.max} veh</td><td class="num">t+${fmt(b.at)}m</td></tr>`).join('')}</table>` : ''}
-    <p class="small muted">Structures lost is an assumption range for structures the fire front reached; embers alone get no loss figure, and the fire does not respond to structures. Population outside the modeled street network: ${fmt(S.unplacedPeople)}.</p>`;
+    ${disputedNote(sc, S)}
+    <p class="small muted">Where embers land is illustrative: across runs it does not follow the County's Ember Threat Zones (rank correlation −0.20 at medium severity), though it ranks the City's 2025 fire hazard zones in the City's order (docs/fire-validation.md, finding 4). Structures lost is an assumption range for structures the fire front reached; embers alone get no loss figure, and the fire does not respond to structures. Population outside the modeled street network: ${fmt(S.unplacedPeople)}.</p>`;
   spark(sim);
   $('events').innerHTML = sim.events.map(e => `<li class="k-${e.kind}"><span class="t">t+${hm(e.t)}</span>${esc(e.text)}</li>`).join('');
   if (map.selected) inspect(map.selected, true);
@@ -803,14 +804,22 @@ function update(full) {
 // The Time Study's 90% time for the same region and time of day, so users can see how far off the
 // simulator runs. The gap comes mostly from signal timing and non-resident parking, which we lack.
 function studyRow(sc) {
-  const T = ETE_TARGETS[sc.id === 'eastWindDay' ? 'eastWind' : sc.id], tk = $('tod').value;
+  const id = sc.id === 'eastWindDay' ? 'eastWind' : sc.id, T = ETE_TARGETS[id], tk = $('tod').value;
   if (!T?.p90[tk]) return '';
-  const weekday = tk === 'S1' || tk === 'S4';
-  return `<tr><td>For scale: the 2025 Evacuation Time Study's 90% time for ${esc(T.region)}, ${esc(TIME_OF_DAY[tk].label)} (status quo, no fire) ${badge('sourced')}<div class="small muted">${sc.id === 'northHills'
-    ? `The simulator runs ${weekday ? '19–30' : '13–29'} min faster than the study here${weekday ? ' on weekdays' : ' at night and on weekends'}, probably because it lacks the City's signal timing. Treat its times as a lower bound.`
-    : weekday && sc.id !== 'panoramic'
-    ? 'On weekdays the simulator runs 25–80 min faster than the study here, probably because it lacks the City\'s signal timing and where commuters and students park. Treat its times as a lower bound.'
-    : sc.id === 'panoramic' ? 'The simulator runs within about 10 min of the study here.' : 'At night and on weekends the simulator runs 15–25 min faster than the study here.'} See Assumptions &amp; limits.</div></td><td class="num">${mins(T.p90[tk])}</td></tr>`;
+  // The simulator's fire-off time on the study's zones (tests/calibration.mjs → data/model/calibration.json).
+  const C = data.calibration?.regions?.[id]?.[tk]?.p90, M = data.calibration?._meta, gap = C ? Math.round(T.p90[tk] - C.median) : null;
+  const sim = !C ? 'The simulator\'s fire-off time for this region is not in this build (run node tests/calibration.mjs).'
+    : `With the fire off, on the study's zones and the Time Study's citywide household mix, the simulator gets ${mins(C.median)} min here (median of ${M.seeds} seeds, ${mins(C.range[0])}–${mins(C.range[1])}; tests/calibration.mjs, ${esc(M.built)})${Math.abs(gap) < 10 ? ', within 10 min of the study.' : gap > 0 ? `, ${gap} min faster than the study, probably because it lacks the City's signal timing${tk === 'S1' || tk === 'S4' ? ' and where commuters and students park' : ''}. Treat its times here as a lower bound.` : `, ${-gap} min slower than the study.`}`;
+  return `<tr><td>For scale: the 2025 Evacuation Time Study's 90% time for ${esc(T.region)}, ${esc(TIME_OF_DAY[tk].label)} (status quo, no fire) ${badge('sourced')}<div class="small muted">${sim} See Assumptions &amp; limits.</div></td><td class="num">${mins(T.p90[tk])}</td></tr>`;
+}
+// Disputed input beside the results it moves (SOURCE_NOTES DM3, DM18): the household mix this run did not use, on
+// this fire, from tools/demand-compare.mjs (today's plan, medium severity, the fire's usual time of day).
+function disputedNote(sc, S) {
+  const id = sc.id === 'eastWindDay' ? 'eastWind' : sc.id, F = data.demandCompare?.fires?.[id]; if (!F?.citywide || !F?.place) return '';
+  const med = a => { const v = a.filter(x => x != null).sort((x, y) => x - y); return v.length ? v[Math.floor(v.length / 2)] : null; };
+  const m = k => ({ stranded: med(F[k].map(r => r.stranded)), exposedNoVehicle: med(F[k].map(r => r.exposedNoVehicle)) });
+  const P = m('place'), C = m('citywide'), place = S.householdMix === 'place';
+  return `<p class="small"><b>Disputed input: households without a vehicle</b> ${badge('derived', 'docs/demand-by-place.md; data/model/demand-compare.json; SOURCE_NOTES DM3, DM17, DM18')}. This run uses ${place ? 'each zone\'s ACS share (about a fifth of households in Berkeley\'s zones)' : 'the Time Study survey\'s 7.47% in every zone'}. On this fire (today's plan, medium severity, ${esc(TIME_OF_DAY[F.tod]?.label || F.tod)}, median of ${data.demandCompare._meta.seeds.length} seeds), ${place ? 'the survey\'s 7.47%' : 'the ACS by place'} gives ${fmt(place ? C.stranded : P.stranded)} people with no vehicle and no ride against ${fmt(place ? P.stranded : C.stranded)}, and ${fmt(place ? C.exposedNoVehicle : P.exposedNoVehicle)} of them still home when embers arrived against ${fmt(place ? P.exposedNoVehicle : C.exposedNoVehicle)}. Evacuation times move by a few minutes at most.</p>`;
 }
 function spark(sim) {
   const cv = $('spark'); if (!cv) return; const ctx = cv.getContext('2d'), s = sim.series;
