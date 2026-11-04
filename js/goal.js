@@ -9,6 +9,7 @@
 // that met the goal on the search passes but not on the held-out ones is listed apart: checking about
 // 200 combinations on the same passes finds some that clear a target by luck. Shown answers are minimal: no smaller combination inside them also meets the goal.
 import { MEASURES, costText, costBadge } from './mitigate.js';
+import { FIRE_MODEL } from './fire.js';
 
 let G = null, loading = null;
 export const goalData = () => G;
@@ -109,6 +110,7 @@ export function goalHTML(ctx) {
     <p class="small">Say what you want a plan to achieve on this fire, and see the smallest combinations of changes that did it. Pick one or more harms and how much each should be cut, compared with today's plan.</p>
     ${ctx.paceHTML()}
     ${ok ? '' : '<p class="small bad">This fire has no stored combinations yet.</p>'}
+    ${G.meta.fireModel === FIRE_MODEL ? '' : `<p class="note">These answers were worked out on the fire model as it stood before ${esc(FIRE_MODEL)}. Since then the "Like 1991" pace slows after its first hour, as the 1991 fire did, and the fire's fuel follows the City's 2025 fire zones. Answers may change, most at the 1991 pace; a rerun is under way. Opening an answer in Change the plan runs it again on the current model.</p>`}
     <div class="goals">${Object.entries(MEASURES).map(([m, d]) => { const b = B[m], can = c => b >= c / 100 - 1e-9;
       return `<div class="goal-row" title="${esc(d.tip)}"><label class="small">${esc(d.label)} <span class="tip">ⓘ</span></label>
       <select data-goal="${m}"><option value="">not a goal</option>${CUTS.map(c => `<option value="${c}"${T[m] === c ? ' selected' : ''}${b == null || can(c) ? '' : ' class="unreached"'}>cut ≥ ${c}%${b == null || can(c) ? '' : ' (none did)'}</option>`).join('')}</select>${b == null ? '' : `<span class="muted reach"> ${RB.never[m] ? `Today's plan never gets there within the run at this pace${b >= 1 ? '; some plans do in every pass (counted as a full cut)' : '; no plan does in every pass'}` : `Best cut in every pass: ${b > 0 ? `${Math.floor(b * 100)}%` : 'none'}`}</span>`}</div>`; }).join('')}</div>

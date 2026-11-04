@@ -72,6 +72,7 @@ if (argv[0] === '--worker') {
 }
 
 const { stackable, conflict, stackOf } = await import(R + '/js/levers.js');
+const { FIRE_MODEL } = await import(R + '/js/fire.js'); // recorded in meta.fireModel; js/goal.js flags a table built on another version
 const OUT = arg('--out', path.join(R, 'data/model/goal-combos.json'));
 const M = JSON.parse(fs.readFileSync(path.join(R, 'data/model/mitigations.json'), 'utf8'));
 const FIRES = M.meta.fires, SEVS = M.meta.severities;
@@ -210,6 +211,7 @@ const meta = {
   runs: prevRuns + total, wallMin: Math.round((prevMin + wallMin) * 10) / 10, workers: WORKERS,
   check: { checked, agree },
   mitigationsBuilt: M.meta.built,
+  fireModel: FIRE_MODEL, // with --merge, the fires kept from the saved output ran on MERGE.meta.fireModel; rebuild every fire after a model change
 };
 fs.writeFileSync(OUT, JSON.stringify({ meta, fires: firesOut }));
 console.log(`wrote ${path.relative(R, OUT)} (${(fs.statSync(OUT).size / 1024).toFixed(0)} KB), ${total} runs in ${wallMin} min`);

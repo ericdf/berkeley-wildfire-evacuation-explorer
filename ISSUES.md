@@ -11,10 +11,10 @@ Status words: **open** (not reported), **reported** (told the publisher; say who
 
 ## I1. City structure-distance layer overstates distances between buildings by about 27%
 
-**Status:** open; a note to the City is drafted, not sent. Found 2026-11-03 (Claude Code, Phase 3 step 3a, PR #53).
-Eric asked on 2026-11-04 that it be recorded here, and on the same day that a note to the City be drafted: it is in Eric's
-email drafts, "Structure-distance layer: NEAR_DIST reads about 27% high (Web Mercator)", with I3 as a second item and
-no recipient yet. Nobody at the City has been told.
+**Status:** reported 2026-11-04: Eric emailed the note to the City, and the recipient acknowledged it. Found 2026-11-03 (Claude Code, Phase 3 step 3a, PR #53).
+Eric asked on 2026-11-04 that it be recorded here, and on the same day that a note to the City be drafted. The email,
+"Structure-distance layer: NEAR_DIST reads about 27% high (Web Mercator)", carried I3 as a second item and
+the evidence below. Not yet fixed by the publisher (layer last edited 2023-09-13).
 
 **The layer.** City of Berkeley ArcGIS Online, `Distance_between_structures_in_Fire_Zones_2_and_3_WFL1`, layer 3
 "Distance Between Structures" (the same 7,706 features are in `Structure_Distance_in_Berkeley_Fire_Zones_2_and_3_WFL1`,
@@ -130,9 +130,9 @@ was written 2026-11-04 as an email in Eric's drafts (see Status), with evidence 
 
 ## I2. A public City layer lists household-level home-hardening requests
 
-**Status:** open; a note to the City is drafted, not sent. Found 2026-11-03 (Claude Code, Phase 3 design note, PR #48).
-Drafted 2026-11-04 as a separate email in Eric's drafts, "Public layer home_hardening_csv_test may expose household
-records", so it can go to GIS staff on its own. Nobody at the City has been told.
+**Status:** reported 2026-11-04: Eric emailed it as a separate note, acknowledged. Found 2026-11-03 (Claude Code, Phase 3 design note, PR #48).
+Subject: "Public layer home_hardening_csv_test may expose household
+records". Whether the layer's sharing has changed is not checked.
 
 **The layer.** City of Berkeley ArcGIS Online, `home_hardening_csv_test`, layer 0: 390 points, last edited 2026-05-08.
 Its field names include `property_address`, `own_rent`, `inspector_name`, `date_submitted`, `status` and requested vent
@@ -149,8 +149,7 @@ any record.
 
 ## I3. The City's fire-zone layers show the 2013 zones, and the new zones' area fields read high
 
-**Status:** open; drafted, not sent, as the second item in the I1 email (2026-11-04). Found 2026-11-04 (Claude Code).
-Nobody at the City has been told.
+**Status:** reported 2026-11-04, as the second item in the I1 email (acknowledged). Found 2026-11-04 (Claude Code).
 
 **What is wrong.**
 - *Stale map.* The 2025 Fire Code (Special Item 02, Council 2025-04-15, Attachment 1) renamed Fire Zones 1–3

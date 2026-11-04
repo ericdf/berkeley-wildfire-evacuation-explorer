@@ -18,6 +18,11 @@
 import { mulberry32, normal } from './rng.js';
 
 export const CELL = 30;
+// The fire model's version: change it whenever a change here or in SEVERITY moves where or when the fire
+// burns. Stored tables record the version they ran on (tools/goal-combos.mjs meta.fireModel), and the page
+// says so when a table predates the current one. 2026-11-04: high severity slows after its first hour
+// (SOURCE_NOTES FV17) and the proxy fuel follows the 2025 fire zones (FV18).
+export const FIRE_MODEL = '2026-11-04';
 export const LB_MAX = 3.5;
 
 // Proxy spread factors by area (model rule; see assumptions panel). The zones are the 2025 Fire Code's
