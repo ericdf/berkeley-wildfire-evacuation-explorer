@@ -70,6 +70,37 @@ for (const f of feats) {
   f.c = centroid(f.outer); f.bb = bbox([f.outer]);
 }
 
+// ---- 1b. OpenStreetMap outlines outside Fire Zones 2–3 (data/raw/osm/buildings.json, tools/fetch-osm-buildings.mjs) ----
+// City footprints are authoritative inside Fire Zones 2–3; an OSM outline whose centroid lies there is dropped.
+// OSM has an outline at the centroid of 95.4% of the City footprints (SOURCE_NOTES PH24). Optional: without the
+// file, structuresOther is empty and the gaps are measured among City footprints only.
+const fz23 = layers.fireZones.filter(z => z.zone >= 2).map(z => ({ ...z, bb: bbox(z.rings) }));
+const inFZ23 = (x, y) => fz23.some(z => inBB(z.bb, x, y) && inPoly(x, y, z.rings));
+const OSMF = path.join(ROOT, 'data/raw/osm/buildings.json');
+const osmMeta = fs.existsSync(OSMF) ? JSON.parse(fs.readFileSync(OSMF, 'utf8')) : null;
+const others = [];
+let osmInFZ23 = 0, osmOnCity = 0;
+// An outline whose centroid is outside the zones can still be a City footprint's building straddling the
+// zone line; drop an OSM outline when it and a City footprint contain each other's centroid or a vertex.
+const CG = 100, cityIdx = new Map();
+feats.forEach((f, n) => { for (let i = Math.floor(f.bb[0] / CG); i <= Math.floor(f.bb[2] / CG); i++) for (let j = Math.floor(f.bb[1] / CG); j <= Math.floor(f.bb[3] / CG); j++) { const k = `${i},${j}`; if (!cityIdx.has(k)) cityIdx.set(k, []); cityIdx.get(k).push(n); } });
+const overlapsCity = (outer, c, bb) => {
+  for (let i = Math.floor(bb[0] / CG); i <= Math.floor(bb[2] / CG); i++) for (let j = Math.floor(bb[1] / CG); j <= Math.floor(bb[3] / CG); j++) for (const n of cityIdx.get(`${i},${j}`) || []) {
+    const f = feats[n]; if (f.bb[0] > bb[2] || f.bb[2] < bb[0] || f.bb[1] > bb[3] || f.bb[3] < bb[1]) continue;
+    if (inPoly(c[0], c[1], [f.outer]) || inPoly(f.c[0], f.c[1], [outer]) || outer.some(p => inPoly(p[0], p[1], [f.outer]))) return true;
+  }
+  return false;
+};
+for (const r of osmMeta?.rings || []) {
+  const outer = r.map(local), area = Math.abs(ringArea(outer));
+  if (area < 1) continue;
+  const c = centroid(outer), bb = bbox([outer]);
+  if (inFZ23(...c)) { osmInFZ23++; continue; }
+  if (overlapsCity(outer, c, bb)) { osmOnCity++; continue; }
+  others.push({ osm: true, d: NaN, outer, area, c, bb });
+}
+const all = feats.concat(others); // gaps are measured across both, so a City footprint at the zone edge sees its OSM neighbor
+
 // ---- 2. Measured gap to the nearest other footprint (meters), for every footprint ----
 // NEAR_DIST is not in ground feet: measured gaps run 0.2404 m per NEAR_DIST unit against 0.3048 for
 // feet, a factor of 0.789 = cos(37.87°), the Web Mercator scale at Berkeley (SOURCE_NOTES PH10). So
@@ -87,13 +118,13 @@ function ringGap(A, B) { // vertex-to-edge both ways; 0 if one ring's vertex lie
 }
 const SEARCH = 60, G = 60, idx = new Map(); // a gap over 60 m counts as "50 ft or more" either way
 const key = (i, j) => `${i},${j}`;
-feats.forEach((f, n) => { for (let i = Math.floor(f.bb[0] / G); i <= Math.floor(f.bb[2] / G); i++) for (let j = Math.floor(f.bb[1] / G); j <= Math.floor(f.bb[3] / G); j++) { const k = key(i, j); if (!idx.has(k)) idx.set(k, []); idx.get(k).push(n); } });
+all.forEach((f, n) => { for (let i = Math.floor(f.bb[0] / G); i <= Math.floor(f.bb[2] / G); i++) for (let j = Math.floor(f.bb[1] / G); j <= Math.floor(f.bb[3] / G); j++) { const k = key(i, j); if (!idx.has(k)) idx.set(k, []); idx.get(k).push(n); } });
 const ratios = [];
-feats.forEach((f, n) => {
+all.forEach((f, n) => {
   const seen = new Set(); let g = Infinity;
   for (let i = Math.floor((f.bb[0] - SEARCH) / G); i <= Math.floor((f.bb[2] + SEARCH) / G); i++) for (let j = Math.floor((f.bb[1] - SEARCH) / G); j <= Math.floor((f.bb[3] + SEARCH) / G); j++) for (const m of idx.get(key(i, j)) || []) {
     if (m === n || seen.has(m)) continue; seen.add(m);
-    const o = feats[m];
+    const o = all[m];
     if (o.bb[0] > f.bb[2] + SEARCH || o.bb[2] < f.bb[0] - SEARCH || o.bb[1] > f.bb[3] + SEARCH || o.bb[3] < f.bb[1] - SEARCH) continue;
     g = Math.min(g, ringGap(f.outer, o.outer));
   }
@@ -115,17 +146,25 @@ for (const f of feats) {
   t[0]++; t[band(f.gapM)]++; t[4] += f.area;
   cells.set(c, t);
 }
+const cellsOther = new Map(); let otherOutside = 0; const otherBands = [0, 0, 0, 0];
+for (const f of others) {
+  otherBands[band(f.gapM)]++;
+  const c = cellOf(...f.c);
+  if (c < 0) { otherOutside++; continue; }
+  const t = cellsOther.get(c) || [0, 0, 0, 0, 0];
+  t[0]++; t[band(f.gapM)]++; t[4] += f.area;
+  cellsOther.set(c, t);
+}
 const gaps = feats.map(f => f.gapM / FT).sort((a, b) => a - b);
 const gapFt = p => +gaps[Math.floor(p * (gaps.length - 1))].toFixed(1);
 
 // ---- 3. Census housing units outside Fire Zones 2–3 ----
-const fz23 = layers.fireZones.filter(z => z.zone >= 2).map(z => ({ ...z, bb: bbox(z.rings) }));
 const blocks = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/raw/census/blocks-2020.json'), 'utf8')).features.map(f => f.attributes);
 const hu = new Map(); let huIn = 0, huOut = 0, huSkipped = 0;
 for (const b of blocks) {
   if (!b.HU100) continue;
   const [x, y] = local([+b.INTPTLON, +b.INTPTLAT]);
-  if (fz23.some(z => inBB(z.bb, x, y) && inPoly(x, y, z.rings))) { huSkipped += b.HU100; continue; }
+  if (inFZ23(x, y)) { huSkipped += b.HU100; continue; }
   const c = cellOf(x, y);
   if (c < 0) { huOut += b.HU100; continue; }
   hu.set(c, (hu.get(c) || 0) + b.HU100); huIn += b.HU100;
@@ -138,6 +177,7 @@ const out = {
     note: 'Counts per 30 m fire cell (index r * W + c, r from the south edge; js/fire.js cellOf). Exposure context only: not ignition, not loss. No footprints, addresses or parcel data are stored.',
     sources: {
       structures: 'City of Berkeley ArcGIS Online, Distance_between_structures_in_Fire_Zones_2_and_3_WFL1 layer 3 (edited 2023-09-13), fields NEAR_DIST and geometry only; counted at footprint centroids; gaps measured from the geometry (SOURCE_NOTES PH1, PH10)',
+      structuresOther: osmMeta ? `OpenStreetMap building outlines (© OpenStreetMap contributors, ODbL; ${osmMeta.meta.osmBase}), outside Fire Zones 2–3 only, counted at centroids; gaps measured across City and OSM outlines (SOURCE_NOTES PH24)` : 'not built: data/raw/osm/buildings.json missing',
       housingUnits: 'US Census 2020 blocks, HU100 at interior points (data/raw/census/blocks-2020.json), blocks outside Fire Zones 2–3 only (SOURCE_NOTES PH10)',
     },
     provenance: { structures: 'sourced (City footprints), counted per cell: derived', bands: 'derived: gap to the nearest footprint measured from the City geometry, in the NIST bands the City map uses (under 25 ft, 25–50 ft, 50 ft or more)', housingUnits: 'sourced (Census), placed at block interior points: derived' },
@@ -149,16 +189,20 @@ const out = {
       // Structures under each distance, by the City's NEAR_DIST and by the measured gap (ISSUES.md I1).
       underFt: Object.fromEntries([5, 10, 20, 25, 30, 50, 100].map(ft => [ft, { city: feats.filter(f => f.d < ft).length, measured: feats.filter(f => f.gapM < ft * FT).length }])),
       footprintM2: Math.round(sum(cells, 4)),
+      structuresOtherOSM: others.length - otherOutside, structuresOtherOutsideGrid: otherOutside, osmOutlinesInFZ23Dropped: osmInFZ23, osmOutlinesOverlappingCityDropped: osmOnCity,
+      otherBands: { under25ft: otherBands[1], from25to50ft: otherBands[2], atLeast50ft: otherBands[3] },
       housingUnitsOutsideFZ23: huIn, housingUnitsOutsideGrid: huOut, housingUnitsInFZ23NotUsed: huSkipped,
     },
     nearDistUnitsCheck: unitsCheck,
   },
   // [cell, structures, under 25 ft, 25–50 ft, 50 ft or more, footprint m²]
   structures: [...cells].sort((a, b) => a[0] - b[0]).map(([c, t]) => [c, t[0], t[1], t[2], t[3], Math.round(t[4])]),
+  // [cell, structures, under 25 ft, 25–50 ft, 50 ft or more, footprint m²], OpenStreetMap, outside Fire Zones 2–3
+  structuresOther: [...cellsOther].sort((a, b) => a[0] - b[0]).map(([c, t]) => [c, t[0], t[1], t[2], t[3], Math.round(t[4])]),
   // [cell, housing units]
   housingUnits: [...hu].sort((a, b) => a[0] - b[0]),
 };
 fs.writeFileSync(path.join(ROOT, 'data/model/structures.json'), JSON.stringify(out));
 console.log(JSON.stringify(out.meta.totals, null, 1));
 console.log('NEAR_DIST units check:', unitsCheck);
-console.log(`cells with structures: ${cells.size}; cells with housing units: ${hu.size}`);
+console.log(`cells with City structures: ${cells.size}; with OSM structures: ${cellsOther.size}; with housing units: ${hu.size}`);

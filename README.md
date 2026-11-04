@@ -111,7 +111,7 @@ rebuild it after `tools/mitigations.mjs` or any model change.
   arrived was counted again on the road when its car drove out under embers). Neither is a count of deaths or injuries: the simulator does not
   model house survival, sheltering, fire intensity or smoke.
 - **Structures the fire front and embers reached** counts City building footprints in Fire
-  Zones 2–3 (and 2020 Census housing units elsewhere) in the 30 m cells the fire front or embers
+  Zones 2–3 (and OpenStreetMap building outlines elsewhere, which include some garages and sheds) in the 30 m cells the fire front or embers
   reach. **Structures lost** applies an assumption range from the 2018 Camp Fire to the
   footprints the fire front reached, keyed to each structure's measured distance from its nearest
   neighbor; embers alone get no loss figure. Both are the same under every plan, because the fire
@@ -375,7 +375,7 @@ flow.
 | `data/model/signals.json` | Signal junctions and control type (City `Signals` layer) and the Time Study's Appendix F congestion points, built by `tools/signals.mjs` |
 | `data/model/contraflow-streets.json` | Main hill exit streets for contraflow, built by `tools/contraflow-streets.mjs` from status-quo runs |
 | `data/model/walk-access.json` | Built by `tools/walk-access.mjs` (hill homes' height and distance to their street, door-to-curb and carless walking times, per street segment); optional; its report is `docs/walk-access.md` |
-| `data/model/structures.json` | Structures per 30 m fire cell (City footprints in Fire Zones 2–3, with the measured gap to the nearest one) and 2020 Census housing units elsewhere, built by `tools/build-structures.mjs`. Counts only, no footprints. Used for the exposure row in results and the Structures map layer; the simulator runs without it |
+| `data/model/structures.json` | Structures per 30 m fire cell: City footprints in Fire Zones 2–3 and OpenStreetMap outlines elsewhere, each with the measured gap to the nearest building, plus 2020 Census housing units, built by `tools/build-structures.mjs` (run `tools/fetch-osm-buildings.mjs` first). Counts only, no footprints. Used for the exposure row in results and the Structures map layer; the simulator runs without it |
 | `data/model/fire-validation.json`, `data/model/wind-red-flag.json` | Fire overlay checks against 1923, 1991, ember zones and Red Flag winds, built by `tools/fire-validation.mjs` and `tools/wind-events.mjs`; report `docs/fire-validation.md` |
 | `data/terrain/fbfm40.u8`, `fbfm40.json` | LANDFIRE 2025 fuel models on the fire grid, built by `tools/fetch-fuel.mjs` (opt-in Fuel setting) |
 | `data/model/demand-by-zone.json`, `data/model/workplaces.json` | ACS household mix by zone (`tools/build-demand.mjs`) and workplaces and off-street parking (`tools/workplaces.mjs`), for the opt-in Household mix and placement settings |
@@ -411,7 +411,8 @@ node tools/signals.mjs             # signal junctions for police control and the
 node tools/fetch-osm-parking.mjs   # OSM parking and traffic signals, addr:* tags removed (--clean cleans files on disk)
 node tools/workplaces.mjs          # LODES workplaces, OSM parking and CDE schools → data/model/workplaces.json (opt-in placement)
 node tools/contraflow-streets.mjs  # main hill exit streets for contraflow, ~30 s on 8 cores (after every rebuild)
-node tools/build-structures.mjs    # structures per fire cell from the City footprint layer and Census blocks, ~15 s
+node tools/fetch-osm-buildings.mjs # OSM building outlines, geometry only (public servers; can take an hour when busy; resumes)
+node tools/build-structures.mjs    # structures per fire cell from the City footprints, OSM outlines and Census blocks, ~40 s
 node tests/headless.mjs            # sanity-check the models (optionally: low | central | high)
 node tests/calibration.mjs         # compare evacuation times with the 2025 Evacuation Time Study (fire off)
 node tests/plan-draws.mjs          # check that Plan A and Plan B see the same households for a seed

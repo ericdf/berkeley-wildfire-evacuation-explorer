@@ -120,6 +120,14 @@ the evidence is.
 - (c) Option B scratch test: run, not adopted (PH22). Redistributing the factor by building spacing barely moves the 1923
   marks, and the 1991 check needs footprints in Oakland.
 
+## 7b. The 1991 check with structures in Oakland (2026-11-04, PH24, PH25)
+
+With OpenStreetMap outlines outside Fire Zones 2–3, today's fire reaches 693 structures in the 1991-like fire's
+first hour against the record's "almost 800", then 2,325 by 2 h and 5,041 by 4 h against about 1,100 and 1,700. The
+first hour fits; the hours after it overshoot by 2–3 times, because the model fire does not slow down as the 1991 head
+did (FV9). Redistributing the spread factor by building spacing or coverage does not change that, so option B stays
+not adopted. The fix the record points to is a head rate that falls after the first hour, a model change for Eric.
+
 ## 7a. Questions as first put
 
 - (a) Build option A, losses as an assumption range beside exposure?
