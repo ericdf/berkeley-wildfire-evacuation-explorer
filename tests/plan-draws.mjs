@@ -12,8 +12,8 @@
 // non-resident counts, except that a carless household with no neighbor to ride with today may
 // ride with an added one. Under R0 that household has no ride when R0 bars every added neighbor
 // on its street. A household whose neighbor left early in either plan rides with another one.
-// Household mix by place (data/model/demand-by-zone.json, when present) repeats the preset, Expert and
-// R0 comparisons with each zone's own persons per household and carless share.
+// The default household mix is by place (data/model/demand-by-zone.json, when present); the citywide mix
+// (the Time Study's values in every zone) repeats the preset, Expert and R0 comparisons.
 //   node tests/plan-draws.mjs
 import fs from 'node:fs';
 import { loadData } from '../js/data.js';
@@ -112,11 +112,11 @@ for (const F of FIRES) {
     compare(`${F.id} seed ${seed} growth max ${LE.id}: A vs B with R0 lez`, build(LE.A, tk, G), build({ ...LE.B, r0: 'lez' }, tk, G), { growth: G });
     compare(`${F.id} seed ${seed} growth max ${LE.id}: B lez-only vs B with R0 access`, build({ ...LE.B, earlyZones: 'lez' }, tk, G), build({ ...LE.B, r0: 'access' }, tk, G), { growth: G });
     compare(`${F.id} seed ${seed} growth max, ${EXPERT.name}, R0 fz23`, base, build({ ...EXPERT, r0: 'fz23' }, tk, G), { growth: G, sameZoneOnly: true });
-    // household mix by place (world setting, SOURCE_NOTES DM8): Plan A and Plan B still see the same households
+    // household mix citywide (world setting, SOURCE_NOTES DM8, DM18): Plan A and Plan B still see the same households
     if (data.demand) {
-      for (const P of PRESETS) { const tq = P.tods?.B ?? P.tod; compare(`${F.id} seed ${seed} mix place ${P.id}: A vs B`, build(P.A, tq, 'none', 'place'), build(P.B, tq, 'none', 'place')); }
-      compare(`${F.id} seed ${seed} mix place, ${EXPERT.name}`, build(DEFAULT_PLAN, 'S6', 'none', 'place'), build(EXPERT, 'S6', 'none', 'place'), { sameZoneOnly: true });
-      compare(`${F.id} seed ${seed} mix place, growth max, R0 none vs fz23`, build(DEFAULT_PLAN, tk, G, 'place'), build({ ...DEFAULT_PLAN, r0: 'fz23' }, tk, G, 'place'), { growth: G });
+      for (const P of PRESETS) { const tq = P.tods?.B ?? P.tod; compare(`${F.id} seed ${seed} mix citywide ${P.id}: A vs B`, build(P.A, tq, 'none', 'citywide'), build(P.B, tq, 'none', 'citywide')); }
+      compare(`${F.id} seed ${seed} mix citywide, ${EXPERT.name}`, build(DEFAULT_PLAN, 'S6', 'none', 'citywide'), build(EXPERT, 'S6', 'none', 'citywide'), { sameZoneOnly: true });
+      compare(`${F.id} seed ${seed} mix citywide, growth max, R0 none vs fz23`, build(DEFAULT_PLAN, tk, G, 'citywide'), build({ ...DEFAULT_PLAN, r0: 'fz23' }, tk, G, 'citywide'), { growth: G });
     }
     // growth and R0 leave today's households and the shared stream unchanged (R6)
     for (const r0 of ['none', ...R0S]) compare(`${F.id} seed ${seed} growth none vs max, R0 ${r0} (today's households)`, build(DEFAULT_PLAN, tk), build({ ...DEFAULT_PLAN, r0 }, tk, G), { growth: G, todayOnly: true });

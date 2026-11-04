@@ -69,7 +69,8 @@ export function otherCityOrders(data, grid, fire) {
 
 export class Evacuation {
   // world: settings shared by both plans, such as future growth ({ growth: 'none' | 'middle' | 'moderate' | 'max' })
-  // and the household mix ({ householdMix: 'citywide' (default) | 'place' }; 'place' needs data.demand).
+  // and the household mix ({ householdMix: 'place' (default) | 'citywide' }; 'place' needs data.demand and falls
+  // back to 'citywide' without it; SOURCE_NOTES DM18).
   // world.retreat (analysis harness only, tools/retreat-sim.mjs): { edges: street segment ids whose
   // households are bought out, clearParking: also take the parked cars off those segments (true), or off
   // the listed segments only }.
@@ -280,16 +281,17 @@ export class Evacuation {
     const drawVehicles = (r = rand) => { let u = r() * vTot; for (const [k, p] of Object.entries(vs)) { if (u < p) return +k; u -= p; } return 1; };
     const zoneIdx = new Map(zones.map((z, i) => [z.id, i]));
     const lez = new Set(LEAVE_EARLY_ZONES);
-    // Household mix (world setting, SOURCE_NOTES DM1-DM9). 'citywide' (default): every zone uses the
-    // citywide persons per household and carless share. 'place': a zone with ACS households in its
-    // 2020 blocks (data/model/demand-by-zone.json, usable) uses its own two values; the others keep the
-    // citywide ones. Only the comparison thresholds and the household count change; the draws are
+    // Household mix (world setting, SOURCE_NOTES DM1-DM9, DM18). 'place' (default): a zone with ACS
+    // households in its 2020 blocks (data/model/demand-by-zone.json, usable) uses its own persons per
+    // household and carless share; the others keep the citywide ones. 'citywide': every zone uses the
+    // Time Study's values (calibration against the study, tests/calibration.mjs). Only the comparison thresholds and the household count change; the draws are
     // taken in the same pattern, and both plans see the same households for a seed.
-    const mixZones = this.world.householdMix === 'place' && data.demand?.zones ? data.demand.zones : null;
+    const mixRequested = this.world.householdMix || 'place';
+    const mixZones = mixRequested === 'place' && data.demand?.zones ? data.demand.zones : null;
     const zPph = new Float64Array(zones.length).fill(D.personsPerHousehold), zCarless = new Float64Array(zones.length).fill(D.householdsWithoutVehicleShare);
     let mixUsed = 0;
     if (mixZones) zones.forEach((z, i) => { const m = mixZones[z.id]; if (m?.usable) { zPph[i] = m.personsPerHousehold.value; zCarless[i] = m.zeroVehicle.value; mixUsed++; } });
-    this.householdMix = { option: mixZones ? 'place' : 'citywide', zones: mixUsed, requested: this.world.householdMix || 'citywide' };
+    this.householdMix = { option: mixZones ? 'place' : 'citywide', zones: mixUsed, requested: mixRequested };
     const hhEdge = [], hhZone = [], hhVeh = [], hhEarly = [];
     let unplaced = 0;
     for (let zi = 0; zi < zones.length; zi++) {
@@ -855,8 +857,9 @@ export class Evacuation {
       this.log(`Parked cars this run (seed ${this.seed}): of ${ps.hillsKnown} hill segments with a known width, ${ps.twoSides} parked on both sides and ${ps.oneSide} on one side; ${ps.pinched} segments have a bad parking job narrowing the gap. ${ps.engineBlocked} segments are too narrow for an engine; ${this.sharedLanes} two-way segments leave one lane, so oncoming drivers take turns.`, 'plan'); }
     { const G = this.growth, pph = this.data.A.demand.personsPerHousehold, opt = this.data.A.growth?.options?.[this.world.growth];
       if (G.units) this.log(`Future growth "${opt.label}": ${G.units.toLocaleString()} added homes on Berkeley hill streets (Fire Zones 2–3, standing in for the Hillside Overlay), spread like today's households.${G.blocked ? ` R0 in ${R0_AREAS[G.r0]} bars ${G.blocked.toLocaleString()} of them (${Math.round(this.hhPersons ? G.blockedPersons || 0 : G.blocked * pph).toLocaleString()} people); none move elsewhere.` : ''} Built: ${G.built.toLocaleString()} homes, about ${Math.round(this.hhPersons ? G.persons : G.built * pph).toLocaleString()} added residents.`, 'plan');
-      if (this.householdMix.option === 'place') this.log(`Household mix by place (ACS 2020–2024, Expert setting): ${this.householdMix.zones} zones use their own persons per household and share of households without a vehicle; the rest keep the citywide ${pph} and ${(this.data.A.demand.householdsWithoutVehicleShare * 100).toFixed(2)}%. ${this.hh.n.toLocaleString()} synthetic households.`, 'plan');
-      else if (this.householdMix.requested === 'place') this.log('Household mix by place was asked for, but data/model/demand-by-zone.json did not load; the citywide mix is used.', 'plan');
+      if (this.householdMix.option === 'place') this.log(`Household mix by place (ACS 2020–2024): ${this.householdMix.zones} zones use their own persons per household and share of households without a vehicle; the rest keep the Time Study's ${pph} and ${(this.data.A.demand.householdsWithoutVehicleShare * 100).toFixed(2)}%. ${this.hh.n.toLocaleString()} synthetic households.`, 'plan');
+      else if (this.householdMix.requested === 'place') this.log('Household mix by place is the default, but data/model/demand-by-zone.json did not load; the Time Study\'s citywide mix is used.', 'warn');
+      else this.log(`Household mix: the Time Study's citywide ${pph} persons per household and ${(this.data.A.demand.householdsWithoutVehicleShare * 100).toFixed(2)}% without a vehicle in every zone (Expert setting). ${this.hh.n.toLocaleString()} synthetic households.`, 'plan');
       if (G.r0Missing) this.log('R0 in access-constrained areas has no effect in this build: data/model/access-constraints.json is missing.', 'warn');
       else if (G.r0 !== 'none' && !G.units) this.log(`R0 in ${R0_AREAS[G.r0]} has no effect: Future growth is set to none.`, 'plan'); }
     { const W = this.walkAccess;

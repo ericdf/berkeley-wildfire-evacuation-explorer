@@ -19,7 +19,7 @@ const data = await loadData(async (p, k) => { const b = fs.readFileSync(path.joi
 if (!data.demand) throw new Error('data/model/demand-by-zone.json is missing: run node tools/build-demand.mjs');
 const grid = buildFireGrid(data), scen = makeScenarios(data);
 const noFire = { arrival: new Float64Array(grid.W * grid.H).fill(Infinity), ember: new Float32Array(grid.W * grid.H).fill(Infinity), W: grid.W, H: grid.H, spots: 0, LB: 1 };
-const MIX = { citywide: {}, place: { householdMix: 'place' } };
+const MIX = { citywide: { householdMix: 'citywide' }, place: { householdMix: 'place' } };
 const exposed = S => S.exposedHome + S.exposedRoad + S.exposedNoVehicle + S.notOrderedExposed;
 const pick = (S, sim) => ({
   households: sim.hh.n, vehicles: S.vehicles, orderVehicles: S.orderVehicles, orderedPeople: S.orderedPeople,
