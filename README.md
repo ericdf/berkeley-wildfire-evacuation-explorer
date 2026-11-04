@@ -1,4 +1,4 @@
-# Berkeley Hills Wildfire Evacuation: Scenario Explorer (Phase 1 prototype)
+# Berkeley Hills Wildfire Evacuation: Scenario Explorer
 
 A browser simulator for exploring Berkeley's wildfire evacuation tradeoffs. Choose a fire
 scenario and an operating plan, run it on Berkeley's real street network and terrain,
@@ -9,7 +9,9 @@ not an official evacuation plan, and must not guide real evacuation decisions.**
 For official information see the City's
 [Fire Weather and Evacuation page](https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation).
 
-The design brief is `specification.md`. What is still missing is listed in `DATA_INVENTORY.md`. Every insight taken from a document (the City's 2025 Evacuation Time Study, SB 99 and AB 747 reports, StoryMap), with page references and what we did with it, is in `SOURCE_NOTES.md`.
+The design brief is `specification.md`. Every insight taken from a document (the City's 2025 Evacuation Time Study, SB 99 and AB 747 reports, StoryMap and others), with page references and what we did with it, is in `SOURCE_NOTES.md`. What is still missing is listed in `DATA_INVENTORY.md`; problems found in other publishers' data, and whether they have been told, in `ISSUES.md`; where the project stands and what comes next, in `HANDOFF.md`. Design notes for work in progress are in `docs/design/`, and reports from finished analyses in `docs/`.
+
+**Where it stands (2026-11-04).** The spec's Phase 1 (map, traffic and an illustrative fire on Berkeley's streets) is built, and most of Phase 2: interventions with costs, comparisons over many runs, and the Simple view's three tabs. Phase 3 (evidence-backed Berkeley inputs) is under way (`docs/design/phase-3.md`): City building footprints give the structures the fire reaches and an assumption range for those lost; LANDFIRE fuels and ACS household mix are opt-in settings; enforcement of posted no-parking signs and daylighting is a plan setting. Structures do not yet change how the fire spreads, and home hardening is not modeled (`docs/design/structure-spread.md`).
 
 ## Run it
 
@@ -75,13 +77,16 @@ rebuild it after `tools/mitigations.mjs` or any model change.
    UC and Lab off-street parking (`docs/weekday-placement.md`).
    Home-to-street access time (Expert view, both plans, off by default) delays each household's
    departure by the terrain's extra walking time from its door to its street.
+   Fuel (both plans, off by default) uses LANDFIRE 2025 fuel models instead of the fire-zone
+   proxy (`docs/fire-validation.md`). Household mix (both plans, off by default) uses each zone's
+   ACS persons per household and carless share (`docs/demand-by-place.md`).
 2. **Operating plan.** Plan A and Plan B are edited in tabs: when zones are ordered,
    how long detection and the decision take, whether all hill zones are ordered at once,
    early departure on Red Flag days (from the City's Leave Early Zones, or all of Fire Zones 2–3),
-   parking on hill streets, and R0: no added units in the Leave Early Zones, Fire Zones 2–3
-   or access-constrained areas, shown with its legal status. Driver information and routing
-   (off by default) sets how drivers find their way out and the share who follow.
-   or access-constrained areas, shown with its legal status. Contraflow runs both lanes of the
+   parking on hill streets, enforcement of posted no-parking signs and daylighting (off by
+   default), and R0: no added units in the Leave Early Zones, Fire Zones 2–3 or
+   access-constrained areas, shown with its legal status. Driver information and routing
+   (off by default) sets how drivers find their way out and the share who follow. Contraflow runs both lanes of the
    main hill exit streets, or streets you choose, outbound, started by officers or by
    pre-installed signs and gates; police control puts officers at pre-timed signals and the Time
    Study's congestion points. Both draw on one pool of officers. All three settings are off by
@@ -105,10 +110,17 @@ rebuild it after `tools/mitigations.mjs` or any model change.
   itself (SOURCE_NOTES FO7, FO8: until 2026-11-02 a household still home when embers
   arrived was counted again on the road when its car drove out under embers). Neither is a count of deaths or injuries: the simulator does not
   model house survival, sheltering, fire intensity or smoke.
+- **Structures the fire front and embers reached** counts City building footprints in Fire
+  Zones 2–3 (and 2020 Census housing units elsewhere) in the 30 m cells the fire front or embers
+  reach. **Structures lost** applies an assumption range from the 2018 Camp Fire to the
+  footprints the fire front reached, keyed to each structure's measured distance from its nearest
+  neighbor; embers alone get no loss figure. Both are the same under every plan, because the fire
+  does not depend on the plan, and neither is a prediction (SOURCE_NOTES PH10, PH23).
 - **Clearance** is reported at 50%, 90% and 100% of evacuating vehicles, plus the time
   the last household with a car reaches safety. No single average is shown.
-- **No vehicle: not moved in Phase 1.** Households without a car stay put and are
-  counted as at risk. Phase 2 adds transport assistance.
+- **No vehicle and no ride: not moved.** Households without a car that find no neighbor to
+  ride with stay put and are counted as at risk. Transport assistance is designed, not built
+  (`docs/design/assisted-evacuation.md`).
 - **Fire-engine travel** is responder ingress, which is modeled separately from resident
   egress. "Blocked by parked cars" means no route to the fire edge has an engine's width
   of clear road under that plan's parking rules.
@@ -364,11 +376,18 @@ flow.
 | `data/model/contraflow-streets.json` | Main hill exit streets for contraflow, built by `tools/contraflow-streets.mjs` from status-quo runs |
 | `data/model/walk-access.json` | Built by `tools/walk-access.mjs` (hill homes' height and distance to their street, door-to-curb and carless walking times, per street segment); optional; its report is `docs/walk-access.md` |
 | `data/model/structures.json` | Structures per 30 m fire cell (City footprints in Fire Zones 2–3, with the measured gap to the nearest one) and 2020 Census housing units elsewhere, built by `tools/build-structures.mjs`. Counts only, no footprints. Used for the exposure row in results and the Structures map layer; the simulator runs without it |
+| `data/model/fire-validation.json`, `data/model/wind-red-flag.json` | Fire overlay checks against 1923, 1991, ember zones and Red Flag winds, built by `tools/fire-validation.mjs` and `tools/wind-events.mjs`; report `docs/fire-validation.md` |
+| `data/terrain/fbfm40.u8`, `fbfm40.json` | LANDFIRE 2025 fuel models on the fire grid, built by `tools/fetch-fuel.mjs` (opt-in Fuel setting) |
+| `data/model/demand-by-zone.json`, `data/model/workplaces.json` | ACS household mix by zone (`tools/build-demand.mjs`) and workplaces and off-street parking (`tools/workplaces.mjs`), for the opt-in Household mix and placement settings |
 | `data/model/retreat.json` | Built by `tools/retreat-sim.mjs` (managed retreat: block ranking, buyout runs, costs); its report is `docs/managed-retreat.md` |
 | `data/terrain/dem.i16`, `dem.json` | Elevation grid, built by `tools/fetch-dem.mjs` |
 | `data/field/` | Field and aerial observations (counts only), e.g. parked cars on 22 hill blocks |
 | `data/raw/` | Downloaded source data (reproducible, large; City layers and report PDFs are not in git). `osm/east-bay-roads.json` (OSM streets), `osm/lbnl-gate-roads.json` (the Lab's gate roads), `genasys/zones.json` (zone outlines), `census/` (2020 block counts), `lodes/` (LODES 2023 jobs by block), `cde/` (schools) and `osm/parking*.json`, `osm/traffic-signals.json` each have a retrieval note |
 | `correspondence/` | Drafts of letters, such as the informal question to Berkeley Fire |
+| `ISSUES.md` | Problems found in other publishers' data (for example the City structure-distance layer reading about 27% high), the evidence, and whether anyone has been told |
+| `docs/design/` | Design notes: Phase 3, structure spread, fire staffing, earthquake fire, fire families, assisted evacuation |
+| `tools/phase3-sources.mjs`, `tools/no-parking-signs.mjs`, `tools/structure-spread-test.mjs` | Phase 3 read-only checks: building and fuel sources, signs against the aerial counts, the structure-spread scratch test (SOURCE_NOTES PH1–PH22) |
+| `tools/fetch-osm-buildings.mjs` | OpenStreetMap building outlines for the model area, geometry only, to `data/raw/osm/buildings.json` (gitignored) |
 | `tools/` | Data pipeline (Node 18+, no npm packages) |
 | `tests/headless.mjs` | Runs every scenario × two plans in Node and prints summaries |
 | `tests/calibration.mjs`, `tests/stuck.mjs`, `tests/leftover.mjs` | Compare with the Time Study (fire off; `PLACEMENT=workplace`, `CASES=S1,S4`, `REGIONS=ref1923` select the setting, cases and scenarios); list jammed links; list order-zone vehicles that never leave |
@@ -377,6 +396,7 @@ flow.
 | `tests/routing.mjs` | Driver information and routing with the fire on, seeds 1–5: every option, households worse off against Habit (also beyond chance), and a check that every option sees the same households and shared random stream as Today's model (`SOURCE_NOTES.md` DG19–DG24) |
 | `tools/other-city-orders.mjs` | Zones, residents and vehicles other cities' orders add, by city, per fire, family member, severity and seed; `--runs` adds today's plan's headline measures (SOURCE_NOTES FO3, FO4) |
 | `tests/exposure-once.mjs` | Checks that people still there when embers or the fire front arrived count each person once: the parts add up to the distinct people the run's state shows (SOURCE_NOTES FO8) |
+| `tests/families.mjs`, `tests/walk-draws.mjs` | Fire family members; the home-to-street setting moves departure times only |
 | `tests/retreat-draws.mjs` | Checks that a managed-retreat buyout (`world.retreat`) leaves every other household, every non-resident car and the shared random stream unchanged |
 
 ## Replacing datasets
@@ -422,11 +442,14 @@ limits. Lane, parking and capacity values are applied when the network is built,
 by the simulator at load time. Scenario presets, severities and time-of-day values are in
 `js/scenarios.js`.
 
-## Limits of Phase 1
+## Limits
 
-- No buildings yet, so no structures exposed or lost, and no home-hardening or
-  vegetation effects.
-- No stair or path access time, and no assisted evacuation (Phase 2).
+- Structures do not change how the fire spreads: house-to-house spread is in the fire-zone
+  spread factor, which was tuned to the 1923 fire's timing. Structures lost is an assumption
+  range applied afterwards, for the fire front only. No home-hardening or vegetation settings
+  (`docs/design/structure-spread.md`).
+- Stair and path access time is an opt-in setting (`docs/walk-access.md`). Households without a
+  car or a ride are not moved: assisted evacuation is designed, not built.
 - Employees, students, visitors and I-80 and CA-24 through traffic come from the Time Study's tables,
   but where they park is approximated by area. Signals and stop signs are not modeled one by
   one: every junction has a typical delay and a capacity by road class. Panoramic Hill matches
@@ -488,12 +511,20 @@ node tools/widening.mjs --no-fetch # ranking only, no web requests, writes nothi
 ```
 
 Rerun it after `tools/build-network.mjs` and `tools/access-constraints.mjs`.
+
 ## Managed retreat (voluntary buyouts)
+
+
 `tools/retreat-sim.mjs` asks which hill blocks (street segments) a voluntary buyout would target and what removing their households would change. It scores 1,803 hill blocks over 60 fire runs (share of runs with households still home when the fire front or embers arrived, cars cut off, no engine within 5 minutes, chokes in series, crowding at the choke; the weights are a model rule), then reruns the simulator with and without buyouts of the top blocks and of Panoramic Hill, same seed, and prices them from Census block-group home values and Uniform Relocation Act figures as a screening estimate. Buyouts are a harness setting (`world.retreat` in `js/sim.js`), not a plan option on the page: the bought-out households take their random draws and then make no trip, so every other household and car is the same draw. In these runs the benefit is almost entirely the people bought out; the neighbors who stay behind the same choke leave home at the same times and gain little on the road. Method, ranked blocks, results, costs and the comparison with second ways out are in `docs/managed-retreat.md`; findings are in `SOURCE_NOTES.md` RT1–RT11. Not a prediction, not an official evacuation plan and not a buyout proposal.
+
+```sh
 node tools/retreat-sim.mjs                 # about 20 min on 7 workers; writes data/model/retreat.json and docs/managed-retreat.md
 node tools/retreat-sim.mjs --report-only   # rebuilds the report from data/model/retreat.json
 node tests/retreat-draws.mjs               # bought-out households leave every other draw unchanged
+```
+
 ## Home-to-street walking and stair access
+
 `tools/walk-access.mjs` joins hill building footprints (Microsoft Global ML Building Footprints) to their nearest household street and measures, from the 4 m lidar DEM, how far above or below the street each sits; it keeps only per-segment aggregates. Door-to-curb walking times use Tobler's hiking function and Fruin's stair speeds, with a reduced-mobility range from the MUTCD slower-pedestrian speed and NIST stair data. It also walks carless households over a pedestrian network of streets plus OpenStreetMap stairways and paths to the nearest street outside each scenario's order and warning area and to the City's 13 shelter sites. The Expert-view setting "Home-to-street access time: from terrain" (scenario, both plans, off by default) delays each departing household by its segment's terrain excess for three legs, drawn from a separate random stream; the map's "Homes above or below their street" street color shows the per-segment 90th percentile. Method, findings and the simulator comparison are in `docs/walk-access.md`; sources and checks in `SOURCE_NOTES.md` WA1–WA14. Rerun it after every network rebuild (edge ids change); the simulator ignores the file when it was built on another network.
 
 ```
@@ -503,7 +534,9 @@ node tools/walk-access-sim.mjs                             # setting off vs on, 
 node tests/walk-draws.mjs                                  # the setting moves departure times only
 ```
 
+
 ### Second ways out
+
 `node tools/egress-all.mjs` screens candidate road connections that would give these areas a second way out: straight new roads up to 250 m, upgraded paths and stairways, opened barriers, and the City's "2nd Route Out" for Panoramic Hill. For each it reports length, grade from the lidar DEM, buildings and Alameda County parcels in a 40 ft corridor (counts only), park and campus land, the residents it takes out from behind a choke, a screening cost range from public figures, and the simulator's result with and without the link for the same seeds (the link is added at run time; `network.json` is unchanged). The candidates are a screening, not designs, and the results are a comparison, not a prediction. Method, ranked table, what was pruned and the Time Study benchmark are in `docs/egress-candidates.md`; the whole run takes 20–30 minutes on 8 cores. Rerun it after every network rebuild: candidate ids are built from the access-constraint area ids (AC-160-N3 is a link out of area AC-160), which shift when the network changes.
 
 ## License
