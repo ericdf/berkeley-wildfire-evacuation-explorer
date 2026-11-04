@@ -117,7 +117,10 @@ export function runFire(grid, sc, sev, seed) {
   const N = W * H;
   const rand = mulberry32(seed * 7919 + 17);
   const arrival = new Float64Array(N).fill(Infinity); // Float64: heap keys are compared against it
-  const ign = Math.min(H - 1, Math.max(0, Math.floor(sc.ignition[1] / CELL))) * W + Math.min(W - 1, Math.max(0, Math.floor(sc.ignition[0] / CELL)));
+  // One start (sc.ignition), or several at once (sc.ignitions: a list, or a function of the seed that draws them
+  // from its own stream, so the spread and spot-fire draws below stay as they were; js/scenarios.js quakeIgnitions).
+  const starts = typeof sc.ignitions === 'function' ? sc.ignitions(seed) : sc.ignitions ?? [sc.ignition];
+  const cellAt = p => Math.min(H - 1, Math.max(0, Math.floor(p[1] / CELL))) * W + Math.min(W - 1, Math.max(0, Math.floor(p[0] / CELL)));
   const windTo = ((sc.windFrom + 180) % 360) * Math.PI / 180; // compass bearing the wind blows toward
   const dwx = Math.sin(windTo), dwy = Math.cos(windTo);       // unit downwind vector (x east, y north)
   const wind = sc.windMph * sev.windFactor;
@@ -134,7 +137,7 @@ export function runFire(grid, sc, sev, seed) {
     allowed[i] = 1;
   }
   const heap = new MinHeap();
-  arrival[ign] = 0; heap.push(0, ign);
+  for (const p of starts) { const ign = cellAt(p); if (arrival[ign] > 0) { arrival[ign] = 0; heap.push(0, ign); } }
   // 16-neighbor stencil (adds knight moves) to reduce grid-direction bias
   const NB = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1],
     [2, 1], [1, 2], [-1, 2], [-2, 1], [-2, -1], [-1, -2], [1, -2], [2, -1]];
@@ -192,7 +195,7 @@ export function runFire(grid, sc, sev, seed) {
     }
     ember[i] = m;
   }
-  return { arrival, ember, spots, LB, W, H };
+  return { arrival, ember, spots, LB, W, H, starts };
 }
 
 // Earliest time the fire is within ~radiusM of each cell (square min filter).

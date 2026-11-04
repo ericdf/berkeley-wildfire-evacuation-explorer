@@ -15,7 +15,7 @@ import { FIRES, PRESETS } from '../js/presets.js';
 
 const data = await loadData(async (p, k) => { const b = fs.readFileSync(p); return k === 'json' ? JSON.parse(b) : b.buffer.slice(b.byteOffset, b.byteOffset + b.length); });
 const grid = buildFireGrid(data);
-const scen = makeScenarios(data);
+const scen = makeScenarios(data).filter(s => s.kind !== 'earthquake'); // earthquake fires start in buildings and have no families (SOURCE_NOTES EQ11)
 const M = JSON.parse(fs.readFileSync('data/model/mitigations.json'));
 let bad = 0;
 const fail = msg => { bad++; console.log('FAIL ' + msg); };

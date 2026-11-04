@@ -22,3 +22,5 @@ data/raw/walk/
 # OSM building outlines (tools/fetch-osm-buildings.mjs): large; geometry only; reduced to per-cell counts in data/model/structures.json.
 data/raw/osm/buildings.json
 data/raw/osm/buildings-tiles/
+# HayWired fire-following data release download (tools/build-haywired.mjs); data/model/haywired-ignitions.json keeps the Berkeley values.
+data/raw/usgs/

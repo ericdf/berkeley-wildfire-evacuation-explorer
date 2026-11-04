@@ -27,8 +27,10 @@ export async function loadData(load = browserLoad) {
   // Optional: structures per fire cell (tools/build-structures.mjs), for exposure context and the map layer.
   const structures = await Promise.resolve().then(() => load('data/model/structures.json', 'json')).catch(() => null);
   // Optional: street segments a Hayward Fault rupture closes, two bounds (tools/fault-zone-check.mjs --write), for the opt-in earthquake setting.
+  // Optional: USGS HayWired fire-following values for Berkeley's station areas (tools/build-haywired.mjs), for the earthquake fires.
+  const haywired = await Promise.resolve().then(() => load('data/model/haywired-ignitions.json', 'json')).catch(() => null);
   const faultClosures = await Promise.resolve().then(() => load('data/model/fault-closures.json', 'json')).catch(() => null);
-  return prepare({ net, layers, dem, Z: new Int16Array(demBuf), A, fireZones2025, access, signals, contraflow, demand, fuel40, workplaces, walk, structures, faultClosures });
+  return prepare({ net, layers, dem, Z: new Int16Array(demBuf), A, fireZones2025, access, signals, contraflow, demand, fuel40, workplaces, walk, structures, faultClosures, haywired });
 }
 
 async function browserLoad(path, kind) {

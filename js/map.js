@@ -514,7 +514,10 @@ export class MapView {
   drawIgnition() {
     const { ctx } = this, [x, y] = this.sim.scenario.ignition, X = this.sx(x), Y = this.sy(y);
     ctx.fillStyle = '#b91c1c'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(X, Y - 11); ctx.lineTo(X + 7, Y + 6); ctx.lineTo(X - 7, Y + 6); ctx.closePath(); ctx.fill(); ctx.stroke();
+    for (const [sx, sy] of this.sim.fire.starts?.length > 1 ? this.sim.fire.starts : [[x, y]]) { // several starts (earthquake): a marker at each
+      const PX = this.sx(sx), PY = this.sy(sy);
+      ctx.beginPath(); ctx.moveTo(PX, PY - 11); ctx.lineTo(PX + 7, PY + 6); ctx.lineTo(PX - 7, PY + 6); ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
     // wind arrow
     const to = ((this.sim.scenario.windFrom + 180) % 360) * Math.PI / 180, L = 40;
     ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2; ctx.beginPath();
