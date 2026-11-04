@@ -29,7 +29,8 @@ async function tile(s, w, n, e) {
   for (let k = 0; k < 8; k++) {
     const url = SERVERS[k % SERVERS.length];
     try {
-      const r = await fetch(url, { method: 'POST', headers: UA, body: 'data=' + encodeURIComponent(q) });
+      // a request the server never answers would otherwise hang the run forever
+      const r = await fetch(url, { method: 'POST', headers: UA, body: 'data=' + encodeURIComponent(q), signal: AbortSignal.timeout(200000) });
       if (r.ok) return { j: await r.json(), url };
       console.error(`  ${url} HTTP ${r.status}`);
     } catch (err) { console.error(`  ${url} ${err.message}`); }
@@ -51,6 +52,7 @@ for (let s = A.south; s < A.north - 1e-9; s += STEP) for (let w = A.west; w < A.
     t = { url, osmBase: j.osm3s?.timestamp_osm_base, relations: j.elements.filter(x => x.type === 'relation').length,
       ways: j.elements.filter(x => x.type === 'way' && x.geometry).map(x => ({ id: x.id, g: x.geometry.map(p => [+p.lon.toFixed(7), +p.lat.toFixed(7)]) })) };
     fs.writeFileSync(cf, JSON.stringify(t));
+    await new Promise(res => setTimeout(res, 5000)); // a pause between tiles, so the public servers are not hammered
   }
   used.add(t.url); osmBase ||= t.osmBase; relations += t.relations;
   const j = { elements: t.ways.map(x => ({ type: 'way', id: x.id, geometry: x.g.map(([lon, lat]) => ({ lon, lat })) })) };
