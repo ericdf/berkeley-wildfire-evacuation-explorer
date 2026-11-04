@@ -66,16 +66,22 @@ export function parkingState(data, plan, seed, tod) {
     if (hills && mode === 'oneside') sides = Math.min(sides, 1);
     // enforcement (plan setting): a signed side keeps no cars; daylighting takes curb at each corner end
     if (enfSigns && data.signSides[e.id]) { const signed = (data.signSides[e.id] & 1) + (data.signSides[e.id] >> 1); const s2 = Math.min(sides, 2 - signed); if (s2 < sides) S.stats.signsEnforced++; sides = s2; }
-    let curbLossM = 0; // per parked side, averaged: one side loses dayM at each corner end
+    // Daylighting: at each corner end one parked side loses dayM of curb. Two parked sides: each loses dayM
+    // with two corner ends, one side with one. One parked side: it takes every corner's dayM. A side whose
+    // loss covers the whole segment is cleared.
+    let curbM = sides * e.len; // parked curb length left, all sides
     if (enfDay && sides > 0 && data.cornerEnds[e.id]) {
-      curbLossM = dayM * data.cornerEnds[e.id] / 2;
-      if (e.len - curbLossM <= 0) { sides = 0; S.stats.daylightCleared++; }
+      const ce = data.cornerEnds[e.id];
+      const loss = sides === 2 ? (ce === 2 ? [dayM, dayM] : [dayM, 0]) : [dayM * ce];
+      const left = loss.filter(L => L < e.len);
+      if (left.length < sides) { S.stats.daylightCleared++; sides = left.length; }
+      curbM = left.reduce((a, L) => a + e.len - L, 0);
     }
     if (sides !== base) S.stats.parkingChanged++;
     // one bad parking job (wide vehicle, far from the curb) somewhere on the segment
     let pinch = 0;
     if (sides > 0 && rand && mode !== 'tight') {
-      const cars = Math.max(1, Math.round(sides * Math.max(0, e.len - curbLossM) / R.curbMPerCar));
+      const cars = Math.max(1, Math.round(curbM / R.curbMPerCar));
       const pAny = 1 - (1 - R.badJobPerCar) ** cars;
       if (u[2] < pAny) pinch = R.badJobExtraM[0] + u[3] * (R.badJobExtraM[1] - R.badJobExtraM[0]);
     }

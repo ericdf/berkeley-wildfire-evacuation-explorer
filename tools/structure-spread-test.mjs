@@ -40,11 +40,14 @@ for (const [c, k, b25, b50, bFar, area] of st.structures) { n[c] = k; w[c] = (b2
 for (const [c, k] of st.housingUnits) hu[c] = k;
 const built = []; for (let i = 0; i < N; i++) if (n[i] > 0 && proxy.fuel[i] > 0) built.push(i);
 
-function variant(score) { // factor ∝ score, scaled so the mean over built cells equals the proxy mean there
+const CAP = 1.5;
+function variant(score) { // factor ∝ score, capped at CAP, scaled so the mean over built cells equals the proxy mean there
   const fuel = Float32Array.from(proxy.fuel);
   let mp = 0, ms = 0; for (const i of built) { mp += proxy.fuel[i]; ms += score(i); }
-  const k = mp / ms;
-  for (const i of built) fuel[i] = Math.min(1.5, score(i) * k);
+  let k = mp / ms;
+  // the cap lowers the mean, so raise k until the capped mean matches (Codex review of PR #55)
+  for (let it = 0; it < 60; it++) { let m = 0; for (const i of built) m += Math.min(CAP, score(i) * k); if (Math.abs(m - mp) < 1e-6 * mp) break; k *= mp / m; }
+  for (const i of built) fuel[i] = Math.min(CAP, score(i) * k);
   return { ...proxy, fuel, spotFuel: proxy.fuel };
 }
 const VARIANTS = {
@@ -67,6 +70,7 @@ const west = []; for (let i = 0; i < N; i++) { const [x, y] = center(i); if (x <
 const O = data.net.meta.origin, [ox, oy] = toUTM(-122.2205, 37.8625), origin = [ox - O[0], oy - O[1]];
 
 console.log(`built cells changed: ${built.length}; seeds ${seeds.join(',')}`);
+for (const [name, g] of Object.entries(VARIANTS)) { let m = 0, capped = 0; for (const i of built) { m += g.fuel[i]; if (g.fuel[i] >= CAP) capped++; } console.log(`  ${name}: mean factor over built cells ${(m / built.length).toFixed(6)}, cells at the cap ${capped}`); }
 for (const [name, g] of Object.entries(VARIANTS)) {
   const t = seeds.map(seed => { const F = runFire(g, sc23, SEVERITY.central, seed);
     const entry = Math.min(...[-1, 0, 1].flatMap(dr => [-1, 0, 1].map(dc => F.arrival[neCell + dr * W + dc])));
