@@ -117,7 +117,7 @@ due for replacement. On the 22 aerially counted blocks, signed blocks still had 
 the hills is unmeasured, and Eric expects it is often ignored. Both are rules on the books whose effect on the street is
 unknown, so the status quo stays built from what people were seen doing.
 
-The natural use of both is a **plan setting**, "Enforce no-parking signs and daylighting": signed curbs and the 20 ft
+**Built 2026-11-04 as an Expert-view plan setting (Eric; PH15).** The natural use of both is a **plan setting**, "Enforce no-parking signs and daylighting": signed curbs and the 20 ft
 before each corner kept clear. That is a new intervention, so it waits for Eric. Two things to settle first: how far a
 sign governs (to the next sign or corner, on the side it stands; model rule), and how daylighting acts in a model that
 does not place parked cars along the block (through the City's 45 tight turns and segment ends; model rule).
@@ -157,7 +157,7 @@ assumptions are scenario choices and stay assumptions.
    second scratch run.
 3. **3c, no-parking signs to curb rules. Checked 2026-11-04: not built as a status-quo change; proposed as a plan setting with daylighting, Eric's decision (section 5).**
 4. **3d, ACS household tables. Done 2026-11-03 in another session as the opt-in Household mix setting (DM1–DM17).** A model change with the full checks.
-5. **3e, structure ignition, house-to-house spread and loss: not before Eric decides.** It would
+5. **3e, structure ignition, house-to-house spread and loss: in scope (Eric, 2026-11-03); design note `docs/design/structure-spread.md` (2026-11-04).** It would
    rest on an effect size nobody has published for Berkeley (M2, M3), and it is the closest the
    simulator would come to predicting losses.
 

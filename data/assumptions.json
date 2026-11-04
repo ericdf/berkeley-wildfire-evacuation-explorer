@@ -31,6 +31,10 @@
         "oneSideShareHills": 0.3,
         "curbMPerCar": 9
       }
+    },
+    "enforce": {
+      "signMatchM": 20,
+      "daylightFt": 20
     }
   },
   "capacity": {
@@ -384,6 +388,10 @@
     "orders.berkeleyPrefixes": {
       "category": "model rule",
       "note": "Zone id prefixes whose orders come from the scenario alone: BER (City of Berkeley) and LBL (Lawrence Berkeley National Laboratory, which the City's Time Study regions order, e.g. R02 LBL-E001 to E006). Every other prefix is another jurisdiction."
+    },
+    "parking.enforce": {
+      "category": "model rule",
+      "note": "Plan setting \"Enforce no-parking signs and daylighting\" (off by default; SOURCE_NOTES PH11, PH12, PH15). Signs: each distinct City no-parking sign (589) governs the side of the street it stands on for the whole segment it lies within signMatchM of; a segment signed on both sides keeps no parked cars, one signed side leaves at most one parked side. The City layers give no extent or facing, so 'whole segment, the side it stands on' is our rule. Daylighting: Vehicle Code §22500(n) bars parking within daylightFt (20 ft) of the approach side of a crosswalk; at each segment end that meets an intersection (3 or more vehicle segments) one parked side loses daylightFt of curb, which lowers the number of parked cars and so the chance of a bad parking job, and clears a parked side whose curb is used up. The model does not place cars along the block, so daylighting does not widen the street at corners. Status quo (off): signs and daylighting are not enforced, as the 2020 aerial counts and Eric's photos show (PH11)."
     }
   },
   "routing": {

@@ -2,7 +2,7 @@ import { loadData } from './data.js';
 import { buildFireGrid, runFire, fireGridFor, cellOf, demAt, FUEL, LB_MAX, CELL } from './fire.js';
 import { makeScenarios, familyOf, comparisonCases, FAMILY_WINDS, SEVERITY, SEVERITY_NOTE, TIME_OF_DAY, TIME_NOTE, ETE_TARGETS } from './scenarios.js';
 import { Evacuation, DEFAULT_PLAN, titleCase } from './sim.js';
-import { PARKING_PLANS } from './parking.js';
+import { PARKING_PLANS, ENFORCE_PLANS } from './parking.js';
 import { PRESETS, FIRES } from './presets.js';
 import { MapView, STREET_MODES, RISE_BINS } from './map.js';
 import { fromUTM } from '../tools/utm.mjs';
@@ -55,7 +55,7 @@ for (const [k, label] of Object.entries(LAYER_NAMES)) {
 }
 
 const scenario = () => scenarios.find(s => s.id === $('scenario').value);
-const PLAN_FIELDS = ['name', 'alertKm', 'orderDelayMin', 'hillsOrderMin', 'earlyShare', 'earlyZones', 'hillsParking', 'r0',
+const PLAN_FIELDS = ['name', 'alertKm', 'orderDelayMin', 'hillsOrderMin', 'earlyShare', 'earlyZones', 'hillsParking', 'parkingEnforce', 'r0',
   'contraflow', 'contraflowMode', 'contraflowPower', 'contraflowFallback', 'police', 'officers', 'officerDelayMin'];
 function showPlan() {
   const p = state.plans[state.editing];
@@ -69,7 +69,7 @@ function readPlan() {
   p.name = $('p-name').value || `Plan ${state.editing}`;
   p.alertKm = +$('p-alertKm').value; p.orderDelayMin = +$('p-orderDelayMin').value;
   p.hillsOrderMin = $('p-hillsOrderMin').value === '' ? null : +$('p-hillsOrderMin').value;
-  p.earlyShare = +$('p-earlyShare').value; p.earlyZones = $('p-earlyZones').value; p.hillsParking = $('p-hillsParking').value;
+  p.earlyShare = +$('p-earlyShare').value; p.earlyZones = $('p-earlyZones').value; p.hillsParking = $('p-hillsParking').value; p.parkingEnforce = $('p-parkingEnforce').value || 'none';
   p.r0 = $('p-r0').value || 'none';
   p.contraflow = $('p-contraflow').value; p.contraflowMode = $('p-contraflowMode').value; p.contraflowPower = $('p-contraflowPower').value; p.contraflowFallback = $('p-contraflowFallback').value;
   p.police = $('p-police').value; p.officers = +$('p-officers').value; p.officerDelayMin = +$('p-officerDelayMin').value;
@@ -153,6 +153,7 @@ function r0Note() {
     : `${esc(R.areas[v])} <b>Legal status:</b> ${esc(R.legal)} ${badge('model rule', R.provenance)}${$('growth').value === 'none' ? ' <span class="muted">No effect while Future growth is set to none.</span>' : ''}`;
 }
 for (const [k, label] of Object.entries(PARKING_PLANS)) $('p-hillsParking').add(new Option(label, k));
+for (const [k, label] of Object.entries(ENFORCE_PLANS)) $('p-parkingEnforce').add(new Option(label, k));
 function parkingNote() {
   const v = $('p-hillsParking').value;
   $('parking-note').textContent = v === 'both' ? 'Each run draws which hill blocks are parked on one side or both, where cars sit partly off the pavement, and where one bad parking job (a wide vehicle or a car far from the curb) narrows the gap. Both plans see the same parked cars for the same seed; compare across seeds to see how often engines get through.'

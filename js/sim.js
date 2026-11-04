@@ -17,7 +17,7 @@
 
 import { mulberry32 } from './rng.js';
 import { toUTM } from '../tools/utm.mjs';
-import { parkingState, PARKING_PLANS } from './parking.js';
+import { parkingState, PARKING_PLANS, ENFORCE_PLANS } from './parking.js';
 import { LEAVE_EARLY_ZONES } from './scenarios.js';
 import { minFilter, diskMinFilter, cellOf, MinHeap, inPoly, bbox, inBB, CELL } from './fire.js';
 import { makeGuidance, householdOutcomes } from './guidance.js';
@@ -41,7 +41,7 @@ export function sampleCurve(curve, u) {
 const CLASS_RANK = { Local: 0, 'Major Collector': 1, 'Principal Arterial': 2, Ramp: 3, Interstate: 3 };
 const INTERSECTION_KEY = ['localVph', 'collectorVph', 'arterialVph', 'freewayVph'];
 
-export const DEFAULT_PLAN = { name: 'Baseline', alertKm: 0, orderDelayMin: 10, hillsOrderMin: null, earlyShare: 0, earlyZones: 'lez', hillsParking: 'both', r0: 'none',
+export const DEFAULT_PLAN = { name: 'Baseline', alertKm: 0, orderDelayMin: 10, hillsOrderMin: null, earlyShare: 0, earlyZones: 'lez', hillsParking: 'both', parkingEnforce: 'none', r0: 'none',
   // Traffic operations (js/operations.js), all off: contraflow streets, how they start, police control of junctions and the shared officer pool.
   contraflow: 'none', contraflowEdges: [], contraflowMode: 'officers', contraflowPower: 'battery', contraflowFallback: 'officers', police: 'none', officers: 20, officerDelayMin: 30 };
 
@@ -865,6 +865,7 @@ export class Evacuation {
     if (this.nrPlacement === 'workplace') this.log(`Non-resident placement by workplace (scenario setting): employees park within ${this.data.workplaces.params.walkM} m of LODES workplaces, ${Math.round(100 * this.ucParkingShare)}% of UC employee and commuting-student cars in UC parking, Lab employees in the Lab's lots; the Time Study's totals by area are unchanged.`, 'plan');
     if (this.retreat.edges) this.log(`Managed retreat (analysis setting): ${this.retreat.households.toLocaleString()} synthetic households on ${this.retreat.edges.toLocaleString()} bought-out street segments are removed${this.world.retreat.clearParking ? ', with the parked cars on those segments' : ''}.`, 'plan');
     if (plan.hillsParking !== 'both') this.log(`Parking plan "${PARKING_PLANS[plan.hillsParking]}": ${parkingChanged(parkingStats)}.`, 'plan');
+    if ((plan.parkingEnforce || 'none') !== 'none') this.log(`${ENFORCE_PLANS[plan.parkingEnforce]} (plan setting): ${parkingStats.signsEnforced} segments lose parked cars on a signed side${parkingStats.daylightCleared ? `; ${parkingStats.daylightCleared} short segments are cleared entirely by daylighting` : ''}; other blocks keep fewer parked cars, so fewer bad parking jobs. ${parkingStats.engineFixed} segments that were too narrow for an engine become passable. Which curb a sign governs, and where daylighting takes curb, are model rules (SOURCE_NOTES PH15).`, 'plan');
     if (warned) this.log(`${warned.toLocaleString()} households in warning zones choose to leave (Time Study: 50% of warned households).`, 'order');
     if (shadow) this.log(`${shadow.toLocaleString()} households outside the order and warning zones leave anyway (${shadowVeh.toLocaleString()} vehicles heading out of the model area; Time Study: 20% shadow evacuation).`, 'order');
     if (riders) this.log(`${riders.toLocaleString()} households without a vehicle ride with a neighbor.`, 'order');
