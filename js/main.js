@@ -952,9 +952,10 @@ function legend() {
     + (map.layers.paths ? `<div><span class="sw" style="background:repeating-linear-gradient(90deg,#8a5a2b 0 3px,transparent 3px 6px)"></span>Paths &amp; stairways (no vehicles)</div>` : '')
     + (map.layers.structures && data.structures ? `<div><span class="dot" style="background:rgb(60,30,100)"></span>30 m square with structures (Fire Zones 2–3): darker where more stand under 25 ft apart; more opaque with more structures</div>` : '');
   const access = map.layers.access && data.access ? accessLegend() : '';
-  const open = localStorage.getItem('bhe-key') !== 'hidden';
+  let saved = null; try { saved = localStorage.getItem('bhe-key'); } catch {}
+  const open = saved ? saved !== 'hidden' : !matchMedia('(max-width: 760px)').matches; // on a phone the key starts closed: open, it covers half the map
   $('legend').innerHTML = `<button class="key-toggle" title="${open ? 'Hide' : 'Show'} the map key">${open ? 'Hide key ▾' : 'Show key ▸'}</button>${open ? `<div><b>${STREET_MODES[m]}</b>${L}${extra}${access}</div>` : ''}`;
-  $('legend').querySelector('.key-toggle').onclick = () => { localStorage.setItem('bhe-key', open ? 'hidden' : 'shown'); legend(); };
+  $('legend').querySelector('.key-toggle').onclick = () => { try { localStorage.setItem('bhe-key', open ? 'hidden' : 'shown'); } catch {} legend(); };
 }
 
 // ---------- comparison ----------

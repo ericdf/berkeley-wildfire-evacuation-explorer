@@ -33,6 +33,8 @@ Loading takes a few seconds: about 10 MB of terrain and 2 MB of street network.
 
 ## Playing
 
+On a phone (under 760 px wide) the page is one column: the map first, then the choices, then the results. Drag the map with one finger, pinch to zoom, tap a street to select it. Simple view is the phone view; Expert view works but is built for a larger screen.
+
 **Simple view** (the default) has two tabs. **Today's plan:** pick the east-wind fire near
 Grizzly Peak Blvd (all of Fire Zones 2–3 ordered), the 1923 fire repeated today, Panoramic
 Hill, or a fire from Tilden into the north hills above Marin Ave (the Time Study's North Berkeley
@@ -377,6 +379,7 @@ flow.
 | `data/model/signals.json` | Signal junctions and control type (City `Signals` layer) and the Time Study's Appendix F congestion points, built by `tools/signals.mjs` |
 | `data/model/contraflow-streets.json` | Main hill exit streets for contraflow, built by `tools/contraflow-streets.mjs` from status-quo runs |
 | `data/model/walk-access.json` | Built by `tools/walk-access.mjs` (hill homes' height and distance to their street, door-to-curb and carless walking times, per street segment); optional; its report is `docs/walk-access.md` |
+| `tools/near-dist-check.mjs` | Reproduces the City's `NEAR_DIST` field from the footprints in Web Mercator and in UTM, to show the field reads about 27% high (`ISSUES.md` I1). Reads the City layer; writes nothing |
 | `data/model/structures.json` | Structures per 30 m fire cell: City footprints in Fire Zones 2–3 and OpenStreetMap outlines elsewhere, each with the measured gap to the nearest building, plus 2020 Census housing units, built by `tools/build-structures.mjs` (run `tools/fetch-osm-buildings.mjs` first). Counts only, no footprints. Used for the exposure row in results and the Structures map layer; the simulator runs without it |
 | `data/model/fire-validation.json`, `data/model/wind-red-flag.json` | Fire overlay checks against 1923, 1991, ember zones and Red Flag winds, built by `tools/fire-validation.mjs` and `tools/wind-events.mjs`; report `docs/fire-validation.md` |
 | `data/terrain/fbfm40.u8`, `fbfm40.json` | LANDFIRE 2025 fuel models on the fire grid, built by `tools/fetch-fuel.mjs` (opt-in Fuel setting) |
