@@ -42,7 +42,7 @@ export const LAYERS = {
 
 async function json(url) {
   for (let i = 0; i < 4; i++) {
-    const r = await fetch(url, { headers: { 'User-Agent': 'berkeley-wildfire-simulator/0.1' } });
+    const r = await fetch(url, { headers: { 'User-Agent': 'berkeley-wildfire-evacuation-explorer/0.1' } });
     if (r.ok) { const j = await r.json(); if (!j.error) return j; throw new Error(`${url}: ${j.error.message}`); }
     await new Promise(res => setTimeout(res, 1500 * (i + 1)));
   }

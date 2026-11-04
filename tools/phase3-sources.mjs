@@ -16,7 +16,7 @@ import path from 'path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const UA = { 'User-Agent': 'berkeley-wildfire-simulator/0.1' };
+const UA = { 'User-Agent': 'berkeley-wildfire-evacuation-explorer/0.1' };
 const CITY = 'https://services1.arcgis.com/IYiCpZoSIq9lAxi8/arcgis/rest/services';
 const STRUCT = `${CITY}/Distance_between_structures_in_Fire_Zones_2_and_3_WFL1/FeatureServer/3/query`;
 const RISK = `${CITY}/Alameda_and_Contra_Costa_Wildfire_Hazard_and_Risk_to_Structures_WFL1/FeatureServer/0/query`;

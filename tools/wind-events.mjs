@@ -24,7 +24,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIR = path.join(ROOT, 'data/raw/wind'), OUT = path.join(ROOT, 'data/model/wind-red-flag.json');
 const offline = process.argv.includes('--offline');
-const UA = { 'User-Agent': 'berkeley-wildfire-simulator/0.1' };
+const UA = { 'User-Agent': 'berkeley-wildfire-evacuation-explorer/0.1' };
 fs.mkdirSync(DIR, { recursive: true });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 

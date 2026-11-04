@@ -1,4 +1,4 @@
-# Agent instructions: Berkeley Wildfire Evacuation Simulator
+# Agent instructions: Berkeley Wildfire Evacuation Explorer
 
 This file is for Codex and any other agent that reviews or contributes to this repository. `CLAUDE.md` holds the working instructions; where the two disagree, `CLAUDE.md` governs. `specification.md` is the design brief. Every insight and its source is in `SOURCE_NOTES.md`; `README.md` explains how the simulator works.
 

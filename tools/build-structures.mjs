@@ -25,7 +25,7 @@ import { toUTM } from './utm.mjs';
 import { CELL, bbox, inBB, inPoly } from '../js/fire.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const UA = { 'User-Agent': 'berkeley-wildfire-simulator/0.1' };
+const UA = { 'User-Agent': 'berkeley-wildfire-evacuation-explorer/0.1' };
 const LAYER = 'https://services1.arcgis.com/IYiCpZoSIq9lAxi8/arcgis/rest/services/Distance_between_structures_in_Fire_Zones_2_and_3_WFL1/FeatureServer/3';
 
 async function get(url, params) {

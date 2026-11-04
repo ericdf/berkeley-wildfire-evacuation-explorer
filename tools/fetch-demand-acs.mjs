@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const R = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const UA = 'berkeley-wildfire-simulator/0.1';
+const UA = 'berkeley-wildfire-evacuation-explorer/0.1';
 const OUT = path.join(R, 'data/raw/census/acs-demand.json');
 
 // Block-group tables, then tract-only tables (the disability tables and B11010 are not published below tract; B11007 gives one-person 65+ households by block group).

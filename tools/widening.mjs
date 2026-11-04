@@ -31,7 +31,7 @@ const { toUTM, fromUTM } = await import(R + '/tools/utm.mjs');
 const { standards, nominalSides, engineDist, reachedWithin, FT } = await import(R + '/tools/widening-core.mjs');
 const load = async (p, k) => { const b = fs.readFileSync(path.join(R, p)); return k === 'json' ? JSON.parse(b) : b.buffer.slice(b.byteOffset, b.byteOffset + b.length); };
 const argv = process.argv.slice(2), FETCH = !argv.includes('--no-fetch');
-const TOP = 30, UA = 'berkeley-wildfire-simulator/0.1', TODAY = new Date().toISOString().slice(0, 10);
+const TOP = 30, UA = 'berkeley-wildfire-evacuation-explorer/0.1', TODAY = new Date().toISOString().slice(0, 10);
 const r0 = v => v == null ? null : Math.round(v), r1 = v => v == null ? null : Math.round(v * 10) / 10, r2 = v => v == null ? null : Math.round(v * 100) / 100;
 const title = s => (s || '').toLowerCase().replace(/\b[a-z]/g, c => c.toUpperCase()).replace(/\b(\d+)(St|Nd|Rd|Th)\b/g, (m, d, s) => d + s.toLowerCase());
 

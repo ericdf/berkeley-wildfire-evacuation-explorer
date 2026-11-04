@@ -8,6 +8,6 @@ It covers `README.md`, `SOURCE_NOTES.md`, `HANDOFF.md`, `DATA_INVENTORY.md`, `AG
 
 You may share and adapt this writing for any purpose, including commercially, if you give credit, link to the license and say whether you made changes. Suggested credit:
 
-> From the Berkeley Wildfire Evacuation Simulator by Eric Friedman, https://github.com/ericdf/berkeley-wildfire-simulator, licensed CC BY 4.0.
+> From the Berkeley Wildfire Evacuation Explorer by Eric Friedman, https://github.com/ericdf/berkeley-wildfire-evacuation-explorer, licensed CC BY 4.0.
 
 Quotations from other documents keep their authors' terms. Data the project imports keeps its publishers' terms; see "License" in `README.md`.

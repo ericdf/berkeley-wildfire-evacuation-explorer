@@ -25,7 +25,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { zoneLocator, ROOT } from './zones.mjs';
-const UA = 'berkeley-wildfire-simulator/0.1';
+const UA = 'berkeley-wildfire-evacuation-explorer/0.1';
 const ENV = '-122.334,37.836,-122.206,37.912'; // the 2020 block query envelope (data/raw/census/retrieved.txt)
 const [W, S, E, N] = ENV.split(',').map(Number);
 const inEnv = (lon, lat) => lon >= W && lon <= E && lat >= S && lat <= N;

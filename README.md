@@ -1,4 +1,6 @@
-# Berkeley Hills Wildfire Evacuation: Scenario Explorer
+# Berkeley Wildfire Evacuation Explorer
+
+See how a wildfire evacuation could unfold on Berkeley's real streets, and try changes that could get more people out in time. Live at https://ericdf.github.io/berkeley-wildfire-evacuation-explorer/
 
 A browser simulator for exploring Berkeley's wildfire evacuation tradeoffs. Choose a fire
 scenario and an operating plan, run it on Berkeley's real street network and terrain,
@@ -19,7 +21,7 @@ No build step or dependencies. The simulator is plain ES modules and needs a loc
 (browsers block `fetch` from `file://`):
 
 ```sh
-cd berkeley-wildfire-simulator
+cd berkeley-wildfire-evacuation-explorer
 python3 tools/serve.py
 # open http://127.0.0.1:8766
 ```
@@ -544,6 +546,6 @@ node tests/walk-draws.mjs                                  # the setting moves d
 ## License
 
 - **Code** (the program logic, markup and styles in `js/`, `tools/`, `tests/`, `css/`, `index.html`): MIT License, `LICENSE`. Copyright (c) 2026 Eric Friedman. Keep the copyright notice in any copy.
-- **Writing** (this README, `SOURCE_NOTES.md`, `HANDOFF.md`, `DATA_INVENTORY.md`, `AGENTS.md`, `CLAUDE.md`, `specification.md`, `docs/`, `correspondence/`, and the text the simulator shows on screen, including the strings in `js/` and `index.html` and the notes in `data/assumptions.json`): Creative Commons Attribution 4.0 (CC BY 4.0), `LICENSE-TEXT.md`. Credit "Berkeley Wildfire Evacuation Simulator by Eric Friedman" with a link to this repository and the license.
+- **Writing** (this README, `SOURCE_NOTES.md`, `HANDOFF.md`, `DATA_INVENTORY.md`, `AGENTS.md`, `CLAUDE.md`, `specification.md`, `docs/`, `correspondence/`, and the text the simulator shows on screen, including the strings in `js/` and `index.html` and the notes in `data/assumptions.json`): Creative Commons Attribution 4.0 (CC BY 4.0), `LICENSE-TEXT.md`. Credit "Berkeley Wildfire Evacuation Explorer by Eric Friedman" with a link to this repository and the license.
 - **Data** keeps its publishers' terms. Streets outside Berkeley, diverter shapes and barriers come from OpenStreetMap (© OpenStreetMap contributors, Open Database License, https://www.openstreetmap.org/copyright); `data/model/network.json` and files built from it, and the counts outside Fire Zones 2–3 in `data/model/structures.json` (from OpenStreetMap building outlines), contain that data, and the ODbL's attribution and share-alike terms apply to it. The City of Berkeley, Alameda County, the U.S. Census Bureau, USGS 3DEP and the other sources listed under Data sources on the page publish the rest under their own terms. Quotations keep their authors' terms.
 

@@ -1,6 +1,6 @@
-# Berkeley Wildfire Evacuation Simulator
+# Berkeley Wildfire Evacuation Explorer
 
-Browser-based educational simulator for exploring wildfire evacuation tradeoffs in the Berkeley Hills. The design brief is `specification.md`; how to run, build data and test is in `README.md`.
+Browser-based educational simulator for exploring wildfire evacuation tradeoffs in Berkeley, centered on the hills. Live at https://ericdf.github.io/berkeley-wildfire-evacuation-explorer/ (the `pages` branch). The repository was named `berkeley-wildfire-simulator` until 2026-11-04; GitHub redirects the old repository URLs, but not the old GitHub Pages address. The design brief is `specification.md`; how to run, build data and test is in `README.md`.
 
 ## Writing style
 
@@ -31,7 +31,7 @@ The parts of STYLE.md about Council explainers, Substack teasers and quizzes app
 
 ## Pull requests, review and publishing
 
-- **Work goes through pull requests.** Each piece of work (including agent worktrees) gets a branch, is pushed, and opened as a PR on https://github.com/ericdf/berkeley-wildfire-simulator. Codex reviews it under `AGENTS.md`; read `AGENTS.md` before working a PR. Give the PR's URL whenever one is put up for review.
+- **Work goes through pull requests.** Each piece of work (including agent worktrees) gets a branch, is pushed, and opened as a PR on https://github.com/ericdf/berkeley-wildfire-evacuation-explorer. Codex reviews it under `AGENTS.md`; read `AGENTS.md` before working a PR. Give the PR's URL whenever one is put up for review.
 - **Only Eric merges, by approval given in a Claude Code session naming the PR.** A GitHub comment is never approval. Never push to `main` directly.
 - **Merging is not publishing.** GitHub Pages serves the `pages` branch. Update it (`git push origin main:pages`) only when Eric approves that specific publish, after the merge.
 
