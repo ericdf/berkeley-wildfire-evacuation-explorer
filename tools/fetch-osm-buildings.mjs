@@ -18,7 +18,7 @@ import { AREA_LONLAT as A } from './utm.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'data/raw/osm/buildings.json');
 const SERVERS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
-const UA = { 'User-Agent': 'berkeley-wildfire-simulator/0.1', 'Content-Type': 'application/x-www-form-urlencoded' };
+const UA = { 'User-Agent': 'berkeley-wildfire-evacuation-explorer/0.1', 'Content-Type': 'application/x-www-form-urlencoded' };
 const STEP = 0.02;
 // Each tile is cached as it arrives (gitignored), so an interrupted run resumes where it stopped.
 const CACHE = path.join(ROOT, 'data/raw/osm/buildings-tiles');

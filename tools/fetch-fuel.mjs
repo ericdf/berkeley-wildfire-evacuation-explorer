@@ -49,7 +49,7 @@ const url = `${SERVICE}/exportImage?${new URLSearchParams(query)}`;
 if (!fs.existsSync(RAW)) {
   if (process.argv.includes('--offline')) throw new Error(`${RAW} missing`);
   fs.mkdirSync(path.dirname(RAW), { recursive: true });
-  const r = await fetch(url, { headers: { 'User-Agent': 'berkeley-wildfire-simulator/0.1' } });
+  const r = await fetch(url, { headers: { 'User-Agent': 'berkeley-wildfire-evacuation-explorer/0.1' } });
   if (!r.ok) throw new Error(`LANDFIRE exportImage: HTTP ${r.status}`);
   fs.writeFileSync(RAW, Buffer.from(await r.arrayBuffer()));
   fs.writeFileSync(RAW.replace(/\.tif$/, '.meta.json'), JSON.stringify({ service: SERVICE, query, retrieved: new Date().toISOString().slice(0, 10) }, null, 2));

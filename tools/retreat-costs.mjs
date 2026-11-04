@@ -22,7 +22,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fromUTM } from './utm.mjs';
 const R = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const UA = 'berkeley-wildfire-simulator/0.1';
+const UA = 'berkeley-wildfire-evacuation-explorer/0.1';
 const CACHE = path.join(R, 'data/raw/census/acs-retreat.json');
 
 export const RATES = {

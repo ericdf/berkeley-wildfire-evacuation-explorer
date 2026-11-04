@@ -7,11 +7,17 @@ html, body { margin: 0; height: 100%; font: 13px/1.4 system-ui, -apple-system, "
 header { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 8px 14px; background: #2b2118; color: #f5efe6; }
 header h1 { font-size: 16px; margin: 0; font-weight: 600; }
 header .phase { font-size: 11px; font-weight: 500; background: #6b4b2a; padding: 2px 6px; border-radius: 3px; margin-left: 6px; }
-header .disclaimer { font-size: 12px; color: #e8d9c4; }
-header nav { display: flex; gap: 8px; align-items: center; }
+header .welcome { font-size: 13px; color: #f4ebde; }
+header .disclaimer { font-size: 11.5px; color: #e8d9c4; }
+header .disclaimer a { color: #f4ebde; }
+header .title { flex: 1 1 auto; min-width: 0; }
+header nav { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
 header nav button { background: #4a3a2a; color: #f5efe6; border: 1px solid #6b5640; }
 header a.official { color: #fde68a; font-size: 12px; text-decoration: none; border: 1px solid #a1784a; padding: 4px 8px; border-radius: 4px; }
-main { display: grid; grid-template-columns: 300px 1fr 360px; height: calc(100% - 52px - 20px); }
+/* The page is a column: the header takes the height its text needs, the footer its line, and main the rest. */
+body { display: flex; flex-direction: column; }
+header, #license-foot { flex: 0 0 auto; }
+main { display: grid; grid-template-columns: 300px 1fr 360px; flex: 1 1 auto; min-height: 0; }
 #license-foot { height: 20px; line-height: 20px; padding: 0 14px; font-size: 11px; color: #6b5a48; background: #f3ede4; border-top: 1px solid var(--line); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #license-foot a { color: inherit; }
 aside { overflow-y: auto; background: var(--panel); border-right: 1px solid var(--line); }

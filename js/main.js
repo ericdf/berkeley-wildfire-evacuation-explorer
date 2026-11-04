@@ -287,7 +287,7 @@ function setPace(k) {
 // Off by default. Checking the box opens the disclosure first; families take effect only after "Use them".
 // With families on, a comparison runs every member of the fire (ignition point × wind from 30°, 45°, 60°);
 // Today's plan tab still watches the fire as it is. Users never move a start or set a wind.
-const NOTES_URL = 'https://github.com/ericdf/berkeley-wildfire-simulator/blob/main/SOURCE_NOTES.md#ignition-points-and-wind-directions-for-fire-families-public-sources-2026-11-02';
+const NOTES_URL = 'https://github.com/ericdf/berkeley-wildfire-evacuation-explorer/blob/main/SOURCE_NOTES.md#ignition-points-and-wind-directions-for-fire-families-public-sources-2026-11-02';
 const scenById = id => scenarios.find(s => s.id === id);
 const familyPoints = sc => [...new Map(familyOf(sc, data).map(m => [m.point, m])).values()];
 const famHTML = () => `<label class="small famopt"><input type="checkbox" class="fam-box"${state.families ? ' checked' : ''}> Also test other likely starting points and wind directions</label>
@@ -1133,7 +1133,7 @@ const INPUTS = [
   ['Parking on hill streets', 'How much of the street parked cars take: today\'s mix, one side only, tight to the curb, none on narrow roads, or none.', 'Hill homes a fire engine can reach within the City\'s 5-minute standard. Engines do not fight the fire in this simulator, so better engine access has no effect on the fire. Evacuation flow barely changes.'],
 ];
 function intro() {
-  modal(`<div class="intro"><h2>Berkeley Hills Wildfire Evacuation: Scenario Explorer</h2>
+  modal(`<div class="intro"><h2>Berkeley Wildfire Evacuation Explorer</h2>
   <p>Run a wildfire on Berkeley's real streets and watch residents' cars, parked cars and fire engines compete for the same narrow roads. Compare two ways of running an evacuation on the same fire and the same households.</p>
   <p class="note">This is a teaching tool, not a prediction and not an official evacuation plan. The households are synthetic and the fire is illustrative. For real instructions see the <a href="https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation" target="_blank" rel="noopener">City's fire weather and evacuation page</a>.</p>
   <div class="steps"><div><b>Today's plan</b>Pick one of four illustrative fires and watch it with today's plan: fire is orange, embers amber, cars blue, queues red. The outcomes on the right are the run you watched.</div><div><b>Change the plan</b>Explore changes that would mitigate damage and loss of life: leave earlier, clear a curb, add a road, buy out the most exposed blocks. Stack them and compare your plan with today's plan in 15 passes; each pass runs both plans on the same fire and households.</div><div><b>Set a goal</b>Say what a plan should achieve, such as cutting people still home when embers arrive by a quarter, and see the smallest combinations of changes that did it at the pace you pick, each checked on fresh passes. Open any of them in Change the plan.</div><div><b>Trust what holds</b>One pass can point the wrong way. A difference counts only where it shows up in every pass. Each change says what the simulator can't tell you about it.</div></div>

@@ -39,7 +39,7 @@ const dem = readJSON('data/terrain/dem.json');
 const demBuf = fs.readFileSync(path.join(R, 'data/terrain/dem.i16'));
 const elev = demSampler(dem, new Int16Array(demBuf.buffer, demBuf.byteOffset, demBuf.length / 2));
 const argv = process.argv.slice(2), REFRESH = argv.includes('--refresh');
-const UA = 'berkeley-wildfire-simulator/0.1';
+const UA = 'berkeley-wildfire-evacuation-explorer/0.1';
 const CACHE = path.join(R, 'data/raw/egress'); fs.mkdirSync(CACHE, { recursive: true });
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'egress-'));
 const TODAY = new Date().toISOString().slice(0, 10);

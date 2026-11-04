@@ -23,7 +23,7 @@ const { W, H } = meta.grid, q = meta.query;
 async function layer(name) { // same bbox and size as the FBFM40 export, so cells line up; rows returned north first
   const u = `https://lfps.usgs.gov/arcgis/rest/services/Landfire_LF2025/${name}/ImageServer/exportImage?` + new URLSearchParams({ ...q, bboxSR: String(q.bboxSR), imageSR: String(q.imageSR) });
   for (let k = 0; k < 4; k++) {
-    try { const r = await fetch(u, { headers: { 'User-Agent': 'berkeley-wildfire-simulator/0.1' }, signal: AbortSignal.timeout(120000) }); if (r.ok) {
+    try { const r = await fetch(u, { headers: { 'User-Agent': 'berkeley-wildfire-evacuation-explorer/0.1' }, signal: AbortSignal.timeout(120000) }); if (r.ok) {
       const img = readTiff(Buffer.from(await r.arrayBuffer()));
       if (img.width !== W || img.height !== H) throw new Error(`${name}: ${img.width}×${img.height}, expected ${W}×${H}`);
       const out = new Int16Array(W * H); // flip to rows south to north, like fbfm40.u8
