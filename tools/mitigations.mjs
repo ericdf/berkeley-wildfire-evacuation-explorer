@@ -2,8 +2,10 @@
 // Mitigation synthesis, phase 1 (data only): every mitigation lever run against the same baseline on the
 // same fires, severities and seeds, with costs copied from earlier outputs and a robustness count.
 //
-//   node tools/mitigations.mjs [--seeds 5] [--workers N] [--report-only] [--from-runs] [--fires a,b] [--levers a,b] [--merge]
+//   node tools/mitigations.mjs [--seeds 5] [--workers N] [--report-only] [--from-runs] [--fires a,b] [--levers a,b] [--merge] [--fuel landfire]
 //        writes data/model/mitigations.json and docs/mitigations.md
+//   --fuel landfire: every run (baseline and levers) on the opt-in LANDFIRE fuel grid (js/fire.js fireGridFor); writes
+//        data/model/mitigations-landfire.json and docs/mitigations-landfire.md instead, for the default-fuel decision (SOURCE_NOTES PH13).
 //   --merge (with --fires): run only the fires named and keep the saved runs of every other fire in
 //        data/model/mitigations.json; the seeds and levers are the saved ones, and summaries are
 //        recomputed from all runs (the saved fires' runs are copied unchanged).
@@ -35,7 +37,11 @@ const R = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SELF = fileURLToPath(import.meta.url);
 const argv = process.argv.slice(2);
 const arg = (k, d) => argv.includes(k) ? argv[argv.indexOf(k) + 1] : d;
-const OUT = path.join(R, 'data/model/mitigations.json'), DOC = path.join(R, 'docs/mitigations.md');
+const FUEL = arg('--fuel', process.env.MITIGATIONS_FUEL || 'proxy');
+if (!['proxy', 'landfire'].includes(FUEL)) throw new Error('--fuel proxy|landfire');
+process.env.MITIGATIONS_FUEL = FUEL; // workers inherit it
+const SUFFIX = FUEL === 'landfire' ? '-landfire' : '';
+const OUT = path.join(R, `data/model/mitigations${SUFFIX}.json`), DOC = path.join(R, `docs/mitigations${SUFFIX}.md`);
 
 const FIRES = ['eastWind', 'ref1923', 'panoramic', 'northHills'];
 const SEVS = ['low', 'central', 'high'];
@@ -136,13 +142,13 @@ const r1 = x => x == null ? null : Math.round(x * 10) / 10;
 if (argv[0] === '--worker') {
   const { jobs, levers } = JSON.parse(fs.readFileSync(argv[1], 'utf8'));
   const { loadData, prepare } = await import(R + '/js/data.js');
-  const { buildFireGrid, runFire } = await import(R + '/js/fire.js');
+  const { buildFireGrid, runFire, fireGridFor } = await import(R + '/js/fire.js');
   const { makeScenarios, SEVERITY, TIME_OF_DAY } = await import(R + '/js/scenarios.js');
   const { Evacuation } = await import(R + '/js/sim.js');
   const { withLinks, demSampler } = await import(R + '/tools/egress-link.mjs');
   const { widenedEdge, noParkingEdge, applyEdges, standards, nominalSides } = await import(R + '/tools/widening-core.mjs');
   const load = async (p, k) => { const b = fs.readFileSync(path.join(R, p)); return k === 'json' ? JSON.parse(b) : b.buffer.slice(b.byteOffset, b.byteOffset + b.length); };
-  const base = await loadData(load), grid = buildFireGrid(base), scen = Object.fromEntries(makeScenarios(base).map(s => [s.id, s]));
+  const base = await loadData(load), grid = FUEL === 'landfire' ? fireGridFor(buildFireGrid(base), base, 'landfire') : buildFireGrid(base), scen = Object.fromEntries(makeScenarios(base).map(s => [s.id, s]));
   const elev = demSampler(base.dem, base.Z);
   const fireMemo = new Map(), dataMemo = new Map(), snaps = new Map();
   const fireFor = (f, sev, seed) => { const k = `${f}|${sev}|${seed}`; if (!fireMemo.has(k)) { if (fireMemo.size > 8) fireMemo.delete(fireMemo.keys().next().value); fireMemo.set(k, runFire(grid, scen[f], SEVERITY[sev], seed)); } return fireMemo.get(k); };
@@ -441,6 +447,7 @@ for (const l of runnable) for (const fire of fires) {
 const D = {
   meta: { built: SAVED ? SAVED.meta.built : new Date().toISOString().slice(0, 10), workersNote: SAVED ? 'summaries recomputed from saved runs (--from-runs)' : MERGE ? `runs of ${runFires.join(', ')} added to the saved runs of ${fires.filter(f => !runFires.includes(f)).join(', ')} (--merge); wallMin is the sum` : undefined, tool: 'tools/mitigations.mjs', report: 'docs/mitigations.md',
     note: 'Educational comparison, not a prediction and not an official evacuation plan. Synthetic households, illustrative fires. "People still there when embers arrived" and "still home when the fire front arrived" count synthetic people at that moment; they are not casualty counts. Costs are screening ranges copied from earlier outputs (null = not priced, never zero).',
+    fuel: FUEL,
     baseline: 'DEFAULT_PLAN (js/sim.js), Time Study case S6 (fall night) for every fire', plan: DEFAULT_PLAN, timeOfDay: TOD, fires, severities: SEVS, seeds, workers: SAVED ? SAVED.meta.workers : WORKERS, runs: rows.length, wallMin,
     holdsRule: `better in every same-seed pair (${SEVS.length * seeds.length} of ${SEVS.length * seeds.length}), SOURCE_NOTES P19`, measures: Object.fromEntries(MKEYS.map(k => [k, { label: MEASURES[k].label, unit: MEASURES[k].unit, def: MEASURES[k].def }])) },
   check: { total: checks.length, ok: checks.length - mismatches.length, mismatches },
