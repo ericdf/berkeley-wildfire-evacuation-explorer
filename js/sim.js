@@ -1000,6 +1000,7 @@ export class Evacuation {
     S.walkAccessOn = this.walkAccess.on; S.walkAccessMeanS = this.walkAccess.households ? this.walkAccess.delaySum / this.walkAccess.households : 0;
     S.addedUnits = this.growth.built; S.addedResidents = P ? this.growth.persons || 0 : this.growth.built * pph; S.growthBlocked = this.growth.blocked; S.growthOption = this.growth.option;
     S.householdMix = this.householdMix.option; S.householdMixZones = this.householdMix.zones;
+    S.needsHelp = needsHelp(this, t);
     // Structure exposure (context; the fire is the same under every plan for a seed): City footprints
     // in Fire Zones 2–3, OpenStreetMap outlines elsewhere, and Census housing units, counted by the cell they sit in (SOURCE_NOTES PH10, PH24).
     { const st = data.structures, f = this.fire;
@@ -1031,6 +1032,49 @@ export class Evacuation {
 
 // Streets where each zone's residents live (model rule): drivable, not freeway or ramp, weighted
 // by length (Principal Arterials 0.7). Map zone id → [[edge id, weight], ...] in edge order.
+// Who may need help (docs/design/assisted-evacuation.md option A; SOURCE_NOTES NH1–NH6). Reported only: it adds
+// no trips and changes no draw, so both plans of a pass see the same counts in every zone the fire reaches the
+// same way. For each zone a run orders or warns, the share of its synthetic households on streets that embers
+// reached before the zone's first order or warning plus the Time Study's pickup times (90 min for medical
+// and care facilities, 180 min for transit-dependent pickup routes; ets.txt §2.4 4) is applied to the zone's
+// public counts: people 75+ and with an ambulatory difficulty (ACS), people who may need specialized transport
+// (a range: the City's emPOWER count to the Time Study survey's share), and licensed care and hospital beds.
+export function needsHelp(sim, t) {
+  const Z = sim.data.demand?.zones, A = sim.data.A.needsHelp; if (!Z || !A) return null;
+  const zones = sim.data.layers.evacZones, hh = sim.hh, nz = zones.length, T = A.pickupMin;
+  const tot = new Float64Array(nz), reached = { facilities: new Float64Array(nz), transitDependent: new Float64Array(nz) };
+  for (let h = 0; h < hh.n; h++) {
+    if (hh.gone[h]) continue;
+    const z = hh.zone[h], T0 = Math.min(sim.orderT[z], sim.warnT[z]); if (T0 === Infinity) continue;
+    tot[z]++; const te = sim.tEmber[hh.edge[h]]; if (te > t) continue;
+    for (const k in reached) if (te < T0 + T[k] * 60) reached[k][z]++;
+  }
+  const blank = () => ({ value: 0, range: [0, 0] });
+  const G = { age75: { inZones: blank() }, ambulatory: { inZones: blank() }, specialized: { inZones: blank() }, facilityBeds: { inZones: blank() } };
+  for (const g of Object.values(G)) for (const k in reached) g[k] = blank();
+  let zonesTold = 0, zonesUsed = 0;
+  const add = (o, v, lo, hi, f) => { o.value += v * f; o.range[0] += lo * f; o.range[1] += hi * f; };
+  for (let z = 0; z < nz; z++) {
+    if (!tot[z]) continue; zonesTold++;
+    const d = Z[zones[z].id]; if (!d?.usable) continue; zonesUsed++;
+    const pop = d.popModeled ?? zones[z].popModeled ?? zones[z].pop ?? 0, I = d.implied || {}, F = d.facilities || {};
+    const beds = A.facilityTypes.reduce((s, k) => s + (F[k] ? F[k].capacity ?? F[k].beds ?? 0 : 0), 0);
+    const vals = {
+      age75: I.peopleAge75 && [I.peopleAge75.value, ...I.peopleAge75.range],
+      ambulatory: I.peopleAmbulatory && [I.peopleAmbulatory.value, ...I.peopleAmbulatory.range],
+      specialized: [pop * (A.specializedShare.low + A.specializedShare.high) / 2, pop * A.specializedShare.low, pop * A.specializedShare.high],
+      facilityBeds: [beds, beds, beds],
+    };
+    for (const [g, v] of Object.entries(vals)) {
+      if (!v) continue;
+      add(G[g].inZones, ...v, 1);
+      for (const k in reached) add(G[g][k], ...v, reached[k][z] / tot[z]);
+    }
+  }
+  for (const g of Object.values(G)) for (const o of Object.values(g)) { o.value = Math.round(o.value); o.range = o.range.map(Math.round); }
+  return { zonesTold, zonesUsed, pickupMin: T, groups: G };
+}
+
 // Home-to-street access time (opt-in world setting walkAccess: 'terrain'; tools/walk-access.mjs, SOURCE_NOTES WA13).
 // The data is keyed by network edge id, so it applies only to the network it was built on.
 export function walkAccessData(data, option) {

@@ -182,6 +182,25 @@ for (const id of ['p-routing', 'p-compliance']) $(id).addEventListener('change',
 // natural comparison (Habit for the app and guidance options, Today's model for Habit), from two
 // background runs of that comparison (the second with a different junction serving order).
 const routingPairs = new Map();
+// Who may need help (docs/design/assisted-evacuation.md option A; js/sim.js needsHelp; SOURCE_NOTES NH1–NH6).
+// Public counts by zone, reported only: nobody in the simulator waits for a pickup.
+function needsHelpPanel(S) {
+  const N = S.needsHelp; if (!N) return '';
+  const T = N.pickupMin, G = N.groups, r = o => `${fmt(o.range[0])}–${fmt(o.range[1])}`, v = o => `${fmt(o.value)} <span class="muted">(${r(o)})</span>`;
+  const rows = [
+    ['People who may need a wheelchair van or ambulance', G.specialized, r, 'derived', 'A range, not an estimate: the low end applies the City\'s emPOWER count (348 Medicare beneficiaries using electricity-dependent equipment, Time Study §3.8) as a share of residents; the high end the Time Study survey\'s 1.6% wheelchair van and 0.2% ambulance (Appendix D). The sources disagree, so both are shown (SOURCE_NOTES NH2).'],
+    ['People with an ambulatory difficulty', G.ambulatory, v, 'derived', 'ACS 2020–2024 B18105, tract level, applied to each zone. A difficulty walking or climbing stairs, not a confirmed need for help. Range: ±90% margin of error.'],
+    ['People 75 and older', G.age75, v, 'derived', 'ACS 2020–2024 B01001, block groups allocated to zones. Range: ±90% margin of error.'],
+    ['Licensed beds in care homes, nursing facilities and hospitals', G.facilityBeds, o => fmt(o.value), 'sourced', 'CDSS and CDPH licensed capacity by zone: licensed capacity, not occupancy. The Time Study plans vehicles at medical facilities 90 minutes after the order.'],
+  ];
+  const cell = (o, f) => f(o);
+  return `<details class="needs-help"><summary>Who may need help: ${r(G.specialized.transitDependent)} people who may need a wheelchair van or ambulance live on streets embers reached within ${T.transitDependent / 60} hours of their zone's order ${badge('derived')}</summary>
+    <p class="small">People in zones this run ordered or warned, from public counts by zone. The two right-hand columns count those on streets embers reached before the 2025 Evacuation Time Study's planned pickup: ${T.facilities} minutes after the order at medical facilities and schools, ${T.transitDependent} on transit-dependent pickup routes ${badge('sourced', 'ets.txt §2.4 4.a–c, p. 2-7')}. The simulator runs no pickups, paratransit or facility evacuations and adds no trips for anyone counted here, so these people are not among the outcomes above unless they left in a synthetic household. Not a prediction and not a casualty count.</p>
+    <table class="kv"><tr><th></th><th class="num">In ordered or warned zones</th><th class="num">Embers within ${T.facilities} min of the order</th><th class="num">Within ${T.transitDependent} min</th></tr>
+    ${rows.map(([label, g, f, cat, note]) => `<tr><td>${label} ${badge(cat, note)}</td><td class="num">${cell(g.inZones, f)}</td><td class="num">${cell(g.facilities, f)}</td><td class="num">${cell(g.transitDependent, f)}</td></tr>`).join('')}
+    </table>
+    <p class="small muted">Each zone's counts are spread evenly over its synthetic households' streets ${badge('assumption')}; ${fmt(N.zonesUsed)} of the ${fmt(N.zonesTold)} zones ordered or warned have ACS figures. Ember arrival is at the middle of each street. Same under both plans when the plans order the same zones at the same times. Design: <code>docs/design/assisted-evacuation.md</code>.</p></details>`;
+}
 function routingPanel(sim, S, done) {
   const mode = routingOf(sim.plan); if (mode === 'today') return '';
   const R = ROUTING[mode], st = S.routing, base = mode === 'habit' ? 'today' : 'habit';
@@ -771,6 +790,7 @@ function update(full) {
       ${data.structures && data.A.structures?.lossIfFront ? `<tr title="${esc(`Of the City-footprint structures in Fire Zones 2–3 the fire front had reached, how many would be lost, as a range: ${Math.round(100 * data.A.structures.lossIfFront.within18m[0])}–${Math.round(100 * data.A.structures.lossIfFront.within18m[1])}% of those under 50 ft from their nearest neighbor and ${Math.round(100 * data.A.structures.lossIfFront.beyond18m[0])}–${Math.round(100 * data.A.structures.lossIfFront.beyond18m[1])}% of those farther apart, from homes in Paradise in the 2018 Camp Fire (Knapp et al. 2021). An assumption, not a prediction. Structures reached only by embers get no loss figure, because no source gives that share. The same under every plan.`)}"><td>Structures lost where the fire front reached them (Fire Zones 2–3), same under every plan ${badge('assumption', 'data/assumptions.json structures.lossIfFront; SOURCE_NOTES PH18, PH23; docs/design/structure-spread.md.')} <span class="tip">ⓘ</span></td><td class="num">${fmt(S.structuresLostLow)}–${fmt(S.structuresLostHigh)}</td></tr>` : ''}
       ${S.growthOption !== 'none' ? `<tr title="Homes added by the Future growth setting (Scenario, Expert view) and the residents living in them. They are counted in every number above. Homes barred by R0 are those the plan\'s R0 setting blocks in its area."><td>Future growth: added homes · residents (counted in every number above)${S.growthBlocked ? ` · homes barred by R0` : ''} ${badge('synthetic')}</td><td class="num">${fmt(S.addedUnits)} · ${fmt(S.addedResidents)}${S.growthBlocked ? ` · ${fmt(S.growthBlocked)}` : ''}</td></tr>` : ''}
     </table>
+    ${needsHelpPanel(S)}
     ${routingPanel(sim, S, done)}
     <canvas class="spark" id="spark" width="330" height="60"></canvas>
     <div class="small muted"><span style="color:#b91c1c">■</span> vehicles queued &nbsp; <span style="color:#1d4ed8">■</span> on roads &nbsp; <span style="color:#0e7490">■</span> engine ETA (scaled)</div>
