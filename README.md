@@ -346,7 +346,7 @@ add any parking-removal bonus.
 | `js/worker.js` | Runs comparison batches off the main thread |
 | `js/guidance.js` | Driver information and routing: Habit, Ordinary app, constrained guidance and system-optimal route trees; households worse off |
 | `js/access.js` | Access-constrained areas: inspector card, Expert-view summary, ranking table, map key |
-| `js/data.js` | Loads the data files (`access-constraints.json`, `signals.json` and `contraflow-streets.json` are optional) |
+| `js/data.js` | Loads the data files (`access-constraints.json`, `signals.json`, `contraflow-streets.json` and `structures.json` are optional) |
 | `js/operations.js` | Contraflow, police control of junctions and the Red Flag power shutoff |
 | `data/assumptions.json` | **Editable** assumptions and model rules, each with a category and note |
 | `data/model/network.json`, `layers.json` | Built by `tools/build-network.mjs` (do not edit by hand) |
@@ -354,6 +354,7 @@ add any parking-removal bonus.
 | `data/model/signals.json` | Signal junctions and control type (City `Signals` layer) and the Time Study's Appendix F congestion points, built by `tools/signals.mjs` |
 | `data/model/contraflow-streets.json` | Main hill exit streets for contraflow, built by `tools/contraflow-streets.mjs` from status-quo runs |
 | `data/model/walk-access.json` | Built by `tools/walk-access.mjs` (hill homes' height and distance to their street, door-to-curb and carless walking times, per street segment); optional; its report is `docs/walk-access.md` |
+| `data/model/structures.json` | Structures per 30 m fire cell (City footprints in Fire Zones 2–3, with the measured gap to the nearest one) and 2020 Census housing units elsewhere, built by `tools/build-structures.mjs`. Counts only, no footprints. Used for the exposure row in results and the Structures map layer; the simulator runs without it |
 | `data/model/retreat.json` | Built by `tools/retreat-sim.mjs` (managed retreat: block ranking, buyout runs, costs); its report is `docs/managed-retreat.md` |
 | `data/terrain/dem.i16`, `dem.json` | Elevation grid, built by `tools/fetch-dem.mjs` |
 | `data/field/` | Field and aerial observations (counts only), e.g. parked cars on 22 hill blocks |
@@ -381,6 +382,7 @@ node tools/signals.mjs             # signal junctions for police control and the
 node tools/fetch-osm-parking.mjs   # OSM parking and traffic signals, addr:* tags removed (--clean cleans files on disk)
 node tools/workplaces.mjs          # LODES workplaces, OSM parking and CDE schools → data/model/workplaces.json (opt-in placement)
 node tools/contraflow-streets.mjs  # main hill exit streets for contraflow, ~30 s on 8 cores (after every rebuild)
+node tools/build-structures.mjs    # structures per fire cell from the City footprint layer and Census blocks, ~15 s
 node tests/headless.mjs            # sanity-check the models (optionally: low | central | high)
 node tests/calibration.mjs         # compare evacuation times with the 2025 Evacuation Time Study (fire off)
 node tests/plan-draws.mjs          # check that Plan A and Plan B see the same households for a seed
