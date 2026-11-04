@@ -52,6 +52,10 @@ Mark every finding **blocking** or **optional** and give its location (file and 
 - **Unlogged insights.** A fact taken from a document, photo or conversation must have a `SOURCE_NOTES.md` row with its source and what was done with it; conflicts between sources are recorded there.
 - **Personal data.** Household-level or parcel-owner information, addresses, or imagery committed to the repository.
 
+### Out of scope
+
+- **Resident preparedness information** (alert sign-ups, go-bags, household or pet plans, neighbor check-ins). The simulator compares evacuation choices; preparing residents is the City's job, and the header's link to the City's fire weather and evacuation page is the only pointer it carries (maintainer, 2026-11-04). Do not flag its absence or propose adding more.
+
 ### Optional
 
 - Clearer wording, simpler code, better tests, and proposals that reshape the work, with reasons.

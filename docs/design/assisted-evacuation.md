@@ -14,7 +14,7 @@ Status: design note, 2026-11-03. Nothing here is built. The simulator reports, p
 | Step | Today | Category |
 |---|---|---|
 | Who needs help | Nobody. Age and disability are not used. | — |
-| Getting to the car | Instant; stairs and walking time are not modeled | model rule |
+| Getting to the car | Instant by default; the opt-in home-to-street access setting adds the terrain's walking time at central speeds, not reduced-mobility ones (`docs/walk-access.md`) | model rule; derived when on |
 | Mobilization | Survey histograms by household type (Time Study Table 5-9) | sourced |
 | Carless households | 86.9% ride with a neighbor on the same street; the rest are stranded and counted as at risk | sourced (survey) |
 | Facilities | Not modeled; their residents are in the zone population | — |
@@ -50,7 +50,7 @@ Each care facility, hospital or school in an ordered zone generates buses, vans 
 
 - No public source gives the number of residents who need a pickup by evacuation zone. emPOWER is by ZIP and covers Medicare beneficiaries only; the ACS ambulatory-difficulty table is by tract and counts a difficulty, not a need for help.
 - Licensed capacity is not occupancy. Facilities with six or fewer residents (most RCFEs and ARFs) the Time Study assumed would leave in staff cars (§3.5, footnote 13).
-- Stairs between homes and streets, which decide how long reaching a car takes on many hill lots, are not in the model at all (DATA_INVENTORY "Missing inputs").
+- Which homes have stairs from the street is lot-level and not public. `docs/walk-access.md` estimates door-to-curb rise and distance from building footprints and the lidar DEM, and reports reduced-mobility times the simulator does not apply (DATA_INVENTORY "Missing inputs").
 - The City's registry of residents needing help (if one exists), the AC Transit and paratransit fleets available, and mutual-aid ambulance arrival times are not public.
 
 ## 4. Decisions for the maintainer
