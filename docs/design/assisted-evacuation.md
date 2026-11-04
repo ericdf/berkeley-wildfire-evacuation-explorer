@@ -1,6 +1,6 @@
 # Assisted evacuation: design note
 
-Status: design note, 2026-11-03. Nothing here is built. The simulator reports, per evacuation zone, people 75 and older, people with an ambulatory difficulty, one-person 65+ households and licensed care, hospital and school capacity (Inspector; `data/model/demand-by-zone.json`; SOURCE_NOTES DM1–DM16), and adds no trips for any of them. Whether and how to model pickups is the maintainer's decision; this note sets out a design. The simulator is an educational comparison tool, not a prediction and not an official evacuation plan, and the same holds for everything proposed here.
+Status: option A built 2026-11-04 (Eric, 2026-11-04; `js/sim.js` `needsHelp`, the "Who may need help" panel under the outcomes; SOURCE_NOTES NH1–NH6). Options B and C are not built. Design note of 2026-11-03: The simulator reports, per evacuation zone, people 75 and older, people with an ambulatory difficulty, one-person 65+ households and licensed care, hospital and school capacity (Inspector; `data/model/demand-by-zone.json`; SOURCE_NOTES DM1–DM16), and adds no trips for any of them. Whether and how to model pickups is the maintainer's decision; this note sets out a design. The simulator is an educational comparison tool, not a prediction and not an official evacuation plan, and the same holds for everything proposed here.
 
 ## Summary
 
@@ -55,6 +55,6 @@ Each care facility, hospital or school in an ordered zone generates buses, vans 
 
 ## 4. Decisions for the maintainer
 
-1. Whether to build option A (reporting only) and which source sets specialized-transport demand (emPOWER by ZIP or the survey shares).
+1. ~~Whether to build option A and which source sets specialized-transport demand~~: built 2026-11-04, with both sources shown as a range (NH2).
 2. Whether option B becomes a plan setting, and its "today" pickup times.
 3. Whether facilities (option C) are worth the added complexity.
