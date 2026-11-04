@@ -20,9 +20,12 @@ export async function loadData(load = browserLoad) {
   const fuel40 = fuelMeta && fuelBuf ? { meta: fuelMeta, codes: new Uint8Array(fuelBuf) } : null;
   // Optional: workplaces and off-street parking (tools/workplaces.mjs), for the opt-in "by workplace" placement of non-residents.
   const workplaces = await Promise.resolve().then(() => load('data/model/workplaces.json', 'json')).catch(() => null);
+  // Optional: home-to-street walking and stair access by street segment (tools/walk-access.mjs), for the
+  // opt-in "Home-to-street access time" scenario setting and its map layer. Off by default.
+  const walk = await Promise.resolve().then(() => load('data/model/walk-access.json', 'json')).catch(() => null);
   // Optional: structures per fire cell (tools/build-structures.mjs), for exposure context and the map layer.
   const structures = await Promise.resolve().then(() => load('data/model/structures.json', 'json')).catch(() => null);
-  return prepare({ net, layers, dem, Z: new Int16Array(demBuf), A, access, signals, contraflow, demand, fuel40, workplaces, structures });
+  return prepare({ net, layers, dem, Z: new Int16Array(demBuf), A, access, signals, contraflow, demand, fuel40, workplaces, walk, structures });
 }
 
 async function browserLoad(path, kind) {

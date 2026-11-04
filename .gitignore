@@ -16,3 +16,5 @@ data/raw/egress/
 data/raw/landfire/
 # Wind downloads (tools/wind-events.mjs): Red Flag lists, WRCC pages, OAK ASOS; the summary is data/model/wind-red-flag.json.
 data/raw/wind/
+# Walk access: building footprint centroids extracted from the Microsoft tile (tools/walk-access.mjs); refetch from the URL in SOURCE_NOTES WA2.
+data/raw/walk/
