@@ -76,7 +76,7 @@ rebuild it after `tools/mitigations.mjs` or any model change.
    Evacuation Time Study's middle-housing case (870 units) or maximum ADU build-out (27,060),
    or a moderate case (2,706, an assumption). A Red Flag power shutoff (Expert view, both plans)
    turns the signals in and next to the hills, or all of them, into all-way stops. Visibility
-   (Expert view, both plans) set to poor (fog or smoke) slows every street and cuts its capacity. Weekday
+   (Expert view, both plans) set to poor (fog or smoke) lowers free-flow speed on every street by 7.5%; capacity is not cut. Weekday
    non-resident placement (Expert view, both plans) keeps the Time Study's employee, student and
    visitor vehicles per area and places them by area (default) or by workplace: LEHD LODES jobs,
    UC and Lab off-street parking (`docs/weekday-placement.md`).
