@@ -3,7 +3,7 @@
 //   2. the default member is the fire as it is: memberScenario returns the scenario itself, and a run
 //      through the member path reproduces today's run exactly (summary, fire arrival);
 //   3. member keys never collide, and distinct members never share a fire (ignition and wind);
-//   4. the pass counts of a comparison with families on (18, 27, 18, 18) and off (15);
+//   4. the pass counts of a comparison with families on (18, 36, 24, 24) and off (15);
 //   5. households, parked cars and the shared random stream depend on the seed, not the member or the plan.
 //   node tests/families.mjs
 import fs from 'node:fs';
@@ -60,7 +60,7 @@ for (const sc of scen) for (const m of familyOf(sc, data)) {
 if (keys.size !== n) fail(`keys collide: ${n - keys.size}`); else console.log(`ok   ${n} member keys, none collide; ${fires.size} members, each its own fire`);
 
 // 4. pass counts
-const want = { ref1923: 18, northHills: 27, eastWind: 18, panoramic: 18 };
+const want = { ref1923: 18, northHills: 36, eastWind: 24, panoramic: 24 }; // 0° added 2026-11-04 except on ref1923 (SOURCE_NOTES WC9)
 for (const F of FIRES) {
   const sc = scen.find(s => s.id === F.id);
   const on = comparisonCases(sc, data, { families: true, severities: M.meta.severities }), off = comparisonCases(sc, data, { families: false, severities: M.meta.severities, seeds: M.meta.seeds });

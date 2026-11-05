@@ -126,8 +126,9 @@ the current fires assume:
 - **Wind.** An earthquake can come on any day. The dry wind from the east the current fires
   assume is rare: at the Oakland North weather station, hours with wind from 0–90° and
   humidity at or below 25% were 7,340 from June 1992 to October 2026 (FF5), about 2.5% of the
-  roughly 300,000 hours in that span (derived). On an onshore day, with the wind off the Bay (the
-  share of hours to be measured from the same station record), a fire in the flats burns
+  roughly 300,000 hours in that span (derived). On an onshore day, with the wind off the Bay (63.3% of
+  hours at the same station blow from 180–320°, measured 2026-11-04: 35% in winter, 72% in spring,
+  86% in summer, 59% in fall; SOURCE_NOTES WC2, `docs/wind-climate.md`), a fire in the flats burns
   uphill, toward the hills and the people evacuating from them.
 
 So an earthquake fire is a different fire, not the current fires with streets closed. Option
@@ -149,3 +150,12 @@ station-area data, on an onshore wind as the main case and the Diablo wind as th
 
 1. Whether to share the liquefaction layer with the Bay Flood Explorer, which covers the
    same low ground.
+
+## Winds measured (2026-11-04)
+
+Built from the Oakland North record by season and hour (`docs/wind-climate.md`, SOURCE_NOTES WC1–WC9):
+the `quake` scenario now blows from 205° at HayWired's April afternoon speeds (7.0 mph easing to 5.4 mph by
+9 p.m. LST); `quakeNorthWind` is a winter day with a north wind (0°, 5.9 → 9.2 mph, mostly humid air);
+`quakeEastWind` keeps the dry 45° wind at 30 mph as the worst case. The fire model reads the wind each
+hour from a schedule (`js/fire.js` `windSegments`). The spread factor was refitted to HayWired's burned
+floor area on the spring wind: 0.27 (was 0.37 on the assumed 270° at 10 mph).

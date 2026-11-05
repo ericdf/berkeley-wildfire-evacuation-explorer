@@ -96,6 +96,13 @@ export class Evacuation {
     this.faultEdges = faultList ? new Set(faultList) : null;
     this.quake = { option: world.quake || 'none', segments: faultList ? faultList.length : 0, missing: !!(world.quake && world.quake !== 'none' && !faultList) };
     const A = data.A, net = data.net;
+    // Visibility (scenario setting, Expert view; SOURCE_NOTES VZ1–VZ6): world.visibility 'poor' (fog or smoke) multiplies
+    // free-flow speed on every street (residents' cars and fire engines) by A.visibility.poor.speedFactor and every
+    // lane, shared-lane and junction capacity (including dark signals run as all-way stops) by capacityFactor. It
+    // changes no draw; the fire is unchanged.
+    const VZ = world.visibility === 'poor' ? A.visibility?.poor : null;
+    this.visSpeed = VZ ? VZ.speedFactor : 1; this.visCap = VZ ? VZ.capacityFactor : 1;
+    this.visibility = { option: VZ ? 'poor' : 'clear', speedFactor: this.visSpeed, capacityFactor: this.visCap };
     this.rand = mulberry32(seed * 104729 + 3);
     this.t = 0; this.dt = 5; this.end = scenario.durationMin * 60;
     this.events = [];
@@ -216,17 +223,17 @@ export class Evacuation {
       const squeeze = eff === 0 ? (this.clear[e.id] < SL.crawlBelowM ? SL.crawlFactor : SL.squeezeBelowLaneFactor) : 1;
       let share = null;
       if (twoWay && narrowed) {
-        const lost = Math.min(e.len, SL.passingGapM) / e.speedMps + 3;
-        share = { cap: e.capPerLaneVph / 3600 * squeeze, eta: SL.platoonS / (SL.platoonS + lost), budget: 1, stamp: -1, links: [], used: [0, 0], both: false };
+        const lost = Math.min(e.len, SL.passingGapM) / (e.speedMps * this.visSpeed) + 3;
+        share = { cap: e.capPerLaneVph / 3600 * squeeze * this.visCap, eta: SL.platoonS / (SL.platoonS + lost), budget: 1, stamp: -1, links: [], used: [0, 0], both: false };
         this.sharedLanes++;
       }
       for (const d of [0, 1]) {
         const lanes = e.lanes[d]; if (!lanes) continue;
         const el = eff < 0 || eff >= 2 ? lanes : 1;
-        const cap = el * e.capPerLaneVph / 3600 * squeeze * (1 - (arterial ? tod.background : 0));
+        const cap = el * e.capPerLaneVph / 3600 * squeeze * (1 - (arterial ? tod.background : 0)) * this.visCap;
         const id = this.links.length;
         const L = { id, e: e.id, dir: d, from: d ? e.b : e.a, to: d ? e.a : e.b, cap, storage: Math.max(2, Math.floor(e.len * el / spacing)),
-          ff: Math.max(2, e.len / e.speedMps), len: e.len, q: [], budget: 1, share };
+          ff: Math.max(2, e.len / (e.speedMps * this.visSpeed)), len: e.len, q: [], budget: 1, share };
         // External through traffic on the freeway for the first hours after the order (Time Study Table 3-12, E35)
         const thr = A.nonResident.through[e.name];
         if (thr && cap > 0) L.through = Math.min(0.9, thr.vehicles / A.nonResident.throughHours / 3600 * ((tod.groups || {}).external ?? 0) / cap);
@@ -244,6 +251,7 @@ export class Evacuation {
       this.nodeCap[n] = A.intersections[INTERSECTION_KEY[rank[n]]] * (rank[n] === 1 || rank[n] === 2 ? A.intersections.scale ?? 1 : 1) / 3600 * (rank[n] >= 1 && rank[n] <= 2 ? 1 - tod.background : 1);
     // Traffic circles (OSM junction=roundabout): Time Study capacity about 900 veh/h per lane (E16)
     for (const n of net.meta.circleNodes || []) this.nodeCap[n] = Math.min(this.nodeCap[n], A.intersections.circleVph / 3600);
+    if (this.visCap !== 1) for (let n = 0; n < nN; n++) this.nodeCap[n] *= this.visCap; // poor visibility (Infinity stays Infinity)
     this.nodeBudget = new Float64Array(nN).fill(1);
     // Control delay at junctions with light traffic (signals, stop signs): added to the travel
     // time of every link entering a junction (assumptions intersections.delayS).
@@ -789,7 +797,7 @@ export class Evacuation {
         if (this.faultEdges?.has(eid)) continue; // cut by the fault (world.quake)
         if (!this.engineOK[eid] && !ignoreParking) continue;
         if (cfBlocked && cfBlocked[eid] >= 0 && e.a !== e.b && (n === e.a ? 0 : 1) === cfBlocked[eid]) continue;
-        let c = e.len / (e.speedMps * 1.15) + (e.barrier?.closed ? A_ACC.barrierDelayS : 0); // removable bollard or gate: crew opens it
+        let c = e.len / (e.speedMps * 1.15 * this.visSpeed) + (e.barrier?.closed ? A_ACC.barrierDelayS : 0); // removable bollard or gate: crew opens it
         if (withTraffic) {
           let onEdge = 0; for (const l of this.edgeLinks.get(eid) || []) onEdge += links[l].q.length;
           c += this.eff[eid] >= 2 || this.eff[eid] < 0 ? onEdge * 0.5 : onEdge * 6; // oncoming cars must pull over to let the engine by
@@ -898,6 +906,7 @@ export class Evacuation {
       if (W.on) this.log(`Home-to-street access time (scenario setting): ${W.delayed.toLocaleString()} of ${W.households.toLocaleString()} departing households leave later by their street's terrain walking time, on average ${(W.delaySum / Math.max(1, W.households)).toFixed(0)} s (tools/walk-access.mjs).`, 'plan');
       else if (W.stale) this.log('Home-to-street access time is set to "from terrain", but data/model/walk-access.json is missing or was built on another network; no access time is applied. Rerun node tools/walk-access.mjs.', 'warn'); }
     if (this.nrPlacement === 'workplace') this.log(`Non-resident placement by workplace (scenario setting): employees park within ${this.data.workplaces.params.walkM} m of LODES workplaces, ${Math.round(100 * this.ucParkingShare)}% of UC employee and commuting-student cars in UC parking, Lab employees in the Lab's lots; the Time Study's totals by area are unchanged.`, 'plan');
+    if (this.visibility.option === 'poor') this.log(`Poor visibility (fog or smoke): free-flow speed on every street is ${+(100 * (1 - this.visSpeed)).toFixed(1)}% lower${this.visCap < 1 ? ` and every lane and junction carries ${Math.round(100 * (1 - this.visCap))}% fewer vehicles per hour` : '; capacity is not cut'} (FHWA, SOURCE_NOTES VZ1–VZ7). The fire is not slowed.`, 'plan');
     if (this.quake.option !== 'none') this.log(this.quake.missing ? 'Hayward Fault earthquake: data/model/fault-closures.json did not load, so no street is closed; signals are still dark citywide.'
       : `Hayward Fault earthquake (${this.quake.option === 'trace' ? 'lower bound: segments crossing the mapped fault trace' : 'upper bound: segments touching the Earthquake Fault Zone'}): ${this.quake.segments.toLocaleString()} street segments are closed to through traffic and engines, and every City signal is dark.${this.scenario.kind === 'earthquake' ? '' : ' The fire is still the wildfire scenario\'s: an earthquake fire would start in buildings, several at once, on any wind (the earthquake scenarios).'}`, 'plan');
     if (this.retreat.edges) this.log(`Managed retreat (analysis setting): ${this.retreat.households.toLocaleString()} synthetic households on ${this.retreat.edges.toLocaleString()} bought-out street segments are removed${this.world.retreat.clearParking ? ', with the parked cars on those segments' : ''}.`, 'plan');
@@ -1050,6 +1059,7 @@ export class Evacuation {
         for (const [c, n] of st.structuresOther || []) { if (f.arrival[c] * 60 <= t) S.structuresOtherFireFront += n; if (f.ember[c] * 60 <= t) S.structuresOtherEmbers += n; }
         for (const [c, n] of st.housingUnits) { if (f.arrival[c] * 60 <= t) S.housingUnitsFireFront += n; if (f.ember[c] * 60 <= t) S.housingUnitsEmbers += n; }
       } }
+    if (this.visibility.option === 'poor') S.visibility = 'poor'; // absent when clear, so clear-day summaries are as before
     S.zonesOrdered = this.orderT.filter(T => T <= t).length;
     S.zonesWarned = this.warnT.filter(T => T <= t).length;
     S.t = t / 60;
