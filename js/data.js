@@ -25,7 +25,11 @@ export async function loadData(load = browserLoad) {
   const walk = await Promise.resolve().then(() => load('data/model/walk-access.json', 'json')).catch(() => null);
   // Optional: structures per fire cell (tools/build-structures.mjs), for exposure context and the map layer.
   const structures = await Promise.resolve().then(() => load('data/model/structures.json', 'json')).catch(() => null);
-  return prepare({ net, layers, dem, Z: new Int16Array(demBuf), A, access, signals, contraflow, demand, fuel40, workplaces, walk, structures });
+  // Optional: the simulator's fire-off times against the Time Study (tests/calibration.mjs) and the household-mix comparison
+  // (tools/demand-compare.mjs), shown beside the results they qualify.
+  const [calibration, demandCompare] = await Promise.all(['data/model/calibration.json', 'data/model/demand-compare.json']
+    .map(p => Promise.resolve().then(() => load(p, 'json')).catch(() => null)));
+  return prepare({ net, layers, dem, Z: new Int16Array(demBuf), A, access, signals, contraflow, demand, fuel40, workplaces, walk, structures, calibration, demandCompare });
 }
 
 async function browserLoad(path, kind) {
