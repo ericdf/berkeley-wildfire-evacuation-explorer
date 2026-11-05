@@ -95,12 +95,12 @@ if (argv[0] === '--worker') {
       for (const T of track) {
         let people = 0, front = 0, ember = 0, erTot = 0, erNot = 0;
         for (let h = 0; h < hh.n; h++) {
-          const eid = hh.edge[h]; if (!T.set.has(eid)) continue; people += pph;
-          if (String(edges[eid].evacZone || '').startsWith('BER') && edges[eid].fireZone >= 2) { erTot += pph; if (!(reach0[eid] <= lim)) erNot += pph; }
+          const eid = hh.edge[h]; if (!T.set.has(eid)) continue; const wh = sim.hhPersons ? sim.hhPersons[h] : pph; people += wh; // zone persons per household (DM18)
+          if (String(edges[eid].evacZone || '').startsWith('BER') && edges[eid].fireZone >= 2) { erTot += wh; if (!(reach0[eid] <= lim)) erNot += wh; }
           if (hh.early[h]) continue;
           const e = hh.ride[h] >= 0 ? hh.ride[h] : h, tf = sim.tFire[eid], te = sim.tEmber[eid];
-          if (tf <= t && hh.leftHome[e] > tf) front += pph;
-          if (te <= t && hh.leftHome[e] > te) ember += pph;
+          if (tf <= t && hh.leftHome[e] > tf) front += wh;
+          if (te <= t && hh.leftHome[e] > te) ember += wh;
         }
         let vFront = 0, noRoute = 0, notOut = 0, n0 = 0; const times = [];
         T.veh.forEach((i, k) => {
