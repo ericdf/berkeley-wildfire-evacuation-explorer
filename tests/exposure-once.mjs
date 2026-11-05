@@ -20,20 +20,22 @@ for (const [id, sev, seed] of CASES) {
   const S = sim.runToEnd(), { hh, v, t } = sim;
   const carE = new Uint8Array(hh.n), carF = new Uint8Array(hh.n); let nrE = 0, nrF = 0, dHH = 0, dVeh = 0;
   for (let i = 0; i < v.n; i++) { const h = v.hh[i]; if (v.exposed[i]) h < 0 ? nrE++ : carE[h] = 1; if (v.fireFront[i]) h < 0 ? nrF++ : carF[h] = 1; }
-  let hE = 0, hF = 0;
+  // persons per household: each zone's under the default household mix by place (sim.hhPersons), else the citywide value
+  const P = sim.hhPersons, w = h => P ? P[h] : pph;
+  let hE = 0, hF = 0, dPer = 0;
+  const parts = [0, 0, 0, 0, 0]; for (let h = 0; h < hh.n; h++) parts[sim.exposedWhere[h]] += w(h);
   for (let h = 0; h < hh.n; h++) {
     if (hh.gone[h]) continue;
-    if (hh.veh[h]) { dHH++; dVeh += hh.veh[h]; }
+    if (hh.veh[h]) { dHH++; dVeh += hh.veh[h]; dPer += w(h); }
     if (hh.early[h]) continue;
     const e = hh.ride[h] >= 0 ? hh.ride[h] : h, te = sim.tEmber[hh.edge[h]], tf = sim.tFire[hh.edge[h]];
-    if ((te <= t && hh.leftHome[e] > te) || carE[h] || carE[e]) hE++;
-    if ((tf <= t && hh.leftHome[e] > tf) || carF[h] || carF[e]) hF++;
+    if ((te <= t && hh.leftHome[e] > te) || carE[h] || carE[e]) hE += w(h);
+    if ((tf <= t && hh.leftHome[e] > tf) || carF[h] || carF[e]) hF += w(h);
   }
-  const perCar = pph / Math.max(1, dVeh / Math.max(1, dHH));
-  const wantE = hE * pph + nrE * perCar, wantF = hF * pph + nrF * perCar;
+  const perCar = P ? (dVeh ? dPer / dVeh : pph) : pph / Math.max(1, dVeh / Math.max(1, dHH));
+  const wantE = hE + nrE * perCar, wantF = hF + nrF * perCar;
   const gotE = S.exposedHome + S.exposedRoad + S.exposedNoVehicle + S.notOrderedExposed, gotF = S.fireFrontHome + S.fireFrontRoad;
-  const parts = [0, 0, 0, 0, 0]; for (let h = 0; h < hh.n; h++) parts[sim.exposedWhere[h]]++;
-  const partsOk = Math.abs(parts[1] * pph - S.exposedHome) < 1e-6 && Math.abs(parts[3] * pph - S.exposedNoVehicle) < 1e-6 && Math.abs(parts[4] * pph - S.notOrderedExposed) < 1e-6 && Math.abs(parts[2] * pph + nrE * perCar - S.exposedRoad) < 1e-6;
+  const partsOk = Math.abs(parts[1] - S.exposedHome) < 1e-6 && Math.abs(parts[3] - S.exposedNoVehicle) < 1e-6 && Math.abs(parts[4] - S.notOrderedExposed) < 1e-6 && Math.abs(parts[2] + nrE * perCar - S.exposedRoad) < 1e-6;
   const ok = Math.abs(gotE - wantE) < 1e-6 && Math.abs(gotF - wantF) < 1e-6 && partsOk;
   if (!ok) bad++;
   console.log(`${ok ? 'ok  ' : 'FAIL'} ${id} ${sev} seed ${seed}: embers ${gotE.toFixed(1)} (distinct people ${wantE.toFixed(1)}; home ${S.exposedHome.toFixed(0)}, road ${S.exposedRoad.toFixed(0)}, no car ${S.exposedNoVehicle.toFixed(0)}, no order ${S.notOrderedExposed.toFixed(0)}), fire front ${gotF.toFixed(1)} (distinct ${wantF.toFixed(1)})`);
