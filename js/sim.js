@@ -1042,12 +1042,15 @@ export class Evacuation {
 export function needsHelp(sim, t) {
   const Z = sim.data.demand?.zones, A = sim.data.A.needsHelp; if (!Z || !A) return null;
   const zones = sim.data.layers.evacZones, hh = sim.hh, nz = zones.length, T = A.pickupMin;
-  const tot = new Float64Array(nz), reached = { facilities: new Float64Array(nz), transitDependent: new Float64Array(nz) };
+  // all: every placed household, bought out or not (facilities stay where they are); kept: households a
+  // buyout leaves (residents). Resident counts scale by kept/all, so bought-out residents are not moved onto others.
+  const all = new Float64Array(nz), kept = new Float64Array(nz);
+  const reachedAll = { facilities: new Float64Array(nz), transitDependent: new Float64Array(nz) }, reached = { facilities: new Float64Array(nz), transitDependent: new Float64Array(nz) };
   for (let h = 0; h < hh.n; h++) {
-    if (hh.gone[h]) continue;
     const z = hh.zone[h], T0 = Math.min(sim.orderT[z], sim.warnT[z]); if (T0 === Infinity) continue;
-    tot[z]++; const te = sim.tEmber[hh.edge[h]]; if (te > t) continue;
-    for (const k in reached) if (te < T0 + T[k] * 60) reached[k][z]++;
+    all[z]++; if (!hh.gone[h]) kept[z]++;
+    const te = sim.tEmber[hh.edge[h]]; if (te > t) continue;
+    for (const k in reached) if (te < T0 + T[k] * 60) { reachedAll[k][z]++; if (!hh.gone[h]) reached[k][z]++; }
   }
   const blank = () => ({ value: 0, range: [0, 0] });
   const G = { age75: { inZones: blank() }, ambulatory: { inZones: blank() }, specialized: { inZones: blank() }, facilityBeds: { inZones: blank() } };
@@ -1055,7 +1058,7 @@ export function needsHelp(sim, t) {
   let zonesTold = 0, zonesUsed = 0;
   const add = (o, v, lo, hi, f) => { o.value += v * f; o.range[0] += lo * f; o.range[1] += hi * f; };
   for (let z = 0; z < nz; z++) {
-    if (!tot[z]) continue; zonesTold++;
+    if (!kept[z]) continue; zonesTold++;
     const d = Z[zones[z].id]; if (!d?.usable) continue; zonesUsed++;
     const pop = d.popModeled ?? zones[z].popModeled ?? zones[z].pop ?? 0, I = d.implied || {}, F = d.facilities || {};
     const beds = A.facilityTypes.reduce((s, k) => s + (F[k] ? F[k].capacity ?? F[k].beds ?? 0 : 0), 0);
@@ -1067,8 +1070,9 @@ export function needsHelp(sim, t) {
     };
     for (const [g, v] of Object.entries(vals)) {
       if (!v) continue;
-      add(G[g].inZones, ...v, 1);
-      for (const k in reached) add(G[g][k], ...v, reached[k][z] / tot[z]);
+      const fac = g === 'facilityBeds';
+      add(G[g].inZones, ...v, fac ? 1 : kept[z] / all[z]);
+      for (const k in reached) add(G[g][k], ...v, (fac ? reachedAll : reached)[k][z] / all[z]);
     }
   }
   for (const g of Object.values(G)) for (const o of Object.values(g)) { o.value = Math.round(o.value); o.range = o.range.map(Math.round); }
