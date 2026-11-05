@@ -11,8 +11,8 @@
   ],
   "rule": "SOURCE_NOTES P19: Plan B better on the headline in every pair and a central median change of 5% or more; a missing 90% time fails",
   "runs": 540,
-  "wallMin": 15.6,
-  "workers": 4
+  "wallMin": 17.1,
+  "workers": 3
  },
  "questions": {
   "leaveEarly": {
@@ -414,7 +414,7 @@
     "pairs": 15,
     "centralChange": -0.07,
     "offered": true,
-    "offeredNow": false,
+    "offeredNow": true,
     "medians": {
      "A": {
       "headline": 97.58333333333333,
