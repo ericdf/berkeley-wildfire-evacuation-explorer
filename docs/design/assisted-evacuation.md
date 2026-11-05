@@ -1,6 +1,6 @@
 # Assisted evacuation: design note
 
-Status: design note, 2026-11-03. Nothing here is built. The simulator reports, per evacuation zone, people 75 and older, people with an ambulatory difficulty, one-person 65+ households and licensed care, hospital and school capacity (Inspector; `data/model/demand-by-zone.json`; SOURCE_NOTES DM1–DM16), and adds no trips for any of them. Whether and how to model pickups is the maintainer's decision; this note sets out a design. The simulator is an educational comparison tool, not a prediction and not an official evacuation plan, and the same holds for everything proposed here.
+Status: option A built 2026-11-04 (Eric, 2026-11-04; `js/sim.js` `needsHelp`, the "Who may need help" panel under the outcomes; SOURCE_NOTES NH1–NH6). Options B and C are not built. Design note of 2026-11-03: The simulator reports, per evacuation zone, people 75 and older, people with an ambulatory difficulty, one-person 65+ households and licensed care, hospital and school capacity (Inspector; `data/model/demand-by-zone.json`; SOURCE_NOTES DM1–DM16), and adds no trips for any of them. Whether and how to model pickups is the maintainer's decision; this note sets out a design. The simulator is an educational comparison tool, not a prediction and not an official evacuation plan, and the same holds for everything proposed here.
 
 ## Summary
 
@@ -14,7 +14,7 @@ Status: design note, 2026-11-03. Nothing here is built. The simulator reports, p
 | Step | Today | Category |
 |---|---|---|
 | Who needs help | Nobody. Age and disability are not used. | — |
-| Getting to the car | Instant; stairs and walking time are not modeled | model rule |
+| Getting to the car | Instant by default; the opt-in home-to-street access setting adds the terrain's walking time at central speeds, not reduced-mobility ones (`docs/walk-access.md`) | model rule; derived when on |
 | Mobilization | Survey histograms by household type (Time Study Table 5-9) | sourced |
 | Carless households | 86.9% ride with a neighbor on the same street; the rest are stranded and counted as at risk | sourced (survey) |
 | Facilities | Not modeled; their residents are in the zone population | — |
@@ -50,11 +50,11 @@ Each care facility, hospital or school in an ordered zone generates buses, vans 
 
 - No public source gives the number of residents who need a pickup by evacuation zone. emPOWER is by ZIP and covers Medicare beneficiaries only; the ACS ambulatory-difficulty table is by tract and counts a difficulty, not a need for help.
 - Licensed capacity is not occupancy. Facilities with six or fewer residents (most RCFEs and ARFs) the Time Study assumed would leave in staff cars (§3.5, footnote 13).
-- Stairs between homes and streets, which decide how long reaching a car takes on many hill lots, are not in the model at all (DATA_INVENTORY "Missing inputs").
+- Which homes have stairs from the street is lot-level and not public. `docs/walk-access.md` estimates door-to-curb rise and distance from building footprints and the lidar DEM, and reports reduced-mobility times the simulator does not apply (DATA_INVENTORY "Missing inputs").
 - The City's registry of residents needing help (if one exists), the AC Transit and paratransit fleets available, and mutual-aid ambulance arrival times are not public.
 
 ## 4. Decisions for the maintainer
 
-1. Whether to build option A (reporting only) and which source sets specialized-transport demand (emPOWER by ZIP or the survey shares).
+1. ~~Whether to build option A and which source sets specialized-transport demand~~: built 2026-11-04, with both sources shown as a range (NH2).
 2. Whether option B becomes a plan setting, and its "today" pickup times.
 3. Whether facilities (option C) are worth the added complexity.

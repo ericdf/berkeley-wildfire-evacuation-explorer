@@ -181,6 +181,7 @@ const searchSeeds = ADD ? [...MERGE.meta.searchSeeds, ...ADD_SEARCH] : KEEP ? ME
 const holdoutSeeds = ADD ? [...MERGE.meta.holdoutSeeds, ...ADD_HOLD] : KEEP ? MERGE.meta.holdoutSeeds : HOLD;
 const byRun = new Map(results.map(x => [`${x.fire}|${x.key}|${x.sev}|${x.seed}`, x.m]));
 const firesOut = MERGE ? Object.fromEntries(Object.entries(MERGE.fires).filter(([f]) => ONLY || !runFires.includes(f))) : {};
+const keptOldFires = Object.keys(firesOut).length; // saved fires carried over unchanged
 for (const fire of runFires) {
   const runs = ONLY ? { ...MERGE.fires[fire].runs } : {};
   for (const c of plan[fire].combos) runs[c.key] = [...(ADD ? MERGE.fires[fire].runs[c.key] : []), ...newCases.map(k => byRun.get(`${fire}|${c.key}|${k}`) ?? null)];
@@ -212,6 +213,10 @@ const meta = {
   check: { checked, agree },
   mitigationsBuilt: M.meta.built,
   fireModel: FIRE_MODEL, // with --merge, the fires kept from the saved output ran on MERGE.meta.fireModel; rebuild every fire after a model change
+  // The household mix the runs used (js/goal.js shows the table only on today's default, SOURCE_NOTES DM18).
+  // A merge that keeps runs from another mix is 'mixed'.
+  householdMix: (() => { const now = fs.existsSync(path.join(R, 'data/model/demand-by-zone.json')) ? 'place' : 'citywide';
+    return MERGE && (ONLY || ADD || keptOldFires) && (MERGE.meta.householdMix || 'citywide') !== now ? 'mixed' : now; })(),
 };
 fs.writeFileSync(OUT, JSON.stringify({ meta, fires: firesOut }));
 console.log(`wrote ${path.relative(R, OUT)} (${(fs.statSync(OUT).size / 1024).toFixed(0)} KB), ${total} runs in ${wallMin} min`);

@@ -13,7 +13,7 @@ For official information see the City's
 
 The design brief is `specification.md`. Every insight taken from a document (the City's 2025 Evacuation Time Study, SB 99 and AB 747 reports, StoryMap and others), with page references and what we did with it, is in `SOURCE_NOTES.md`. What is still missing is listed in `DATA_INVENTORY.md`; problems found in other publishers' data, and whether they have been told, in `ISSUES.md`; where the project stands and what comes next, in `HANDOFF.md`. Design notes for work in progress are in `docs/design/`, and reports from finished analyses in `docs/`.
 
-**Where it stands (2026-11-04).** The spec's Phase 1 (map, traffic and an illustrative fire on Berkeley's streets) is built, and most of Phase 2: interventions with costs, comparisons over many runs, and the Guided view's three tabs. Phase 3 (evidence-backed Berkeley inputs) is under way (`docs/design/phase-3.md`): City building footprints give the structures the fire reaches and an assumption range for those lost; LANDFIRE fuels and ACS household mix are opt-in settings; enforcement of posted no-parking signs and daylighting is a plan setting. Structures do not yet change how the fire spreads, and home hardening is not modeled (`docs/design/structure-spread.md`).
+**Where it stands (2026-11-04).** The spec's Phase 1 (map, traffic and an illustrative fire on Berkeley's streets) is built, and most of Phase 2: interventions with costs, comparisons over many runs, and the Guided view's three tabs. Phase 3 (evidence-backed Berkeley inputs) is under way (`docs/design/phase-3.md`): City building footprints give the structures the fire reaches and an assumption range for those lost; LANDFIRE fuels are an opt-in setting; each zone's ACS persons per household and share of households without a vehicle are the default; enforcement of posted no-parking signs and daylighting is a plan setting. Structures do not yet change how the fire spreads, and home hardening is not modeled (`docs/design/structure-spread.md`).
 
 ## Run it
 
@@ -124,8 +124,13 @@ rebuild it after `tools/mitigations.mjs` or any model change.
 - **Clearance** is reported at 50%, 90% and 100% of evacuating vehicles, plus the time
   the last household with a car reaches safety. No single average is shown.
 - **No vehicle and no ride: not moved.** Households without a car that find no neighbor to
-  ride with stay put and are counted as at risk. Transport assistance is designed, not built
-  (`docs/design/assisted-evacuation.md`).
+  ride with stay put and are counted as at risk. Pickups are not simulated. A "Who may need
+  help" panel under the outcomes reports people who may need a wheelchair van or ambulance (a
+  range between the City's emPOWER count and the Time Study survey's share), people with an
+  ambulatory difficulty, people 75 and older and licensed care and hospital beds in the zones a
+  run orders or warns, and how many of them live on streets embers reached within the Time
+  Study's 90- and 180-minute pickup times. It adds no trips (`docs/design/assisted-evacuation.md`
+  option A; SOURCE_NOTES NH1–NH6; `node tools/needs-help-report.mjs`).
 - **Fire-engine travel** is responder ingress, which is modeled separately from resident
   egress. "Blocked by parked cars" means no route to the fire edge has an engine's width
   of clear road under that plan's parking rules.
@@ -281,13 +286,16 @@ about 29% of it and access-constrained areas about 11% (areas from
 `data/model/access-constraints.json`, written by `tools/access-constraints.mjs`; the option
 stays disabled until that file exists). Parked cars do not increase with growth.
 
-**Household mix by place (Expert view, off by default).** The default gives every zone the
-Time Study's 2.37 persons per household and 7.47% of households without a vehicle. The
-Scenario setting "Household mix: by place (ACS 2020–2024)" replaces both, zone by zone, with
-ACS block-group values allocated to the zone through 2020 Census blocks
-(`tools/build-demand.mjs`, `data/model/demand-by-zone.json`; SOURCE_NOTES DM1–DM9). The two
-sources disagree: the ACS puts about 20% of Berkeley households without a vehicle, the
-study's survey 7.47% (DM3); which to use is open. Draws follow the same pattern under both
+**Household mix by place (the default since 2026-11-04).** Each zone gets its own persons per
+household and share of households without a vehicle from ACS 2020–2024 block-group values
+allocated to the zone through 2020 Census blocks (`tools/build-demand.mjs`,
+`data/model/demand-by-zone.json`; SOURCE_NOTES DM1–DM9); zones without ACS households keep the
+Time Study's 2.37 persons and 7.47%. The two sources disagree: the ACS puts about 20% of
+Berkeley households without a vehicle, the study's survey 7.47% (DM3). Eric chose the ACS on
+2026-11-04 (DM18): it is the census measure, with published margins of error, and it shows
+where carless households live; the survey is self-selected. The Expert setting "Household mix:
+citywide" restores the study's values everywhere, and `tests/calibration.mjs` uses them,
+because the study's runs did. Draws follow the same pattern under both
 settings, so both plans still see the same households. The Inspector also shows each zone's
 people 75 and older, people with an ambulatory difficulty, one-person 65+ households and
 licensed care, hospital and school capacity, and a map layer shades the share 75+; none of
@@ -409,7 +417,8 @@ flow.
 | `data/model/structures.json` | Structures per 30 m fire cell: City footprints in Fire Zones 2–3 and OpenStreetMap outlines elsewhere, each with the measured gap to the nearest building, plus 2020 Census housing units, built by `tools/build-structures.mjs` (run `tools/fetch-osm-buildings.mjs` first). Counts only, no footprints. Used for the exposure row in results and the Structures map layer; the simulator runs without it |
 | `data/model/fire-validation.json`, `data/model/wind-red-flag.json` | Fire overlay checks against 1923, 1991, ember zones and Red Flag winds, built by `tools/fire-validation.mjs` and `tools/wind-events.mjs`; report `docs/fire-validation.md` |
 | `data/terrain/fbfm40.u8`, `fbfm40.json` | LANDFIRE 2025 fuel models on the fire grid, built by `tools/fetch-fuel.mjs` (opt-in Fuel setting) |
-| `data/model/demand-by-zone.json`, `data/model/workplaces.json` | ACS household mix by zone (`tools/build-demand.mjs`) and workplaces and off-street parking (`tools/workplaces.mjs`), for the opt-in Household mix and placement settings |
+| `data/model/calibration.json`, `data/model/simple-questions.json` | The simulator's fire-off times against the Time Study, written by `tests/calibration.mjs` and shown beside the study's times; the Guided-view question check, written by `tools/simple-questions.mjs` (SOURCE_NOTES UL1, DM18) |
+| `data/model/demand-by-zone.json`, `data/model/workplaces.json` | ACS household mix by zone (`tools/build-demand.mjs`) and workplaces and off-street parking (`tools/workplaces.mjs`), for the Household mix (by place is the default) and the opt-in placement setting |
 | `data/model/mitigations-landfire.json`, `docs/mitigations-landfire.md` | The mitigation runs with LANDFIRE fuel (`node tools/mitigations.mjs --fuel landfire`), the test behind keeping the proxy fuel as the default (SOURCE_NOTES PH28) |
 | `data/model/retreat.json` | Built by `tools/retreat-sim.mjs` (managed retreat: block ranking, buyout runs, costs); its report is `docs/managed-retreat.md` |
 | `data/terrain/dem.i16`, `dem.json` | Elevation grid, built by `tools/fetch-dem.mjs` |
@@ -483,7 +492,7 @@ by the simulator at load time. Scenario presets, severities and time-of-day valu
   range applied afterwards, for the fire front only. No home-hardening or vegetation settings
   (`docs/design/structure-spread.md`).
 - Stair and path access time is an opt-in setting (`docs/walk-access.md`). Households without a
-  car or a ride are not moved: assisted evacuation is designed, not built.
+  car or a ride are not moved: pickups are not simulated, and who may need help is reported only.
 - Employees, students, visitors and I-80 and CA-24 through traffic come from the Time Study's tables,
   but where they park is approximated by area. Signals and stop signs are not modeled one by
   one: every junction has a typical delay and a capacity by road class. Panoramic Hill matches
