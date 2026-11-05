@@ -66,7 +66,7 @@ if (argv[0] === '--worker') {
     // drive home through outbound traffic is still simulated. Codex review on PR #15.
     if (mob === 'urgent') { A = structuredClone(base.A); for (const k2 of Object.keys(A.demand.mobilization15min)) A.demand.mobilization15min[k2] = URGENT_HIST.slice(); A.demand.returnDriveMin = [0, 0]; }
     const net = withLinks(base.net, base.A, elev, spec);
-    const d = prepare({ net, layers: base.layers, dem: base.dem, Z: base.Z, A });
+    const d = prepare({ ...base, net, A }); // every optional table, so the default household mix (data.demand) applies
     d.linkEdgeIds = spec.links.length ? [net.edges.length - 1] : spec.open.filter(id => !VARIANT_OPEN[variant].includes(id));
     dataMemo.set(k, d); return d;
   };

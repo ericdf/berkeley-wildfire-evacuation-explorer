@@ -156,7 +156,7 @@ if (argv[0] === '--worker') {
   const dataFor = L => {
     if (!L.link) return base;
     if (!dataMemo.has(L.id)) { const c = L.link; const spec = c.open ? { open: c.open, links: [] } : { open: [], links: [{ id: c.id, a: c.a, b: c.b, geom: c.geom, fireZone: c.fireZone }] };
-      const net = withLinks(base.net, base.A, elev, spec); dataMemo.set(L.id, prepare({ net, layers: base.layers, dem: base.dem, Z: base.Z, A: base.A })); }
+      const net = withLinks(base.net, base.A, elev, spec); dataMemo.set(L.id, prepare({ ...base, net })); } // every optional table, as js/levers.js dataFor (the household mix needs data.demand)
     return dataMemo.get(L.id);
   };
   // Edge copies (tools/widening-sim.mjs variantEdges)
