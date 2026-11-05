@@ -121,8 +121,13 @@ rebuild it after `tools/mitigations.mjs` or any model change.
 - **Clearance** is reported at 50%, 90% and 100% of evacuating vehicles, plus the time
   the last household with a car reaches safety. No single average is shown.
 - **No vehicle and no ride: not moved.** Households without a car that find no neighbor to
-  ride with stay put and are counted as at risk. Transport assistance is designed, not built
-  (`docs/design/assisted-evacuation.md`).
+  ride with stay put and are counted as at risk. Pickups are not simulated. A "Who may need
+  help" panel under the outcomes reports people who may need a wheelchair van or ambulance (a
+  range between the City's emPOWER count and the Time Study survey's share), people with an
+  ambulatory difficulty, people 75 and older and licensed care and hospital beds in the zones a
+  run orders or warns, and how many of them live on streets embers reached within the Time
+  Study's 90- and 180-minute pickup times. It adds no trips (`docs/design/assisted-evacuation.md`
+  option A; SOURCE_NOTES NH1–NH6; `node tools/needs-help-report.mjs`).
 - **Fire-engine travel** is responder ingress, which is modeled separately from resident
   egress. "Blocked by parked cars" means no route to the fire edge has an engine's width
   of clear road under that plan's parking rules.
@@ -456,7 +461,7 @@ by the simulator at load time. Scenario presets, severities and time-of-day valu
   range applied afterwards, for the fire front only. No home-hardening or vegetation settings
   (`docs/design/structure-spread.md`).
 - Stair and path access time is an opt-in setting (`docs/walk-access.md`). Households without a
-  car or a ride are not moved: assisted evacuation is designed, not built.
+  car or a ride are not moved: pickups are not simulated, and who may need help is reported only.
 - Employees, students, visitors and I-80 and CA-24 through traffic come from the Time Study's tables,
   but where they park is approximated by area. Signals and stop signs are not modeled one by
   one: every junction has a typical delay and a capacity by road class. Panoramic Hill matches
