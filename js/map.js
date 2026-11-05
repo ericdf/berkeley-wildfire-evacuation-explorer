@@ -498,7 +498,7 @@ export class MapView {
     if (r.pinch) { ctx.strokeStyle = '#c0262d'; ctx.lineWidth = 6; for (const eid of r.pinch) { ctx.beginPath(); this.path(this.data.net.edges[eid].geom); ctx.stroke(); } }
   }
   // Fire families: a small circle at each starting point a comparison tries, with a short line toward
-  // where each family wind comes from (30°, 45°, 60°). No picker: the watched run stays the fire as it is.
+  // where each family wind comes from (0°, 30°, 45°, 60°). No picker: the watched run stays the fire as it is.
   drawFamily() {
     const { ctx } = this; if (!this.family.length) return;
     ctx.save();
@@ -519,12 +519,14 @@ export class MapView {
       ctx.beginPath(); ctx.moveTo(PX, PY - 11); ctx.lineTo(PX + 7, PY + 6); ctx.lineTo(PX - 7, PY + 6); ctx.closePath(); ctx.fill(); ctx.stroke();
     }
     // wind arrow
-    const to = ((this.sim.scenario.windFrom + 180) % 360) * Math.PI / 180, L = 40;
+    // The wind in force at the run's current time (a scenario wind schedule changes it; js/fire.js windSegments).
+    const sc = this.sim.scenario, now = (sc.windSchedule || []).filter(w => w.fromMin * 60 <= this.sim.t).pop() || sc;
+    const to = ((now.windFrom + 180) % 360) * Math.PI / 180, L = 40;
     ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2; ctx.beginPath();
     const x1 = X - Math.sin(to) * L - 20, y1 = Y + Math.cos(to) * L, x2 = X - 20, y2 = Y;
     ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
     ctx.beginPath(); ctx.arc(x2, y2, 3, 0, 7); ctx.fillStyle = '#0f172a'; ctx.fill();
-    ctx.font = '11px system-ui, sans-serif'; ctx.fillText(`wind ${this.sim.scenario.windMph} mph`, x1, y1 - 4);
+    ctx.font = '11px system-ui, sans-serif'; ctx.fillText(`wind ${now.windMph} mph`, x1, y1 - 4);
   }
   drawSelection() {
     const { ctx, selected } = this; if (!selected) return;

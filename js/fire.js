@@ -110,6 +110,21 @@ export function lengthToBreadth(wind20ftMph) {
   return Math.min(LB_MAX, 0.936 * Math.exp(0.2566 * U) + 0.461 * Math.exp(-0.1548 * U) - 0.397);
 }
 
+// The run's wind as segments { from, windFrom, windMph, windTo, dwx, dwy, wind, LB, ecc }. Without
+// sc.windSchedule there is one segment from minute 0 with sc.windFrom and sc.windMph. A schedule's entries are
+// { fromMin, windFrom, windMph }; the first must start at minute 0.
+export function windSegments(sc, sev) {
+  const list = sc.windSchedule?.length ? sc.windSchedule : [{ fromMin: 0, windFrom: sc.windFrom, windMph: sc.windMph }];
+  if (list[0].fromMin !== 0) throw new Error('windSchedule must start at fromMin 0');
+  return list.map((w, k) => {
+    if (k && w.fromMin <= list[k - 1].fromMin) throw new Error('windSchedule must be sorted by fromMin');
+    const windTo = ((w.windFrom + 180) % 360) * Math.PI / 180; // compass bearing the wind blows toward
+    const wind = w.windMph * sev.windFactor, LB = lengthToBreadth(wind);
+    // unit downwind vector (x east, y north)
+    return { from: w.fromMin, windFrom: w.windFrom, windMph: w.windMph, windTo, dwx: Math.sin(windTo), dwy: Math.cos(windTo), wind, LB, ecc: Math.sqrt(1 - 1 / (LB * LB)) };
+  });
+}
+
 // Run the overlay. Returns arrival and ember-exposure times in minutes (Infinity = never).
 export function runFire(grid, sc, sev, seed) {
   const { W, H, elev, fuel } = grid;
@@ -121,11 +136,12 @@ export function runFire(grid, sc, sev, seed) {
   // from its own stream, so the spread and spot-fire draws below stay as they were; js/scenarios.js quakeIgnitions).
   const starts = typeof sc.ignitions === 'function' ? sc.ignitions(seed) : sc.ignitions ?? [sc.ignition];
   const cellAt = p => Math.min(H - 1, Math.max(0, Math.floor(p[1] / CELL))) * W + Math.min(W - 1, Math.max(0, Math.floor(p[0] / CELL)));
-  const windTo = ((sc.windFrom + 180) % 360) * Math.PI / 180; // compass bearing the wind blows toward
-  const dwx = Math.sin(windTo), dwy = Math.cos(windTo);       // unit downwind vector (x east, y north)
-  const wind = sc.windMph * sev.windFactor;
-  const LB = lengthToBreadth(wind);
-  const ecc = Math.sqrt(1 - 1 / (LB * LB));
+  // Wind: one direction and speed (sc.windFrom, sc.windMph), or a schedule that changes during the run
+  // (sc.windSchedule, a list of { fromMin, windFrom, windMph } sorted by fromMin; windSegments below). Each
+  // crossing, spot throw and ember reach uses the wind in force when it starts.
+  const segs = windSegments(sc, sev);
+  const seg0 = segs[0];
+  const segAt = t => { let k = 0; while (k + 1 < segs.length && t >= segs[k + 1].from) k++; return k; };
   const ros = sev.rosMpm * (sc.rosFactor ?? 1);
   const stop = sc.durationMin;
   const T1 = sev.slowAfterMin ?? Infinity, k1 = sev.slowFactor ?? 1, ks = sev.slowSpotFactor ?? 1;
@@ -146,23 +162,35 @@ export function runFire(grid, sc, sev, seed) {
     const [t, i] = heap.pop();
     if (t > arrival[i] || t > stop) continue;
     const c = i % W, r = (i / W) | 0;
+    // With a schedule the search stays a valid shortest-time search because a burning cell keeps burning: a
+    // crossing may start at t or at any later wind change, so each neighbor is offered the earliest of those
+    // starts (ki = the segment in force at t, then each later segment from its first minute). A later start can
+    // then never undercut an earlier one, which is the property Dijkstra needs; without the extra starts a wind
+    // shift toward a neighbor could leave it with an arrival later than the fire could really reach it.
+    // Without a schedule there is one segment and only the start at t, as before.
+    const ki = segAt(t);
     for (const [dc, dr] of NB) {
       const cc = c + dc, rr = r + dr;
       if (cc < 0 || rr < 0 || cc >= W || rr >= H) continue;
       const j = rr * W + cc;
       if (!allowed[j]) continue;
       const d = Math.hypot(dc, dr) * CELL;
-      const cosT = (dc * dwx + dr * dwy) / Math.hypot(dc, dr);
-      const windF = (1 - ecc) / (1 - ecc * cosT);
       const tan = (elev[j] - elev[i]) / d;
       const slopeF = tan > 0 ? 1 + 5 * tan * tan : Math.max(0.7, 1 - 0.4 * -tan);
       const f = (fuel[i] + fuel[j]) / 2;
-      const rate = ros * windF * slopeF * f;
-      if (rate <= 0) continue;
-      const tj = t + crossTime(t, d, rate, T1, k1);
-      if (tj < arrival[j]) { arrival[j] = tj; heap.push(tj, j); }
+      for (let k = ki; k < segs.length; k++) {
+        const S = segs[k], t0 = k === ki ? t : S.from;
+        if (t0 > stop || t0 >= arrival[j]) break;
+        const cosT = (dc * S.dwx + dr * S.dwy) / Math.hypot(dc, dr);
+        const windF = (1 - S.ecc) / (1 - S.ecc * cosT);
+        const rate = ros * windF * slopeF * f;
+        if (rate <= 0) break;
+        const tj = t0 + crossTime(t0, d, rate, T1, k1);
+        if (tj < arrival[j]) { arrival[j] = tj; heap.push(tj, j); }
+      }
     }
     // spotting from hill / wildland cells
+    const { windTo, wind } = segs[ki];
     if (spot[i] >= 0.7 && rand() < sev.spotProb * (t > T1 ? ks : 1)) {
       const dist = sev.emberM * Math.sqrt(rand());
       const ang = windTo + normal(rand) * 0.26;
@@ -178,24 +206,32 @@ export function runFire(grid, sc, sev, seed) {
   }
   for (let i = 0; i < N; i++) if (arrival[i] > stop) arrival[i] = Infinity;
 
-  // Ember exposure: min arrival over sample points upwind within the ember distance.
+  // Ember exposure: min arrival over sample points upwind within the ember distance. With a schedule, each
+  // wind segment [from, until) has its own upwind direction; a cell burning at time a throws embers along a
+  // segment's direction from max(a, from) on, if it was burning before the segment ended.
   const ember = new Float32Array(N).fill(Infinity);
-  const steps = [];
-  for (let d = CELL * 2; d <= sev.emberM; d += CELL * 3) for (const lat of [-0.2, 0, 0.2])
-    steps.push([Math.round((-dwx * d + dwy * lat * d) / CELL), Math.round((-dwy * d - dwx * lat * d) / CELL)]);
-  for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) {
-    const i = r * W + c;
-    if (elev[i] < 0.5) continue;
-    let m = arrival[i];
-    for (const [dc, dr] of steps) {
-      const cc = c + dc, rr = r + dr;
-      if (cc < 0 || rr < 0 || cc >= W || rr >= H) continue;
-      const a = arrival[rr * W + cc];
-      if (a + 1 < m) m = a + 1;
+  segs.forEach((S, k) => {
+    const until = k + 1 < segs.length ? segs[k + 1].from : Infinity;
+    if (S.from > stop) return;
+    const steps = [];
+    for (let d = CELL * 2; d <= sev.emberM; d += CELL * 3) for (const lat of [-0.2, 0, 0.2])
+      steps.push([Math.round((-S.dwx * d + S.dwy * lat * d) / CELL), Math.round((-S.dwy * d - S.dwx * lat * d) / CELL)]);
+    for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) {
+      const i = r * W + c;
+      if (elev[i] < 0.5) continue;
+      let m = k === 0 ? arrival[i] : ember[i];
+      for (const [dc, dr] of steps) {
+        const cc = c + dc, rr = r + dr;
+        if (cc < 0 || rr < 0 || cc >= W || rr >= H) continue;
+        const a = arrival[rr * W + cc];
+        if (a >= until) continue;
+        const e = (a > S.from ? a : S.from) + 1;
+        if (e < m) m = e;
+      }
+      ember[i] = m;
     }
-    ember[i] = m;
-  }
-  return { arrival, ember, spots, LB, W, H, starts };
+  });
+  return { arrival, ember, spots, LB: seg0.LB, W, H, starts };
 }
 
 // Earliest time the fire is within ~radiusM of each cell (square min filter).

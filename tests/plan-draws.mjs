@@ -95,7 +95,7 @@ for (const F of FIRES) {
   const sc = scen.find(s => s.id === F.id);
   for (const seed of SEEDS) {
     const fire = runFire(grid, sc, SEVERITY.central, seed);
-    const build = (plan, tk, growth = 'none', mix) => new Evacuation(data, grid, fire, sc, 'central', plan, seed, TIME_OF_DAY[tk], { growth, ...(mix ? { householdMix: mix } : {}) });
+    const build = (plan, tk, growth = 'none', mix, vis) => new Evacuation(data, grid, fire, sc, 'central', plan, seed, TIME_OF_DAY[tk], { growth, ...(mix ? { householdMix: mix } : {}), ...(vis ? { visibility: vis } : {}) });
     for (const P of PRESETS) {
       const tk = P.tods?.B ?? P.tod;
       compare(`${F.id} seed ${seed} ${P.id}: DEFAULT_PLAN vs B`, build(DEFAULT_PLAN, tk), build(P.B, tk));
@@ -104,6 +104,10 @@ for (const F of FIRES) {
     compare(`${F.id} seed ${seed} ${EXPERT.name}`, build(DEFAULT_PLAN, 'S6'), build(EXPERT, 'S6'), { sameZoneOnly: true });
     // Enforcement of signs and daylighting changes parked cars only, never the household draws (SOURCE_NOTES PH15).
     for (const tk of ['S1', 'S6']) compare(`${F.id} seed ${seed} enforce signs and daylighting ${tk}`, build(DEFAULT_PLAN, tk), build({ ...DEFAULT_PLAN, parkingEnforce: 'both' }, tk));
+    // Visibility (scenario setting, SOURCE_NOTES VZ1–VZ6): poor visibility changes speeds and capacities, never the draws,
+    // and Plan A and Plan B still see the same households under it.
+    for (const tk of ['S1', 'S6']) compare(`${F.id} seed ${seed} visibility clear vs poor ${tk}`, build(DEFAULT_PLAN, tk), build(DEFAULT_PLAN, tk, 'none', undefined, 'poor'));
+    for (const P of PRESETS) { const tq = P.tods?.B ?? P.tod; compare(`${F.id} seed ${seed} visibility poor ${P.id}: A vs B`, build(P.A, tq, 'none', undefined, 'poor'), build(P.B, tq, 'none', undefined, 'poor')); }
     // maximum growth: R0 and leave early, Plan A vs Plan B
     const tk = LE.tods?.B ?? LE.tod, G = 'max';
     const base = build(DEFAULT_PLAN, tk, G);

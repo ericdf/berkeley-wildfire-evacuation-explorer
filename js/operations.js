@@ -68,7 +68,7 @@ export function setupOperations(sim) {
   const dark = new Set(); const J = data.signals?.junctions || [];
   if (world.powerShutoff && world.powerShutoff !== 'none') {
     for (const j of J) if (j.signal && (world.powerShutoff === 'all' || j.hills) && sim.nodeCap[j.node] !== undefined) dark.add(j.node);
-    const cap = O.powerShutoff.allWayStopVph / 3600;
+    const cap = O.powerShutoff.allWayStopVph / 3600 * (sim.visCap ?? 1); // poor visibility (world.visibility) cuts it too
     ops.baseCap = new Map();
     for (const n of dark) { ops.baseCap.set(n, sim.nodeCap[n]); sim.nodeCap[n] = Math.min(sim.nodeCap[n], cap); }
     ops.shutoff = { option: world.powerShutoff, dark: dark.size };

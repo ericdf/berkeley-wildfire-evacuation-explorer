@@ -88,7 +88,34 @@ export function quakeIgnitions(data) {
 }
 
 // Spread-rate factor for the earthquake fires, fitted to HayWired's floor area burned in Berkeley (SOURCE_NOTES EQ11).
-export const QUAKE_ROS_FACTOR = 0.37;
+export const QUAKE_ROS_FACTOR = 0.27; // 0.37 until 2026-11-04, fitted on a wind from 270° at 10 mph; refitted on the measured spring wind (SOURCE_NOTES WC8)
+
+// Winds for the earthquake fires, from the Oakland North RAWS record by season and hour (tools/wind-climate.mjs,
+// data/model/wind-climate.json; SOURCE_NOTES WC1–WC8). Hours are local standard time (LST); HayWired's quake
+// strikes at 4:18 p.m. clock time, 3:18 p.m. LST in April (daylight time) and 4:18 p.m. LST in winter. Each
+// schedule entry starts at the next whole LST hour and carries that hour's median speed; the run lasts 6 hours.
+// Spring afternoon (April): direction 205°, the middle of the most common 10° bin (200–210°) at every hour from
+// 1 p.m. to 11 p.m. LST; speeds are the median of April's onshore (180–315°) hours at each hour (WC3, WC4).
+export const QUAKE_WIND_SPRING = [
+  { fromMin: 0, windFrom: 205, windMph: 7.0 },   // 3 p.m. LST
+  { fromMin: 42, windFrom: 205, windMph: 6.8 },  // 4 p.m.
+  { fromMin: 102, windFrom: 205, windMph: 6.3 }, // 5 p.m.
+  { fromMin: 162, windFrom: 205, windMph: 5.7 }, // 6 p.m.
+  { fromMin: 222, windFrom: 205, windMph: 5.4 }, // 7 p.m.
+  { fromMin: 282, windFrom: 205, windMph: 5.4 }, // 8 p.m.
+  { fromMin: 342, windFrom: 205, windMph: 5.4 }, // 9 p.m.
+];
+// Winter northerly day (Dec–Feb): direction 0°, the middle of the 340–20° sector (model choice; the sector's most
+// common bin is 10–20°); speeds are the median of winter hours from that sector at each hour (WC6).
+export const QUAKE_WIND_WINTER_NORTH = [
+  { fromMin: 0, windFrom: 0, windMph: 5.7 },   // 4 p.m. LST
+  { fromMin: 42, windFrom: 0, windMph: 5.8 },  // 5 p.m.
+  { fromMin: 102, windFrom: 0, windMph: 6.3 }, // 6 p.m.
+  { fromMin: 162, windFrom: 0, windMph: 8.1 }, // 7 p.m.
+  { fromMin: 222, windFrom: 0, windMph: 7.0 }, // 8 p.m.
+  { fromMin: 282, windFrom: 0, windMph: 8.5 }, // 9 p.m.
+  { fromMin: 342, windFrom: 0, windMph: 8.3 }, // 10 p.m.
+];
 
 export function makeScenarios(data) {
   const O = data.net.meta.origin;
@@ -162,12 +189,18 @@ export function makeScenarios(data) {
           'Time: a weekday afternoon (Time Study S4), as in HayWired, whose earthquake strikes at 4:18 p.m.'],
       };
       return [
-        { ...base, id: 'quake', name: 'Hayward Fault earthquake: fires in buildings, ordinary day',
-          blurb: 'A magnitude 7 earthquake on the Hayward Fault starts fires in buildings across Berkeley, several at once, on an ordinary day with a light wind off the Bay. No wildfire: the fires start in the flats and the hills and spread house to house. Streets at the fault are closed and the signals are dark.',
-          windFrom: 270, windMph: 10 },
+        { ...base, id: 'quake', name: 'Hayward Fault earthquake: fires in buildings, spring afternoon',
+          blurb: 'A magnitude 7 earthquake on the Hayward Fault starts fires in buildings across Berkeley, several at once, at 4:18 p.m. on a spring weekday, as in the USGS HayWired scenario. The wind is the ordinary spring afternoon breeze off the Bay, from the south-south-west at about 7 mph, easing to about 5 mph by evening. No wildfire: the fires start in the flats and the hills and spread house to house. Streets at the fault are closed and the signals are dark.',
+          windFrom: 205, windMph: 7.0, windSchedule: QUAKE_WIND_SPRING,
+          windSource: 'Oakland North weather station, April, June 1992 – October 2026: from 3 p.m. to 9 p.m. (standard time) the most common direction is 200–210° at every hour and 80–87% of hours blow from 180–315°, off the Bay; the median speed of those hours falls from 7.0 to 5.4 mph. The direction holds into the evening; only the speed drops (SOURCE_NOTES WC3, WC4)' },
+        { ...base, id: 'quakeNorthWind', name: 'Hayward Fault earthquake on a winter day with a north wind',
+          blurb: 'The same earthquake fires at 4:18 p.m. on a winter weekday with a light wind from the north, about 6 mph, rising to about 8 mph after dark. In winter about one hour in twelve at the Oakland North station blows from the north (340–20°), and those hours are mostly humid, not the dry Diablo wind. The fires carry south, along the hills and across the flats.',
+          windFrom: 0, windMph: 5.7, windSchedule: QUAKE_WIND_WINTER_NORTH,
+          windSource: 'Oakland North weather station, December–February, June 1992 – October 2026: 8.3% of hours blow from 340–20°; their median speed is 5.7–5.8 mph at 4–5 p.m. and 6.3–8.5 mph from 6 to 10 p.m. (standard time); their median humidity is 56%, and 6.5% of them are at 25% or below (SOURCE_NOTES WC6). Direction 0° is the middle of that sector (model choice)' },
         { ...base, id: 'quakeEastWind', name: 'Hayward Fault earthquake on a dry east-wind day',
           blurb: 'The same earthquake fires, on the rare day with a dry wind from the north-east (about 2.5% of hours at the Oakland North station): wind-driven fires that carry embers toward the flats. A joint event of low probability, shown as the worst case.',
-          windFrom: 45, windMph: 30 },
+          windFrom: 45, windMph: 30,
+          windSource: 'Dry, windy hours at the Oakland North weather station center on 40–50° (SOURCE_NOTES FF4); 30 mph sits in the top 1.3% of dry offshore hours there (FF5)' },
       ];
     })(),
   ];
@@ -177,14 +210,15 @@ export function makeScenarios(data) {
 // A member is one ignition point × one wind direction; speed, severity, time of day, duration and
 // orders stay the fire's. Winds 30°, 45° and 60°: the core of dry, windy hours at the Oakland North
 // weather station (20–70° held 71.8% of them, SOURCE_NOTES FF4) and the spread within one Diablo
-// event (FF6). Points are tied to historic origins and entry corridors (FF2, FF9–FF11, FF15). Every
+// event (FF6). 0° (north), added 2026-11-04: 340–20° held 17.6% of the same dry, windy hours (FF4) and
+// 19.3% of Red Flag days' hours at 15 mph or more (FV13), more than 60–70° (5.3%) (SOURCE_NOTES WC9). Points are tied to historic origins and entry corridors (FF2, FF9–FF11, FF15). Every
 // new point is our assumption anchored to the sources named: no source says where the next fire will
 // start, and the members are not weighted (there is no source for weights). Coordinates (WGS84) were
 // placed on a road or landmark named by the source and checked to lie on a wildland cell of the fire
 // grid (fuel ≥ 0.7, js/fire.js buildFireGrid; tests/families.mjs). SOURCE_NOTES FF16.
-export const FAMILY_WINDS = [30, 45, 60];
+export const FAMILY_WINDS = [0, 30, 45, 60];
 const FAMILY_POINTS = {
-  ref1923: [{ id: 'city', current: true, at: 'at the City\'s starting point', label: 'The City\'s 1923 repeat starting point (unchanged; only the wind varies, since the fire reproduces the City\'s scenario, SOURCE_NOTES S11). The fire burns only inside the City\'s 1923 footprint, so the winds vary it less than on the other fires: at medium severity the footprint removes 58% of what the fire would burn without it from 30°, 26% from 45° (today\'s fire) and 40% from 60° (SOURCE_NOTES FF17)' }],
+  ref1923: [{ id: 'city', current: true, at: 'at the City\'s starting point', label: 'The City\'s 1923 repeat starting point (unchanged; only the wind varies, since the fire reproduces the City\'s scenario, SOURCE_NOTES S11). The fire burns only inside the City\'s 1923 footprint, so the winds vary it less than on the other fires: at medium severity the footprint removes 93% of what the fire would burn without it from 0°, 51% from 30°, 36% from 45° (today\'s fire) and 47% from 60° (SOURCE_NOTES WC9)' }],
   northHills: [
     { id: 'tilden', current: true, at: 'in Tilden east of the Summit', label: 'Tilden Regional Park, about 1.2 km east of Grizzly Peak Blvd at Spruce St (the fire\'s usual start)' },
     { id: 'anza', lonlat: [-122.2470, 37.8981], at: 'on Wildcat Canyon Rd near Lake Anza', label: 'Wildcat Canyon Rd about 150 m north-east of the shore of Lake Anza',
@@ -229,7 +263,7 @@ export function memberScenario(sc, member, data) {
 
 // The passes of a comparison. Families off: the default member at every severity and seed given.
 // Families on: every member at every severity, with enough seeds (1, 2, …) that the total is at least
-// minPasses (ref1923 3×3×2 = 18, northHills 9×3×1 = 27, eastWind and panoramic 6×3×1 = 18).
+// minPasses (ref1923 4×3×2 = 24, northHills 12×3×1 = 36, eastWind and panoramic 8×3×1 = 24).
 // key: `${fire}|${member}|${sev}|${seed}`; a stack's runs add the stack key after the member.
 export function comparisonCases(sc, data, { families = false, severities, seeds, minPasses = 15 }) {
   const fam = familyOf(sc, data);
