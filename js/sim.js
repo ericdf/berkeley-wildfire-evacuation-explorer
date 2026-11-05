@@ -435,7 +435,9 @@ export class Evacuation {
         u7 = R(); u8 = R();
       }
       if (u7 >= D.carlessRideshareShare) continue;
-      const c = sn ? sdAll[Math.floor(u8 * sn)] : -1;
+      // A household of today's with no neighbor of today's under the scenario picks among the scenario's
+      // added units, so a unit that leaves early under one plan only does not shift the pick (tests/plan-draws.mjs).
+      const c = sn ? sdAll[Math.floor(u8 * sn)] : base && sdAll?.length ? sdAll[Math.floor(u8 * sdAll.length)] : -1;
       const dn = base ? countBase(d) || d.length : d.length;
       hh.ride[h] = c >= 0 && isDonor(c) ? c : d[Math.floor(u8 * dn)];
     }
