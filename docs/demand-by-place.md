@@ -1,5 +1,7 @@
 # Household mix by place: comparison runs
 
+**Since 2026-11-04 by place is the default** (Eric; SOURCE_NOTES DM18); the citywide mix stays as an Expert setting and is what `tests/calibration.mjs` runs on. The comparison below was run before the switch and labels each setting explicitly.
+
 Run 2026-11-03 with `node tools/demand-compare.mjs --workers 1` (results in `data/model/demand-compare.json`; SOURCE_NOTES DM17). Today's plan, seeds 1–3, each seed under both settings; values are medians with the min–max range over seeds. These are synthetic runs for comparing settings, not predictions. People still there when embers arrived counts people, not casualties.
 
 The two settings differ only in each zone's persons per household and share of households without a vehicle:
@@ -14,7 +16,7 @@ The two settings differ only in each zone's persons per household and share of h
 - **People with no car still there when embers arrived rise on every fire except the north hills** (1923 135 → 520; Panoramic Hill 57 → 257; east wind 73 → 221), and the total still there when embers arrived rises by about 290–370 people on the 1923, east-wind and Panoramic Hill fires, within the seed ranges for each. North hills: carless people still there fall from 64 to 26.
 - **Cars cut off with no route out change little** (Panoramic Hill 265 → 149, fewer cars on its streets; others within a few vehicles).
 
-Applying the ACS to the default would shift the story from traffic to carless residents in the flats, which the simulator handles only by neighbor rideshare (86.9%) or counting them stranded. That is a reason to settle the 7.47% vs 20% conflict (DM3) before turning by place on, and to look at assisted evacuation (`docs/design/assisted-evacuation.md`).
+Applying the ACS to the default would shift the story from traffic to carless residents in the flats, which the simulator handles only by neighbor rideshare (86.9%) or counting them stranded. The 7.47% vs 20% conflict (DM3) was settled for the ACS on 2026-11-04 (DM18); see also assisted evacuation (`docs/design/assisted-evacuation.md`).
 
 ## With fire: the four Simple-view fires, central severity
 

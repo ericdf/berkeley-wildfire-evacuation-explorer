@@ -4,6 +4,8 @@
 //   node tests/calibration.mjs [seeds=3] [intersection scale]
 //   GROWTH=max node tests/calibration.mjs   (Future growth: middle, moderate or max; SOURCE_NOTES R3)
 //   PLACEMENT=workplace node tests/calibration.mjs   (Weekday non-resident placement by workplace; docs/weekday-placement.md)
+//   MIX=place node tests/calibration.mjs   (household mix by place; the default here is the Time Study's citywide mix,
+//     because the study's runs used it; SOURCE_NOTES DM18)
 //   CASES=S1,S4 REGIONS=ref1923,eastWind node tests/calibration.mjs   (only these cases and scenarios)
 import fs from 'node:fs';
 import { loadData } from '../js/data.js';
@@ -17,7 +19,8 @@ const noFire = { arrival: new Float64Array(grid.W * grid.H).fill(Infinity), embe
 const seeds = +(process.argv[2] || 3);
 if (process.argv[3]) data.A.intersections.scale = +process.argv[3]; // optional: try another intersection-capacity scale
 console.log(`intersection capacity scale ${data.A.intersections.scale}`);
-const world = { growth: process.env.GROWTH || 'none' };
+const world = { growth: process.env.GROWTH || 'none', householdMix: process.env.MIX || 'citywide' };
+console.log(`household mix ${world.householdMix}`);
 if (world.growth !== 'none') console.log(`future growth ${world.growth}`);
 if (process.env.PLACEMENT) { world.nrPlacement = process.env.PLACEMENT; console.log(`non-resident placement ${world.nrPlacement}`); }
 const CASES = process.env.CASES ? process.env.CASES.split(',') : null, REGIONS = process.env.REGIONS ? process.env.REGIONS.split(',') : null;

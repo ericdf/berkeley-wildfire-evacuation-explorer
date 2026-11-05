@@ -8,10 +8,10 @@ This is an educational comparison, not a prediction, not an official evacuation 
 
 - **Panoramic Hill fills the top of the ranking.** 15 of the top 15 blocks are in AC-155 (behind the Panoramic Wy choke); the first block elsewhere is Summit Ln (dead end – Summit Rd, BER-031) at rank 30. Panoramic Hill blocks score on every component at once: up to 4 dead-end chokes in series, no engine within 5 minutes in 80% of runs (parked cars on the lowest block of Panoramic Way, SOURCE_NOTES ER3), a choke that needs 32 minutes of capacity for the cars behind it, and households still home when the fire front arrived in up to 20% of runs (the Panoramic Hill fire is the only one of the four that reaches them). Summit Ln has more fire exposure (29% of runs) but one choke and engine access. The score is a model rule; ranked by fire exposure alone, the order changes (table below).
 - **Almost all of a buyout's benefit is benefit 1: the people bought out are no longer there.** On the Panoramic Hill fire, the drop in people still home when the fire front arrived equals the number of bought-out residents still home in the run without the buyout, in every case (central median: Top-ranked blocks, about 50 households: 137; Top-ranked blocks, about 100 households: 201; Top-ranked blocks, about 250 households: 353; Top-ranked blocks, about 500 households: 408; Panoramic Hill upper streets: 346; Everything behind the foot of Panoramic Way: 408); everyone else changes by at most 3 people in any pair. The neighbors who stay behind the same choke are still home at the fire front in exactly the same numbers in almost every pair, because when a household is ready to leave does not depend on the streets. Benefit 2 is small and not consistent: the neighbors' cars cut off fall in every pair in 0 of 21 case-fire combinations, and their 90% out time falls in every pair in 0 of 21.
-- **Panoramic Hill.** Buying out everything behind the foot of Panoramic Way (427 households, 1,011 residents) removes the 408 people the run without it left at home when the fire front arrived (central median; 76–822 over all severities and seeds) and lowers cars cut off in the whole model area from 265 to 93, better in 15 of 15 pairs. Screening cost $428M–$1149M. The upper streets alone (276 households behind the second choke) remove 346 of those 408 for $298M–$731M; the 360 residents left below them see no change in people still home at the fire front and 19 → 19 cars cut off.
+- **Panoramic Hill.** Buying out everything behind the foot of Panoramic Way (287 households, 1,011 residents) removes the 408 people the run without it left at home when the fire front arrived (central median; 76–822 over all severities and seeds) and lowers cars cut off in the whole model area from 265 to 93, better in 15 of 15 pairs. Screening cost $302M–$765M. The upper streets alone (190 households behind the second choke) remove 346 of those 408 for $219M–$497M; the 360 residents left below them see no change in people still home at the fire front and 19 → 19 cars cut off.
 - **Only the largest top-ranked case reaches beyond Panoramic Hill**, onto Summit Ln, Summit Rd, Campus Dr, Grizzly Peak Bl, Ajax Pl, Wilson Ci, Hilgard Av, Olympus Av. It is also the only case with effects in every pair on the 1923 fire (people still home at the fire front 386 → 358 (15/0/0)) and the east-wind fire at night (still there, home or road, 166 → 95 (15/0/0)), again from the households bought out.
-- **Engine reach turns on one block.** Buying out Panoramic Hill removes most of the hill residents no engine reaches within 5 minutes (1,296 → 416, median of 10 seed and day-or-night parking draws), because they are the people bought out. Buying out only the lowest block of Panoramic Way (8.4 households) changes nothing for the residents above it while its parked cars stay (988 → 988); with its parked cars gone too, they drop to 9 (better in 8 of 10). A parking rule on that block does the same without a buyout (SOURCE_NOTES ER2–ER3).
-- **A second way out costs a hundredth as much or less and helps the people who stay; a buyout removes the people.** Step 2's top-ranked link, AC-160-N3 Panoramic Wy → Smyth Ln, frees 843 hill residents from behind every choke for $1.5M–$6.0M and lowers Panoramic Hill's cars cut off 178 → 167 (the City's Dwight Way–Dwight Place concept: 136), but leaves the 408 people still home at the fire front unchanged. Buying out the hill removes those people at $428M–$1149M and 427 homes.
+- **Engine reach turns on one block.** Buying out Panoramic Hill removes most of the hill residents no engine reaches within 5 minutes (1,296 → 416, median of 10 seed and day-or-night parking draws), because they are the people bought out. Buying out only the lowest block of Panoramic Way (5.4 households) changes nothing for the residents above it while its parked cars stay (988 → 988); with its parked cars gone too, they drop to 9 (better in 8 of 10). A parking rule on that block does the same without a buyout (SOURCE_NOTES ER2–ER3).
+- **A second way out costs a hundredth as much or less and helps the people who stay; a buyout removes the people.** Step 2's top-ranked link, AC-160-N3 Panoramic Wy → Smyth Ln, frees 843 hill residents from behind every choke for $1.5M–$6.0M and lowers Panoramic Hill's cars cut off 178 → 167 (the City's Dwight Way–Dwight Place concept: 136), but leaves the 408 people still home at the fire front unchanged. Buying out the hill removes those people at $302M–$765M and 287 homes.
 
 Cells read: central-severity median without → with the buyout, then (better / worse / no different) over all 15 same-seed pairs at low, central and high severity. Lower is better for every measure. All counts are synthetic people or cars in an illustrative fire, not predictions.
 
@@ -19,7 +19,7 @@ Cells read: central-severity median without → with the buyout, then (better / 
 
 Each item carries its provenance category: sourced, derived, assumption, model rule or synthetic.
 
-- **Block (derived).** A block is one street segment of data/model/network.json on which js/sim.js places households (drivable, not a freeway or ramp, in an evacuation zone), in City Fire Zones 2–3 or, outside Berkeley, at 90 m elevation or higher (the simulator's hill proxy). Ranked if it holds at least 1 expected household. A block is labeled by its street and the streets at its two ends. 1,804 hill blocks hold 17,517 expected households; 1,574 have at least one and are ranked (the rest hold 71 households in all).
+- **Block (derived).** A block is one street segment of data/model/network.json on which js/sim.js places households (drivable, not a freeway or ramp, in an evacuation zone), in City Fire Zones 2–3 or, outside Berkeley, at 90 m elevation or higher (the simulator's hill proxy). Ranked if it holds at least 1 expected household. A block is labeled by its street and the streets at its two ends. 1,804 hill blocks hold 17,827 expected households; 1,574 have at least one and are ranked (the rest hold 71 households in all).
 - **Fire runs (synthetic).** Every scenario in `js/scenarios.js` (1923 repeat; east wind, night; Panoramic Hill; east wind, weekday; northHills), low, central and high severity, seeds 1–5: 75 runs, DEFAULT_PLAN (first order 10 min after ignition, status-quo parking), each scenario's default time of day. The two east-wind scenarios share one fire and differ in time of day.
 - **Expected households** (synthetic): zone population (Genasys, or 2020 Census where data/assumptions.json says so) spread over street length as js/sim.js does, / 2.37 persons per household; expected values.
 - **Front** (derived from synthetic runs): share of runs (among runs where the block has at least one household) in which at least one household was still home when the fire front reached the block.
@@ -39,77 +39,77 @@ Components: shares of the 75 runs (front, ember, cut, engine), dead-end chokes i
 
 | # | Street | Between | Zone | Fire zone | Households | Front | Ember | Cut | Engine >5 min | Nest | Choke load | Area (entrance, clear width) | Score |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | Panoramic Pl | mid-street break – dead end | BER-058 | FZ2 | 3.6 | 19% | 20% | 19% | 80% | 4 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 4.5 |
-| 2 | Panoramic Pl | Panoramic Wy – mid-street break | BER-058 | FZ2 | 15.7 | 17% | 20% | 20% | 80% | 4 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 4.5 |
-| 3 | Panoramic Wy | mid-street break – dead end | BER-058 | FZ3 | 4.5 | 17% | 20% | 16% | 80% | 4 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 4.4 |
-| 4 | Panoramic Pl | dead end – Panoramic Wy | BER-013 | hill (≥90 m) | 5.2 | 15% | 16% | 19% | 80% | 4 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 4.3 |
-| 5 | Dwight Pl | Dwight Wy – dead end | BER-013 | hill (≥90 m) | 5 | 12% | 13% | 20% | 80% | 4 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 4.2 |
-| 6 | Panoramic Wy | Dwight Wy – Panoramic Pl | BER-013 | hill (≥90 m) | 11.4 | 9% | 9% | 20% | 80% | 4 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 4.1 |
-| 7 | Panoramic Wy | Dwight Wy – mid-street break | BER-058 | FZ3 | 49.1 | 20% | 20% | 20% | 80% | 3 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 4 |
-| 8 | Panoramic Wy | Arden Rd – Dwight Wy | BER-058 | FZ3 | 34.5 | 20% | 20% | 20% | 80% | 3 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 4 |
-| 9 | Panoramic Wy | Panoramic Pl – mid-street break | BER-058 | FZ3 | 12.1 | 20% | 20% | 20% | 80% | 3 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 4 |
-| 10 | Panoramic Wy | mid-street break – mid-street break | BER-058 | FZ3 | 11.1 | 20% | 20% | 20% | 80% | 3 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 4 |
-| 11 | Dwight Wy | Panoramic Wy – mid-street break | BER-058 | FZ3 | 6.6 | 19% | 20% | 20% | 80% | 3 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 4 |
-| 12 | Panoramic Wy | mid-street break – mid-street break | BER-058 | FZ3 | 3.7 | 20% | 20% | 17% | 80% | 3 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 4 |
-| 13 | Panoramic Wy | Panoramic Pl – mid-street break | BER-013 | hill (≥90 m) | 3.7 | 4% | 4% | 17% | 80% | 4 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 3.8 |
-| 14 | Panoramic Wy | mid-street break – Panoramic Pl | BER-058 | FZ3 | 8.2 | 13% | 20% | 19% | 80% | 3 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 3.8 |
-| 15 | Panoramic Wy | Dwight Wy – mid-street break | BER-013 | hill (≥90 m) | 15.1 | 13% | 13% | 20% | 80% | 3 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 3.8 |
-| 16 | Dwight Wy | mid-street break – Dwight Pl | BER-013 | hill (≥90 m) | 6.8 | 13% | 16% | 19% | 80% | 3 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 3.8 |
-| 17 | Arden Rd | Orchard Ln – mid-street break | BER-058 | FZ3 | 10.1 | 15% | 17% | 13% | 80% | 3 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 3.7 |
-| 18 | Dwight Wy | Dwight Pl – Panoramic Wy | BER-013 | hill (≥90 m) | 4.3 | 8% | 9% | 17% | 80% | 3 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 3.5 |
-| 19 | Panoramic Wy | mid-street break – dead end | BER-058 | FZ3 | 10.1 | 17% | 20% | 15% | 80% | 2 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 3.3 |
-| 20 | Arden Rd | Panoramic Wy – Orchard Ln | BER-058 | FZ3 | 21.7 | 16% | 20% | 16% | 80% | 2 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 3.3 |
-| 21 | Panoramic Wy | Orchard Ln – Arden Rd | BER-058 | FZ3 | 24.7 | 17% | 20% | 13% | 80% | 2 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 3.3 |
-| 22 | Orchard Ln | Panoramic Wy – Arden Rd | BER-058 | FZ3 | 15.9 | 15% | 19% | 13% | 80% | 2 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 3.2 |
-| 23 | Mosswood Rd | mid-street break – dead end | BER-058 | FZ2 | 12.2 | 13% | 13% | 13% | 80% | 2 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 3.1 |
-| 24 | Mosswood Rd | Mosswood Ln – mid-street break | BER-058 | FZ3 | 12.1 | 8% | 12% | 9% | 80% | 2 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 2.9 |
-| 25 | Panoramic Wy | Mosswood Rd – Orchard Ln | BER-058 | FZ3 | 2.4 | 7% | 15% | 7% | 80% | 2 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 2.8 |
-| 26 | Panoramic Wy | mid-street break – Orchard Ln | BER-058 | FZ3 | 23 | 16% | 20% | 13% | 80% | 1 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 2.8 |
-| 27 | Panoramic Wy | Orchard Ln – mid-street break | BER-058 | FZ3 | 28 | 16% | 17% | 12% | 80% | 1 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 2.7 |
-| 28 | Mosswood Rd | Panoramic Wy – Mosswood Ln | BER-058 | FZ3 | 17 | 12% | 15% | 12% | 80% | 1 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 2.6 |
-| 29 | Mosswood Ln | Orchard Ln – Mosswood Rd | BER-058 | FZ3 | 25.4 | 11% | 13% | 13% | 80% | 1 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 2.6 |
-| 30 | Summit Ln | dead end – Summit Rd | BER-031 | FZ2 | 3.2 | 29% | 40% | 28% | 20% | 1 | 0 | AC-031 (Summit Ln, 6 ft) | 2.5 |
-| 31 | Orchard Ln | Panoramic Wy – Mosswood Ln | BER-058 | FZ3 | 5.5 | 12% | 13% | 11% | 80% | 1 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 2.5 |
-| 32 | Summit Rd | Grizzly Peak Bl – dead end | BER-031 | FZ2 | 13.1 | 31% | 40% | 35% | 0% | 1 | 0 | AC-099 (Summit Rd, 10 ft) | 2.5 |
-| 33 | Panoramic Wy | Orchard Ln – Mosswood Rd | BER-058 | FZ3 | 3.1 | 13% | 16% | 7% | 80% | 1 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 2.5 |
-| 34 | Summit Rd | Ajax Pl – mid-street break | BER-031 | FZ2 | 5 | 20% | 20% | 21% | 68% | 1 | 0 | AC-173 (Summit Rd, 12 ft) | 2.4 |
-| 35 | Campus Dr | Parnassus Rd – mid-street break | BER-032 | FZ2 | 8.7 | 27% | 40% | 31% | 8% | 1 | 0 | AC-221 (Campus Dr, 11 ft) | 2.4 |
-| 36 | Grizzly Peak Bl | Summit Rd – mid-street break | BER-031 | FZ2 | 10.9 | 40% | 40% | 40% | 0% | 0 | 0 | — | 2.4 |
-| 37 | Ajax Pl | Summit Rd – dead end | BER-031 | FZ2 | 3.8 | 20% | 20% | 20% | 68% | 1 | 0 | AC-173 (Summit Rd, 12 ft) | 2.4 |
-| 38 | Orchard Ln | Mosswood Ln – Panoramic Wy | BER-058 | FZ3 | 6.2 | 8% | 13% | 9% | 80% | 1 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 2.4 |
-| 39 | Campus Dr | mid-street break – dead end | BER-032 | FZ2 | 5.9 | 25% | 37% | 31% | 8% | 1 | 0 | AC-221 (Campus Dr, 11 ft) | 2.3 |
-| 40 | Summit Rd | Ajax Pl – mid-street break | BER-031 | FZ2 | 2.1 | 19% | 20% | 19% | 68% | 1 | 0 | AC-173 (Summit Rd, 12 ft) | 2.3 |
+| 1 | Panoramic Pl | mid-street break – dead end | BER-058 | FZ2 | 2.3 | 19% | 20% | 19% | 80% | 4 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 4.5 |
+| 2 | Panoramic Pl | Panoramic Wy – mid-street break | BER-058 | FZ2 | 10.1 | 17% | 20% | 20% | 80% | 4 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 4.5 |
+| 3 | Panoramic Wy | mid-street break – dead end | BER-058 | FZ3 | 2.9 | 17% | 20% | 16% | 80% | 4 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 4.4 |
+| 4 | Panoramic Pl | dead end – Panoramic Wy | BER-013 | hill (≥90 m) | 4.7 | 15% | 16% | 19% | 80% | 4 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 4.3 |
+| 5 | Dwight Pl | Dwight Wy – dead end | BER-013 | hill (≥90 m) | 4.5 | 12% | 13% | 20% | 80% | 4 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 4.2 |
+| 6 | Panoramic Wy | Dwight Wy – Panoramic Pl | BER-013 | hill (≥90 m) | 10.3 | 9% | 9% | 20% | 80% | 4 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 4.1 |
+| 7 | Panoramic Wy | Dwight Wy – mid-street break | BER-058 | FZ3 | 31.4 | 20% | 20% | 20% | 80% | 3 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 4 |
+| 8 | Panoramic Wy | Arden Rd – Dwight Wy | BER-058 | FZ3 | 22.1 | 20% | 20% | 20% | 80% | 3 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 4 |
+| 9 | Panoramic Wy | Panoramic Pl – mid-street break | BER-058 | FZ3 | 7.7 | 20% | 20% | 20% | 80% | 3 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 4 |
+| 10 | Panoramic Wy | mid-street break – mid-street break | BER-058 | FZ3 | 7.1 | 20% | 20% | 20% | 80% | 3 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 4 |
+| 11 | Dwight Wy | Panoramic Wy – mid-street break | BER-058 | FZ3 | 4.2 | 19% | 20% | 20% | 80% | 3 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 4 |
+| 12 | Panoramic Wy | mid-street break – mid-street break | BER-058 | FZ3 | 2.4 | 20% | 20% | 17% | 80% | 3 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 4 |
+| 13 | Panoramic Wy | Panoramic Pl – mid-street break | BER-013 | hill (≥90 m) | 3.3 | 4% | 4% | 17% | 80% | 4 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 3.8 |
+| 14 | Panoramic Wy | mid-street break – Panoramic Pl | BER-058 | FZ3 | 5.3 | 13% | 20% | 19% | 80% | 3 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 3.8 |
+| 15 | Panoramic Wy | Dwight Wy – mid-street break | BER-013 | hill (≥90 m) | 13.7 | 13% | 13% | 20% | 80% | 3 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 3.8 |
+| 16 | Dwight Wy | mid-street break – Dwight Pl | BER-013 | hill (≥90 m) | 6.2 | 13% | 16% | 19% | 80% | 3 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 3.8 |
+| 17 | Arden Rd | Orchard Ln – mid-street break | BER-058 | FZ3 | 6.5 | 15% | 17% | 13% | 80% | 3 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 3.7 |
+| 18 | Dwight Wy | Dwight Pl – Panoramic Wy | BER-013 | hill (≥90 m) | 3.9 | 8% | 9% | 17% | 80% | 3 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 3.5 |
+| 19 | Panoramic Wy | mid-street break – dead end | BER-058 | FZ3 | 6.5 | 17% | 20% | 15% | 80% | 2 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 3.3 |
+| 20 | Arden Rd | Panoramic Wy – Orchard Ln | BER-058 | FZ3 | 13.9 | 16% | 20% | 16% | 80% | 2 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 3.3 |
+| 21 | Panoramic Wy | Orchard Ln – Arden Rd | BER-058 | FZ3 | 15.8 | 17% | 20% | 13% | 80% | 2 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 3.3 |
+| 22 | Orchard Ln | Panoramic Wy – Arden Rd | BER-058 | FZ3 | 10.2 | 15% | 19% | 13% | 80% | 2 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 3.2 |
+| 23 | Mosswood Rd | mid-street break – dead end | BER-058 | FZ2 | 7.8 | 13% | 13% | 13% | 80% | 2 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 3.1 |
+| 24 | Mosswood Rd | Mosswood Ln – mid-street break | BER-058 | FZ3 | 7.7 | 8% | 12% | 9% | 80% | 2 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 2.9 |
+| 25 | Panoramic Wy | Mosswood Rd – Orchard Ln | BER-058 | FZ3 | 1.6 | 7% | 15% | 7% | 80% | 2 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 2.8 |
+| 26 | Panoramic Wy | mid-street break – Orchard Ln | BER-058 | FZ3 | 14.7 | 16% | 20% | 13% | 80% | 1 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 2.8 |
+| 27 | Panoramic Wy | Orchard Ln – mid-street break | BER-058 | FZ3 | 17.9 | 16% | 17% | 12% | 80% | 1 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 2.7 |
+| 28 | Mosswood Rd | Panoramic Wy – Mosswood Ln | BER-058 | FZ3 | 10.9 | 12% | 15% | 12% | 80% | 1 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 2.6 |
+| 29 | Mosswood Ln | Orchard Ln – Mosswood Rd | BER-058 | FZ3 | 16.3 | 11% | 13% | 13% | 80% | 1 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 2.6 |
+| 30 | Summit Ln | dead end – Summit Rd | BER-031 | FZ2 | 3 | 29% | 40% | 28% | 20% | 1 | 0 | AC-031 (Summit Ln, 6 ft) | 2.5 |
+| 31 | Orchard Ln | Panoramic Wy – Mosswood Ln | BER-058 | FZ3 | 3.5 | 12% | 13% | 11% | 80% | 1 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 2.5 |
+| 32 | Summit Rd | Grizzly Peak Bl – dead end | BER-031 | FZ2 | 12.2 | 31% | 40% | 35% | 0% | 1 | 0 | AC-099 (Summit Rd, 10 ft) | 2.5 |
+| 33 | Panoramic Wy | Orchard Ln – Mosswood Rd | BER-058 | FZ3 | 2 | 13% | 16% | 7% | 80% | 1 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 2.5 |
+| 34 | Summit Rd | Ajax Pl – mid-street break | BER-031 | FZ2 | 4.6 | 20% | 20% | 21% | 68% | 1 | 0 | AC-173 (Summit Rd, 12 ft) | 2.4 |
+| 35 | Campus Dr | Parnassus Rd – mid-street break | BER-032 | FZ2 | 7.8 | 27% | 40% | 31% | 8% | 1 | 0 | AC-221 (Campus Dr, 11 ft) | 2.4 |
+| 36 | Grizzly Peak Bl | Summit Rd – mid-street break | BER-031 | FZ2 | 10.2 | 40% | 40% | 40% | 0% | 0 | 0 | — | 2.4 |
+| 37 | Ajax Pl | Summit Rd – dead end | BER-031 | FZ2 | 3.6 | 20% | 20% | 20% | 68% | 1 | 0 | AC-173 (Summit Rd, 12 ft) | 2.4 |
+| 38 | Orchard Ln | Mosswood Ln – Panoramic Wy | BER-058 | FZ3 | 4 | 8% | 13% | 9% | 80% | 1 | 0.5 | AC-155 (Panoramic Wy, 9 ft) | 2.4 |
+| 39 | Campus Dr | mid-street break – dead end | BER-032 | FZ2 | 5.3 | 25% | 37% | 31% | 8% | 1 | 0 | AC-221 (Campus Dr, 11 ft) | 2.3 |
+| 40 | Summit Rd | Ajax Pl – mid-street break | BER-031 | FZ2 | 2 | 19% | 20% | 19% | 68% | 1 | 0 | AC-173 (Summit Rd, 12 ft) | 2.3 |
 
 **Ranked by fire exposure alone** (front, ember and cut with the same weights, static factors left out), the top 15 are:
 
 | # | Street | Between | Zone | Households | Front | Ember | Cut | Exposure score | Rank by full score |
 |---|---|---|---|---|---|---|---|---|---|
-| 1 | Grizzly Peak Bl | Summit Rd – mid-street break | BER-031 | 10.9 | 40% | 40% | 40% | 2.4 | 36 |
-| 2 | Summit Rd | Grizzly Peak Bl – dead end | BER-031 | 13.1 | 31% | 40% | 35% | 2 | 32 |
-| 3 | Le Conte Av | Hearst Av / Arch St / University House Wy – Scenic Av / Ridge Rd | BER-012 | 112 | 37% | 40% | 20% | 1.9 | 59 |
-| 4 | Hilgard Av | Euclid Av – Leroy Av | BER-040 | 42.4 | 33% | 43% | 23% | 1.9 | 63 |
-| 5 | Senior Av | Harvard Ci / Fairlawn Dr – Grizzly Peak Bl | BER-031 | 12.6 | 31% | 37% | 29% | 1.9 | 64 |
-| 6 | Summit Rd | Summit Ln – Grizzly Peak Bl | BER-031 | 4 | 31% | 40% | 27% | 1.9 | 69 |
-| 7 | Arch St | Virginia St – Le Conte Av / Hearst Av / University House Wy | BER-012 | 151.5 | 36% | 37% | 20% | 1.9 | 66 |
-| 8 | Le Conte Av | Scenic Av / Ridge Rd – Euclid Av | BER-040 | 51 | 33% | 40% | 23% | 1.9 | 67 |
-| 9 | Grizzly Peak Bl | Senior Av – Summit Rd | BER-031 | 5.4 | 31% | 39% | 27% | 1.8 | 70 |
-| 10 | Summit Ln | dead end – Summit Rd | BER-031 | 3.2 | 29% | 40% | 28% | 1.8 | 30 |
-| 11 | Grizzly Peak Bl | Summit Rd – Summit Rd | BER-031 | 1.9 | 32% | 39% | 24% | 1.8 | 72 |
-| 12 | Campus Dr | Parnassus Rd – mid-street break | BER-032 | 8.7 | 27% | 40% | 31% | 1.8 | 35 |
-| 13 | Cedar St | Euclid Av – Leroy Av | BER-040 | 51.3 | 31% | 45% | 20% | 1.8 | 74 |
-| 14 | Wilson Ci | Olympus Av – dead end | BER-031 | 3.2 | 28% | 39% | 27% | 1.8 | 41 |
-| 15 | Le Conte Av | Leroy Av – La Loma Av | BER-040 | 35.6 | 31% | 37% | 23% | 1.7 | 75 |
+| 1 | Grizzly Peak Bl | Summit Rd – mid-street break | BER-031 | 10.2 | 40% | 40% | 40% | 2.4 | 36 |
+| 2 | Summit Rd | Grizzly Peak Bl – dead end | BER-031 | 12.2 | 31% | 40% | 35% | 2 | 32 |
+| 3 | Le Conte Av | Hearst Av / Arch St / University House Wy – Scenic Av / Ridge Rd | BER-012 | 161.4 | 37% | 40% | 20% | 1.9 | 59 |
+| 4 | Hilgard Av | Euclid Av – Leroy Av | BER-040 | 57.6 | 33% | 43% | 23% | 1.9 | 63 |
+| 5 | Senior Av | Harvard Ci / Fairlawn Dr – Grizzly Peak Bl | BER-031 | 11.7 | 31% | 37% | 29% | 1.9 | 64 |
+| 6 | Summit Rd | Summit Ln – Grizzly Peak Bl | BER-031 | 3.7 | 31% | 40% | 27% | 1.9 | 69 |
+| 7 | Arch St | Virginia St – Le Conte Av / Hearst Av / University House Wy | BER-012 | 218.2 | 36% | 37% | 20% | 1.9 | 66 |
+| 8 | Le Conte Av | Scenic Av / Ridge Rd – Euclid Av | BER-040 | 69.3 | 33% | 40% | 23% | 1.9 | 67 |
+| 9 | Grizzly Peak Bl | Senior Av – Summit Rd | BER-031 | 5.1 | 31% | 39% | 27% | 1.8 | 70 |
+| 10 | Summit Ln | dead end – Summit Rd | BER-031 | 3 | 29% | 40% | 28% | 1.8 | 30 |
+| 11 | Grizzly Peak Bl | Summit Rd – Summit Rd | BER-031 | 1.8 | 32% | 39% | 24% | 1.8 | 72 |
+| 12 | Campus Dr | Parnassus Rd – mid-street break | BER-032 | 7.8 | 27% | 40% | 31% | 1.8 | 35 |
+| 13 | Cedar St | Euclid Av – Leroy Av | BER-040 | 69.8 | 31% | 45% | 20% | 1.8 | 74 |
+| 14 | Wilson Ci | Olympus Av – dead end | BER-031 | 2.9 | 28% | 39% | 27% | 1.8 | 41 |
+| 15 | Le Conte Av | Leroy Av – La Loma Av | BER-040 | 48.3 | 31% | 37% | 23% | 1.7 | 75 |
 
 ## Buyout cases
 
 | Case | Blocks | Households | Residents | Streets | Behind a dead-end choke (residents) | Outermost areas: residents before → after | Fires that threaten it |
 |---|---|---|---|---|---|---|---|
-| Top-ranked blocks, about 50 households | 7 | 95 | 224 | Panoramic Pl, Panoramic Wy, Dwight Pl | 224 | AC-155 Panoramic Wy: 1,011 → 787 | 1923 repeat, east wind, night, Panoramic Hill, east wind, weekday |
-| Top-ranked blocks, about 100 households | 8 | 129 | 306 | Panoramic Pl, Panoramic Wy, Dwight Pl | 306 | AC-155 Panoramic Wy: 1,011 → 705 | 1923 repeat, east wind, night, Panoramic Hill, east wind, weekday |
-| Top-ranked blocks, about 250 households | 21 | 267 | 634 | Panoramic Pl, Panoramic Wy, Dwight Pl, Dwight Wy, Arden Rd | 634 | AC-155 Panoramic Wy: 1,011 → 377 | 1923 repeat, east wind, night, Panoramic Hill, east wind, weekday |
-| Top-ranked blocks, about 500 households | 44 | 501 | 1,187 | Panoramic Pl, Panoramic Wy, Dwight Pl, Dwight Wy, Arden Rd, Orchard Ln, Mosswood Rd, Mosswood Ln +8 | 1,161 | AC-155 Panoramic Wy: 1,011 → 20; AC-031 Summit Ln: 8 → 0; AC-099 Summit Rd: 31 → 0; AC-173 Summit Rd: 39 → 9; AC-221 Campus Dr: 35 → 0; AC-060 Olympus Av: 34 → 5; AC-002 Hilgard Av: 38 → 0 | 1923 repeat, east wind, night, Panoramic Hill, east wind, weekday,  |
-| Panoramic Hill upper streets (behind the second choke on Panoramic Way, AC-158) | 22 | 276 | 653 | Panoramic Wy, Panoramic Pl, Orchard Ln, Arden Rd, Dwight Wy, Dwight Pl | 653 | AC-155 Panoramic Wy: 1,011 → 358 | 1923 repeat, east wind, night, Panoramic Hill, east wind, weekday |
-| Everything behind the foot of Panoramic Way (9 ft clear, AC-155) | 33 | 427 | 1,011 | Panoramic Wy, Mosswood Rd, Orchard Ln, Panoramic Pl, Mosswood Ln, Arden Rd, Dwight Wy, Dwight Pl | 1,011 | AC-155 Panoramic Wy: 1,011 → 0 | 1923 repeat, east wind, night, Panoramic Hill, east wind, weekday |
+| Top-ranked blocks, about 50 households | 7 | 66 | 224 | Panoramic Pl, Panoramic Wy, Dwight Pl | 224 | AC-155 Panoramic Wy: 1,011 → 787 | 1923 repeat, east wind, night, Panoramic Hill, east wind, weekday |
+| Top-ranked blocks, about 100 households | 8 | 88 | 306 | Panoramic Pl, Panoramic Wy, Dwight Pl | 306 | AC-155 Panoramic Wy: 1,011 → 705 | 1923 repeat, east wind, night, Panoramic Hill, east wind, weekday |
+| Top-ranked blocks, about 250 households | 21 | 185 | 634 | Panoramic Pl, Panoramic Wy, Dwight Pl, Dwight Wy, Arden Rd | 634 | AC-155 Panoramic Wy: 1,011 → 377 | 1923 repeat, east wind, night, Panoramic Hill, east wind, weekday |
+| Top-ranked blocks, about 500 households | 44 | 365 | 1,187 | Panoramic Pl, Panoramic Wy, Dwight Pl, Dwight Wy, Arden Rd, Orchard Ln, Mosswood Rd, Mosswood Ln +8 | 1,161 | AC-155 Panoramic Wy: 1,011 → 20; AC-031 Summit Ln: 8 → 0; AC-099 Summit Rd: 31 → 0; AC-173 Summit Rd: 39 → 9; AC-221 Campus Dr: 35 → 0; AC-060 Olympus Av: 34 → 5; AC-002 Hilgard Av: 38 → 0 | 1923 repeat, east wind, night, Panoramic Hill, east wind, weekday,  |
+| Panoramic Hill upper streets (behind the second choke on Panoramic Way, AC-158) | 22 | 190 | 653 | Panoramic Wy, Panoramic Pl, Orchard Ln, Arden Rd, Dwight Wy, Dwight Pl | 653 | AC-155 Panoramic Wy: 1,011 → 358 | 1923 repeat, east wind, night, Panoramic Hill, east wind, weekday |
+| Everything behind the foot of Panoramic Way (9 ft clear, AC-155) | 33 | 287 | 1,011 | Panoramic Wy, Mosswood Rd, Orchard Ln, Panoramic Pl, Mosswood Ln, Arden Rd, Dwight Wy, Dwight Pl | 1,011 | AC-155 Panoramic Wy: 1,011 → 0 | 1923 repeat, east wind, night, Panoramic Hill, east wind, weekday |
 
 A fire threatens a case if, in any of its runs, a bought-out block's zone was ordered or warned or embers reached it. Bought-out households vary by seed around the expected count (the simulator draws whole households); the runs below removed the households the seed placed there.
 
@@ -283,7 +283,7 @@ Synthetic residents of Berkeley's Fire Zones 2–3 whose street no engine reache
 | Top-ranked blocks, about 500 households | 1,008 | 4 → 4 (0/0) | 4 → 4 (0/0) | 1,296 → 401 (10/0) | 1,296 → 401 (10/0) |
 | Panoramic Hill upper streets (behind the second choke on Panoramic Way, AC-158) | 652 | 339 → 339 (0/0) | 339 → 339 (0/0) | 1,296 → 708 (8/0) | 1,296 → 708 (8/0) |
 | Everything behind the foot of Panoramic Way (9 ft clear, AC-155) | 988 | 0 → 0 (0/0) | 0 → 0 (0/0) | 1,296 → 416 (8/0) | 1,296 → 416 (8/0) |
-| Sensitivity: the lowest block of Panoramic Way only (Panoramic Wy, 8.4 households; not run with the fire) | 0 | 988 → 988 (0/0) | 988 → 9 (8/0) | 1,296 → 1,296 (0/0) | 1,296 → 421 (8/0) |
+| Sensitivity: the lowest block of Panoramic Way only (Panoramic Wy, 5.4 households; not run with the fire) | 0 | 988 → 988 (0/0) | 988 → 9 (8/0) | 1,296 → 1,296 (0/0) | 1,296 → 421 (8/0) |
 
 ## Costs and losses (screening estimate)
 
@@ -291,13 +291,13 @@ A screening estimate from public figures and labeled assumptions, not an apprais
 
 | Case | Housing units lost | Residents displaced | Acquisition | Relocation | Demolition and restoration | Total | Per household | Notes |
 |---|---|---|---|---|---|---|---|---|
-| Top-ranked blocks, about 50 households | 95 | 224 | $106M–$234M | $0k–$4.1M | $1.9M–$9.4M | $107M–$248M | $1.1M–$2.6M | 22 households in block groups whose median is top-coded at $2,000,001 (high end low); 4 in block groups with no median (case average used) |
-| Top-ranked blocks, about 100 households | 129 | 306 | $134M–$325M | $0k–$5.7M | $2.6M–$12.9M | $137M–$343M | $1.1M–$2.7M | 22 households in block groups whose median is top-coded at $2,000,001 (high end low); 4 in block groups with no median (case average used) |
-| Top-ranked blocks, about 250 households | 267 | 634 | $286M–$669M | $0k–$11.7M | $5.3M–$26.7M | $291M–$708M | $1.1M–$2.6M | 51 households in block groups whose median is top-coded at $2,000,001 (high end low); 4 in block groups with no median (case average used) |
-| Top-ranked blocks, about 500 households | 501 | 1,187 | $490M–$1213M | $0k–$22.0M | $10.0M–$50.1M | $500M–$1285M | $997k–$2.6M | 51 households in block groups whose median is top-coded at $2,000,001 (high end low); 4 in block groups with no median (case average used) |
-| Panoramic Hill upper streets (behind the second choke on Panoramic Way, AC-158) | 276 | 653 | $293M–$691M | $0k–$12.1M | $5.5M–$27.6M | $298M–$731M | $1.1M–$2.7M | 51 households in block groups whose median is top-coded at $2,000,001 (high end low); 4 in block groups with no median (case average used) |
-| Everything behind the foot of Panoramic Way (9 ft clear, AC-155) | 427 | 1,011 | $420M–$1088M | $0k–$18.7M | $8.5M–$42.7M | $428M–$1149M | $1.0M–$2.7M | 51 households in block groups whose median is top-coded at $2,000,001 (high end low); 4 in block groups with no median (case average used) |
-| Sensitivity: the lowest block of Panoramic Way only | 8 | 20 | $7.1M–$22.2M | $0k–$400k | $200k–$800k | $7.3M–$23.4M | $863k–$2.8M | — |
+| Top-ranked blocks, about 50 households | 66 | 224 | $79.1M–$161M | $0k–$2.9M | $1.3M–$6.6M | $80.5M–$171M | $1.2M–$2.6M | 19 households in block groups whose median is top-coded at $2,000,001 (high end low); 2 in block groups with no median (case average used) |
+| Top-ranked blocks, about 100 households | 88 | 306 | $97.5M–$219M | $0k–$3.9M | $1.8M–$8.8M | $99.3M–$232M | $1.1M–$2.6M | 19 households in block groups whose median is top-coded at $2,000,001 (high end low); 2 in block groups with no median (case average used) |
+| Top-ranked blocks, about 250 households | 185 | 634 | $210M–$456M | $0k–$8.1M | $3.7M–$18.5M | $214M–$482M | $1.2M–$2.6M | 47 households in block groups whose median is top-coded at $2,000,001 (high end low); 2 in block groups with no median (case average used) |
+| Top-ranked blocks, about 500 households | 365 | 1,187 | $367M–$856M | $0k–$16.0M | $7.3M–$36.5M | $375M–$909M | $1.0M–$2.5M | 47 households in block groups whose median is top-coded at $2,000,001 (high end low); 2 in block groups with no median (case average used) |
+| Panoramic Hill upper streets (behind the second choke on Panoramic Way, AC-158) | 190 | 653 | $215M–$470M | $0k–$8.3M | $3.8M–$19.0M | $219M–$497M | $1.1M–$2.6M | 47 households in block groups whose median is top-coded at $2,000,001 (high end low); 2 in block groups with no median (case average used) |
+| Everything behind the foot of Panoramic Way (9 ft clear, AC-155) | 287 | 1,011 | $296M–$724M | $0k–$12.6M | $5.7M–$28.7M | $302M–$765M | $1.1M–$2.7M | 47 households in block groups whose median is top-coded at $2,000,001 (high end low); 2 in block groups with no median (case average used) |
+| Sensitivity: the lowest block of Panoramic Way only | 5 | 20 | $4.6M–$14.2M | $0k–$200k | $100k–$500k | $4.7M–$15.0M | $863k–$2.8M | — |
 
 - **Acquisition (sourced statistic, assumption in its use).** Each household at the ACS median value of owner-occupied homes in its block group, low = median − margin of error, high = median + margin of error. A buyout pays the appraised value of each property, which the block-group median does not give.
 - **Relocation (sourced figures, assumption in their use).** $0–$43,890 per household. Owner-occupants who sell voluntarily are not displaced persons under the Uniform Relocation Act (49 CFR 24.101(b)), so the low end assumes every household is one and receives nothing. The high end assumes a program pays every household the URA homeowner replacement housing payment maximum ($41,200, 49 CFR 24.401(b)) plus an 8-room fixed move ($2,690). Tenants who must move are covered by the Act; their entitlement, up to $9,570 rental assistance (49 CFR 24.402(b)) plus a move ($12,260 at most), lies inside the range. The split between owners and renters (ACS B25003) could not be retrieved, so the range is wide.
@@ -310,8 +310,8 @@ Step 2 figures come from data/model/egress-candidates.json (step 2, PR #15; reru
 
 | Option | Kind | Residents protected or freed | Effect on the residents who stay (Panoramic Hill fire) | Homes lost | Screening cost |
 |---|---|---|---|---|---|
-| Everything behind the foot of Panoramic Way (9 ft clear, AC-155) | buyout | 1,011 bought out; behind the foot of Panoramic Way 1,011 → 0 | neighbors' cars cut off 0 → 0 (0/0/15); still home at the fire front 0 → 0 (0/0/15) | 427 | $428M–$1149M |
-| Panoramic Hill upper streets (behind the second choke on Panoramic Way, AC-158) | buyout | 653 bought out; behind the foot of Panoramic Way 1,011 → 358 | neighbors' cars cut off 19 → 19 (1/1/13); still home at the fire front 62 → 62 (0/0/15) | 276 | $298M–$731M |
+| Everything behind the foot of Panoramic Way (9 ft clear, AC-155) | buyout | 1,011 bought out; behind the foot of Panoramic Way 1,011 → 0 | neighbors' cars cut off 0 → 0 (0/0/15); still home at the fire front 0 → 0 (0/0/15) | 287 | $302M–$765M |
+| Panoramic Hill upper streets (behind the second choke on Panoramic Way, AC-158) | buyout | 653 bought out; behind the foot of Panoramic Way 1,011 → 358 | neighbors' cars cut off 19 → 19 (1/1/13); still home at the fire front 62 → 62 (0/0/15) | 190 | $219M–$497M |
 | AC-160-N3 Panoramic Wy → Smyth Ln (88 m, 21% average grade) | second way out | 843 hill residents freed from behind every choke; AC-155 1,011 → 222 behind a choke | area cars cut off 178 → 167 (14/0/1); still home at the fire front 408 → 408 | 1 building in the corridor | $1.5M–$6.0M |
 | AC-134-N2 Smyth Ln → Dwight Wy (92 m, 27.4% average grade) | second way out | 843 hill residents freed from behind every choke; AC-155 1,011 → 222 behind a choke | area cars cut off 178 → 162 (14/0/1); still home at the fire front 408 → 405 | 1 building in the corridor | $1.6M–$7.4M |
 | CITY-1 Dwight Wy → Dwight Pl (174 m, 40.2% average grade) | second way out | 802 hill residents freed from behind every choke; AC-155 1,011 → 210 behind a choke | area cars cut off 178 → 136 (15/0/0); still home at the fire front 408 → 401 | 0 buildings in the corridor | $1.3M–$10.6M |

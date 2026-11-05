@@ -235,11 +235,11 @@
     },
     "demand.personsPerHousehold": {
       "category": "sourced",
-      "note": "2.37 persons per household (ACS), Evacuation Time Study 2-1, 3-3 (SOURCE_NOTES E5). Converts Genasys zone population estimates to households."
+      "note": "2.37 persons per household (ACS), Evacuation Time Study 2-1, 3-3 (SOURCE_NOTES E5). Converts Genasys zone population estimates to households in zones without ACS households, and in every zone under the citywide household mix used for calibration (SOURCE_NOTES DM18)."
     },
     "demand.householdsWithoutVehicleShare": {
       "category": "sourced",
-      "note": "7.47% of households have no vehicle (ACS), Time Study Table 3-10 (SOURCE_NOTES E7). Citywide value; AB 747 has it by census tract."
+      "note": "7.47% of households have no vehicle, Time Study Table 3-10, from its resident survey (the table labels it ACS; SOURCE_NOTES E7, DM3). Used in zones without ACS households, and in every zone under the citywide household mix used for calibration; by default each zone uses its ACS 2020-2024 share (SOURCE_NOTES DM18)."
     },
     "demand.vehiclesTakenShares": {
       "category": "sourced",

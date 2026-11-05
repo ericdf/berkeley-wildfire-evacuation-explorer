@@ -17,6 +17,12 @@ export function loadGoal() {
   return loading ??= fetch(new URL('../data/model/goal-combos.json', import.meta.url)).then(r => r.ok ? r.json() : null).catch(() => null).then(d => (G = d));
 }
 
+// The stored runs must use the household mix the simulator runs today (SOURCE_NOTES DM18): by place, the
+// default since 2026-11-04. A table built on another mix is not shown; "Change the plan" runs live.
+export const GOAL_MIX = 'place';
+const stale = () => G && G.meta?.householdMix !== GOAL_MIX;
+const staleHTML = () => `<p class="small">Set a goal is being rebuilt. ${G.meta?.householdMix === 'mixed' ? 'Some of its stored runs used' : 'Its stored runs used'} the Time Study's citywide household mix, and the simulator now gives each zone its ACS persons per household and share of households without a vehicle (SOURCE_NOTES DM18), so its answers would describe different households from the ones Change the plan simulates. Use Change the plan meanwhile: it runs on the current mix.</p>`;
+
 export const CUTS = [10, 25, 50, 75];
 // "1–5, 11–15" from the seeds of a list of pass indexes
 const seedText = idx => {
@@ -104,6 +110,7 @@ const pct = x => x === -Infinity ? 'worse' : x >= 1 ? '100%' : `${Math.floor(x *
 export function goalHTML(ctx) {
   const { state, FIRES } = ctx, T = state.goal;
   if (!G) return `<p class="small muted">${loading ? 'Loading the stored combinations…' : 'The stored combinations (data/model/goal-combos.json) did not load.'}</p>`;
+  if (stale()) return staleHTML();
   const ok = G.meta.fires.includes(state.fire), P = passes(state.pace), RB = ok ? reach(state.fire, state.pace) : null, B = RB?.best || {};
   return `<h2>Fire scenario: <select id="goal-fire">${FIRES.map(f => `<option value="${f.id}"${f.id === state.fire ? ' selected' : ''}>${esc(f.title)}</option>`).join('')}</select></h2>
     <p class="small">Say what you want a plan to achieve on this fire, and see the smallest combinations of changes that did it. Pick one or more harms and how much each should be cut, compared with today's plan.</p>
@@ -120,7 +127,7 @@ export function goalHTML(ctx) {
 // Answers (right panel).
 export function goalOutHTML(ctx) {
   const { state, FIRES, fmt, leverById } = ctx, T = state.goal, fire = FIRES.find(f => f.id === state.fire);
-  if (!G || !G.fires[state.fire]) return '';
+  if (!G || stale() || !G.fires[state.fire]) return '';
   const ms = Object.keys(T);
   const E = evaluate(state.fire, T, state.pace), P = passes(state.pace);
   const left = E.excluded.map(x => ({ l: leverById(x.id), x })).filter(o => o.l);
