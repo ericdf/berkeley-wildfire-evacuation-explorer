@@ -49,7 +49,7 @@ rewrites of the same block, are alternatives. **Compare with today's plan** runs
 same households in 15 passes (3 severities × 5 seeds; each pass runs both plans) in background workers and reports, at the top of the right-hand panel, per
 measure, the middle value of each plan and how many passes went each way; only the full set earns a
 verdict ("better in every pass", "mixed"), because one pass can point the wrong way; a pass counts as better or worse only when the two plans differ by more than 1%. Watching a plan
-on the map is labeled as one run. Under a finished comparison of two or more changes, **Break down this plan** shows, for each change, what it does alone and what the plan loses without it, and names changes that overlap (SOURCE_NOTES MS14). **Fire families** are opt-in: a box under the fire ("Also test other likely starting points and wind directions") opens a disclosure, and after "Use them" a comparison runs every member of the fire, one ignition point × one wind from 30°, 45° or 60° (`js/scenarios.js` `familyOf`; ref1923 18 passes, northHills 27, eastWind and panoramic 18), with a line per measure where the change helps at some starts and winds and not others. The points and winds are our assumptions anchored to SOURCE_NOTES FF1–FF18; Berkeley's orders stay the fire's, so some members burn into Berkeley zones nobody ordered, while other cities order their zones as the fire nears (FF18, FO3). `node tests/families.mjs` checks the members; `tools/fire-families.mjs` measures the 1923 clip and fire reach outside the orders. The stored results of `tools/mitigations.mjs` are not shown as
+on the map is labeled as one run. Under a finished comparison of two or more changes, **Break down this plan** shows, for each change, what it does alone and what the plan loses without it, and names changes that overlap (SOURCE_NOTES MS14). **Fire families** are opt-in: a box under the fire ("Also test other likely starting points and wind directions") opens a disclosure, and after "Use them" a comparison runs every member of the fire, one ignition point × one wind from 0°, 30°, 45° or 60° (`js/scenarios.js` `familyOf`; ref1923 24 passes, northHills 36, eastWind and panoramic 24; 0° added 2026-11-05, SOURCE_NOTES WC9), with a line per measure where the change helps at some starts and winds and not others. The points and winds are our assumptions anchored to SOURCE_NOTES FF1–FF18; Berkeley's orders stay the fire's, so some members burn into Berkeley zones nobody ordered, while other cities order their zones as the fire nears (FF18, FO3). `node tests/families.mjs` checks the members; `tools/fire-families.mjs` measures the 1923 clip and fire reach outside the orders. The stored results of `tools/mitigations.mjs` are not shown as
 answers: changes that did not reliably help on the chosen fire there (contraflow, police control,
 guided routing, the Buena Vista link) are greyed out with that explanation, so people see they
 were considered (SOURCE_NOTES MS11). Ready-made A/B questions (`js/presets.js`) sit under
@@ -75,7 +75,8 @@ rebuild it after `tools/mitigations.mjs` or any model change.
    Future growth (Expert view) adds homes in the hills for both plans: none, the 2025
    Evacuation Time Study's middle-housing case (870 units) or maximum ADU build-out (27,060),
    or a moderate case (2,706, an assumption). A Red Flag power shutoff (Expert view, both plans)
-   turns the signals in and next to the hills, or all of them, into all-way stops. Weekday
+   turns the signals in and next to the hills, or all of them, into all-way stops. Visibility
+   (Expert view, both plans) set to poor (fog or smoke) slows every street and cuts its capacity. Weekday
    non-resident placement (Expert view, both plans) keeps the Time Study's employee, student and
    visitor vehicles per area and places them by area (default) or by workplace: LEHD LODES jobs,
    UC and Lab off-street parking (`docs/weekday-placement.md`).
@@ -210,7 +211,26 @@ checks against 1923, 1991, the Ember Threat Zones and Red Flag winds in
 `docs/fire-validation.md`). Random spot fires mean different seeds
 give different footprints. A cell is ember-exposed once anything burns within the ember
 distance upwind of it. The overlay puts plausible, comparable pressure on the evacuation;
-it does not predict how a real fire would behave.
+it does not predict how a real fire would behave. A scenario may carry a wind schedule
+(`windSchedule`: `{ fromMin, windFrom, windMph }` entries): each crossing, spot throw and ember
+reach uses the wind in force when it starts, and a burning cell may start a crossing again at
+each wind change, which keeps the shortest-time search valid. Only the earthquake scenarios use
+one; every other fire runs exactly as before (`node tests/wind-schedule.mjs`).
+
+**Earthquake fires** (Expert view only; SOURCE_NOTES EQ11, WC1–WC9; `docs/wind-climate.md`).
+About 20 starts in buildings drawn from the USGS HayWired model, spread at 0.27 of medium
+severity's rate (fitted to HayWired's burned floor area in Berkeley), on three winds measured at
+the Oakland North weather station: a spring afternoon at HayWired's 4:18 p.m. (from 205°, 7.0 mph
+easing to 5.4 mph), a winter day with a north wind (0°, 5.7 to 8.5 mph) and the rare dry east wind
+(45° at 30 mph). Fault closures and dark signals come with them.
+
+**Visibility** (scenario setting, Expert view, off by default; SOURCE_NOTES VZ1–VZ7). Poor
+visibility (fog or smoke) cuts free-flow speed on every street by 7.5% (FHWA-JPO-11-019 p. 7,
+a fog case study) and every lane and junction capacity by 12% (FHWA Road Weather Management,
+low visibility, freeways), for residents and engines; FHWA has no city-street figure, so the
+transfer is an assumption, and the two FHWA documents disagree on whether a fog capacity figure
+exists. The fire is not slowed. Households and parked cars are drawn as on a clear day
+(`node tests/plan-draws.mjs`).
 
 **Evacuation** (`js/sim.js`). Synthetic households are placed on streets from Genasys zone
 population estimates. Zones outside Berkeley, and the Berkeley and Lab zones that the City
@@ -379,6 +399,9 @@ flow.
 | `data/model/signals.json` | Signal junctions and control type (City `Signals` layer) and the Time Study's Appendix F congestion points, built by `tools/signals.mjs` |
 | `data/model/contraflow-streets.json` | Main hill exit streets for contraflow, built by `tools/contraflow-streets.mjs` from status-quo runs |
 | `data/model/walk-access.json` | Built by `tools/walk-access.mjs` (hill homes' height and distance to their street, door-to-curb and carless walking times, per street segment); optional; its report is `docs/walk-access.md` |
+| `tools/wind-climate.mjs` | Oakland North RAWS wind by season and hour (WRCC frequency tool) and Oakland airport afternoon-to-night reversals; writes `data/model/wind-climate.json` (`docs/wind-climate.md`, SOURCE_NOTES WC1–WC9). Report only; the earthquake winds in `js/scenarios.js` cite it |
+| `tools/quake-ros-fit.mjs` | Earthquake fires' spread factor: structures in Berkeley reached by 6 h for each factor and earthquake wind (SOURCE_NOTES WC8) |
+| `tools/visibility-check.mjs` | Today's plan with visibility clear and poor on the same fires and households (SOURCE_NOTES VZ7) |
 | `tools/fault-zone-check.mjs` | Which hill streets a Hayward Fault rupture closes, at two bounds, and whether the hills keep a way out; `--write` saves the lists to `data/model/fault-closures.json` for the scenario setting "Hayward Fault earthquake" (SOURCE_NOTES EQ4–EQ10). Rerun after every network rebuild |
 | `tools/build-fire-zones-2025.mjs` | Writes `data/model/fire-zones-2025.json`: the 2025 Fire Code's Panoramic and Grizzly Peak Mitigation Zones from the City layer `grizz_pano_mitigation`, which the fire overlay's proxy fuel uses (SOURCE_NOTES FV18). The page needs the file |
 | `tools/preset-check.mjs` | The Guided-view question test (P19 rule): every question on every fire, Plan A against Plan B, low/medium/high × seeds 1–5; prints the verdicts and the medium-severity medians the question texts quote, writes `data/model/preset-check.json`. Rerun after any change to the fire or traffic model |
@@ -405,6 +428,7 @@ flow.
 | `tests/routing.mjs` | Driver information and routing with the fire on, seeds 1–5: every option, households worse off against Habit (also beyond chance), and a check that every option sees the same households and shared random stream as Today's model (`SOURCE_NOTES.md` DG19–DG24) |
 | `tools/other-city-orders.mjs` | Zones, residents and vehicles other cities' orders add, by city, per fire, family member, severity and seed; `--runs` adds today's plan's headline measures (SOURCE_NOTES FO3, FO4) |
 | `tests/exposure-once.mjs` | Checks that people still there when embers or the fire front arrived count each person once: the parts add up to the distinct people the run's state shows (SOURCE_NOTES FO8) |
+| `tests/wind-schedule.mjs` | A one-entry or split schedule with the same wind gives the same fire; a wind change leaves cells reached before it unchanged |
 | `tests/families.mjs`, `tests/walk-draws.mjs` | Fire family members; the home-to-street setting moves departure times only |
 | `tests/retreat-draws.mjs` | Checks that a managed-retreat buyout (`world.retreat`) leaves every other household, every non-resident car and the shared random stream unchanged |
 
