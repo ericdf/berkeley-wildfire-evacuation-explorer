@@ -7,7 +7,7 @@
  "definitions": {
   "onshore": [
    180,
-   315
+   320
   ],
   "onshoreNarrow": [
    200,
@@ -91,7 +91,7 @@
      "eastPct": 48.5,
      "medianMph": 8.1,
      "p90Mph": 20,
-     "onshoreMedianMph": 5.3,
+     "onshoreMedianMph": 5.2,
      "northMedianMph": 11.3,
      "northP90Mph": 23.4,
      "northHours": 1391,
@@ -363,7 +363,7 @@
      "northPct": 9.1,
      "eastPct": 45.9,
      "medianMph": 8,
-     "onshoreMedianMph": 5.4,
+     "onshoreMedianMph": 5.3,
      "northMedianMph": 11.2
     },
     {
@@ -451,7 +451,7 @@
      "northPct": 5.3,
      "eastPct": 42.6,
      "medianMph": 7.3,
-     "onshoreMedianMph": 5.9,
+     "onshoreMedianMph": 5.8,
      "northMedianMph": 6.9
     },
     {
@@ -517,7 +517,7 @@
      "northPct": 8.7,
      "eastPct": 38.4,
      "medianMph": 6.3,
-     "onshoreMedianMph": 4.1,
+     "onshoreMedianMph": 4.2,
      "northMedianMph": 9.1
     },
     {
@@ -917,7 +917,7 @@
      "northPct": 8.8,
      "eastPct": 17.5,
      "medianMph": 6.4,
-     "onshoreMedianMph": 5.8,
+     "onshoreMedianMph": 5.9,
      "northMedianMph": 10.5
     },
     {
@@ -1416,7 +1416,7 @@
      "northPct": 2.1,
      "eastPct": 2.2,
      "medianMph": 8.2,
-     "onshoreMedianMph": 8,
+     "onshoreMedianMph": 7.9,
      "northMedianMph": 9.1
     },
     {
@@ -1647,7 +1647,7 @@
      "northPct": 1.8,
      "eastPct": 1.9,
      "medianMph": 7.4,
-     "onshoreMedianMph": 7.2,
+     "onshoreMedianMph": 7.1,
      "northMedianMph": 7.6
     }
    ]
@@ -1959,7 +1959,7 @@
      "northPct": 8.7,
      "eastPct": 24.4,
      "medianMph": 6,
-     "onshoreMedianMph": 5.3,
+     "onshoreMedianMph": 5.2,
      "northMedianMph": 7.7
     },
     {
@@ -2263,7 +2263,7 @@
      "eastPct": 19.2,
      "medianMph": 6.1,
      "p90Mph": 12.5,
-     "onshoreMedianMph": 5.6,
+     "onshoreMedianMph": 5.7,
      "northMedianMph": 9.3,
      "northP90Mph": 18.1,
      "northHours": 411,
@@ -2557,7 +2557,7 @@
      "northPct": 9.2,
      "eastPct": 19.9,
      "medianMph": 6.2,
-     "onshoreMedianMph": 5.5,
+     "onshoreMedianMph": 5.6,
      "northMedianMph": 9.8
     },
     {
@@ -2601,7 +2601,7 @@
      "northPct": 5.1,
      "eastPct": 17.1,
      "medianMph": 6.5,
-     "onshoreMedianMph": 6.2,
+     "onshoreMedianMph": 6.3,
      "northMedianMph": 7.1
     },
     {
@@ -2740,73 +2740,73 @@
   }
  },
  "oak": {
-  "_note": "Per LST day: vector-mean direction of the afternoon (12–17), evening (18–23) and the next night (0–5), each from at least 3 reports with a mean vector of 2 mph or more. \"Reverse\" = turned 135° or more from the afternoon. Days counted only when the afternoon was onshore (180–315°).",
+  "_note": "Per LST day: vector-mean direction of the afternoon (12–17), evening (18–23) and the next night (0–5), each from at least 3 reports with a mean vector of 2 mph or more. \"Reverse\" = turned 135° or more from the afternoon. Days counted only when the afternoon was onshore (180–320°).",
   "seasons": {
    "winter": {
     "daysWithAfternoon": 1621,
-    "onshoreAfternoonPct": 73.9,
-    "eveningReversePct": 16,
-    "eveningNotOnshorePct": 55.5,
+    "onshoreAfternoonPct": 74.8,
+    "eveningReversePct": 15.9,
+    "eveningNotOnshorePct": 52.7,
     "eveningMedianTurnDeg": 18.9,
-    "nightReversePct": 39.2,
-    "nightNotOnshorePct": 82.4,
-    "nightOffshore0to135Pct": 61.3,
-    "pairs": 857
+    "nightReversePct": 39.3,
+    "nightNotOnshorePct": 81.2,
+    "nightOffshore0to135Pct": 61.4,
+    "pairs": 867
    },
    "all": {
     "daysWithAfternoon": 6792,
-    "onshoreAfternoonPct": 90.8,
+    "onshoreAfternoonPct": 91.3,
     "eveningReversePct": 3.8,
-    "eveningNotOnshorePct": 22.5,
+    "eveningNotOnshorePct": 19.3,
     "eveningMedianTurnDeg": 5,
-    "nightReversePct": 15.6,
-    "nightNotOnshorePct": 48.6,
-    "nightOffshore0to135Pct": 28.3,
-    "pairs": 5091
+    "nightReversePct": 15.7,
+    "nightNotOnshorePct": 46.8,
+    "nightOffshore0to135Pct": 28.4,
+    "pairs": 5117
    },
    "spring": {
     "daysWithAfternoon": 1747,
-    "onshoreAfternoonPct": 96.4,
+    "onshoreAfternoonPct": 96.7,
     "eveningReversePct": 0.7,
-    "eveningNotOnshorePct": 10.3,
+    "eveningNotOnshorePct": 8.1,
     "eveningMedianTurnDeg": 5.1,
     "nightReversePct": 14.8,
-    "nightNotOnshorePct": 41.1,
-    "nightOffshore0to135Pct": 22.6,
-    "pairs": 1463
+    "nightNotOnshorePct": 39.4,
+    "nightOffshore0to135Pct": 22.5,
+    "pairs": 1469
    },
    "april": {
     "daysWithAfternoon": 569,
     "onshoreAfternoonPct": 98.6,
     "eveningReversePct": 0.7,
-    "eveningNotOnshorePct": 8.7,
+    "eveningNotOnshorePct": 6.4,
     "eveningMedianTurnDeg": 6.8,
     "nightReversePct": 13.9,
-    "nightNotOnshorePct": 41.4,
+    "nightNotOnshorePct": 39.1,
     "nightOffshore0to135Pct": 22.1,
     "pairs": 488
    },
    "summer": {
     "daysWithAfternoon": 1747,
-    "onshoreAfternoonPct": 99.5,
+    "onshoreAfternoonPct": 99.8,
     "eveningReversePct": 0.1,
-    "eveningNotOnshorePct": 9.7,
+    "eveningNotOnshorePct": 5.9,
     "eveningMedianTurnDeg": 1.2,
     "nightReversePct": 1.6,
-    "nightNotOnshorePct": 27.6,
+    "nightNotOnshorePct": 24.9,
     "nightOffshore0to135Pct": 6.9,
-    "pairs": 1581
+    "pairs": 1586
    },
    "fall": {
     "daysWithAfternoon": 1677,
-    "onshoreAfternoonPct": 92.1,
+    "onshoreAfternoonPct": 92.7,
     "eveningReversePct": 4.3,
-    "eveningNotOnshorePct": 32.9,
-    "eveningMedianTurnDeg": 9,
-    "nightReversePct": 18.3,
-    "nightNotOnshorePct": 61.3,
+    "eveningNotOnshorePct": 28.6,
+    "eveningMedianTurnDeg": 9.1,
+    "nightReversePct": 18.2,
+    "nightNotOnshorePct": 59.8,
     "nightOffshore0to135Pct": 40.2,
-    "pairs": 1190
+    "pairs": 1195
    }
   }
  }

@@ -17,22 +17,22 @@ not an official evacuation plan; these measurements set the winds of its earthqu
 - WRCC serves raw hourly listings only for the last 30 days, so this station's record cannot pair an
   afternoon with the following night. That test uses **Oakland airport** (OAK, sea level on the Bay shore;
   Iowa Environmental Mesonet hourly reports, 2008 to October 2026).
-- Definitions (ours): onshore = from 180–315°, the half of the compass facing the Bay (200–300° reported
+- Definitions (ours): onshore = from 180–320°, the half of the compass facing the Bay (200–300° reported
   beside it); north = 340–20°; hour bands 0–5, 6–11, 12–17, 18–23 LST. In daylight time the clock reads
   one hour later.
 
 ## Findings
 
 **Onshore share** (the share the earthquake design note left to be measured): 63.3% of all hours blow
-from 180–315° (43.3% from 200–300°), out of 289,075 hours with a direction.
+from 180–320° (43.3% from 200–300°), out of 289,075 hours with a direction.
 
-| Season | Onshore (180–315°) | East (0–90°) | North (340–20°) | Median speed |
+| Season | Onshore (180–320°) | East (0–90°) | North (340–20°) | Median speed |
 |---|---|---|---|---|
 | Winter (Dec–Feb) | 34.9% | 42.5% | 8.3% | 7.2 mph |
 | Spring (Mar–May) | 71.6% | 11.5% | 5.1% | 6.4 mph |
 | Summer (Jun–Aug) | 86.1% | 3.3% | 2.0% | 6.9 mph |
 | Fall (Sep–Nov) | 58.6% | 26.3% | 6.9% | 5.8 mph |
-| April | 74.4% | 9.9% | 5.0% | 6.3 mph |
+| April | 98.6% | 0.7% | 13.9% | 22.1% |
 
 **By hour band.** The most common 10° bin is 200–210° (south-south-west) in every season and band
 except winter's night, morning and evening (0–11 and 18–23 LST), when it is 50–60° (north-east). Onshore
@@ -50,10 +50,10 @@ was onshore, the share whose evening (18–23) or following night (0–5) mean w
 
 | Season | Afternoon onshore | Evening reversed | Night reversed | Night from 0–135° |
 |---|---|---|---|---|
-| Winter | 73.9% | 16.0% | 39.2% | 61.3% |
-| Spring | 96.4% | 0.7% | 14.8% | 22.6% |
-| Summer | 99.5% | 0.1% | 1.6% | 6.9% |
-| Fall | 92.1% | 4.3% | 18.3% | 40.2% |
+| Winter | 74.8% | 15.9% | 39.3% | 61.4% |
+| Spring | 96.7% | 0.7% | 14.8% | 22.5% |
+| Summer | 99.8% | 0.1% | 1.6% | 6.9% |
+| Fall | 92.7% | 4.3% | 18.2% | 40.2% |
 | April | 98.6% | 0.7% | 13.9% | 22.1% |
 
 At the shore the evening wind holds its direction (median turn 7° in April); reversal is a night event,

@@ -127,7 +127,7 @@ the current fires assume:
   assume is rare: at the Oakland North weather station, hours with wind from 0–90° and
   humidity at or below 25% were 7,340 from June 1992 to October 2026 (FF5), about 2.5% of the
   roughly 300,000 hours in that span (derived). On an onshore day, with the wind off the Bay (63.3% of
-  hours at the same station blow from 180–315°, measured 2026-11-04: 35% in winter, 72% in spring,
+  hours at the same station blow from 180–320°, measured 2026-11-04: 35% in winter, 72% in spring,
   86% in summer, 59% in fall; SOURCE_NOTES WC2, `docs/wind-climate.md`), a fire in the flats burns
   uphill, toward the hills and the people evacuating from them.
 

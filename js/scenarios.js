@@ -95,7 +95,7 @@ export const QUAKE_ROS_FACTOR = 0.27; // 0.37 until 2026-11-04, fitted on a wind
 // strikes at 4:18 p.m. clock time, 3:18 p.m. LST in April (daylight time) and 4:18 p.m. LST in winter. Each
 // schedule entry starts at the next whole LST hour and carries that hour's median speed; the run lasts 6 hours.
 // Spring afternoon (April): direction 205°, the middle of the most common 10° bin (200–210°) at every hour from
-// 1 p.m. to 11 p.m. LST; speeds are the median of April's onshore (180–315°) hours at each hour (WC3, WC4).
+// 1 p.m. to 11 p.m. LST; speeds are the median of April's onshore (180–320°) hours at each hour (WC3, WC4).
 export const QUAKE_WIND_SPRING = [
   { fromMin: 0, windFrom: 205, windMph: 7.0 },   // 3 p.m. LST
   { fromMin: 42, windFrom: 205, windMph: 6.8 },  // 4 p.m.
@@ -192,7 +192,7 @@ export function makeScenarios(data) {
         { ...base, id: 'quake', name: 'Hayward Fault earthquake: fires in buildings, spring afternoon',
           blurb: 'A magnitude 7 earthquake on the Hayward Fault starts fires in buildings across Berkeley, several at once, at 4:18 p.m. on a spring weekday, as in the USGS HayWired scenario. The wind is the ordinary spring afternoon breeze off the Bay, from the south-south-west at about 7 mph, easing to about 5 mph by evening. No wildfire: the fires start in the flats and the hills and spread house to house. Streets at the fault are closed and the signals are dark.',
           windFrom: 205, windMph: 7.0, windSchedule: QUAKE_WIND_SPRING,
-          windSource: 'Oakland North weather station, April, June 1992 – October 2026: from 3 p.m. to 9 p.m. (standard time) the most common direction is 200–210° at every hour and 80–87% of hours blow from 180–315°, off the Bay; the median speed of those hours falls from 7.0 to 5.4 mph. The direction holds into the evening; only the speed drops (SOURCE_NOTES WC3, WC4)' },
+          windSource: 'Oakland North weather station, April, June 1992 – October 2026: from 3 p.m. to 9 p.m. (standard time) the most common direction is 200–210° at every hour and 80–87% of hours blow from 180–320°, off the Bay; the median speed of those hours falls from 7.0 to 5.4 mph. The direction holds into the evening; only the speed drops (SOURCE_NOTES WC3, WC4)' },
         { ...base, id: 'quakeNorthWind', name: 'Hayward Fault earthquake on a winter day with a north wind',
           blurb: 'The same earthquake fires at 4:18 p.m. on a winter weekday with a light wind from the north, about 6 mph, rising to about 9 mph after dark. In winter about one hour in twelve at the Oakland North station blows from the north (340–20°), and those hours are mostly humid, not the dry Diablo wind. The fires carry south, along the hills and across the flats.',
           windFrom: 0, windMph: 6.2, windSchedule: QUAKE_WIND_WINTER_NORTH,
