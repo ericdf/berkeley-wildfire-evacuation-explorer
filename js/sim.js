@@ -1042,15 +1042,19 @@ export class Evacuation {
 export function needsHelp(sim, t) {
   const Z = sim.data.demand?.zones, A = sim.data.A.needsHelp; if (!Z || !A) return null;
   const zones = sim.data.layers.evacZones, hh = sim.hh, nz = zones.length, T = A.pickupMin;
-  // all: every placed household, bought out or not (facilities stay where they are); kept: households a
-  // buyout leaves (residents). Resident counts scale by kept/all, so bought-out residents are not moved onto others.
-  const all = new Float64Array(nz), kept = new Float64Array(nz);
-  const reachedAll = { facilities: new Float64Array(nz), transitDependent: new Float64Array(nz) }, reached = { facilities: new Float64Array(nz), transitDependent: new Float64Array(nz) };
+  // Weights per zone. Facilities: today's households (h < nBase), bought out or not, since a facility neither moves
+  // with a buyout nor grows with added homes. Residents: persons, so the zone's public counts apply per person of
+  // today's population (base) to the persons present: added homes (Future growth) add demand, a buyout removes its share.
+  const nBase = hh.n - (sim.growth?.built || 0), pph = sim.data.A.demand.personsPerHousehold, P = h => sim.hhPersons ? sim.hhPersons[h] : pph;
+  const facAll = new Float64Array(nz), base = new Float64Array(nz), kept = new Float64Array(nz);
+  const facReached = { facilities: new Float64Array(nz), transitDependent: new Float64Array(nz) }, reached = { facilities: new Float64Array(nz), transitDependent: new Float64Array(nz) };
   for (let h = 0; h < hh.n; h++) {
     const z = hh.zone[h], T0 = Math.min(sim.orderT[z], sim.warnT[z]); if (!(T0 <= t)) continue; // zones ordered or warned so far
-    all[z]++; if (!hh.gone[h]) kept[z]++;
+    const today = h < nBase, p = P(h);
+    if (today) { facAll[z]++; base[z] += p; }
+    if (!hh.gone[h]) kept[z] += p;
     const te = sim.tEmber[hh.edge[h]]; if (te > t) continue;
-    for (const k in reached) if (te < T0 + T[k] * 60) { reachedAll[k][z]++; if (!hh.gone[h]) reached[k][z]++; }
+    for (const k in reached) if (te < T0 + T[k] * 60) { if (today) facReached[k][z]++; if (!hh.gone[h]) reached[k][z] += p; }
   }
   const blank = () => ({ value: 0, range: [0, 0] });
   const G = { age75: { inZones: blank() }, ambulatory: { inZones: blank() }, specialized: { inZones: blank() }, facilityBeds: { inZones: blank() } };
@@ -1071,8 +1075,9 @@ export function needsHelp(sim, t) {
     for (const [g, v] of Object.entries(vals)) {
       if (!v) continue;
       const fac = g === 'facilityBeds';
-      add(G[g].inZones, ...v, fac ? 1 : kept[z] / all[z]);
-      for (const k in reached) add(G[g][k], ...v, (fac ? reachedAll : reached)[k][z] / all[z]);
+      if (!fac && !base[z]) continue;
+      add(G[g].inZones, ...v, fac ? 1 : kept[z] / base[z]);
+      for (const k in reached) add(G[g][k], ...v, fac ? (facAll[z] ? facReached[k][z] / facAll[z] : 0) : reached[k][z] / base[z]);
     }
   }
   for (const g of Object.values(G)) for (const o of Object.values(g)) { o.value = Math.round(o.value); o.range = o.range.map(Math.round); }
