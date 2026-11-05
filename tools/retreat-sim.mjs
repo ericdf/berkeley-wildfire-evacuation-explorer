@@ -18,7 +18,7 @@
 //   4. Step 2 comparison (second ways out), read from data/model/egress-candidates.json.
 //   Writes data/model/retreat.json and docs/managed-retreat.md (tools/retreat-report.mjs).
 //
-//   node tools/retreat-sim.mjs [--seeds 5] [--workers N] [--refresh-acs] [--report-only]
+//   node tools/retreat-sim.mjs [--seeds 5] [--workers N] [--refresh-acs] [--report-only] [--costs-only]
 //
 // Privacy: block-group statistics and street-segment counts only; no parcels, owners or addresses.
 // Web requests send a generic User-Agent and nothing about the person running the tool.
@@ -204,14 +204,35 @@ const vehPerHH = (1 - A.demand.householdsWithoutVehicleShare) * Object.entries(v
 
 // Blocks: hill residential street segments with their expected households (the simulator's allocation, expected values)
 const zones = new Map(data.layers.evacZones.map(z => [z.id, z]));
-const expHH = new Map();
+// Persons per household by zone, as the simulator's default household mix by place (ACS; SOURCE_NOTES DM18): a zone
+// with usable ACS households uses its own value, the rest the Time Study's. expRes: expected residents per block.
+const zonePph = zid => { const m = data.demand?.zones?.[zid]; return m?.usable ? m.personsPerHousehold.value : pph; };
+const expHH = new Map(), expRes = new Map();
 for (const [zid, list] of residentialStreets(data)) {
   const z = zones.get(zid); if (!z) continue;
-  const H = (z.popModeled ?? z.pop) / pph, W = list.reduce((s, [, w]) => s + w, 0);
-  for (const [eid, w] of list) if (W > 0) expHH.set(eid, H * w / W);
+  const H = (z.popModeled ?? z.pop) / zonePph(zid), W = list.reduce((s, [, w]) => s + w, 0);
+  for (const [eid, w] of list) if (W > 0) { expHH.set(eid, H * w / W); expRes.set(eid, H * w / W * zonePph(zid)); }
 }
+const resOf = list => list.reduce((s, e) => s + (expRes.get(e) || 0), 0);
 const hillEdges = [...expHH.keys()].filter(e => net.edges[e].fireZone >= 2).sort((a, b) => a - b);
 console.log(`${hillEdges.length} hill blocks, ${Math.round(hillEdges.reduce((s, e) => s + expHH.get(e), 0)).toLocaleString()} expected households`);
+
+// --costs-only: reprice the saved cases and refresh their expected households and residents with the allocation
+// above (the household mix by place since 2026-11-04, SOURCE_NOTES DM18), without rerunning the simulator.
+// Rankings, runs and neighbor counts are kept from the saved file.
+if (argv.includes('--costs-only')) {
+  const D = JSON.parse(fs.readFileSync(OUT, 'utf8')), hhOf = list => list.reduce((s, e) => s + (expHH.get(e) || 0), 0);
+  for (const c of D.cases) { c.expectedHouseholds = r1(hhOf(c.removed)); c.expectedResidents = r1(resOf(c.removed)); }
+  for (const r of D.ranking) { r.expectedHouseholds = r1(expHH.get(r.edge) || 0); r.expectedResidents = r1(expRes.get(r.edge) || 0); r.expectedVehicles = r1((expHH.get(r.edge) || 0) * vehPerHH); }
+  D.totals.hillHouseholds = r1(hillEdges.reduce((s, e) => s + expHH.get(e), 0));
+  if (D.engineFoot) D.engineFoot.expectedHouseholds = r1(hhOf(D.engineFoot.edges));
+  const { costs } = await import(R + '/tools/retreat-costs.mjs').then(m => m.computeCosts({ data, caseList: [...D.cases, ...(D.engineFoot ? [{ id: 'footBlock', removed: D.engineFoot.edges }] : [])], expHH, expRes, refresh: argv.includes('--refresh-acs') }));
+  D.costs = costs; D.meta.costsHouseholdMix = 'place'; D.meta.costsRebuilt = new Date().toISOString().slice(0, 10);
+  fs.writeFileSync(OUT, JSON.stringify(D));
+  const { writeReport } = await import(R + '/tools/retreat-report.mjs'); writeReport(D);
+  for (const [id, k] of Object.entries(costs)) console.log(`${id}: ${k.households} households, ${k.residents} residents, total ${k.total ? k.total.map(x => '$' + (x / 1e6).toFixed(1) + 'M').join('–') : 'unpriced'}`);
+  process.exit(0);
+}
 
 // Static factors per block from the access-constraints analysis (dead-end chokes only: a one-way choke opens if police or drivers run the street two ways)
 const deadAreas = e => (ac.edgeAreas.get(e) || []).filter(a => a.type === 'dead end');
@@ -245,7 +266,7 @@ const blocks = hillEdges.map((eid, k) => {
   const score = W8.front * c.front + W8.ember * c.ember + W8.cut * c.cut + W8.engine * c.engine + W8.nest * c.nest + W8.choke * c.choke;
   const ends = [e.a, e.b].map(n => { const names = [...new Set(data.nodeEdges[n].map(x => net.edges[x]).filter(x => x.mode === 'vehicle' && x.name !== e.name && x.name !== 'UNNAMED').map(x => titleCase(x.name)))]; return names.length ? names.join(' / ') : data.nodeEdges[n].length === 1 ? 'dead end' : '—'; });
   return { edge: eid, street: titleCase(e.name), ends, zone: e.evacZone, fireZone: e.fireZone, fireZoneSrc: e.fireZoneSrc || 'city', lengthM: Math.round(e.len),
-    expectedHouseholds: r1(expHH.get(eid)), expectedResidents: r1(expHH.get(eid) * pph), expectedVehicles: r1(expHH.get(eid) * vehPerHH),
+    expectedHouseholds: r1(expHH.get(eid)), expectedResidents: r1(expRes.get(eid)), expectedVehicles: r1(expHH.get(eid) * vehPerHH),
     meanHouseholds: r1(hhSum / scoreRows.length), runs: scoreRows.length, runsWithHouseholds: runsHH,
     components: { front: r3(c.front), ember: r3(c.ember), cut: r3(c.cut), engine: r3(c.engine), nest: c.nest, choke: r3(c.choke) },
     meanShareHomeAtFront: runsHH ? r3(frontShare / runsHH) : 0,
@@ -275,7 +296,7 @@ for (const c of caseList) {
   const zone = [...expHH.keys()].filter(e => zs.has(net.edges[e].evacZone) && !rem.has(e));
   const threat = FIRES.filter(f => blocks.some(b => rem.has(b.edge) && b.threat.includes(f)) || [...rem].some(e => !hillEdges.includes(e)));
   Object.assign(c, { removed: [...rem].sort((a, b) => a - b), neighbors, zone, outerAreas: [...outer], zones: [...zs].sort(), threat,
-    expectedHouseholds: r1(c.removed.reduce((s, e) => s + expHH.get(e), 0)), expectedResidents: r1(c.removed.reduce((s, e) => s + expHH.get(e), 0) * pph),
+    expectedHouseholds: r1(c.removed.reduce((s, e) => s + expHH.get(e), 0)), expectedResidents: r1(resOf(c.removed)),
     neighborExpectedHouseholds: r1(neighbors.reduce((s, e) => s + expHH.get(e), 0)), blocks: c.removed.length,
     streets: [...new Set(c.removed.map(e => titleCase(net.edges[e].name)))] });
   cases[c.id] = { removed: c.removed, neighbors, zone };
@@ -285,10 +306,10 @@ for (const c of caseList) {
 const hillBehind = e => net.edges[e].fireZone >= 2 && (ac.edgeAreas.get(e) || []).length > 0;
 for (const c of caseList) {
   const rem = new Set(c.removed);
-  c.access = { residentsBehindChokeRemoved: r1([...rem].filter(e => (ac.edgeAreas.get(e) || []).length).reduce((s, e) => s + expHH.get(e), 0) * pph),
-    hillResidentsBehindChokeRemoved: r1([...rem].filter(hillBehind).reduce((s, e) => s + expHH.get(e), 0) * pph),
-    residentsBehindDeadEndRemoved: r1([...rem].filter(e => deadAreas(e).length).reduce((s, e) => s + expHH.get(e), 0) * pph),
-    outerAreasAfter: c.outerAreas.map(id => { const a = ac.byId.get(id); const left = areaEdges(id).filter(e => !rem.has(e)).reduce((s, e) => s + expHH.get(e), 0) * pph; return { id, street: a.chokeStreets.join(' / '), residentsBefore: r1(a.residents), residentsAfter: r1(left) }; }) };
+  c.access = { residentsBehindChokeRemoved: r1(resOf([...rem].filter(e => (ac.edgeAreas.get(e) || []).length))),
+    hillResidentsBehindChokeRemoved: r1(resOf([...rem].filter(hillBehind))),
+    residentsBehindDeadEndRemoved: r1(resOf([...rem].filter(e => deadAreas(e).length))),
+    outerAreasAfter: c.outerAreas.map(id => { const a = ac.byId.get(id); const left = resOf(areaEdges(id).filter(e => !rem.has(e))); return { id, street: a.chokeStreets.join(' / '), residentsBefore: r1(a.residents), residentsAfter: r1(left) }; }) };
 }
 
 // ---------- phase 2: same-seed pairs; phase 3: engine reach with and without parked cars on bought-out blocks ----------
@@ -387,7 +408,7 @@ let engineFoot;
 }
 
 // ---------- costs (screening ranges) ----------
-const { costs, sources: costSources } = await import(R + '/tools/retreat-costs.mjs').then(m => m.computeCosts({ data, caseList: [...caseList, { id: 'footBlock', removed: foot }], expHH, ranked, refresh: argv.includes('--refresh-acs') }));
+const { costs, sources: costSources } = await import(R + '/tools/retreat-costs.mjs').then(m => m.computeCosts({ data, caseList: [...caseList, { id: 'footBlock', removed: foot }], expHH, expRes, ranked, refresh: argv.includes('--refresh-acs') }));
 
 // ---------- step 2 comparison (second ways out, data/model/egress-candidates.json on this branch) ----------
 function step2For(caseList) {
