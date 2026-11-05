@@ -581,6 +581,16 @@ Eric, 2026-11-04, after an outside review: build option A of `docs/design/assist
 | NH5 | **Results, today's plan** (`node tools/needs-help-report.mjs`, S6, medium severity, seeds 1–3, medians). People who may need a wheelchair van or ambulance on streets embers reached within 90 min of their zone's order or warning, low–high end: east wind 11–64, 1923 repeat 13–78, Panoramic Hill 17–103, north hills 8–50; within 180 min: 18–109, 30–180, 22–132, 17–105. People with an ambulatory difficulty within 90 min: 86, 143, 131, 102. Licensed care and hospital beds within 180 min: 0 on every fire (at most 1 on the north hills); the 20 beds in the 1923 order area sit on streets embers did not reach. Panoramic Hill has the largest share reached within 90 min: its zones are small and close to the start. | **measured** |
 | NH6 | **Limits.** The ACS ambulatory-difficulty table counts a difficulty walking or climbing stairs, not a need for help (DM6). No public source gives who needs a pickup by zone (design note §3). The counts are not added to "people still there when embers arrived": nobody in the simulator waits for a pickup, so those people leave as synthetic households on the survey curves. | **recorded** |
 
+## Uncertainty beside the results it qualifies, 2026-11-04
+
+Eric, 2026-11-04, after an outside review asked for result-level uncertainty labels: put the largest known bias, a disputed input and the ember caveat next to the results, using the existing provenance badges. No model change.
+
+| # | Insight | Status / use |
+|---|---|---|
+| UL1 | **Fire-off time beside the study's ETE.** `tests/calibration.mjs`, run with no overrides, writes `data/model/calibration.json` (medians and ranges per region and Time Study case, citywide mix). The "For scale" row under the evacuation times now states the simulator's own fire-off time for the region and case and the gap, replacing hard-coded ranges that went stale with each model change. 2026-11-05: R02 1923 S4 95 min (95–96) against the study's 175, 80 min faster. | **applied** (`js/main.js` studyRow) |
+| UL2 | **Disputed input line.** Under the outcomes, the share of households without a vehicle is named as disputed (DM3, DM18), with the other source's result on the same fire from `data/model/demand-compare.json` (DM17: today's plan, medium severity, the fire's usual time of day, seeds 1–3): e.g. 1923 repeat, people with no vehicle and no ride 2,063 (ACS) against 460 (survey). | **applied** (`js/main.js` disputedNote) |
+| UL3 | **Ember caveat** in the note under the outcomes: the overlay's ember exposure does not follow the County's Ember Threat Zones (Spearman −0.20 at medium severity) and does rank the City's 2025 hazard zones in the City's order (FV11; `docs/fire-validation.md` finding 4). | **applied** |
+
 ## Fuel data and checks of the fire overlay against the record (public sources and simulator results), 2026-11-03
 
 Workstream: give the illustrative fire layer real fuel data and check its presets against documented fires (coordinator's brief, 2026-11-03). Report: `docs/fire-validation.md`. Nothing here changes a default; labels and severities are unchanged.
