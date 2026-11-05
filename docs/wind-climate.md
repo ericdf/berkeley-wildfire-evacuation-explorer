@@ -32,7 +32,7 @@ from 180–320° (43.3% from 200–300°), out of 289,075 hours with a direction
 | Spring (Mar–May) | 71.6% | 11.5% | 5.1% | 6.4 mph |
 | Summer (Jun–Aug) | 86.1% | 3.3% | 2.0% | 6.9 mph |
 | Fall (Sep–Nov) | 58.6% | 26.3% | 6.9% | 5.8 mph |
-| April | 98.6% | 0.7% | 13.9% | 22.1% |
+| April | 74.4% | 9.9% | 5.0% | 6.3 mph |
 
 **By hour band.** The most common 10° bin is 200–210° (south-south-west) in every season and band
 except winter's night, morning and evening (0–11 and 18–23 LST), when it is 50–60° (north-east). Onshore

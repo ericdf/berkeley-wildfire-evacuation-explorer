@@ -11,7 +11,7 @@
 //    the 11 p.m. column). The tool returns one column per hour of day (local standard time, LST): percentages
 //    of that hour's observations and the hour's count, so per-hour counts are recovered as count × percent.
 //    Elements: hourly mean wind direction (MWD, 10° bins); hourly mean wind speed (MWS, 1 mph bins), for all
-//    hours and filtered to onshore (180–319°, inclusive) and to north (340–20°) directions; relative humidity (AVR,
+//    hours and filtered to onshore (180–319°, inclusive) and to north (340–360° and 0–19°, inclusive: the 340–20° sector in whole degrees) directions; relative humidity (AVR,
 //    5% bins) for winter north-wind hours.
 //    WRCC serves raw hourly listings only for the last 30 days, so this station's record cannot pair one
 //    afternoon with the following night.
@@ -115,10 +115,10 @@ const out = { _note: 'Derived by tools/wind-climate.mjs (docs/wind-climate.md, S
 for (const season of Object.keys(SEASONS)) {
   const dir = await wrcc(season, 'MWD', '10'), spd = await wrcc(season, 'MWS', '01');
   const spdOn = await wrcc(season, 'MWS', '01', ['MWD', '05', String(ONSHORE[0]), String(ONSHORE[1] - 1)], 'onshore320');
-  const spdN1 = await wrcc(season, 'MWS', '01', ['MWD', '05', '340', '361'], 'north1'), spdN2 = await wrcc(season, 'MWS', '01', ['MWD', '05', '0', '20'], 'north2');
+  const spdN1 = await wrcc(season, 'MWS', '01', ['MWD', '05', '340', '361'], 'north1'), spdN2 = await wrcc(season, 'MWS', '01', ['MWD', '05', '0', '19'], 'north2b');
   // Humidity of north-wind hours: winter only (each whole-record query takes several minutes at WRCC).
   const rhN1 = season === 'winter' ? await wrcc(season, 'AVR', '05', ['MWD', '05', '340', '361'], 'north1') : null;
-  const rhN2 = season === 'winter' ? await wrcc(season, 'AVR', '05', ['MWD', '05', '0', '20'], 'north2') : null;
+  const rhN2 = season === 'winter' ? await wrcc(season, 'AVR', '05', ['MWD', '05', '0', '19'], 'north2b') : null;
   if (!dir || !spd) continue;
   const merge = (a, b) => a && b ? { hours: a.hours.map((x, h) => ({ n: x.n + b.hours[h].n, bins: Object.fromEntries([...new Set([...Object.keys(x.bins), ...Object.keys(b.hours[h].bins)])].map(k => [k, (x.bins[k] || 0) + (b.hours[h].bins[k] || 0)])) })) } : null;
   const spdN = merge(spdN1, spdN2), rhN = merge(rhN1, rhN2);
