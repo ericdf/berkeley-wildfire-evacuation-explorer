@@ -118,6 +118,14 @@ const walkNote = () => {
     : `Each departing household leaves its street later by the terrain's extra walking time from door to curb for three legs (two trips out with belongings, one back) ${badge('assumption', 'Three legs is this project\'s assumption. Walking speed on slopes: Tobler\'s hiking function; stairs: Fruin\'s free-flow stair speeds (SOURCE_NOTES WA4–WA6).')}, drawn from its street segment's spread across hill homes ${badge('derived', 'Microsoft building footprints and the 4 m lidar DEM: height and distance from each footprint centroid to the nearest point of its street (tools/walk-access.mjs). Only per-segment percentiles are kept.')}. Across ${fmt(W.meta.counts.hillBuildings)} hill buildings the median is ${fmt(W.meta.counts.delayS.central[0])} s and the 90th percentile ${fmt(W.meta.counts.delayS.central[1])} s; for people with reduced mobility ${fmt(W.meta.counts.delayS.reduced[0])} and ${fmt(W.meta.counts.delayS.reduced[1])} s, which this setting does not apply. The Time Study's mobilization times may already include part of this walk.`;
 };
 $('walkAccess').onchange = () => { walkNote(); newRun(); };
+// Night parking on narrow hill streets (Expert view, both plans; SOURCE_NOTES EV1–EV3, NP1–NP4). Acts only at night.
+function nightParkingNote() {
+  const N = data.A.parking.range.night, ft = m => fmt(m / 0.3048);
+  $('nightparking-note').innerHTML = $('nightParking').value === 'pre20261105'
+    ? `The rule used before 2026-11-05: residents stop parking a second side where under ${ft(data.A.parking.range.minLeftForCarsM)} ft would remain ${badge('model rule', A_NOTE('parking.range'))}, so most hill streets of 24 ft or less have cars on one side at night. Results match the simulator as it was before the night count.`
+    : `At night, on hill streets ${ft(N.narrowMinM)}–${ft(N.narrowMaxM)} ft wide, residents park both sides on ${fmt(100 * N.narrowBothShareHills)}% of segments, leaving one car's width (${ft(N.narrowPinchClearM)} ft): cars take turns and an engine cannot pass ${badge('assumption', A_NOTE('parking.range.night.narrow'))}. From one night's count at about 1 a.m. on 11 narrow blocks.`;
+}
+$('nightParking').onchange = () => { nightParkingNote(); newRun(); };
 // Fuel (scenario setting, Expert view, off by default): LANDFIRE FBFM40 in place of the fire-zone proxy (js/fire.js withLandfireFuel).
 function fuelNote() {
   const on = $('fuel').value === 'landfire', M = data.fuel40?.meta;
@@ -143,7 +151,7 @@ function toggleContraflow(id) {
 // Growth is part of the world both plans face. Guided view always runs today's population.
 // Household mix, Fuel and weekday placement (Expert view) join the world only when they are not today's, so default jobs and keys are unchanged.
 const world = () => document.body.classList.contains('simple') ? { growth: 'none', powerShutoff: 'none' }
-  : { growth: $('growth').value, powerShutoff: $('powerShutoff').value, ...($('quake').value !== 'none' ? { quake: $('quake').value } : {}), ...($('visibility').value === 'poor' ? { visibility: 'poor' } : {}), ...($('householdMix').value === 'citywide' ? { householdMix: 'citywide' } : {}), ...($('fuel').value === 'landfire' ? { fuel: 'landfire' } : {}), ...($('nrPlacement').value !== 'area' ? { nrPlacement: $('nrPlacement').value } : {}), ...($('walkAccess').value !== 'none' ? { walkAccess: $('walkAccess').value } : {}) };
+  : { growth: $('growth').value, powerShutoff: $('powerShutoff').value, ...($('quake').value !== 'none' ? { quake: $('quake').value } : {}), ...($('visibility').value === 'poor' ? { visibility: 'poor' } : {}), ...($('householdMix').value === 'citywide' ? { householdMix: 'citywide' } : {}), ...($('fuel').value === 'landfire' ? { fuel: 'landfire' } : {}), ...($('nrPlacement').value !== 'area' ? { nrPlacement: $('nrPlacement').value } : {}), ...($('walkAccess').value !== 'none' ? { walkAccess: $('walkAccess').value } : {}), ...($('nightParking').value !== 'count2026' ? { nightParking: $('nightParking').value } : {}) };
 // Household mix (Expert view, both plans; SOURCE_NOTES DM1–DM9, DM18). By place is the default; without
 // data/model/demand-by-zone.json the simulator falls back to the Time Study's citywide mix.
 if (!data.demand) { const o = $('householdMix').querySelector('option[value="place"]'); o.disabled = true; o.textContent += ' (needs data/model/demand-by-zone.json)'; $('householdMix').value = 'citywide'; }
@@ -715,7 +723,7 @@ function applyPreset(idOrPreset) {
 }
 function setMode(m) {
   // Guided view runs without growth (world()), so a switch rebuilds the run once the class has changed.
-  const rerun = (document.body.classList.contains('simple') || document.body.classList.contains('expert')) && !document.body.classList.contains(m) && ($('growth').value !== 'none' || $('powerShutoff').value !== 'none' || $('quake').value !== 'none' || $('visibility').value !== 'clear' || $('householdMix').value !== (data.demand ? 'place' : 'citywide') || $('fuel').value !== 'proxy' || $('nrPlacement').value !== 'area' || $('walkAccess').value !== 'none');
+  const rerun = (document.body.classList.contains('simple') || document.body.classList.contains('expert')) && !document.body.classList.contains(m) && ($('growth').value !== 'none' || $('powerShutoff').value !== 'none' || $('quake').value !== 'none' || $('visibility').value !== 'clear' || $('householdMix').value !== (data.demand ? 'place' : 'citywide') || $('fuel').value !== 'proxy' || $('nrPlacement').value !== 'area' || $('walkAccess').value !== 'none' || $('nightParking').value !== 'count2026');
   document.body.classList.toggle('simple', m === 'simple'); document.body.classList.toggle('expert', m === 'expert');
   document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
   localStorage.setItem('bhe-mode', m);
@@ -907,8 +915,8 @@ function inspect(sel, quiet) {
         + (e.narrow ? row('City survey: width with parking', `${fmt(e.clearWidthM / 0.3048)} ft`, 'sourced', 'City Narrow_Roads Width_w_Parking: pavement minus 7 ft per parked side, assuming perfect parking. Used as one possible state, not a measurement.') : '');
       if (sim) {
         const cw = sim.clear[e.id], P = sim.parking, sd = P.sides[e.id];
-        rows += row('Parked sides (this run)', sd < 0 ? '—' : `${sd}${P.offPave[e.id] ? ', partly off the pavement' : ''}${P.pinchM[e.id] ? `; one bad parking job takes ${fmt(P.pinchM[e.id] / 0.3048, 1)} ft more` : ''}`, 'model rule', A_NOTE('parking.range'))
-          + row('Clear width under this plan', Number.isNaN(cw) ? 'unknown' : `${fmt(cw, 1)} m (${fmt(cw / 0.3048)} ft)`, Number.isNaN(cw) ? 'unknown' : 'derived', 'Pavement width minus parked cars (8 ft per side, KLD), minus any bad parking job, for this run\'s seed')
+        rows += row('Parked sides (this run)', sd < 0 ? '—' : `${sd}${P.offPave[e.id] ? ', partly off the pavement' : ''}${P.pinchM[e.id] ? `; one bad parking job takes ${fmt(P.pinchM[e.id] / 0.3048, 1)} ft more` : ''}${P.nightPinch?.[e.id] ? `; night rule: both sides parked, leaving one car's width (${fmt(A.parking.range.night.narrowPinchClearM / 0.3048, 1)} ft)` : ''}`, 'model rule', A_NOTE('parking.range'))
+          + row('Clear width under this plan', Number.isNaN(cw) ? 'unknown' : `${fmt(cw, 1)} m (${fmt(cw / 0.3048)} ft)`, Number.isNaN(cw) ? 'unknown' : 'derived', 'Pavement width minus parked cars (8 ft per side, KLD), minus any bad parking job, for this run\'s seed; at night, a 17–24 ft hill street parked on both sides keeps one car\'s width (8 ft; assumption from the 2026-11-05 count)')
           + row('Moving lanes that fit', sim.eff[e.id] < 0 ? 'unknown' : sim.eff[e.id], 'model rule', F.effLanes.source)
           + row('Fire engine can pass', sim.engineOK[e.id] ? 'yes' : '<b style="color:#b91c1c">no</b>', 'model rule', F.engineBlocked.source)
           + opsRows(e, sim, row);
@@ -1259,6 +1267,7 @@ $('btn-assumptions').onclick = () => {
     <li>Vehicles may use every street. They head for the nearest road node outside every ordered or warned zone and the ember area, and, under Today's model, re-plan every minute around queues, fire and embers. Other ways drivers could find their route are under Driver information and routing below.</li>
     <li>Each link passes at most its capacity, holds at most its storage, and each intersection passes at most its capacity. On two-way streets with only one moving lane between parked cars, both directions share that lane: when cars come from both ways they take turns at gaps such as driveways, and the street loses capacity. Removing parking does not add evacuation lanes on two-way streets.</li>
     <li>Parked cars vary by block and seed: hill blocks are parked on one side or both, some cars sit partly off the pavement, and an occasional bad parking job (a wide vehicle, or a car far from the curb) narrows the gap. Residents stop parking where less than 8 ft would remain for a car. The City survey's "width with parking" is treated as the both-sides case.</li>
+    <li>At night, hill streets ${fmt(data.A.parking.range.night.narrowMinM / 0.3048)}–${fmt(data.A.parking.range.night.narrowMaxM / 0.3048)} ft wide are parked on both sides on ${fmt(100 * data.A.parking.range.night.narrowBothShareHills)}% of segments, leaving one car's width (8 ft): cars take turns and an engine cannot pass ${badge('assumption', A_NOTE('parking.range.night.narrow'))}. The rule rests on one night's count, at about 1 a.m. on 2026-11-05, of 11 narrow blocks, 10 of them parked on both sides. An Expert-view setting (Scenario) restores the rule used before that count.</li>
     <li>Households awaiting a commuter (Time Study) wait for that person to drive home first. The commuter enters at the edge of the evacuating area nearest home and drives in against the outbound traffic. A commuter turned back by fire leaves the household one car short.</li>
     <li>Gridlock relief: a vehicle stuck ${data.A.capacity.gridlockReliefS} s at the head of a queue squeezes forward. Without it the queue model can lock up for good in rings such as traffic circles.</li>
     <li>Engines travel from the nearest station to the road point nearest the ignition that the fire has not yet reached. They cannot pass segments narrower than an engine (with parked cars), and are delayed by oncoming evacuees where only one lane is clear.</li>
@@ -1329,7 +1338,7 @@ if (data.access) {
 }
 
 // ---------- start ----------
-growthNote(); shutoffNote(); quakeNote(); visibilityNote(); fuelNote(); walkNote(); showScenario(); showPlan(); legend(); newRun();
+growthNote(); shutoffNote(); quakeNote(); visibilityNote(); fuelNote(); walkNote(); nightParkingNote(); showScenario(); showPlan(); legend(); newRun();
 setMode(localStorage.getItem('bhe-mode') || 'simple');
 if (!localStorage.getItem('bhe-intro-seen')) intro();
 requestAnimationFrame(loop);

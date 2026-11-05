@@ -110,7 +110,8 @@ export class Evacuation {
 
     // ---- per-edge parking state under this plan (same parked cars for every plan with this seed) ----
     const nE = edges.length;
-    const P = this.parking = parkingState(data, plan, seed, tod);
+    // world.nightParking 'pre20261105': the night rule before the 2026-11-05 field count (Expert view; same for both plans).
+    const P = this.parking = parkingState(data, plan, seed, tod, { nightRule: world.nightParking });
     // Managed retreat (harness setting): with clearParking, bought-out segments keep no parked cars
     // (model rule). Applied after every parking draw, so the draws are unchanged.
     this.retreatEdges = world.retreat?.edges ? new Set(world.retreat.edges) : null;
@@ -894,7 +895,7 @@ export class Evacuation {
     if (inbound) this.log(`${inbound.toLocaleString()} commuters drive home into the evacuating area before their households leave (Time Study: households awaiting a returning commuter). On streets with one lane between parked cars they must take turns with evacuees driving out.`, 'order');
     if (early) this.log(`Early departure: ${early.toLocaleString()} households (${earlyVeh.toLocaleString()} vehicles) in ${this.plan.earlyZones === 'fz23' ? 'Fire Zones 2–3' : 'the City Leave Early Zones'} left before the fire, so they did not enter the road network during the alert.`, 'plan');
     { const ps = parkingStats;
-      this.log(`Parked cars this run (seed ${this.seed}): of ${ps.hillsKnown} hill segments with a known width, ${ps.twoSides} parked on both sides and ${ps.oneSide} on one side; ${ps.pinched} segments have a bad parking job narrowing the gap. ${ps.engineBlocked} segments are too narrow for an engine; ${this.sharedLanes} two-way segments leave one lane, so oncoming drivers take turns.`, 'plan'); }
+      this.log(`Parked cars this run (seed ${this.seed}): of ${ps.hillsKnown} hill segments with a known width, ${ps.twoSides} parked on both sides and ${ps.oneSide} on one side${ps.nightPinched ? ` (${ps.nightPinched} of the 17–24 ft ones parked on both sides at night, leaving one car's width)` : ''}; ${ps.pinched} segments have a bad parking job narrowing the gap. ${ps.engineBlocked} segments are too narrow for an engine; ${this.sharedLanes} two-way segments leave one lane, so oncoming drivers take turns.`, 'plan'); }
     { const G = this.growth, pph = this.data.A.demand.personsPerHousehold, opt = this.data.A.growth?.options?.[this.world.growth];
       if (G.units) this.log(`Future growth "${opt.label}": ${G.units.toLocaleString()} added homes on Berkeley hill streets (Fire Zones 2–3, standing in for the Hillside Overlay), spread like today's households.${G.blocked ? ` R0 in ${R0_AREAS[G.r0]} bars ${G.blocked.toLocaleString()} of them (${Math.round(this.hhPersons ? G.blockedPersons || 0 : G.blocked * pph).toLocaleString()} people); none move elsewhere.` : ''} Built: ${G.built.toLocaleString()} homes, about ${Math.round(this.hhPersons ? G.persons : G.built * pph).toLocaleString()} added residents.`, 'plan');
       if (this.householdMix.option === 'place') this.log(`Household mix by place (ACS 2020–2024): ${this.householdMix.zones} zones use their own persons per household and share of households without a vehicle; the rest keep the Time Study's ${pph} and ${(this.data.A.demand.householdsWithoutVehicleShare * 100).toFixed(2)}%. ${this.hh.n.toLocaleString()} synthetic households.`, 'plan');

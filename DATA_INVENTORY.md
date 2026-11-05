@@ -64,7 +64,9 @@ Status as of 2026-11-03. Categories: **sourced** (published data used as-is), **
   street photos. The model's shares are daytime; night shares are an assumption. Eric's
   night count on 19 of those blocks (2026-11-05, about 1 a.m.;
   `data/field/evening-parking-counts-2026-11-05.json`, SOURCE_NOTES EV1–EV7) found both sides
-  parked on narrow blocks where the model parks one, and is not yet applied. The City's
+  parked on 10 of 11 blocks of 24 ft or less. Since 2026-11-05 a night rule parks both sides of
+  17–24 ft hill streets on 90% of segments, leaving 8 ft (assumption from that one count,
+  SOURCE_NOTES NP1–NP4); hill streets under 17 ft have no count. The City's
   no-parking-sign layers set curbs only under the opt-in enforcement setting (PH15). A curb or
   red-zone inventory would replace the remaining assumptions (off-pavement parking, bad
   parking jobs).

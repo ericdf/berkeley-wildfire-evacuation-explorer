@@ -104,6 +104,8 @@ for (const F of FIRES) {
     compare(`${F.id} seed ${seed} ${EXPERT.name}`, build(DEFAULT_PLAN, 'S6'), build(EXPERT, 'S6'), { sameZoneOnly: true });
     // Enforcement of signs and daylighting changes parked cars only, never the household draws (SOURCE_NOTES PH15).
     for (const tk of ['S1', 'S6']) compare(`${F.id} seed ${seed} enforce signs and daylighting ${tk}`, build(DEFAULT_PLAN, tk), build({ ...DEFAULT_PLAN, parkingEnforce: 'both' }, tk));
+    // Night parking rule (SOURCE_NOTES NP1–NP4): the pre-2026-11-05 rule changes parked cars only, never the household draws.
+    compare(`${F.id} seed ${seed} night parking rule now vs pre-2026-11-05 S6`, build(DEFAULT_PLAN, 'S6'), new Evacuation(data, grid, fire, sc, 'central', DEFAULT_PLAN, seed, TIME_OF_DAY.S6, { growth: 'none', nightParking: 'pre20261105' }));
     // Visibility (scenario setting, SOURCE_NOTES VZ1–VZ6): poor visibility changes speeds and capacities, never the draws,
     // and Plan A and Plan B still see the same households under it.
     for (const tk of ['S1', 'S6']) compare(`${F.id} seed ${seed} visibility clear vs poor ${tk}`, build(DEFAULT_PLAN, tk), build(DEFAULT_PLAN, tk, 'none', undefined, 'poor'));
@@ -124,6 +126,27 @@ for (const F of FIRES) {
     }
     // growth and R0 leave today's households and the shared stream unchanged (R6)
     for (const r0 of ['none', ...R0S]) compare(`${F.id} seed ${seed} growth none vs max, R0 ${r0} (today's households)`, build(DEFAULT_PLAN, tk), build({ ...DEFAULT_PLAN, r0 }, tk, G), { growth: G, todayOnly: true });
+  }
+}
+// Parked-car draws depend on the seed, not the plan (SOURCE_NOTES NP1–NP4): under every hill parking option, a segment
+// the option leaves with the status quo's sides keeps the status quo's off-pavement draw, night pinch and clear width,
+// day and night, under both night rules.
+{
+  const { parkingState } = await import('../js/parking.js');
+  for (const seed of SEEDS) for (const night of [false, true]) for (const nightRule of [undefined, 'pre20261105']) {
+    const base = parkingState(data, { hillsParking: 'both' }, seed, { night }, { nightRule });
+    for (const opt of ['oneside', 'tight', 'narrow', 'none']) {
+      const S = parkingState(data, { hillsParking: opt }, seed, { night }, { nightRule });
+      let bad = 0, same = 0;
+      for (let i = 0; i < S.sides.length; i++) {
+        if (S.sides[i] !== base.sides[i]) continue;
+        same++;
+        const clearOK = opt === 'tight' && !base.nightPinch[i] ? true : (S.clear[i] === base.clear[i] || (Number.isNaN(S.clear[i]) && Number.isNaN(base.clear[i])));
+        if (S.offPave[i] !== base.offPave[i] || S.nightPinch[i] !== base.nightPinch[i] || !clearOK) bad++;
+      }
+      checks++; if (bad) failures++;
+      console.log(`${bad ? 'FAIL' : 'ok  '} parked cars seed ${seed} ${night ? 'night' : 'day'}${nightRule ? ' pre-2026-11-05 rule' : ''} status quo vs ${opt}: ${same.toLocaleString()} segments with the same sides${bad ? `, ${bad} differ` : ''}`);
+    }
   }
 }
 console.log(`\n${checks - failures}/${checks} comparisons like for like`);
