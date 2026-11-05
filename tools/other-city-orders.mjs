@@ -35,7 +35,7 @@ function added(sim) {
   const out = Object.fromEntries(CITIES.map(c => [c, { zones: 0, people: 0, veh: 0 }]));
   for (let z = 0; z < zones.length; z++) if (extra(z) && sim.orderT[z] < Infinity) out[city(zones[z].id)].zones++;
   const { hh, v } = sim;
-  for (let h = 0; h < hh.n; h++) if (extra(hh.zone[h]) && sim.orderT[hh.zone[h]] < Infinity) out[city(zones[hh.zone[h]].id)].people += pph;
+  for (let h = 0; h < hh.n; h++) if (extra(hh.zone[h]) && sim.orderT[hh.zone[h]] < Infinity) out[city(zones[hh.zone[h]].id)].people += sim.hhPersons ? sim.hhPersons[h] : pph; // zone persons per household (DM18)
   const zi = new Map(zones.map((z, i) => [z.id, i]));
   for (let i = 0; i < v.n; i++) { if (v.cls[i] !== 0) continue; const z = zi.get(data.net.edges[v.edge[i]].evacZone); if (z != null && extra(z) && sim.orderT[z] < Infinity) out[city(zones[z].id)].veh++; }
   return out;

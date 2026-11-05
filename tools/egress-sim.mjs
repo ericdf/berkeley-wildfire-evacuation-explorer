@@ -77,7 +77,7 @@ if (argv[0] === '--worker') {
   for (const j of jobs) {
     const data = dataFor(j.variant, j.cand, j.mob), sc = scen[j.fire.replace(/-nofire$/, '')];
     const sim = new Evacuation(data, grid, fireFor(j.fire, j.sev, j.seed), sc, j.sev, { ...DEFAULT_PLAN, orderDelayMin: j.delay }, j.seed, TIME_OF_DAY[sc.timeOfDay]);
-    const { v, hh, links } = sim, pph = data.A.demand.personsPerHousehold;
+    const { v, hh, links } = sim, pph = data.A.demand.personsPerHousehold, w = h => sim.hhPersons ? sim.hhPersons[h] : pph; // persons per household: each household's zone value under the default household mix by place (SOURCE_NOTES DM18)
     const track = j.areas.map(id => {
       const set = new Set(areas[id]); for (const e of data.linkEdgeIds) set.add(e); // leaving the area = past the far end of the new link
       const veh = []; for (let i = 0; i < v.n; i++) if (v.cls[i] !== 2 && set.has(v.edge[i])) veh.push(i);
@@ -96,11 +96,11 @@ if (argv[0] === '--worker') {
     for (const T of track) {
       let people = 0, front = 0, ember = 0;
       for (let h = 0; h < hh.n; h++) {
-        if (!T.set.has(hh.edge[h])) continue; people += pph;
+        if (!T.set.has(hh.edge[h])) continue; people += w(h);
         if (hh.early[h]) continue;
         const e = hh.ride[h] >= 0 ? hh.ride[h] : h, tf = sim.tFire[hh.edge[h]], te = sim.tEmber[hh.edge[h]];
-        if (tf <= t && hh.leftHome[e] > tf) front += pph;
-        if (te <= t && hh.leftHome[e] > te) ember += pph;
+        if (tf <= t && hh.leftHome[e] > tf) front += w(h);
+        if (te <= t && hh.leftHome[e] > te) ember += w(h);
       }
       let vFront = 0, vEmber = 0, noRoute = 0, notOut = 0; const times = []; let n0 = 0;
       T.veh.forEach((i, k) => {
