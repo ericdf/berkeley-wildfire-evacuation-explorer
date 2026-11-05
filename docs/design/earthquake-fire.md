@@ -155,7 +155,7 @@ station-area data, on an onshore wind as the main case and the Diablo wind as th
 
 Built from the Oakland North record by season and hour (`docs/wind-climate.md`, SOURCE_NOTES WC1–WC9):
 the `quake` scenario now blows from 205° at HayWired's April afternoon speeds (7.0 mph easing to 5.4 mph by
-9 p.m. LST); `quakeNorthWind` is a winter day with a north wind (0°, 6.2 → 9.2 mph, mostly humid air);
+9 p.m. LST); `quakeNorthWind` is a winter day with a north wind (0°, 5.9 → 9.2 mph, mostly humid air);
 `quakeEastWind` keeps the dry 45° wind at 30 mph as the worst case. The fire model reads the wind each
 hour from a schedule (`js/fire.js` `windSegments`). The spread factor was refitted to HayWired's burned
 floor area on the spring wind: 0.27 (was 0.37 on the assumed 270° at 10 mph).

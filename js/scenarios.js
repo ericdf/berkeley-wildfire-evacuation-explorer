@@ -108,9 +108,9 @@ export const QUAKE_WIND_SPRING = [
 // Winter northerly day (Dec–Feb): direction 0°, the middle of the 340–20° sector (model choice; the sector's most
 // common bin is 10–20°); speeds are the median of winter hours from that sector at each hour (WC6).
 export const QUAKE_WIND_WINTER_NORTH = [
-  { fromMin: 0, windFrom: 0, windMph: 6.2 },   // 4 p.m. LST
+  { fromMin: 0, windFrom: 0, windMph: 5.9 },   // 4 p.m. LST
   { fromMin: 42, windFrom: 0, windMph: 6.9 },  // 5 p.m.
-  { fromMin: 102, windFrom: 0, windMph: 7.5 }, // 6 p.m.
+  { fromMin: 102, windFrom: 0, windMph: 7.3 }, // 6 p.m.
   { fromMin: 162, windFrom: 0, windMph: 9.1 }, // 7 p.m.
   { fromMin: 222, windFrom: 0, windMph: 7.6 }, // 8 p.m.
   { fromMin: 282, windFrom: 0, windMph: 9.2 }, // 9 p.m.
@@ -195,8 +195,8 @@ export function makeScenarios(data) {
           windSource: 'Oakland North weather station, April, June 1992 – October 2026: from 3 p.m. to 9 p.m. (standard time) the most common direction is 200–210° at every hour and 80–87% of hours blow from 180–320°, off the Bay; the median speed of those hours falls from 7.0 to 5.4 mph. The direction holds into the evening; only the speed drops (SOURCE_NOTES WC3, WC4)' },
         { ...base, id: 'quakeNorthWind', name: 'Hayward Fault earthquake on a winter day with a north wind',
           blurb: 'The same earthquake fires at 4:18 p.m. on a winter weekday with a light wind from the north, about 6 mph, rising to about 9 mph after dark. In winter about one hour in twelve at the Oakland North station blows from the north (340–20°), and those hours are mostly humid, not the dry Diablo wind. The fires carry south, along the hills and across the flats.',
-          windFrom: 0, windMph: 6.2, windSchedule: QUAKE_WIND_WINTER_NORTH,
-          windSource: 'Oakland North weather station, December–February, June 1992 – October 2026: 8.3% of hours blow from 340–20°; their median speed is 6.2–6.9 mph at 4–5 p.m. and 7.5–9.2 mph from 6 to 10 p.m. (standard time); their median humidity is 59%, and 6.9% of them are at 25% or below (SOURCE_NOTES WC6). Direction 0° is the middle of that sector (model choice)' },
+          windFrom: 0, windMph: 5.9, windSchedule: QUAKE_WIND_WINTER_NORTH,
+          windSource: 'Oakland North weather station, December–February, June 1992 – October 2026: 8.3% of hours blow from 340–20°; their median speed is 5.9–6.9 mph at 4–5 p.m. and 7.3–9.2 mph from 6 to 10 p.m. (standard time); their median humidity is 59%, and 6.9% of them are at 25% or below (SOURCE_NOTES WC6). Direction 0° is the middle of that sector (model choice)' },
         { ...base, id: 'quakeEastWind', name: 'Hayward Fault earthquake on a dry east-wind day',
           blurb: 'The same earthquake fires, on the rare day with a dry wind from the north-east (about 2.5% of hours at the Oakland North station): wind-driven fires that carry embers toward the flats. A joint event of low probability, shown as the worst case.',
           windFrom: 45, windMph: 30,

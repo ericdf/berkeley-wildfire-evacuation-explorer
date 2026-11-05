@@ -221,7 +221,7 @@ one; every other fire runs exactly as before (`node tests/wind-schedule.mjs`).
 About 20 starts in buildings drawn from the USGS HayWired model, spread at 0.27 of medium
 severity's rate (fitted to HayWired's burned floor area in Berkeley), on three winds measured at
 the Oakland North weather station: a spring afternoon at HayWired's 4:18 p.m. (from 205°, 7.0 mph
-easing to 5.4 mph), a winter day with a north wind (0°, 6.2 to 9.2 mph) and the rare dry east wind
+easing to 5.4 mph), a winter day with a north wind (0°, 5.9 to 9.2 mph) and the rare dry east wind
 (45° at 30 mph). Fault closures and dark signals come with them.
 
 **Visibility** (scenario setting, Expert view, off by default; SOURCE_NOTES VZ1–VZ7). Poor
