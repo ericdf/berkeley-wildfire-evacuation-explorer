@@ -1,6 +1,8 @@
 // Scenario presets. Every number here is an illustrative model value unless marked
 // otherwise; they are listed in the Assumptions & limits panel.
 import { toUTM } from '../tools/utm.mjs';
+import { mulberry32 } from './rng.js';
+import { CELL, inPoly, bbox, inBB } from './fire.js';
 
 // City Leave Early Zones (Upper Berkeley Hills and Panoramic Hill), from
 // https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation (read 2026-11-01).
@@ -9,9 +11,9 @@ export const LEAVE_EARLY_ZONES = ['BER-006', 'BER-007', 'BER-008', 'BER-015', 'B
 export const SEVERITY = {
   low:     { label: 'Low',     rosMpm: 7,  windFactor: 0.75, emberM: 300,  spotProb: 0.004, spotDelayMin: 4 },
   central: { label: 'Medium', rosMpm: 14, windFactor: 1.0,  emberM: 800,  spotProb: 0.012, spotDelayMin: 3 },
-  high:    { label: 'High',    rosMpm: 28, windFactor: 1.3,  emberM: 1500, spotProb: 0.03,  spotDelayMin: 2 },
+  high:    { label: 'High',    rosMpm: 28, windFactor: 1.3,  emberM: 1500, spotProb: 0.03,  spotDelayMin: 2, slowAfterMin: 60, slowFactor: 0.2 },
 };
-export const SEVERITY_NOTE = 'Medium severity ("central" in the code and data files): its head spread rate is calibrated to the City StoryMap\'s 1923 present-day repeat (about 5 h from the eastern edge to Shattuck; SOURCE_NOTES S11); low and high are half and double. Ember distance and spot-fire probability are illustrative. The Evacuation Time Study contains no fire modeling (E31). This is not a fire-behavior model.';
+export const SEVERITY_NOTE = 'Medium severity ("central" in the code and data files): its head spread rate is calibrated to the City StoryMap\'s 1923 present-day repeat (about 5 h from the eastern edge to Shattuck; SOURCE_NOTES S11); low and high are half and double. High severity slows after its first hour to a fifth of its head spread rate, as the 1991 fire\'s head did ("more than a mile in the first hour", then "only three quarters of a mile in the next seven hours"); fitted to 1991\'s structures burned by 2 and 4 hours (SOURCE_NOTES FV17). Medium and low keep their rate: the 1923 fire kept its pace until the wind changed. Ember distance and spot-fire probability are illustrative. The Evacuation Time Study contains no fire modeling (E31). This is not a fire-behavior model.';
 
 // The Evacuation Time Study's six scenarios (Table 6-5, p. 6-11; SOURCE_NOTES E11).
 // Residents are never reduced. commuterShare = households waiting for a returning commuter
@@ -50,6 +52,43 @@ export const ETE_TARGETS = {
   eastWind: { p90: { S1: 125, S2: 115, S3: 105, S4: 140, S5: 115, S6: 105 }, p100: { S1: 220, S2: 205, S3: 205, S4: 220, S5: 205, S6: 205 }, region: 'R05 Fire Zones 2 & 3' },
   northHills: { p90: { S1: 130, S2: 120, S3: 110, S4: 125, S5: 110, S6: 105 }, p100: { S1: 220, S2: 205, S3: 205, S4: 220, S5: 205, S6: 205 }, region: 'R09 North Berkeley Hills' },
 };
+
+// Earthquake fire starts (SOURCE_NOTES EQ11). Each pass draws, for each Berkeley fire station area of the USGS
+// HayWired fire-following model (data/model/haywired-ignitions.json), a Poisson number of starts with the model's
+// expected count (about 20 in all), and puts each in a built 30 m cell of that area, chosen with weight equal to
+// the cell's structures (data/model/structures.json: City footprints and OpenStreetMap outlines). Its own stream
+// per seed, so the fire's spread and spot-fire draws are unchanged. Returns null without the two files.
+export function quakeIgnitions(data) {
+  const H = data.haywired, S = data.structures;
+  if (!H || !S) return null;
+  const W = S.meta.W, n = new Map();
+  for (const list of [S.structures, S.structuresOther || []]) for (const [c, k] of list) n.set(c, (n.get(c) || 0) + k);
+  const areas = H.areas.map(a => {
+    const bb = bbox(a.rings), cells = [], w = [];
+    for (const [c, k] of n) { const x = (c % W + 0.5) * CELL, y = (Math.floor(c / W) + 0.5) * CELL; if (inBB(bb, x, y) && inPoly(x, y, a.rings)) { cells.push(c); w.push(k); } }
+    let tot = 0; const cum = w.map(v => (tot += v));
+    return { lambda: a.ignitions, cells, cum, tot };
+  });
+  const memo = new Map();
+  return seed => {
+    if (memo.has(seed)) return memo.get(seed);
+    const rand = mulberry32(seed * 6151 + 911), pts = [];
+    for (const a of areas) {
+      if (!a.cells.length) continue;
+      let k = 0; for (let p = rand(), L = Math.exp(-a.lambda); p > L; p *= rand()) k++; // Poisson (Knuth)
+      for (let j = 0; j < k; j++) {
+        const r = rand() * a.tot; let lo = 0, hi = a.cum.length - 1; while (lo < hi) { const m = (lo + hi) >> 1; if (a.cum[m] < r) lo = m + 1; else hi = m; }
+        const c = a.cells[lo]; pts.push([(c % W + 0.5) * CELL, (Math.floor(c / W) + 0.5) * CELL]);
+      }
+    }
+    if (!pts.length) pts.push(...areas.filter(a => a.cells.length).slice(0, 1).map(a => { const c = a.cells[0]; return [(c % W + 0.5) * CELL, (Math.floor(c / W) + 0.5) * CELL]; }));
+    memo.set(seed, pts);
+    return pts;
+  };
+}
+
+// Spread-rate factor for the earthquake fires, fitted to HayWired's floor area burned in Berkeley (SOURCE_NOTES EQ11).
+export const QUAKE_ROS_FACTOR = 0.37;
 
 export function makeScenarios(data) {
   const O = data.net.meta.origin;
@@ -111,10 +150,30 @@ export function makeScenarios(data) {
       sources: ['Orders: Evacuation Time Study region R09 "North Berkeley Hills" zone list (Table 6-2, p. 6-8); the study lists no warning zones for R09',
         'Ignition point, wind and time of day are illustrative model choices: a fall night, when Diablo winds are strongest, as in the east-wind fire'],
     },
+    ...(() => { // Earthquake fires (SOURCE_NOTES EQ11): only when the HayWired and structure files load.
+      const ign = quakeIgnitions(data); if (!ign) return [];
+      const base = {
+        kind: 'earthquake', ignitions: ign, ignition: L(-122.2730, 37.8716), ignitionLabel: 'Starts in buildings across Berkeley, drawn for each pass from the USGS HayWired fire-following model',
+        durationMin: 360, timeOfDay: 'S4', ordersByFire: true, quake: 'trace', rosFactor: QUAKE_ROS_FACTOR,
+        sources: ['Starts: USGS HayWired scenario, fire following the M7.0 Hayward Fault mainshock (Scawthorn 2018, chap. P; data release ScienceBase 5d83a79be4b0c4f70d067ae0): expected ignitions per Berkeley fire station area, about 20 in all; each pass draws the number per area (Poisson) and puts each start in a building cell (our rule)',
+          'Spread: the wildfire spread rules with a rate fitted so the fire reaches about as many structures as HayWired burns in Berkeley (3.44 million sq ft of floor area, about 2,300 single-family-home equivalents at the 1,515 sq ft per equivalent of the regional summary); model rule',
+          'Streets: segments crossing the mapped Hayward Fault trace are closed and every City signal is dark (the Hayward Fault earthquake setting, lower bound; its upper bound is in the scenario settings)',
+          'Orders: each zone is ordered the plan\'s decision delay after the fire first comes within 300 m of it, so only zones the fire threatens (assumption); no pre-defined region. Other cities\' zones follow their 1 km rule',
+          'Time: a weekday afternoon (Time Study S4), as in HayWired, whose earthquake strikes at 4:18 p.m.'],
+      };
+      return [
+        { ...base, id: 'quake', name: 'Hayward Fault earthquake: fires in buildings, ordinary day',
+          blurb: 'A magnitude 7 earthquake on the Hayward Fault starts fires in buildings across Berkeley, several at once, on an ordinary day with a light wind off the Bay. No wildfire: the fires start in the flats and the hills and spread house to house. Streets at the fault are closed and the signals are dark.',
+          windFrom: 270, windMph: 10 },
+        { ...base, id: 'quakeEastWind', name: 'Hayward Fault earthquake on a dry east-wind day',
+          blurb: 'The same earthquake fires, on the rare day with a dry wind from the north-east (about 2.5% of hours at the Oakland North station): wind-driven fires that carry embers toward the flats. A joint event of low probability, shown as the worst case.',
+          windFrom: 45, windMph: 30 },
+      ];
+    })(),
   ];
 }
 
-// ---- Fire families (opt-in, Simple view "Change the plan" and Expert Compare; docs/design/fire-families.md) ----
+// ---- Fire families (opt-in, Guided view "Change the plan" and Expert Compare; docs/design/fire-families.md) ----
 // A member is one ignition point × one wind direction; speed, severity, time of day, duration and
 // orders stay the fire's. Winds 30°, 45° and 60°: the core of dry, windy hours at the Oakland North
 // weather station (20–70° held 71.8% of them, SOURCE_NOTES FF4) and the spread within one Diablo

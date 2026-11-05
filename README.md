@@ -13,7 +13,7 @@ For official information see the City's
 
 The design brief is `specification.md`. Every insight taken from a document (the City's 2025 Evacuation Time Study, SB 99 and AB 747 reports, StoryMap and others), with page references and what we did with it, is in `SOURCE_NOTES.md`. What is still missing is listed in `DATA_INVENTORY.md`; problems found in other publishers' data, and whether they have been told, in `ISSUES.md`; where the project stands and what comes next, in `HANDOFF.md`. Design notes for work in progress are in `docs/design/`, and reports from finished analyses in `docs/`.
 
-**Where it stands (2026-11-04).** The spec's Phase 1 (map, traffic and an illustrative fire on Berkeley's streets) is built, and most of Phase 2: interventions with costs, comparisons over many runs, and the Simple view's three tabs. Phase 3 (evidence-backed Berkeley inputs) is under way (`docs/design/phase-3.md`): City building footprints give the structures the fire reaches and an assumption range for those lost; LANDFIRE fuels are an opt-in setting; each zone's ACS persons per household and share of households without a vehicle are the default; enforcement of posted no-parking signs and daylighting is a plan setting. Structures do not yet change how the fire spreads, and home hardening is not modeled (`docs/design/structure-spread.md`).
+**Where it stands (2026-11-04).** The spec's Phase 1 (map, traffic and an illustrative fire on Berkeley's streets) is built, and most of Phase 2: interventions with costs, comparisons over many runs, and the Guided view's three tabs. Phase 3 (evidence-backed Berkeley inputs) is under way (`docs/design/phase-3.md`): City building footprints give the structures the fire reaches and an assumption range for those lost; LANDFIRE fuels are an opt-in setting; each zone's ACS persons per household and share of households without a vehicle are the default; enforcement of posted no-parking signs and daylighting is a plan setting. Structures do not yet change how the fire spreads, and home hardening is not modeled (`docs/design/structure-spread.md`).
 
 ## Run it
 
@@ -33,7 +33,9 @@ Loading takes a few seconds: about 10 MB of terrain and 2 MB of street network.
 
 ## Playing
 
-**Simple view** (the default) has two tabs. **Today's plan:** pick the east-wind fire near
+On a phone (under 760 px wide) the page is one column: the map first, then the choices, then the results. Drag the map with one finger, pinch to zoom, tap a street to select it. Guided view is the phone view; Expert view works but is built for a larger screen.
+
+**Guided view** (the default; called Simple view until 2026-11-04) has three tabs: Today's plan, Change the plan and Set a goal. On a first visit, after How to use, a note says what Guided view fixes, with the two choices that matter most: the first order 10 minutes after ignition, and traffic at its best (signals working, every driver on the best route). **Today's plan:** pick the east-wind fire near
 Grizzly Peak Blvd (all of Fire Zones 2–3 ordered), the 1923 fire repeated today, Panoramic
 Hill, or a fire from Tilden into the north hills above Marin Ave (the Time Study's North Berkeley
 Hills region ordered; remembered across visits), and watch it with today's plan (first order 10 minutes after
@@ -370,9 +372,9 @@ flow.
 | `js/main.js` | UI: controls, results, inspector, comparison, modals |
 | `js/map.js`, `js/terrain.js` | Canvas map, hillshade and contours |
 | `js/fire.js`, `js/sim.js`, `js/parking.js`, `js/scenarios.js`, `js/rng.js` | Models and presets |
-| `js/presets.js` | Simple view: its fires, the "Other questions", per-fire "What to look for" text and the reasons a question is withheld |
-| `js/mitigate.js` | Simple view, Change the plan: the change catalog from `data/model/mitigations.json`, the comparison measures, cost badges, and which changes the stored runs grey out |
-| `js/goal.js` | Simple view, Set a goal: evaluates a goal against `data/model/goal-combos.json` and lists the smallest combinations that meet it |
+| `js/presets.js` | Guided view: its fires, the "Other questions", per-fire "What to look for" text and the reasons a question is withheld |
+| `js/mitigate.js` | Guided view, Change the plan: the change catalog from `data/model/mitigations.json`, the comparison measures, cost badges, and which changes the stored runs grey out |
+| `js/goal.js` | Guided view, Set a goal: evaluates a goal against `data/model/goal-combos.json` and lists the smallest combinations that meet it |
 | `js/levers.js` | Stacks changes (plan settings, edge copies, new links, buyouts) into one run's plan, world and street network, without changing the base data; used by the page and the workers (`tests/stack.mjs`) |
 | `js/worker.js` | Runs comparison batches off the main thread |
 | `js/guidance.js` | Driver information and routing: Habit, Ordinary app, constrained guidance and system-optimal route trees; households worse off |
@@ -385,10 +387,14 @@ flow.
 | `data/model/signals.json` | Signal junctions and control type (City `Signals` layer) and the Time Study's Appendix F congestion points, built by `tools/signals.mjs` |
 | `data/model/contraflow-streets.json` | Main hill exit streets for contraflow, built by `tools/contraflow-streets.mjs` from status-quo runs |
 | `data/model/walk-access.json` | Built by `tools/walk-access.mjs` (hill homes' height and distance to their street, door-to-curb and carless walking times, per street segment); optional; its report is `docs/walk-access.md` |
+| `tools/fault-zone-check.mjs` | Which hill streets a Hayward Fault rupture closes, at two bounds, and whether the hills keep a way out; `--write` saves the lists to `data/model/fault-closures.json` for the scenario setting "Hayward Fault earthquake" (SOURCE_NOTES EQ4–EQ10). Rerun after every network rebuild |
+| `tools/build-fire-zones-2025.mjs` | Writes `data/model/fire-zones-2025.json`: the 2025 Fire Code's Panoramic and Grizzly Peak Mitigation Zones from the City layer `grizz_pano_mitigation`, which the fire overlay's proxy fuel uses (SOURCE_NOTES FV18). The page needs the file |
+| `tools/preset-check.mjs` | The Guided-view question test (P19 rule): every question on every fire, Plan A against Plan B, low/medium/high × seeds 1–5; prints the verdicts and the medium-severity medians the question texts quote, writes `data/model/preset-check.json`. Rerun after any change to the fire or traffic model |
+| `tools/near-dist-check.mjs` | Reproduces the City's `NEAR_DIST` field from the footprints in Web Mercator and in UTM, to show the field reads about 27% high (`ISSUES.md` I1). Reads the City layer; writes nothing |
 | `data/model/structures.json` | Structures per 30 m fire cell: City footprints in Fire Zones 2–3 and OpenStreetMap outlines elsewhere, each with the measured gap to the nearest building, plus 2020 Census housing units, built by `tools/build-structures.mjs` (run `tools/fetch-osm-buildings.mjs` first). Counts only, no footprints. Used for the exposure row in results and the Structures map layer; the simulator runs without it |
 | `data/model/fire-validation.json`, `data/model/wind-red-flag.json` | Fire overlay checks against 1923, 1991, ember zones and Red Flag winds, built by `tools/fire-validation.mjs` and `tools/wind-events.mjs`; report `docs/fire-validation.md` |
 | `data/terrain/fbfm40.u8`, `fbfm40.json` | LANDFIRE 2025 fuel models on the fire grid, built by `tools/fetch-fuel.mjs` (opt-in Fuel setting) |
-| `data/model/calibration.json`, `data/model/simple-questions.json` | The simulator's fire-off times against the Time Study, written by `tests/calibration.mjs` and shown beside the study's times; the Simple-view question check, written by `tools/simple-questions.mjs` (SOURCE_NOTES UL1, DM18) |
+| `data/model/calibration.json`, `data/model/simple-questions.json` | The simulator's fire-off times against the Time Study, written by `tests/calibration.mjs` and shown beside the study's times; the Guided-view question check, written by `tools/simple-questions.mjs` (SOURCE_NOTES UL1, DM18) |
 | `data/model/demand-by-zone.json`, `data/model/workplaces.json` | ACS household mix by zone (`tools/build-demand.mjs`) and workplaces and off-street parking (`tools/workplaces.mjs`), for the Household mix (by place is the default) and the opt-in placement setting |
 | `data/model/mitigations-landfire.json`, `docs/mitigations-landfire.md` | The mitigation runs with LANDFIRE fuel (`node tools/mitigations.mjs --fuel landfire`), the test behind keeping the proxy fuel as the default (SOURCE_NOTES PH28) |
 | `data/model/retreat.json` | Built by `tools/retreat-sim.mjs` (managed retreat: block ranking, buyout runs, costs); its report is `docs/managed-retreat.md` |
@@ -403,7 +409,7 @@ flow.
 | `tools/` | Data pipeline (Node 18+, no npm packages) |
 | `tests/headless.mjs` | Runs every scenario × two plans in Node and prints summaries |
 | `tests/calibration.mjs`, `tests/stuck.mjs`, `tests/leftover.mjs` | Compare with the Time Study (fire off; `PLACEMENT=workplace`, `CASES=S1,S4`, `REGIONS=ref1923` select the setting, cases and scenarios); list jammed links; list order-zone vehicles that never leave |
-| `tests/plan-draws.mjs` | Checks that Plan A and Plan B of every Simple-view question see the same households for a seed (each fire, seeds 1–3), the same with maximum growth under each R0 area, and that growth leaves today's households and the shared random stream unchanged |
+| `tests/plan-draws.mjs` | Checks that Plan A and Plan B of every Guided-view question see the same households for a seed (each fire, seeds 1–3), the same with maximum growth under each R0 area, and that growth leaves today's households and the shared random stream unchanged |
 | `tests/growth.mjs` | Future growth and R0 with the fire on, seeds 1–5 (`SOURCE_NOTES.md` R4, R5); `GROWTH=max node tests/calibration.mjs` gives R3 |
 | `tests/routing.mjs` | Driver information and routing with the fire on, seeds 1–5: every option, households worse off against Habit (also beyond chance), and a check that every option sees the same households and shared random stream as Today's model (`SOURCE_NOTES.md` DG19–DG24) |
 | `tools/other-city-orders.mjs` | Zones, residents and vehicles other cities' orders add, by city, per fire, family member, severity and seed; `--runs` adds today's plan's headline measures (SOURCE_NOTES FO3, FO4) |
@@ -512,7 +518,7 @@ Rerun it after `tools/build-network.mjs`.
 - Once zoomed in past 2 m per screen pixel (and always for the selected area), the nearest other street as a dashed straight line between two dots, labeled with length and climb when zoomed in or selected (dead ends with 10 or more residents only), and any existing path or stairway out, drawn heavier in the paths style.
 - A hatched, dashed box with "⚠ population placement artifact" around areas with an `allocationWarning` (Albany Hill, AC-315: zone ALB-011's 2,535 residents all land on one 221 m segment).
 
-Clicking a street in an area, with the layer on, outlines the innermost area in yellow and puts an "Access-constrained area" card above the street card: entrance, type, streets, residents, households and vehicles (synthetic), evacuation zones, nesting with the enclosing areas, clear width and engine fit at the entrance, steepest grade, fire-zone mix, nearest other street, existing path, and the constraint score with its components, each with its provenance badge and source note. With the layer off, the street card names the area in one row. Below the layer list, a line gives hill residents behind a choke point (5,749 of 41,475; Berkeley and LBNL 3,149 of 27,840) and opens a sortable table of the union of the two top-50 rankings (68 areas), with the score and its components labeled a model rule; clicking an area zooms to it. None of this appears in Simple view.
+Clicking a street in an area, with the layer on, outlines the innermost area in yellow and puts an "Access-constrained area" card above the street card: entrance, type, streets, residents, households and vehicles (synthetic), evacuation zones, nesting with the enclosing areas, clear width and engine fit at the entrance, steepest grade, fire-zone mix, nearest other street, existing path, and the constraint score with its components, each with its provenance badge and source note. With the layer off, the street card names the area in one row. Below the layer list, a line gives hill residents behind a choke point (5,749 of 41,475; Berkeley and LBNL 3,149 of 27,840) and opens a sortable table of the union of the two top-50 rankings (68 areas), with the score and its components labeled a model rule; clicking an area zooms to it. None of this appears in Guided view.
 
 ## Widening streets or banning parking at pinch points
 

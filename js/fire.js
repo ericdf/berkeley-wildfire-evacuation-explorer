@@ -18,17 +18,28 @@
 import { mulberry32, normal } from './rng.js';
 
 export const CELL = 30;
+// The fire model's version: change it whenever a change here or in SEVERITY moves where or when the fire
+// burns. Stored tables record the version they ran on (tools/goal-combos.mjs meta.fireModel), and the page
+// says so when a table predates the current one. 2026-11-04: high severity slows after its first hour
+// (SOURCE_NOTES FV17) and the proxy fuel follows the 2025 fire zones (FV18).
+export const FIRE_MODEL = '2026-11-04';
 export const LB_MAX = 3.5;
 
-// Proxy spread factors by area (model rule; see assumptions panel).
+// Proxy spread factors by area (model rule; see assumptions panel). The zones are the 2025 Fire Code's
+// (SOURCE_NOTES FV18): the Panoramic and Grizzly Peak Mitigation Zones (data/model/fire-zones-2025.json) are
+// wildlandInterface; the rest of the hill fire zones, the Hills Mitigation Zone, is hillResidential. No City
+// layer draws the 2025 Hills zone, so it keeps the 2013 Fire Zones 2–3 outline less the two new zones.
+// opts.zones = '2013' rebuilds the earlier grid (Fire Zone 3 as wildlandInterface), for comparisons only.
 export const FUEL = { water: 0, flats: 0.25, hillResidential: 0.7, wildlandInterface: 1.0, wildland: 1.0 };
 
-export function buildFireGrid(data) {
+export function buildFireGrid(data, opts = {}) {
   const { dem, Z, layers, net } = data;
   const W = Math.ceil(net.meta.terrain.xmax / CELL), H = Math.ceil(net.meta.terrain.ymax / CELL);
   const elev = new Float32Array(W * H), fuel = new Float32Array(W * H), fuelClass = new Uint8Array(W * H);
   const zone = new Int16Array(W * H).fill(-1), inCity = new Uint8Array(W * H);
   const fz = layers.fireZones.map(z => ({ ...z, bb: bbox(z.rings) }));
+  const use2013 = opts.zones === '2013' || !data.fireZones2025;
+  const mz = use2013 ? [] : data.fireZones2025.zones.map(z => ({ ...z, bb: bbox(z.rings) }));
   const city = layers.cityBoundary.map(z => ({ ...z, bb: bbox(z.rings) }));
   const zones = layers.evacZones.map((z, i) => ({ i, rings: z.rings, bb: bbox(z.rings) }));
   for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) {
@@ -41,7 +52,10 @@ export function buildFireGrid(data) {
     if (z == null || z < 0.5) cls = 'water';
     else {
       const f = fz.find(q => inBB(q.bb, x, y) && inPoly(x, y, q.rings));
-      if (f) cls = f.zone === 3 ? 'wildlandInterface' : f.zone === 2 ? 'hillResidential' : 'flats';
+      const m = mz.find(q => inBB(q.bb, x, y) && inPoly(x, y, q.rings));
+      if (m) cls = 'wildlandInterface';
+      else if (f && !use2013) cls = f.zone === 2 || f.zone === 3 ? 'hillResidential' : 'flats';
+      else if (f) cls = f.zone === 3 ? 'wildlandInterface' : f.zone === 2 ? 'hillResidential' : 'flats';
       else if (insideCity) cls = z > 120 ? 'wildland' : 'flats';
       else cls = z > 200 ? 'wildland' : z > 90 ? 'hillResidential' : 'flats';
     }
@@ -49,7 +63,7 @@ export function buildFireGrid(data) {
     fuelClass[i] = Object.keys(FUEL).indexOf(cls);
     for (const q of zones) if (inBB(q.bb, x, y) && inPoly(x, y, q.rings)) { zone[i] = q.i; break; }
   }
-  return { W, H, elev, fuel, fuelClass, zone, inCity };
+  return { W, H, elev, fuel, fuelClass, zone, inCity, fuelZones: use2013 ? '2013' : '2025' };
 }
 
 // Opt-in fuel source (scenario setting, Expert view; off by default). Returns a copy of the proxy
@@ -76,6 +90,19 @@ export function fireGridFor(grid, data, fuel) {
   return LF.get(grid);
 }
 
+// A severity may slow its head after a set time (model rule, SOURCE_NOTES FV17): after sev.slowAfterMin minutes
+// every spread rate is multiplied by sev.slowFactor and spot fires start with probability multiplied by
+// sev.slowSpotFactor. Only high severity ("Like 1991") uses it: the 1991 head went "more than a mile in the
+// first hour" and "only three quarters of a mile in the next seven hours" (USFA-TR-060 PDF p. 59). The 1923
+// fire, which medium severity is calibrated to, kept its pace until the wind changed, so medium does not slow.
+// Time to cross distance d at rate r starting at time t, with rates multiplied by k after T. Exact for the
+// step, and later starts never arrive earlier (k <= 1), so the shortest-time search stays valid.
+function crossTime(t, d, r, T, k) {
+  if (k === 1 || t + d / r <= T) return d / r;
+  if (t >= T) return d / (r * k);
+  return (T - t) + (d - r * (T - t)) / (r * k);
+}
+
 // Anderson (1983) length-to-breadth ratio from midflame wind speed (mph).
 export function lengthToBreadth(wind20ftMph) {
   const U = 0.4 * wind20ftMph;
@@ -90,7 +117,10 @@ export function runFire(grid, sc, sev, seed) {
   const N = W * H;
   const rand = mulberry32(seed * 7919 + 17);
   const arrival = new Float64Array(N).fill(Infinity); // Float64: heap keys are compared against it
-  const ign = Math.min(H - 1, Math.max(0, Math.floor(sc.ignition[1] / CELL))) * W + Math.min(W - 1, Math.max(0, Math.floor(sc.ignition[0] / CELL)));
+  // One start (sc.ignition), or several at once (sc.ignitions: a list, or a function of the seed that draws them
+  // from its own stream, so the spread and spot-fire draws below stay as they were; js/scenarios.js quakeIgnitions).
+  const starts = typeof sc.ignitions === 'function' ? sc.ignitions(seed) : sc.ignitions ?? [sc.ignition];
+  const cellAt = p => Math.min(H - 1, Math.max(0, Math.floor(p[1] / CELL))) * W + Math.min(W - 1, Math.max(0, Math.floor(p[0] / CELL)));
   const windTo = ((sc.windFrom + 180) % 360) * Math.PI / 180; // compass bearing the wind blows toward
   const dwx = Math.sin(windTo), dwy = Math.cos(windTo);       // unit downwind vector (x east, y north)
   const wind = sc.windMph * sev.windFactor;
@@ -98,6 +128,7 @@ export function runFire(grid, sc, sev, seed) {
   const ecc = Math.sqrt(1 - 1 / (LB * LB));
   const ros = sev.rosMpm * (sc.rosFactor ?? 1);
   const stop = sc.durationMin;
+  const T1 = sev.slowAfterMin ?? Infinity, k1 = sev.slowFactor ?? 1, ks = sev.slowSpotFactor ?? 1;
   const clip = sc.clip ? sc.clip.map(z => ({ rings: z.rings, bb: bbox(z.rings) })) : null;
   const allowed = new Uint8Array(N);
   for (let i = 0; i < N; i++) {
@@ -106,7 +137,7 @@ export function runFire(grid, sc, sev, seed) {
     allowed[i] = 1;
   }
   const heap = new MinHeap();
-  arrival[ign] = 0; heap.push(0, ign);
+  for (const p of starts) { const ign = cellAt(p); if (arrival[ign] > 0) { arrival[ign] = 0; heap.push(0, ign); } }
   // 16-neighbor stencil (adds knight moves) to reduce grid-direction bias
   const NB = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1],
     [2, 1], [1, 2], [-1, 2], [-2, 1], [-2, -1], [-1, -2], [1, -2], [2, -1]];
@@ -128,11 +159,11 @@ export function runFire(grid, sc, sev, seed) {
       const f = (fuel[i] + fuel[j]) / 2;
       const rate = ros * windF * slopeF * f;
       if (rate <= 0) continue;
-      const tj = t + d / rate;
+      const tj = t + crossTime(t, d, rate, T1, k1);
       if (tj < arrival[j]) { arrival[j] = tj; heap.push(tj, j); }
     }
     // spotting from hill / wildland cells
-    if (spot[i] >= 0.7 && rand() < sev.spotProb) {
+    if (spot[i] >= 0.7 && rand() < sev.spotProb * (t > T1 ? ks : 1)) {
       const dist = sev.emberM * Math.sqrt(rand());
       const ang = windTo + normal(rand) * 0.26;
       const cc = c + Math.round(Math.sin(ang) * dist / CELL), rr = r + Math.round(Math.cos(ang) * dist / CELL);
@@ -164,7 +195,7 @@ export function runFire(grid, sc, sev, seed) {
     }
     ember[i] = m;
   }
-  return { arrival, ember, spots, LB, W, H };
+  return { arrival, ember, spots, LB, W, H, starts };
 }
 
 // Earliest time the fire is within ~radiusM of each cell (square min filter).

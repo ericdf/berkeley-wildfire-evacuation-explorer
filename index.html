@@ -20,12 +20,13 @@
     <button id="btn-assumptions">Assumptions &amp; limits</button>
     <button id="btn-sources">Data sources</button>
     <a class="official" href="https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation" target="_blank" rel="noopener">Official City fire weather &amp; evacuation info ↗</a>
-    <div class="modes" id="modes"><button data-mode="simple">Simple</button><button data-mode="expert">Expert</button></div>
+    <div class="modes" id="modes"><button data-mode="simple">Guided</button><button data-mode="expert">Expert</button></div>
   </nav>
 </header>
 
 <main>
   <aside id="left">
+    <p id="phone-note" class="expert-only phone-only">Expert view is built for a larger screen. On a phone, Guided view works best.</p>
     <section id="simple" class="simple-only"></section>
 
     <section class="expert-only">
@@ -48,6 +49,8 @@
       <p id="mix-note" class="small muted"></p>
       <label>Red Flag power shutoff (both plans) <select id="powerShutoff"><option value="none">None: grid power on</option><option value="hills">Signals in and next to the hills go dark</option><option value="all">All 146 City signals go dark</option></select></label>
       <p id="shutoff-note" class="small muted"></p>
+      <label>Hayward Fault earthquake (both plans) <select id="quake"><option value="none">None</option><option value="trace">Lower bound: streets crossing the mapped fault close</option><option value="zone">Upper bound: streets in the Earthquake Fault Zone close</option></select></label>
+      <p id="quake-note" class="small muted"></p>
       <label>Home-to-street access time (both plans) <select id="walkAccess"><option value="none">None (today's model)</option><option value="terrain">From terrain: walk and stairs to the street</option></select></label>
       <p id="walk-note" class="small muted"></p>
       <label>Fuel (both plans) <select id="fuel"><option value="proxy" selected>Fire-zone proxy (today)</option><option value="landfire">LANDFIRE FBFM40</option></select></label>
@@ -106,7 +109,7 @@
 
     <section id="run-section">
       <h2 class="expert-only">3 · Run</h2>
-      <!-- Playback controls. In Simple view js/main.js renderSimple moves this block into the open tab, so
+      <!-- Playback controls. In Guided view js/main.js renderSimple moves this block into the open tab, so
            playing a plan has one set of controls (Eric, 2026-11-02: "can this be consolidated?"). -->
       <div id="playback">
         <div class="small muted simple-only onmap">On the map: <b id="run-plan">Plan A</b></div>

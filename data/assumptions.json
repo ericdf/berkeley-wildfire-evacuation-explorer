@@ -642,7 +642,7 @@
     }
   },
   "orders": {
-    "firePathKm": 1,
+    "firePathKm": 1, "quakeKm": 0.3, "quakeKmNote": "Earthquake scenarios (SOURCE_NOTES EQ11): a zone is ordered the plan's decision delay after the fire first comes within this distance. Assumption, Eric 2026-11-04: order only zones actually threatened; no source gives a distance.",
     "firePathDelayMin": 10,
     "berkeleyPrefixes": [
       "BER",

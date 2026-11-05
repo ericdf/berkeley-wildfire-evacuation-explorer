@@ -7,14 +7,16 @@
 //          marks where the State requires a fault investigation before building.
 // For each bound it reports the closed segments, how the street nodes of Fire Zones 2–3 split
 // into connected pieces, which grid edges each piece's exits sit on, and the shortest route to the
-// Bay-side (west) grid edge from a few hill points. Read-only: writes nothing.
+// Bay-side (west) grid edge from a few hill points. With --write it also writes the two closure lists
+// to data/model/fault-closures.json, which the scenario setting "Hayward Fault earthquake" reads
+// (js/sim.js world.quake; SOURCE_NOTES EQ10). Edge ids change with every network rebuild: rerun then.
 //
-//   node tools/fault-zone-check.mjs [trace|zone|both]
+//   node tools/fault-zone-check.mjs [trace|zone|both] [--write]
 
 import fs from 'fs';
 import { toUTM } from './utm.mjs';
 
-const mode = process.argv[2] || 'both';
+const mode = process.argv.slice(2).find(a => !a.startsWith('--')) || 'both';
 const net = JSON.parse(fs.readFileSync(new URL('../data/model/network.json', import.meta.url)));
 const [ox, oy] = net.meta.origin;
 const W = net.meta.terrain.xmax, H = net.meta.terrain.ymax;
@@ -111,5 +113,17 @@ function report(label, closed) {
   }
 }
 
-if (mode === 'trace' || mode === 'both') report('Bound 1, segments crossing a mapped Hayward Fault trace', closedByTrace());
-if (mode === 'zone' || mode === 'both') report('Bound 2, segments touching the Earthquake Fault Zone', closedByZone());
+const T = closedByTrace(), Z = closedByZone();
+if (mode === 'trace' || mode === 'both') report('Bound 1, segments crossing a mapped Hayward Fault trace', T);
+if (mode === 'zone' || mode === 'both') report('Bound 2, segments touching the Earthquake Fault Zone', Z);
+if (process.argv.includes('--write')) {
+  const retrieved = f => { try { return fs.readFileSync(new URL(`../data/raw/cgs/${f}.retrieved`, import.meta.url), 'utf8').trim(); } catch { return 'unknown'; } };
+  fs.writeFileSync(new URL('../data/model/fault-closures.json', import.meta.url), JSON.stringify({
+    meta: { tool: 'tools/fault-zone-check.mjs --write', built: new Date().toISOString().slice(0, 10), category: 'model rule',
+      trace: `vehicle segments crossing a mapped Hayward Fault trace (California Geological Survey historic fault traces, retrieved ${retrieved('historic-fault-traces')}); lower bound`,
+      zone: `vehicle segments with any point inside the Alquist-Priolo Earthquake Fault Zone (CGS, retrieved ${retrieved('earthquake-fault-zones')}); upper bound`,
+      edgeIds: 'ids in data/model/network.json as built; rerun after every network rebuild' },
+    trace: [...T].sort((a, b) => a - b), zone: [...Z].sort((a, b) => a - b),
+  }));
+  console.log(`wrote data/model/fault-closures.json: trace ${T.size}, zone ${Z.size} segments`);
+}

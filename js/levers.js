@@ -1,4 +1,4 @@
-// Stacked changes ("Change the plan" in the Simple view): any set of the levers in
+// Stacked changes ("Change the plan" in the Guided view): any set of the levers in
 // data/model/mitigations.json (tools/mitigations.mjs) applied together, the way that tool applies
 // each one alone:
 //   plan     merged onto DEFAULT_PLAN

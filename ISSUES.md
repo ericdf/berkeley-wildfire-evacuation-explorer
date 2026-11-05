@@ -11,8 +11,10 @@ Status words: **open** (not reported), **reported** (told the publisher; say who
 
 ## I1. City structure-distance layer overstates distances between buildings by about 27%
 
-**Status:** open. Found 2026-11-03 (Claude Code, Phase 3 step 3a, PR #53). Eric asked on 2026-11-04 that it be recorded
-here; whether to tell the City is undecided. Nobody at the City has been told.
+**Status:** reported 2026-11-04: Eric emailed the note to the City, and the recipient acknowledged it. Found 2026-11-03 (Claude Code, Phase 3 step 3a, PR #53).
+Eric asked on 2026-11-04 that it be recorded here, and on the same day that a note to the City be drafted. The email,
+"Structure-distance layer: NEAR_DIST reads about 27% high (Web Mercator)", carried I3 as a second item and
+the evidence below. Not yet fixed by the publisher (layer last edited 2023-09-13).
 
 **The layer.** City of Berkeley ArcGIS Online, `Distance_between_structures_in_Fire_Zones_2_and_3_WFL1`, layer 3
 "Distance Between Structures" (the same 7,706 features are in `Structure_Distance_in_Berkeley_Fire_Zones_2_and_3_WFL1`,
@@ -47,12 +49,18 @@ The City's band edges of 25 and 50 ft correspond to about 19.7 and 39.4 ft on th
    outlines alone, against `NEAR_DIST`, for 160 of them with `NEAR_DIST` ≥ 10: median 0.2371 m per unit (25th–75th
    percentile 0.212–0.262), close to Web Mercator feet (0.2406) and far from ground feet (0.3048). The wider spread is
    expected, because two mapping sources draw the same houses a little differently.
-4. *Reproduce:* `node tools/build-structures.mjs` prints the distance check as "NEAR_DIST units check". The area check
+4. *Exact reproduction (2026-11-04).* `node tools/near-dist-check.mjs` requests the footprints in Web Mercator
+   (`outSR=3857`) and measures each one's shortest edge-to-edge gap to any other footprint in those units, divided by
+   0.3048. That reproduces `NEAR_DIST` to within 0.05 ft for 7,703 of the 7,706 footprints, and to within 1 ft for all of
+   them. The same gaps measured in UTM are 0.7881 times `NEAR_DIST` (median; 10th–90th percentile 0.7867–0.7899, over
+   3,038 footprints with `NEAR_DIST` ≥ 10), against cos 37.87° = 0.7894. Examples (`OBJECTID_1`, `NEAR_DIST`, ground
+   feet): 62, 24.57, 19.33; 85, 25.47, 20.04; 665, 50.17, 39.63; 3414, 50.59, 39.92.
+5. *Reproduce:* `node tools/build-structures.mjs` prints the distance check as "NEAR_DIST units check". The area check
    is one statistics query: sum of `Shape__Area` on the layer above (`outStatistics`, no records needed).
 
-The likely cause is a "Near" analysis run on the layer in its Web Mercator projection rather than in a projected
-coordinate system for California (for example State Plane Zone III, EPSG:2227, the City's imagery projection). That is
-our inference from the ratios above; the City's layer does not say how `NEAR_DIST` was computed.
+The cause is a "Near" analysis run on the layer in its Web Mercator projection rather than in a projected coordinate
+system for California (for example State Plane Zone III, EPSG:2227, the City's imagery projection). Evidence item 4
+reproduces the field that way to the hundredth of a foot; the City's layer does not say how `NEAR_DIST` was computed.
 
 **How much it changes the counts** (all 7,706 structures):
 
@@ -116,13 +124,15 @@ We have not checked whether any City report quotes figures from this layer.
 **If we tell the City.** The useful message is short: `NEAR_DIST` reads about 27% high because it was computed in Web
 Mercator; recomputing the Near analysis in State Plane or UTM fixes it; the evidence is items 1–2 above. The likely
 contacts are the City's GIS staff (the layer's owner on ArcGIS Online) or the Fire Department's EMBER team. A draft would
-go in `correspondence/`. No draft exists yet.
+was written 2026-11-04 as an email in Eric's drafts (see Status), with evidence items 2 and 4 and the band counts.
 
 ---
 
 ## I2. A public City layer lists household-level home-hardening requests
 
-**Status:** open. Found 2026-11-03 (Claude Code, Phase 3 design note, PR #48). Nobody at the City has been told.
+**Status:** reported 2026-11-04: Eric emailed it as a separate note, acknowledged. Found 2026-11-03 (Claude Code, Phase 3 design note, PR #48).
+Subject: "Public layer home_hardening_csv_test may expose household
+records". Whether the layer's sharing has changed is not checked.
 
 **The layer.** City of Berkeley ArcGIS Online, `home_hardening_csv_test`, layer 0: 390 points, last edited 2026-05-08.
 Its field names include `property_address`, `own_rent`, `inspector_name`, `date_submitted`, `status` and requested vent
@@ -139,7 +149,7 @@ any record.
 
 ## I3. The City's fire-zone layers show the 2013 zones, and the new zones' area fields read high
 
-**Status:** open. Found 2026-11-04 (Claude Code). Nobody at the City has been told.
+**Status:** reported 2026-11-04, as the second item in the I1 email (acknowledged). Found 2026-11-04 (Claude Code).
 
 **What is wrong.**
 - *Stale map.* The 2025 Fire Code (Special Item 02, Council 2025-04-15, Attachment 1) renamed Fire Zones 1–3
@@ -154,8 +164,11 @@ any record.
 
 **Evidence.** SOURCE_NOTES PH26; the cell count is reproduced by intersecting the polygons with the fire grid.
 
-**What the simulator does.** Its proxy fuel still uses the 2013 zones (`data/model/layers.json` from
-`FireZones_WFL1`). Re-keying it to the 2025 zones is a model change for Eric (HANDOFF item 5).
+**What the simulator does.** Since 2026-11-04 its proxy fuel uses the 2025 zones (SOURCE_NOTES FV18): the two
+`grizz_pano_mitigation` polygons, measured in UTM (`data/model/fire-zones-2025.json`), are wildland interface, and the
+Hills zone keeps the 2013 Fire Zones 2–3 outline less those two, because no City layer draws it. Evacuation zones,
+"Fire Zones 2–3" in the questions and the map's Fire zones layer still use the 2013 map (`data/model/layers.json` from
+`FireZones_WFL1`).
 
 **If we tell the City.** Point the City's GIS staff to the layers above and the Fire Code's zone definitions, and to
 the `area_acre` values.

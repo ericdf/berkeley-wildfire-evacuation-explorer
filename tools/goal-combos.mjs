@@ -72,6 +72,7 @@ if (argv[0] === '--worker') {
 }
 
 const { stackable, conflict, stackOf } = await import(R + '/js/levers.js');
+const { FIRE_MODEL } = await import(R + '/js/fire.js'); // recorded in meta.fireModel; js/goal.js flags a table built on another version
 const OUT = arg('--out', path.join(R, 'data/model/goal-combos.json'));
 const M = JSON.parse(fs.readFileSync(path.join(R, 'data/model/mitigations.json'), 'utf8'));
 const FIRES = M.meta.fires, SEVS = M.meta.severities;
@@ -211,6 +212,7 @@ const meta = {
   runs: prevRuns + total, wallMin: Math.round((prevMin + wallMin) * 10) / 10, workers: WORKERS,
   check: { checked, agree },
   mitigationsBuilt: M.meta.built,
+  fireModel: FIRE_MODEL, // with --merge, the fires kept from the saved output ran on MERGE.meta.fireModel; rebuild every fire after a model change
   // The household mix the runs used (js/goal.js shows the table only on today's default, SOURCE_NOTES DM18).
   // A merge that keeps runs from another mix is 'mixed'.
   householdMix: (() => { const now = fs.existsSync(path.join(R, 'data/model/demand-by-zone.json')) ? 'place' : 'citywide';

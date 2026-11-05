@@ -50,6 +50,16 @@ export const DEFAULT_PLAN = { name: 'Baseline', alertKm: 0, orderDelayMin: 10, h
 // prefix in orders.berkeleyPrefixes) is ordered firePathDelayMin after the fire front first comes
 // within firePathKm of any of its 30 m cells. Depends on the fire alone, never on the plan.
 // Returns per zone the order time in seconds (Infinity: no such order). Cached on the fire object.
+// Per evacuation zone, the first time (minutes) the fire comes within orders.firePathKm of it; cached on the fire.
+export function fireNearZones(data, grid, fire, km = data.A.orders.firePathKm) {
+  if (fire.nearZones?.km === km) return fire.nearZones.t;
+  const t = new Float64Array(data.layers.evacZones.length).fill(Infinity);
+  const near = diskMinFilter(fire.arrival, grid.W, grid.H, km * 1000);
+  for (let i = 0; i < grid.zone.length; i++) { const z = grid.zone[i]; if (z >= 0 && near[i] < t[z]) t[z] = near[i]; }
+  fire.nearZones = { km, t };
+  return t;
+}
+
 export function otherCityOrders(data, grid, fire) {
   const O = data.A.orders, key = `${O.firePathKm}|${O.firePathDelayMin}`;
   if (fire.otherCityOrders?.key === key) return fire.otherCityOrders.t;
@@ -75,7 +85,16 @@ export class Evacuation {
   // households are bought out, clearParking: also take the parked cars off those segments (true), or off
   // the listed segments only }.
   constructor(data, grid, fire, scenario, sevKey, plan, seed, tod, world = {}) {
+    // Hayward Fault earthquake (scenario setting, Expert view; SOURCE_NOTES EQ10): world.quake 'trace' or 'zone'
+    // closes the street segments data/model/fault-closures.json lists for that bound (model rule) to through
+    // traffic and engines, and darkens every City signal, as the citywide power shutoff does (assumption).
+    // An earthquake scenario carries the setting itself (scenario.quake, the lower bound); the Expert setting can raise it.
+    if ((!world.quake || world.quake === 'none') && scenario.quake) world = { ...world, quake: scenario.quake };
+    if (world.quake && world.quake !== 'none') world = { ...world, powerShutoff: 'all' };
     Object.assign(this, { data, grid, fire, scenario, sevKey, plan, seed, tod, world });
+    const faultList = world.quake && world.quake !== 'none' ? data.faultClosures?.[world.quake] : null;
+    this.faultEdges = faultList ? new Set(faultList) : null;
+    this.quake = { option: world.quake || 'none', segments: faultList ? faultList.length : 0, missing: !!(world.quake && world.quake !== 'none' && !faultList) };
     const A = data.A, net = data.net;
     this.rand = mulberry32(seed * 104729 + 3);
     this.t = 0; this.dt = 5; this.end = scenario.durationMin * 60;
@@ -132,6 +151,13 @@ export class Evacuation {
         if (ord.has(k)) { this.orderT[i] = Math.min(this.orderT[i], decided); scenOrd[i] = 1; }
         else if (warn.has(k)) { this.warnT[i] = decided; scenWarn[i] = 1; }
       });
+    } else if (scenario.ordersByFire) {
+      // Earthquake fire (SOURCE_NOTES EQ11): no pre-defined region. Each zone is ordered the plan's decision delay
+      // after the fire first comes within orders.quakeKm (0.3 km) of it: only zones the fire threatens (assumption, Eric).
+      // Berkeley and Lab zones only: other cities' zones keep their own 1 km rule (otherCityOrders), so they stay out
+      // of the ETE and appear in otherCityOrderedPeople (Codex review of PR #59).
+      const nearT = fireNearZones(data, grid, fire, data.A.orders.quakeKm ?? 0.3), BP = data.A.orders.berkeleyPrefixes;
+      zones.forEach((zn, z) => { if (BP.includes(zn.id.split('-')[0]) && nearT[z] * 60 <= this.end) { this.orderT[z] = Math.min(this.orderT[z], nearT[z] * 60 + decided); scenOrd[z] = 1; } });
     } else if (scenario.orderRegion) {
       // a region can be several polygons (MultiPolygon parts are stored separately)
       const parts = data.layers.evacRegions.filter(r => r.id === scenario.orderRegion).map(r => ({ rings: r.rings, bb: bbox(r.rings) }));
@@ -205,6 +231,9 @@ export class Evacuation {
         const thr = A.nonResident.through[e.name];
         if (thr && cap > 0) L.through = Math.min(0.9, thr.vehicles / A.nonResident.throughHours / 3600 * ((tod.groups || {}).external ?? 0) / cap);
         if (share) share.links.push(id);
+        // A segment the fault closes: no through traffic (L.closed, as routing and guidance read it); a household
+        // on it can still drive off it (enter() lets a car onto its own segment's closed links). Model rule.
+        if (this.faultEdges?.has(e.id)) { L.closed = true; L.fault = true; }
         this.links.push(L); this.outL[L.from].push(id); this.inL[L.to].push(id);
         if (!this.edgeLinks.has(e.id)) this.edgeLinks.set(e.id, []);
         this.edgeLinks.get(e.id).push(id);
@@ -591,7 +620,7 @@ export class Evacuation {
           const path = this.paths.get(i), nl = path?.[v.pidx[i]];
           if (L.to === v.dest[i] || L.e === hh.edge[v.hh[i]] || nl == null) { L.q.shift(); L.lastOut = t; B.budget--; if (L.share) L.share.used[L.dir]++; this.commuterHome(i, true); continue; } // reached their street
           if (nb[L.to] < 1) break;
-          if (this.linkCost[nl] === Infinity) { if (links[nl].closed && t < this.tFire[links[nl].e]) this.commutersTurnedBackCf = (this.commutersTurnedBackCf || 0) + 1; L.q.shift(); L.lastOut = t; B.budget--; this.commuterHome(i, false); continue; } // fire ahead, or a contraflow street: turned back
+          if (this.linkCost[nl] === Infinity) { if (links[nl].closed && !links[nl].fault && t < this.tFire[links[nl].e]) this.commutersTurnedBackCf = (this.commutersTurnedBackCf || 0) + 1; L.q.shift(); L.lastOut = t; B.budget--; this.commuterHome(i, false); continue; } // fire ahead, or a contraflow street: turned back
           const N = links[nl]; if (N.q.length >= N.storage && !this.relieve(i, L, N)) break;
           L.q.shift(); L.lastOut = t; B.budget--; nb[L.to]--; if (L.share) L.share.used[L.dir]++;
           N.q.push(i); v.link[i] = nl; v.enter[i] = t; v.pidx[i]++; this.active.add(nl);
@@ -637,7 +666,7 @@ export class Evacuation {
     const { v, hh, links } = this;
     if (v.cls[i] === 2) return this.enterInbound(i);
     const h = v.hh[i], eid = v.edge[i];
-    const cand = (this.edgeLinks.get(eid) || []).filter(l => links[l].q.length < links[l].storage && !links[l].closed);
+    const cand = (this.edgeLinks.get(eid) || []).filter(l => links[l].q.length < links[l].storage && (!links[l].closed || links[l].fault));
     if (!cand.length) return false;
     let L;
     if (this.guidance) L = links[this.guidance.departOrder(i, v.cls[i], eid, cand)[0]]; // js/guidance.js: checked against the Habit departure
@@ -727,13 +756,13 @@ export class Evacuation {
   // driving through fire (parked cars ignored for this test) and that the fire will
   // not reach for at least 5 minutes, i.e. where an engine would meet the fire edge.
   responderTarget(reach) {
-    const { data, t } = this, nodes = data.net.nodes, [ix, iy] = this.scenario.ignition;
+    const { data, t } = this, nodes = data.net.nodes, starts = this.fire.starts || [this.scenario.ignition]; // several starts: the nearest one
     let best = -1, bd = Infinity;
     for (const n of data.vehicleNodes) {
       if (reach[n] === Infinity) continue;
       const c = cellOf(this.grid, nodes[n][0], nodes[n][1]);
       if (c >= 0 && this.fire.arrival[c] * 60 <= t + 300) continue;
-      const d = (nodes[n][0] - ix) ** 2 + (nodes[n][1] - iy) ** 2;
+      let d = Infinity; for (const [ix, iy] of starts) d = Math.min(d, (nodes[n][0] - ix) ** 2 + (nodes[n][1] - iy) ** 2);
       if (d < bd) { bd = d; best = n; }
     }
     return best;
@@ -757,6 +786,7 @@ export class Evacuation {
         if (e.mode !== 'vehicle' || e.disconnected) continue;
         if (fire && t >= this.tFire[eid]) continue;
         if (e.barrier?.closed && !e.barrier.engines) continue; // fixed bollards or barriers
+        if (this.faultEdges?.has(eid)) continue; // cut by the fault (world.quake)
         if (!this.engineOK[eid] && !ignoreParking) continue;
         if (cfBlocked && cfBlocked[eid] >= 0 && e.a !== e.b && (n === e.a ? 0 : 1) === cfBlocked[eid]) continue;
         let c = e.len / (e.speedMps * 1.15) + (e.barrier?.closed ? A_ACC.barrierDelayS : 0); // removable bollard or gate: crew opens it
@@ -868,6 +898,8 @@ export class Evacuation {
       if (W.on) this.log(`Home-to-street access time (scenario setting): ${W.delayed.toLocaleString()} of ${W.households.toLocaleString()} departing households leave later by their street's terrain walking time, on average ${(W.delaySum / Math.max(1, W.households)).toFixed(0)} s (tools/walk-access.mjs).`, 'plan');
       else if (W.stale) this.log('Home-to-street access time is set to "from terrain", but data/model/walk-access.json is missing or was built on another network; no access time is applied. Rerun node tools/walk-access.mjs.', 'warn'); }
     if (this.nrPlacement === 'workplace') this.log(`Non-resident placement by workplace (scenario setting): employees park within ${this.data.workplaces.params.walkM} m of LODES workplaces, ${Math.round(100 * this.ucParkingShare)}% of UC employee and commuting-student cars in UC parking, Lab employees in the Lab's lots; the Time Study's totals by area are unchanged.`, 'plan');
+    if (this.quake.option !== 'none') this.log(this.quake.missing ? 'Hayward Fault earthquake: data/model/fault-closures.json did not load, so no street is closed; signals are still dark citywide.'
+      : `Hayward Fault earthquake (${this.quake.option === 'trace' ? 'lower bound: segments crossing the mapped fault trace' : 'upper bound: segments touching the Earthquake Fault Zone'}): ${this.quake.segments.toLocaleString()} street segments are closed to through traffic and engines, and every City signal is dark.${this.scenario.kind === 'earthquake' ? '' : ' The fire is still the wildfire scenario\'s: an earthquake fire would start in buildings, several at once, on any wind (the earthquake scenarios).'}`, 'plan');
     if (this.retreat.edges) this.log(`Managed retreat (analysis setting): ${this.retreat.households.toLocaleString()} synthetic households on ${this.retreat.edges.toLocaleString()} bought-out street segments are removed${this.world.retreat.clearParking ? ', with the parked cars on those segments' : ''}.`, 'plan');
     if (plan.hillsParking !== 'both') this.log(`Parking plan "${PARKING_PLANS[plan.hillsParking]}": ${parkingChanged(parkingStats)}.`, 'plan');
     if ((plan.parkingEnforce || 'none') !== 'none') this.log(`${ENFORCE_PLANS[plan.parkingEnforce]} (plan setting): ${parkingStats.signsEnforced} segments lose parked cars on a signed side${parkingStats.daylightCleared ? `; on ${parkingStats.daylightCleared} short segments daylighting leaves no room to park on at least one side` : ''}; other blocks keep fewer parked cars, so fewer bad parking jobs. ${parkingStats.engineFixed} segments that were too narrow for an engine become passable. Which curb a sign governs, and where daylighting takes curb, are model rules (SOURCE_NOTES PH15).`, 'plan');
@@ -908,7 +940,7 @@ export class Evacuation {
   // ---- results ----
   summary() {
     const { hh, v, t, data } = this, pphAll = data.A.demand.personsPerHousehold, pph = pphAll;
-    const S = { orderedPeople: 0, warnedLeaving: 0, shadowLeaving: 0, leftEarly: 0, reachedSafety: 0, onRoad: 0, notLeft: 0, noVehicle: 0, riders: 0,
+    const S = { quake: this.quake.option, quakeSegments: this.quake.segments, orderedPeople: 0, warnedLeaving: 0, shadowLeaving: 0, leftEarly: 0, reachedSafety: 0, onRoad: 0, notLeft: 0, noVehicle: 0, riders: 0,
       notOrderedExposed: 0, otherCityOrderedPeople: 0, exposedHome: 0, exposedRoad: 0, exposedNoVehicle: 0, fireFrontHome: 0, fireFrontRoad: 0, waitingToEnter: this.waiting.length };
     // People still there when embers (or the fire front) arrived: each person counted once, where they
     // were when embers first reached them (SOURCE_NOTES FO7). A household still at home then counts at

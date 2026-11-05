@@ -36,7 +36,7 @@ export class MapView {
     this.streetMode = 'class';
     this.sim = null; this.selected = null; this.hover = null;
     this.family = []; // fire families on: [{ ignition, winds }] for the starting points a comparison tries (js/main.js syncFamilies)
-    this.marks = []; // Simple view, Change the plan: [{ geom, kind: 'street' | 'link' | 'buyout', focus }] for the picked changes
+    this.marks = []; // Guided view, Change the plan: [{ geom, kind: 'street' | 'link' | 'buyout', focus }] for the picked changes
     this.zoneShapes = data.layers.evacZones.map((z, i) => ({ i, rings: z.rings, bb: bbox(z.rings) }));
     this.resize();
     this.fit();
@@ -82,6 +82,40 @@ export class MapView {
       this.cx = x - (e.offsetX - this.w / 2) / this.scale; this.cy = y + (e.offsetY - this.h / 2) / this.scale;
       this.draw();
     }, { passive: false });
+    // Touch (phones and tablets): one finger pans, two fingers pinch to zoom, a tap selects like a click.
+    let touch = null;
+    const pos = t => { const r = this.cv.getBoundingClientRect(); return [t.clientX - r.left, t.clientY - r.top]; };
+    const startTouch = e => {
+      const ps = [...e.touches].map(pos);
+      if (ps.length === 1) touch = { ps, cx: this.cx, cy: this.cy, moved: touch?.moved && e.type !== 'touchstart' ? true : false, tap: e.type === 'touchstart' };
+      else if (ps.length >= 2) {
+        const mx = (ps[0][0] + ps[1][0]) / 2, my = (ps[0][1] + ps[1][1]) / 2;
+        touch = { ps, d: Math.hypot(ps[0][0] - ps[1][0], ps[0][1] - ps[1][1]) || 1, scale: this.scale, wx: this.wx(mx), wy: this.wy(my), moved: true, tap: false };
+      } else touch = null;
+    };
+    this.cv.addEventListener('touchstart', e => { e.preventDefault(); startTouch(e); }, { passive: false });
+    this.cv.addEventListener('touchmove', e => {
+      e.preventDefault();
+      if (!touch) return;
+      const ps = [...e.touches].map(pos);
+      if (ps.length === 1 && touch.ps.length === 1) {
+        const dx = ps[0][0] - touch.ps[0][0], dy = ps[0][1] - touch.ps[0][1];
+        if (Math.abs(dx) + Math.abs(dy) > 6) { touch.moved = true; touch.tap = false; }
+        this.cx = touch.cx - dx / this.scale; this.cy = touch.cy + dy / this.scale; this.draw();
+      } else if (ps.length >= 2 && touch.ps.length >= 2) {
+        const d = Math.hypot(ps[0][0] - ps[1][0], ps[0][1] - ps[1][1]) || 1;
+        const mx = (ps[0][0] + ps[1][0]) / 2, my = (ps[0][1] + ps[1][1]) / 2;
+        this.scale = Math.max(0.02, Math.min(20, touch.scale * d / touch.d));
+        this.cx = touch.wx - (mx - this.w / 2) / this.scale; this.cy = touch.wy + (my - this.h / 2) / this.scale;
+        this.draw();
+      }
+    }, { passive: false });
+    this.cv.addEventListener('touchend', e => {
+      e.preventDefault();
+      if (touch?.tap && !touch.moved && e.touches.length === 0) this.click(touch.ps[0][0], touch.ps[0][1]);
+      if (e.touches.length) startTouch(e); else touch = null;
+    }, { passive: false });
+    this.cv.addEventListener('touchcancel', () => { touch = null; });
     window.addEventListener('resize', () => { this.resize(); this.draw(); });
   }
 
@@ -480,7 +514,10 @@ export class MapView {
   drawIgnition() {
     const { ctx } = this, [x, y] = this.sim.scenario.ignition, X = this.sx(x), Y = this.sy(y);
     ctx.fillStyle = '#b91c1c'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(X, Y - 11); ctx.lineTo(X + 7, Y + 6); ctx.lineTo(X - 7, Y + 6); ctx.closePath(); ctx.fill(); ctx.stroke();
+    for (const [sx, sy] of this.sim.fire.starts?.length > 1 ? this.sim.fire.starts : [[x, y]]) { // several starts (earthquake): a marker at each
+      const PX = this.sx(sx), PY = this.sy(sy);
+      ctx.beginPath(); ctx.moveTo(PX, PY - 11); ctx.lineTo(PX + 7, PY + 6); ctx.lineTo(PX - 7, PY + 6); ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
     // wind arrow
     const to = ((this.sim.scenario.windFrom + 180) % 360) * Math.PI / 180, L = 40;
     ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2; ctx.beginPath();
