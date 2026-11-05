@@ -1047,7 +1047,7 @@ export function needsHelp(sim, t) {
   const all = new Float64Array(nz), kept = new Float64Array(nz);
   const reachedAll = { facilities: new Float64Array(nz), transitDependent: new Float64Array(nz) }, reached = { facilities: new Float64Array(nz), transitDependent: new Float64Array(nz) };
   for (let h = 0; h < hh.n; h++) {
-    const z = hh.zone[h], T0 = Math.min(sim.orderT[z], sim.warnT[z]); if (T0 === Infinity) continue;
+    const z = hh.zone[h], T0 = Math.min(sim.orderT[z], sim.warnT[z]); if (!(T0 <= t)) continue; // zones ordered or warned so far
     all[z]++; if (!hh.gone[h]) kept[z]++;
     const te = sim.tEmber[hh.edge[h]]; if (te > t) continue;
     for (const k in reached) if (te < T0 + T[k] * 60) { reachedAll[k][z]++; if (!hh.gone[h]) reached[k][z]++; }
