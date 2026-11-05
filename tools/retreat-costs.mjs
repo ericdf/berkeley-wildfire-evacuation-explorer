@@ -47,7 +47,7 @@ async function fetchRetry(url, tries = 4) {
   return null;
 }
 
-export async function computeCosts({ data, caseList, expHH, refresh = false }) {
+export async function computeCosts({ data, caseList, expHH, expRes = null, refresh = false }) {
   const cache = !refresh && fs.existsSync(CACHE) ? JSON.parse(fs.readFileSync(CACHE, 'utf8')) : { retrieved: null, edgeBlockGroup: {}, blockGroups: {} };
   const O = data.net.meta.origin, today = new Date().toISOString().slice(0, 10);
   let fetched = 0, failed = 0;
@@ -96,7 +96,7 @@ export async function computeCosts({ data, caseList, expHH, refresh = false }) {
     const relLo = hhs * RATES.relocation[0], relHi = hhs * RATES.relocation[1];
     const demLo = hhs * RATES.demolition[0], demHi = hhs * RATES.demolition[1];
     const rnd = x => Math.round(x / 1e5) * 1e5;
-    costs[c.id] = { households: Math.round(hhs * 10) / 10, residents: Math.round(hhs * data.A.demand.personsPerHousehold),
+    costs[c.id] = { households: Math.round(hhs * 10) / 10, residents: Math.round(expRes ? c.removed.reduce((s, e) => s + (expRes.get(e) || 0), 0) : hhs * data.A.demand.personsPerHousehold),
       acquisition: priced ? [rnd(acqLo), rnd(acqHi)] : null, relocation: [rnd(relLo), rnd(relHi)], demolition: [rnd(demLo), rnd(demHi)],
       total: priced ? [rnd(acqLo + relLo + demLo), rnd(acqHi + relHi + demHi)] : null,
       perHousehold: priced ? [Math.round((acqLo + relLo + demLo) / hhs / 1e3) * 1e3, Math.round((acqHi + relHi + demHi) / hhs / 1e3) * 1e3] : null,
