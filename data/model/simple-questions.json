@@ -1,0 +1,587 @@
+{
+ "meta": {
+  "built": "2026-11-05",
+  "tool": "tools/simple-questions.mjs",
+  "householdMix": "place",
+  "seeds": 5,
+  "severities": [
+   "low",
+   "central",
+   "high"
+  ],
+  "rule": "SOURCE_NOTES P19: Plan B better on the headline in every pair and a central median change of 5% or more; a missing 90% time fails",
+  "runs": 480,
+  "wallMin": 11.4,
+  "workers": 4
+ },
+ "questions": {
+  "leaveEarly": {
+   "eastWind": {
+    "wins": 15,
+    "pairs": 15,
+    "centralChange": -0.1651,
+    "offered": true,
+    "offeredNow": true,
+    "medians": {
+     "A": {
+      "headline": 4883.516814761708,
+      "exposed": 4883.516814761708,
+      "clearP90": 91.91666666666667,
+      "orderVehicles": 13801,
+      "otherCityVehicles": 173,
+      "vehicles": 13984,
+      "noVehicleNoRide": 683.8844000000014,
+      "engineBeyond5": 1544.1679000002914,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9445040737163857,
+      "engineBlockedSegments": 283
+     },
+     "B": {
+      "headline": 4077.25741476171,
+      "exposed": 4077.25741476171,
+      "clearP90": 90.66666666666667,
+      "orderVehicles": 7733,
+      "otherCityVehicles": 84,
+      "vehicles": 7824,
+      "noVehicleNoRide": 402.8339999999993,
+      "engineBeyond5": 1544.1679000002914,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9445040737163857,
+      "engineBlockedSegments": 283
+     }
+    }
+   },
+   "ref1923": {
+    "wins": 15,
+    "pairs": 15,
+    "centralChange": -0.2919,
+    "offered": true,
+    "offeredNow": true,
+    "medians": {
+     "A": {
+      "headline": 4011.6166810581412,
+      "exposed": 4011.6166810581412,
+      "clearP90": 90.66666666666667,
+      "orderVehicles": 14840,
+      "otherCityVehicles": 164,
+      "vehicles": 20409,
+      "noVehicleNoRide": 1984.7014999999953,
+      "engineBeyond5": 1544.1679000002914,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9445040737163857,
+      "engineBlockedSegments": 283
+     },
+     "B": {
+      "headline": 2840.592081058151,
+      "exposed": 2840.592081058151,
+      "clearP90": 88.58333333333333,
+      "orderVehicles": 10900,
+      "otherCityVehicles": 81,
+      "vehicles": 15960,
+      "noVehicleNoRide": 1749.3094999999962,
+      "engineBeyond5": 1544.1679000002914,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9445040737163857,
+      "engineBlockedSegments": 283
+     }
+    }
+   },
+   "panoramic": {
+    "wins": 15,
+    "pairs": 15,
+    "centralChange": -0.1617,
+    "offered": true,
+    "offeredNow": true,
+    "medians": {
+     "A": {
+      "headline": 12463.246098157908,
+      "exposed": 12463.246098157908,
+      "clearP90": null,
+      "orderVehicles": 711,
+      "otherCityVehicles": 553,
+      "vehicles": 2728,
+      "noVehicleNoRide": 306.72769999999986,
+      "engineBeyond5": 1544.1679000002914,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9445040737163857,
+      "engineBlockedSegments": 283
+     },
+     "B": {
+      "headline": 10448.074811862385,
+      "exposed": 10448.074811862385,
+      "clearP90": null,
+      "orderVehicles": 402,
+      "otherCityVehicles": 281,
+      "vehicles": 1965,
+      "noVehicleNoRide": 219.89600000000024,
+      "engineBeyond5": 1544.1679000002914,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9445040737163857,
+      "engineBlockedSegments": 283
+     }
+    }
+   },
+   "northHills": {
+    "wins": 15,
+    "pairs": 15,
+    "centralChange": -0.2829,
+    "offered": true,
+    "offeredNow": true,
+    "medians": {
+     "A": {
+      "headline": 3424.3773731310384,
+      "exposed": 3424.3773731310384,
+      "clearP90": 92.16666666666667,
+      "orderVehicles": 11356,
+      "otherCityVehicles": 2365,
+      "vehicles": 13692,
+      "noVehicleNoRide": 302.4550999999994,
+      "engineBeyond5": 1544.1679000002914,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9445040737163857,
+      "engineBlockedSegments": 283
+     },
+     "B": {
+      "headline": 2455.7741699700036,
+      "exposed": 2455.7741699700036,
+      "clearP90": 91.08333333333333,
+      "orderVehicles": 6176,
+      "otherCityVehicles": 1697,
+      "vehicles": 7890,
+      "noVehicleNoRide": 175.0297999999999,
+      "engineBeyond5": 1544.1679000002914,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9445040737163857,
+      "engineBlockedSegments": 283
+     }
+    }
+   }
+  },
+  "orderSooner": {
+   "eastWind": {
+    "wins": 15,
+    "pairs": 15,
+    "centralChange": -0.107,
+    "offered": true,
+    "offeredNow": true,
+    "medians": {
+     "A": {
+      "headline": 5866.673566139712,
+      "exposed": 5866.673566139712,
+      "clearP90": 105.41666666666667,
+      "orderVehicles": 15949,
+      "otherCityVehicles": 173,
+      "vehicles": 16126,
+      "noVehicleNoRide": 665.7883000000011,
+      "engineBeyond5": 1241.4918000002617,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9554625218951134,
+      "engineBlockedSegments": 211
+     },
+     "B": {
+      "headline": 5238.984560157235,
+      "exposed": 5238.984560157235,
+      "clearP90": 105.33333333333333,
+      "orderVehicles": 15951,
+      "otherCityVehicles": 173,
+      "vehicles": 16128,
+      "noVehicleNoRide": 660.9135000000014,
+      "engineBeyond5": 1241.4918000002617,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9554625218951134,
+      "engineBlockedSegments": 211
+     }
+    }
+   },
+   "ref1923": {
+    "wins": 15,
+    "pairs": 15,
+    "centralChange": -0.1969,
+    "offered": true,
+    "offeredNow": true,
+    "medians": {
+     "A": {
+      "headline": 5748.407353581343,
+      "exposed": 5748.407353581343,
+      "clearP90": 98.91666666666667,
+      "orderVehicles": 24186,
+      "otherCityVehicles": 163,
+      "vehicles": 34965,
+      "noVehicleNoRide": 1953.8686999999957,
+      "engineBeyond5": 1241.4918000002617,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9554625218951134,
+      "engineBlockedSegments": 211
+     },
+     "B": {
+      "headline": 4616.76764675661,
+      "exposed": 4616.76764675661,
+      "clearP90": 96.83333333333333,
+      "orderVehicles": 24186,
+      "otherCityVehicles": 163,
+      "vehicles": 34966,
+      "noVehicleNoRide": 1953.8686999999957,
+      "engineBeyond5": 1241.4918000002617,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9554625218951134,
+      "engineBlockedSegments": 211
+     }
+    }
+   },
+   "panoramic": {
+    "wins": 15,
+    "pairs": 15,
+    "centralChange": -0.0525,
+    "offered": true,
+    "offeredNow": true,
+    "medians": {
+     "A": {
+      "headline": 13505.05630807715,
+      "exposed": 13505.05630807715,
+      "clearP90": null,
+      "orderVehicles": 905,
+      "otherCityVehicles": 541,
+      "vehicles": 3749,
+      "noVehicleNoRide": 336.17339999999973,
+      "engineBeyond5": 1241.4918000002617,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9554625218951134,
+      "engineBlockedSegments": 211
+     },
+     "B": {
+      "headline": 12796.69159717414,
+      "exposed": 12796.69159717414,
+      "clearP90": null,
+      "orderVehicles": 912,
+      "otherCityVehicles": 541,
+      "vehicles": 3754,
+      "noVehicleNoRide": 323.4978000000001,
+      "engineBeyond5": 1241.4918000002617,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9554625218951134,
+      "engineBlockedSegments": 211
+     }
+    }
+   },
+   "northHills": {
+    "wins": 15,
+    "pairs": 15,
+    "centralChange": -0.1423,
+    "offered": true,
+    "offeredNow": true,
+    "medians": {
+     "A": {
+      "headline": 4281.933221400434,
+      "exposed": 4281.933221400434,
+      "clearP90": 106.58333333333333,
+      "orderVehicles": 12752,
+      "otherCityVehicles": 2101,
+      "vehicles": 14857,
+      "noVehicleNoRide": 296.05759999999947,
+      "engineBeyond5": 1241.4918000002617,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9554625218951134,
+      "engineBlockedSegments": 211
+     },
+     "B": {
+      "headline": 3672.472711254181,
+      "exposed": 3672.472711254181,
+      "clearP90": 106.33333333333333,
+      "orderVehicles": 12753,
+      "otherCityVehicles": 2101,
+      "vehicles": 14857,
+      "noVehicleNoRide": 295.9560999999993,
+      "engineBeyond5": 1241.4918000002617,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9554625218951134,
+      "engineBlockedSegments": 211
+     }
+    }
+   }
+  },
+  "timeOfDay": {
+   "eastWind": {
+    "wins": 15,
+    "pairs": 15,
+    "centralChange": -0.1274,
+    "offered": true,
+    "offeredNow": true,
+    "medians": {
+     "A": {
+      "headline": 105.33333333333333,
+      "exposed": 5424.922295110899,
+      "clearP90": 105.33333333333333,
+      "orderVehicles": 15950,
+      "otherCityVehicles": 173,
+      "vehicles": 16127,
+      "noVehicleNoRide": 664.7208000000014,
+      "engineBeyond5": 1241.4918000002617,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9554625218951134,
+      "engineBlockedSegments": 211
+     },
+     "B": {
+      "headline": 91.91666666666667,
+      "exposed": 4883.516814761708,
+      "clearP90": 91.91666666666667,
+      "orderVehicles": 13801,
+      "otherCityVehicles": 173,
+      "vehicles": 13984,
+      "noVehicleNoRide": 683.8844000000014,
+      "engineBeyond5": 1544.1679000002914,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9445040737163857,
+      "engineBlockedSegments": 283
+     }
+    }
+   },
+   "ref1923": {
+    "wins": 15,
+    "pairs": 15,
+    "centralChange": -0.0725,
+    "offered": true,
+    "offeredNow": false,
+    "medians": {
+     "A": {
+      "headline": 97.75,
+      "exposed": 4954.844268770064,
+      "clearP90": 97.75,
+      "orderVehicles": 24186,
+      "otherCityVehicles": 163,
+      "vehicles": 34966,
+      "noVehicleNoRide": 1953.8686999999957,
+      "engineBeyond5": 1241.4918000002617,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9554625218951134,
+      "engineBlockedSegments": 211
+     },
+     "B": {
+      "headline": 90.66666666666667,
+      "exposed": 4011.6166810581412,
+      "clearP90": 90.66666666666667,
+      "orderVehicles": 14840,
+      "otherCityVehicles": 164,
+      "vehicles": 20409,
+      "noVehicleNoRide": 1984.7014999999953,
+      "engineBeyond5": 1544.1679000002914,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9445040737163857,
+      "engineBlockedSegments": 283
+     }
+    }
+   },
+   "panoramic": {
+    "wins": 5,
+    "pairs": 15,
+    "centralChange": null,
+    "offered": false,
+    "offeredNow": false,
+    "medians": {
+     "A": {
+      "headline": null,
+      "exposed": 12996.947935119748,
+      "clearP90": null,
+      "orderVehicles": 909,
+      "otherCityVehicles": 541,
+      "vehicles": 3754,
+      "noVehicleNoRide": 327.19890000000004,
+      "engineBeyond5": 1241.4918000002617,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9554625218951134,
+      "engineBlockedSegments": 211
+     },
+     "B": {
+      "headline": null,
+      "exposed": 12463.246098157908,
+      "clearP90": null,
+      "orderVehicles": 711,
+      "otherCityVehicles": 553,
+      "vehicles": 2728,
+      "noVehicleNoRide": 306.72769999999986,
+      "engineBeyond5": 1544.1679000002914,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9445040737163857,
+      "engineBlockedSegments": 283
+     }
+    }
+   },
+   "northHills": {
+    "wins": 15,
+    "pairs": 15,
+    "centralChange": -0.1325,
+    "offered": true,
+    "offeredNow": true,
+    "medians": {
+     "A": {
+      "headline": 106.25,
+      "exposed": 3821.128100426784,
+      "clearP90": 106.25,
+      "orderVehicles": 12753,
+      "otherCityVehicles": 2101,
+      "vehicles": 14857,
+      "noVehicleNoRide": 295.9560999999993,
+      "engineBeyond5": 1241.4918000002617,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9554625218951134,
+      "engineBlockedSegments": 211
+     },
+     "B": {
+      "headline": 92.16666666666667,
+      "exposed": 3424.3773731310384,
+      "clearP90": 92.16666666666667,
+      "orderVehicles": 11356,
+      "otherCityVehicles": 2365,
+      "vehicles": 13692,
+      "noVehicleNoRide": 302.4550999999994,
+      "engineBeyond5": 1544.1679000002914,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9445040737163857,
+      "engineBlockedSegments": 283
+     }
+    }
+   }
+  },
+  "parkingEngines": {
+   "eastWind": {
+    "wins": 15,
+    "pairs": 15,
+    "centralChange": -0.3243,
+    "offered": true,
+    "offeredNow": true,
+    "medians": {
+     "A": {
+      "headline": 1544.1679000002914,
+      "exposed": 4883.516814761708,
+      "clearP90": 91.91666666666667,
+      "orderVehicles": 13801,
+      "otherCityVehicles": 173,
+      "vehicles": 13984,
+      "noVehicleNoRide": 683.8844000000014,
+      "engineBeyond5": 1544.1679000002914,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9445040737163857,
+      "engineBlockedSegments": 283
+     },
+     "B": {
+      "headline": 1043.3397000002187,
+      "exposed": 4878.9546147617075,
+      "clearP90": 91.83333333333333,
+      "orderVehicles": 13801,
+      "otherCityVehicles": 173,
+      "vehicles": 13984,
+      "noVehicleNoRide": 683.8844000000014,
+      "engineBeyond5": 1043.3397000002187,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9625033630863784,
+      "engineBlockedSegments": 143
+     }
+    }
+   },
+   "ref1923": {
+    "wins": 15,
+    "pairs": 15,
+    "centralChange": -0.3243,
+    "offered": true,
+    "offeredNow": true,
+    "medians": {
+     "A": {
+      "headline": 1544.1679000002914,
+      "exposed": 4011.6166810581412,
+      "clearP90": 90.66666666666667,
+      "orderVehicles": 14840,
+      "otherCityVehicles": 164,
+      "vehicles": 20409,
+      "noVehicleNoRide": 1984.7014999999953,
+      "engineBeyond5": 1544.1679000002914,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9445040737163857,
+      "engineBlockedSegments": 283
+     },
+     "B": {
+      "headline": 1043.3397000002187,
+      "exposed": 4009.132071587215,
+      "clearP90": 90.83333333333333,
+      "orderVehicles": 14840,
+      "otherCityVehicles": 164,
+      "vehicles": 20409,
+      "noVehicleNoRide": 1984.7014999999953,
+      "engineBeyond5": 1043.3397000002187,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9625033630863784,
+      "engineBlockedSegments": 143
+     }
+    }
+   },
+   "panoramic": {
+    "wins": 15,
+    "pairs": 15,
+    "centralChange": -0.3243,
+    "offered": true,
+    "offeredNow": true,
+    "medians": {
+     "A": {
+      "headline": 1544.1679000002914,
+      "exposed": 12463.246098157908,
+      "clearP90": null,
+      "orderVehicles": 711,
+      "otherCityVehicles": 553,
+      "vehicles": 2728,
+      "noVehicleNoRide": 306.72769999999986,
+      "engineBeyond5": 1544.1679000002914,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9445040737163857,
+      "engineBlockedSegments": 283
+     },
+     "B": {
+      "headline": 1043.3397000002187,
+      "exposed": 12468.354902231582,
+      "clearP90": null,
+      "orderVehicles": 711,
+      "otherCityVehicles": 553,
+      "vehicles": 2728,
+      "noVehicleNoRide": 306.72769999999986,
+      "engineBeyond5": 1043.3397000002187,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9625033630863784,
+      "engineBlockedSegments": 143
+     }
+    }
+   },
+   "northHills": {
+    "wins": 15,
+    "pairs": 15,
+    "centralChange": -0.3243,
+    "offered": true,
+    "offeredNow": true,
+    "medians": {
+     "A": {
+      "headline": 1544.1679000002914,
+      "exposed": 3424.3773731310384,
+      "clearP90": 92.16666666666667,
+      "orderVehicles": 11356,
+      "otherCityVehicles": 2365,
+      "vehicles": 13692,
+      "noVehicleNoRide": 302.4550999999994,
+      "engineBeyond5": 1544.1679000002914,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9445040737163857,
+      "engineBlockedSegments": 283
+     },
+     "B": {
+      "headline": 1043.3397000002187,
+      "exposed": 3439.2372668089292,
+      "clearP90": 92.08333333333333,
+      "orderVehicles": 11356,
+      "otherCityVehicles": 2365,
+      "vehicles": 13692,
+      "noVehicleNoRide": 302.4550999999994,
+      "engineBeyond5": 1043.3397000002187,
+      "engineHillPeople": 27875.215500000384,
+      "engineEndShare": 0.9625033630863784,
+      "engineBlockedSegments": 143
+     }
+    }
+   }
+  }
+ }
+}

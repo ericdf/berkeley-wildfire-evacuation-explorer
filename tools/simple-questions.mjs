@@ -27,8 +27,11 @@ const exposed = S => S.exposedHome + S.exposedRoad + S.exposedNoVehicle + S.notO
 const MEASURES = {
   exposed, clearP90: S => S.clearP90, orderVehicles: S => S.orderVehicles, otherCityVehicles: S => S.otherCityVehicles,
   vehicles: S => S.vehicles, noVehicleNoRide: S => S.noVehicle, engineBeyond5: S => S.engineReachBeyond5People,
-  engineHillPeople: S => S.engineReachHillPeople, engineEndShare: S => S.engineReach5Share, engineBlockedSegments: S => S.engineBlockedSegments,
+  engineHillPeople: S => S.engineReachHillPeople, engineShareIgnition: S => S.engineReach5Share, engineShareEnd: S => S.engineReach5ShareNow,
+  engineBlockedSegments: S => S.engineBlockedSegments,
 };
+// Extra plans quoted in a "What to look for" text, run on the same draws as the question's Plan B.
+const EXTRA = { leaveEarly: { Blez: { earlyZones: 'lez' } } };
 
 async function setup() {
   const { loadData } = await import(R + '/js/data.js');
@@ -50,9 +53,10 @@ if (!isMainThread) {
     const sc = E.scen[j.fire], fire = E.runFire(E.grid, sc, E.SEVERITY[j.sev], j.seed), out = {};
     for (const P of E.PRESETS) {
       out[P.id] = {};
-      for (const k of ['A', 'B']) {
-        const tod = P.tods?.[k] ?? P.tod;
-        const S = new E.Evacuation(E.data, E.grid, fire, sc, j.sev, P[k], j.seed, E.TIME_OF_DAY[tod], world).runToEnd();
+      const plans = { A: P.A, B: P.B, ...Object.fromEntries(Object.entries(EXTRA[P.id] || {}).map(([k, d]) => [k, { ...P.B, ...d }])) };
+      for (const [k, plan] of Object.entries(plans)) {
+        const tod = P.tods?.[k] ?? P.tods?.B ?? P.tod;
+        const S = new E.Evacuation(E.data, E.grid, fire, sc, j.sev, plan, j.seed, E.TIME_OF_DAY[tod], world).runToEnd();
         out[P.id][k] = { headline: P.headline.f(S), ...Object.fromEntries(Object.entries(MEASURES).map(([m, f]) => [m, f(S)])) };
       }
     }
@@ -78,7 +82,7 @@ if (!isMainThread) {
   });
   process.stderr.write('\n');
   const med = a => { const v = a.filter(x => x != null && Number.isFinite(x)).sort((x, y) => x - y); return v.length === a.length && v.length ? v[Math.floor(v.length / 2)] : null; };
-  const result = { meta: { built: new Date().toISOString().slice(0, 10), tool: 'tools/simple-questions.mjs', householdMix: mix, seeds, severities: SEVS, rule: 'SOURCE_NOTES P19: Plan B better on the headline in every pair and a central median change of 5% or more; a missing 90% time fails', runs: jobs.length * PRESETS.length * 2, wallMin: +((Date.now() - t0) / 60000).toFixed(1), workers }, questions: {} };
+  const result = { meta: { built: new Date().toISOString().slice(0, 10), tool: 'tools/simple-questions.mjs', householdMix: mix, seeds, severities: SEVS, rule: 'SOURCE_NOTES P19: Plan B better on the headline in every pair and a central median change of 5% or more; a missing 90% time fails', runs: jobs.length * PRESETS.reduce((n, P) => n + 2 + Object.keys(EXTRA[P.id] || {}).length, 0), wallMin: +((Date.now() - t0) / 60000).toFixed(1), workers }, questions: {} };
   for (const P of PRESETS) {
     result.questions[P.id] = {};
     for (const F of FIRES) {
@@ -86,8 +90,8 @@ if (!isMainThread) {
       let wins = 0;
       for (const r of rows) { const a = r.out[P.id].A.headline, b = r.out[P.id].B.headline; if (a != null && b != null && (b - a) * P.headline.dir > 0) wins++; }
       const cen = rows.filter(r => r.j.sev === 'central');
-      const medians = { A: {}, B: {} };
-      for (const k of ['A', 'B']) for (const m of ['headline', ...Object.keys(MEASURES)]) medians[k][m] = med(cen.map(r => r.out[P.id][k][m]));
+      const medians = Object.fromEntries(['A', 'B', ...Object.keys(EXTRA[P.id] || {})].map(k => [k, {}]));
+      for (const k in medians) for (const m of ['headline', ...Object.keys(MEASURES)]) medians[k][m] = med(cen.map(r => r.out[P.id][k][m]));
       const change = medians.A.headline && medians.B.headline != null ? (medians.B.headline - medians.A.headline) / medians.A.headline : null;
       const offered = wins === rows.length && change != null && Math.abs(change) >= 0.05;
       result.questions[P.id][F.id] = { wins, pairs: rows.length, centralChange: change == null ? null : +change.toFixed(4), offered, offeredNow: !!P.on[F.id], medians };
