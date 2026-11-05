@@ -1,7 +1,7 @@
 // Simple-view fires and questions. A question is offered on a fire only where Plan B beat Plan A
 // on its headline measure in all 15 same-seed runs (low, central and high severity x seeds 1-5)
 // by a clear margin (central-severity median change of 5% or more); SOURCE_NOTES P19-P22,
-// 2026-11-01, P31 for the north-hills fire, P32 for the east-wind fire from 60° and P33 after other cities' orders (FO1), P34 at 1 km (FO6) and P35 with each person counted once (FO8), 2026-11-02, DM18 under the ACS household mix, 2026-11-04, and again on the merged fire model and mix when PR #59 merged, 2026-11-05 (node tools/simple-questions.mjs). Weekday vs night on the 1923 fire is offered since 2026-11-05 (Eric; P38), reversing P20's judgment. Each question fixes the time of day
+// 2026-11-01, P31 for the north-hills fire, P32 for the east-wind fire from 60° and P33 after other cities' orders (FO1), P34 at 1 km (FO6) and P35 with each person counted once (FO8), 2026-11-02, DM18 under the ACS household mix, 2026-11-04, and again on the merged fire model and mix when PR #59 merged, 2026-11-05 (node tools/simple-questions.mjs). Each question fixes the time of day
 // (per plan where `tods` is set); the plans start from DEFAULT_PLAN. `on` holds the "What to look
 // for" text for each fire it is offered on, with central-severity medians from that test; `off`
 // gives the one-line reason it is withheld.
@@ -63,9 +63,9 @@ export const PRESETS = [
     on: {
       eastWind: 'On a weekday about 15,950 cars from the zones Berkeley orders evacuate instead of 13,800 (Oakland and other neighbors\' ordered zones add about 170 more under both), some households wait for a commuter to drive home, and parents pick up children. 90% of cars get out about 13 minutes later (about 105 against 92 min). Both plans are the same; only the time of day differs.',
       northHills: 'On a weekday about 12,750 cars from the zones Berkeley orders evacuate instead of 11,350 (Kensington, El Cerrito and Albany add about 2,600 more on a weekday and 2,850 at night), some households wait for a commuter to drive home, and parents pick up children. 90% of cars get out about 14 minutes later (about 106 against 92 min); the 2025 Time Study finds 20 minutes for this region (2:05 against 1:45). Both plans are the same; only the time of day differs.',
-      ref1923: 'On a weekday about 24,200 cars from the zones Berkeley orders evacuate instead of 14,850 (other cities\' ordered zones add about 160 more under both), some households wait for a commuter to drive home, and parents pick up children. 90% of cars get out about 7 minutes later (about 98 against 91 min). The 2025 Time Study finds about 70 minutes for this region (2:55 against 1:45), so the simulator shows the direction of the weekday slowdown here but only about a tenth of its size. Both plans are the same; only the time of day differs.',
     },
     off: {
+      ref1923: 'weekday and night differ by about 7 min here (98 against 91), while the 2025 Time Study finds 70 min for this region (2:55 against 1:45); the simulator misses most of that weekday slowdown, so offering this question would show a serious undercount.',
       panoramic: 'in 10 of 15 runs not all ordered cars get out within the 4 hours simulated, so there is no 90% time to compare.',
     },
     headline: { label: 'Minutes until 90% of cars are out', f: S => S.clearP90, dir: -1 },
