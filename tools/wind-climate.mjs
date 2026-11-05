@@ -11,7 +11,7 @@
 //    the 11 p.m. column). The tool returns one column per hour of day (local standard time, LST): percentages
 //    of that hour's observations and the hour's count, so per-hour counts are recovered as count × percent.
 //    Elements: hourly mean wind direction (MWD, 10° bins); hourly mean wind speed (MWS, 1 mph bins), for all
-//    hours and filtered to onshore (180–315°) and to north (340–20°) directions; relative humidity (AVR,
+//    hours and filtered to onshore (180–319°, inclusive) and to north (340–20°) directions; relative humidity (AVR,
 //    5% bins) for winter north-wind hours.
 //    WRCC serves raw hourly listings only for the last 30 days, so this station's record cannot pair one
 //    afternoon with the following night.
@@ -43,8 +43,8 @@ const SEASONS = {
   april: { label: 'April', ws: [4, 1], we: [4, 30] },
 };
 // Direction groups. Onshore: the half of the compass facing the Bay and the Golden Gate, from south through
-// north-west (180–315°); a definitional choice, with 200–300° reported beside it. North: 340–20°.
-const ONSHORE = [180, 315], ONSHORE_NARROW = [200, 300], NORTH = [[340, 360], [0, 20]];
+// north-west (180–320°: bin edges, and the speed filter asks for 180–319°, inclusive, the same whole degrees; Codex review of PR #61); a definitional choice, with 200–300° reported beside it. North: 340–20°.
+const ONSHORE = [180, 320], ONSHORE_NARROW = [200, 300], NORTH = [[340, 360], [0, 20]];
 const BANDS = [[0, 5], [6, 11], [12, 17], [18, 23]];
 const NONE = ['none', '01', 'none', 'none'];
 
@@ -114,7 +114,7 @@ const out = { _note: 'Derived by tools/wind-climate.mjs (docs/wind-climate.md, S
 
 for (const season of Object.keys(SEASONS)) {
   const dir = await wrcc(season, 'MWD', '10'), spd = await wrcc(season, 'MWS', '01');
-  const spdOn = await wrcc(season, 'MWS', '01', ['MWD', '05', String(ONSHORE[0]), String(ONSHORE[1])], 'onshore');
+  const spdOn = await wrcc(season, 'MWS', '01', ['MWD', '05', String(ONSHORE[0]), String(ONSHORE[1] - 1)], 'onshore320');
   const spdN1 = await wrcc(season, 'MWS', '01', ['MWD', '05', '340', '361'], 'north1'), spdN2 = await wrcc(season, 'MWS', '01', ['MWD', '05', '0', '20'], 'north2');
   // Humidity of north-wind hours: winter only (each whole-record query takes several minutes at WRCC).
   const rhN1 = season === 'winter' ? await wrcc(season, 'AVR', '05', ['MWD', '05', '340', '361'], 'north1') : null;
@@ -176,7 +176,7 @@ if (fs.existsSync(asosFile)) {
     }
   }
   const med = a => { const s = [...a].sort((p, q) => p - q); return s.length ? s[Math.floor(s.length / 2)] : null; };
-  out.oak = { _note: 'Per LST day: vector-mean direction of the afternoon (12–17), evening (18–23) and the next night (0–5), each from at least 3 reports with a mean vector of 2 mph or more. "Reverse" = turned 135° or more from the afternoon. Days counted only when the afternoon was onshore (180–315°).',
+  out.oak = { _note: 'Per LST day: vector-mean direction of the afternoon (12–17), evening (18–23) and the next night (0–5), each from at least 3 reports with a mean vector of 2 mph or more. "Reverse" = turned 135° or more from the afternoon. Days counted only when the afternoon was onshore (180–320°).',
     seasons: Object.fromEntries(Object.entries(st).map(([k, x]) => [k, { daysWithAfternoon: x.days, onshoreAfternoonPct: pct(x.onshoreAfternoon / x.days),
       eveningReversePct: pct(x.eveReverse / x.evePairs), eveningNotOnshorePct: pct(x.eveNotOnshore / x.evePairs), eveningMedianTurnDeg: r1(med(x.eveShift)),
       nightReversePct: pct(x.nightReverse / x.nightPairs), nightNotOnshorePct: pct(x.nightNotOnshore / x.nightPairs), nightOffshore0to135Pct: pct(x.nightOffshore / x.nightPairs), pairs: x.nightPairs }])) };
