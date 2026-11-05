@@ -78,13 +78,14 @@ export const PRESETS = [
     A: plan('A: parking as it is today'),
     B: plan('B: parking on one side only in Fire Zones 2–3', { hillsParking: 'oneside' }),
     otherNote: 'In this simulator engines only drive; they do not fight the fire or protect homes, so better engine access has no effect on the fire. Parking still changes traffic on hill streets a little, but in the runs tested it made no consistent difference to who was still there. Engine travel time to the fire edge, at ignition and at the end of the run, was the same or shorter under Plan B in every run tested (four fires, three severities, five seeds), and shorter in some.',
-    // Headline and numbers: SOURCE_NOTES ER2 (225 runs, central medians). Reach at ignition depends on the seed's
-    // parked cars, not the fire, so it is the same on every fire; the end-of-run share (traffic and fire) differs.
-    on: Object.fromEntries([['eastWind', '80%', '81%', 4], ['ref1923', '67%', '71%', 6], ['panoramic', '80%', '83%', 4], ['northHills', '75%', '81%', 4]].map(([id, la, lb, hours]) => [id,
-      'Count the hill residents a fire engine cannot reach from a station within the City\'s 5-minute standard, before traffic and fire: about 1,550 of Berkeley\'s 27,900 Fire Zones 2–3 residents with today\'s parking, about 1,050 with parking on one side (central case; fewer in every run). '
-      + 'Most of those left are on Panoramic Hill: its lowest block of Panoramic Way is 17 ft wide, and in 4 of the 5 test seeds a car parked there leaves less than an engine\'s width under either plan, cutting off about 990 people. '
+    // Headline and numbers: SOURCE_NOTES ER2, rerun under the night parking rule in NP6 (central medians). Reach at ignition
+    // depends on the seed's parked cars, not the fire, so it is the same on every fire; the end-of-run share (traffic and fire) differs.
+    on: Object.fromEntries([['eastWind', '50%', '80%', 4], ['ref1923', '46%', '71%', 6], ['panoramic', '50%', '82%', 4], ['northHills', '55%', '76%', 4]].map(([id, la, lb, hours]) => [id,
+      'Count the hill residents a fire engine cannot reach from a station within the City\'s 5-minute standard, before traffic and fire: about 9,900 of Berkeley\'s 27,900 Fire Zones 2–3 residents with today\'s parking, about 1,050 with parking on one side (central case; fewer in every run). '
+      + 'At night residents park both sides of most hill streets 17–24 ft wide, leaving one car\'s width: cars get through by taking turns, an engine does not. That rule rests on one night\'s count, at about 1 a.m., of 11 narrow blocks. '
+      + 'With parking on one side, most of those left are on Panoramic Hill: its lowest block of Panoramic Way is 17 ft wide, and in 4 of the 5 test seeds a car parked there leaves less than an engine\'s width, cutting off about 990 people. '
       + `By the end of the ${hours}-hour run, with evacuation traffic and burned streets, an engine can reach ${la} of hill residents within 5 minutes under Plan A and ${lb} under Plan B. `
-      + 'Color streets by "Engine drive time" (Expert view, Map) to see where. One-side parking also cuts street segments too narrow for an engine from about 283 to 143. '
+      + 'Color streets by "Engine drive time" (Expert view, Map) to see where. One-side parking also cuts street segments too narrow for an engine from about 1,100 to 143. '
       + (id === 'panoramic' ? 'Evacuation time cannot be compared here, because in most runs not all ordered cars get out within the 4 hours simulated.'
         : 'Evacuation time does not change: on a two-way street, removing parking opens the oncoming lane, not a second lane out. People still there when embers arrive show no consistent change either: engines do not fight the fire in this simulator, and parking changes traffic on hill streets only a little.')])),
     off: {},

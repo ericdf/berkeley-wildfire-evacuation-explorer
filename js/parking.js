@@ -30,16 +30,28 @@ export const PARKING_PLANS = {
   none: 'No parking anywhere in Fire Zones 2–3',
 };
 
+// Night rule for narrow hill streets (Eric, 2026-11-05; SOURCE_NOTES EV1–EV3, NP1–NP4). At night, on hill
+// segments from parking.range.night.narrowMinM to narrowMaxM wide (17–24 ft, the counted range), residents park
+// both sides on a share narrowBothShareHills of segments (draw u[4]) and leave one pinch of narrowPinchClearM
+// (one parked car's width, 8 ft) for the whole segment, whatever the street's width and the off-pavement draw.
+// The other segments keep the 8 ft rule. Day and wider streets are unchanged.
+export const NIGHT_RULES = {
+  count2026: 'Both sides on most narrow hill streets, leaving one car\'s width (field count, 2026-11-05)',
+  pre20261105: 'Pre-2026-11-05 rule: residents leave 8 ft for a car (one side on most narrow streets)',
+};
+
 // seed = null gives the nominal state: both sides where they fit, perfect parking.
-export function parkingState(data, plan, seed, tod) {
+// opts.nightRule: 'pre20261105' restores the night rule used before 2026-11-05 (Expert view setting).
+export function parkingState(data, plan, seed, tod, opts) {
   const A = data.A, P = A.parking, acc = A.access, edges = data.net.edges, nE = edges.length;
   // Night cases (Time Study S3, S6): residents are home, so curbs are fuller (parking.range.night).
   const R = tod?.night ? { ...P.range, ...P.range.night } : P.range;
+  const NR = tod?.night && opts?.nightRule !== 'pre20261105' && P.range.night?.narrowBothShareHills != null ? P.range.night : null;
   const rand = seed == null ? null : mulberry32(seed * 7919 + 17);
   const S = {
-    sides: new Int8Array(nE).fill(-1), offPave: new Uint8Array(nE), pinchM: new Float32Array(nE),
+    sides: new Int8Array(nE).fill(-1), offPave: new Uint8Array(nE), pinchM: new Float32Array(nE), nightPinch: new Uint8Array(nE),
     clear: new Float32Array(nE).fill(NaN), eff: new Int8Array(nE).fill(-1), engineOK: new Uint8Array(nE).fill(1),
-    stats: { parkingChanged: 0, engineFixed: 0, engineBlocked: 0, pinched: 0, oneSide: 0, twoSides: 0, hillsKnown: 0, signsEnforced: 0, daylightCleared: 0 },
+    stats: { nightPinched: 0, parkingChanged: 0, engineFixed: 0, engineBlocked: 0, pinched: 0, oneSide: 0, twoSides: 0, hillsKnown: 0, signsEnforced: 0, daylightCleared: 0 },
   };
   const mode = plan?.hillsParking || 'both';
   const enf = plan?.parkingEnforce || 'none', enfSigns = (enf === 'signs' || enf === 'both') && data.signSides, enfDay = (enf === 'daylight' || enf === 'both') && data.cornerEnds;
@@ -59,6 +71,9 @@ export function parkingState(data, plan, seed, tod) {
     // residents keep parking only while a car can still get by
     let base = want;
     if (W != null) while (base > 0 && W - foot(base) < R.minLeftForCarsM) base--;
+    // night rule on narrow hill streets: both sides with a one-car pinch on a share of segments (u[4])
+    const night2 = NR && hills && W != null && W >= NR.narrowMinM && W <= NR.narrowMaxM && (e.parking ?? 'both') === 'both' && u[4] < NR.narrowBothShareHills;
+    if (night2) base = 2;
     // plan rules
     let sides = base;
     if (hills && mode === 'none') sides = 0;
@@ -85,16 +100,20 @@ export function parkingState(data, plan, seed, tod) {
       const pAny = 1 - (1 - R.badJobPerCar) ** cars;
       if (u[2] < pAny) pinch = R.badJobExtraM[0] + u[3] * (R.badJobExtraM[1] - R.badJobExtraM[0]);
     }
-    S.sides[e.id] = sides; S.offPave[e.id] = sides > 0 ? off : 0; S.pinchM[e.id] = pinch;
+    // the night pinch is the whole segment's clear width while both sides stay parked; no bad job narrows it further
+    const nightPinch = night2 && sides === 2;
+    if (nightPinch) pinch = 0;
+    S.sides[e.id] = sides; S.offPave[e.id] = sides > 0 ? off : 0; S.pinchM[e.id] = pinch; S.nightPinch[e.id] = nightPinch ? 1 : 0;
+    if (nightPinch) S.stats.nightPinched++;
     if (hills && W != null && sides >= 0) { S.stats.hillsKnown++; if (sides === 1) S.stats.oneSide++; if (sides === 2) S.stats.twoSides++; }
     if (pinch) S.stats.pinched++;
     if (W == null) continue;
-    const clear = Math.max(0, W - foot(sides) - pinch);
+    const clear = nightPinch ? Math.min(W, NR.narrowPinchClearM) : Math.max(0, W - foot(sides) - pinch);
     S.clear[e.id] = clear;
     S.eff[e.id] = clear >= 2 * acc.movingLaneM ? 2 : clear >= acc.movingLaneM ? 1 : 0;
     S.engineOK[e.id] = clear >= acc.engineClearM ? 1 : 0;
     if (!S.engineOK[e.id]) S.stats.engineBlocked++;
-    if (sides < base && S.engineOK[e.id] && W - foot(base) - pinch < acc.engineClearM) S.stats.engineFixed++;
+    if (sides < base && S.engineOK[e.id] && (night2 ? NR.narrowPinchClearM : W - foot(base) - pinch) < acc.engineClearM) S.stats.engineFixed++;
   }
   return S;
 }

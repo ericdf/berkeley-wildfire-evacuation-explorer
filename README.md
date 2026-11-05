@@ -201,6 +201,16 @@ Residents stop parking where less than 8 ft would remain for a car. The City's N
 "width with parking" assumes perfect parking on both sides, so it is treated as that case,
 not as a measurement. Plan A and Plan B see the same parked cars for the same seed.
 
+At night (Time Study cases S3 and S6) a separate rule covers hill streets 17–24 ft wide
+(assumption, Eric approved 2026-11-05; `parking.range.night` in `data/assumptions.json`): on
+90% of these segments, drawn from the seed, residents park both sides and leave one car's
+width, 8 ft. Cars pass by taking turns; an engine, which needs 10 ft, cannot. It comes from
+one count from Eric's car at about 1 a.m. on 2026-11-05, in which 10 of 11 counted blocks of
+24 ft or less had cars on both sides (SOURCE_NOTES EV1–EV3, NP1–NP4). Wider streets, narrower
+ones and every daytime case keep the rule above; the plan's parking options act after the
+draw. An Expert-view setting restores the rule used before 2026-11-05.
+`node tools/night-parking-check.mjs` compares the model's night draws with the counted blocks.
+
 A clear width of 20 ft fits two moving lanes; 10 ft fits one. On a two-way street with one
 lane, both directions share it: when cars come from both ways they take turns at gaps such
 as driveways and the street loses capacity. Under 10 ft, a fire engine cannot get through
