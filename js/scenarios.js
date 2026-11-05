@@ -217,8 +217,12 @@ export function makeScenarios(data) {
 // placed on a road or landmark named by the source and checked to lie on a wildland cell of the fire
 // grid (fuel ≥ 0.7, js/fire.js buildFireGrid; tests/families.mjs). SOURCE_NOTES FF16.
 export const FAMILY_WINDS = [0, 30, 45, 60];
+// The 1923 repeat leaves out 0°: the City's footprint removes 93% of that fire at medium severity, so its passes
+// would mostly be ties (Eric, 2026-11-05; SOURCE_NOTES WC9).
+const FAMILY_WINDS_SKIP = { ref1923: [0] };
+export const familyWinds = sc => FAMILY_WINDS.filter(w => !(FAMILY_WINDS_SKIP[sc.id] || []).includes(w));
 const FAMILY_POINTS = {
-  ref1923: [{ id: 'city', current: true, at: 'at the City\'s starting point', label: 'The City\'s 1923 repeat starting point (unchanged; only the wind varies, since the fire reproduces the City\'s scenario, SOURCE_NOTES S11). The fire burns only inside the City\'s 1923 footprint, so the winds vary it less than on the other fires: at medium severity the footprint removes 93% of what the fire would burn without it from 0°, 51% from 30°, 36% from 45° (today\'s fire) and 47% from 60° (SOURCE_NOTES WC9)' }],
+  ref1923: [{ id: 'city', current: true, at: 'at the City\'s starting point', label: 'The City\'s 1923 repeat starting point (unchanged; only the wind varies, since the fire reproduces the City\'s scenario, SOURCE_NOTES S11). The fire burns only inside the City\'s 1923 footprint, so the winds vary it less than on the other fires: at medium severity the footprint removes 51% of what the fire would burn without it from 30°, 36% from 45° (today\'s fire) and 47% from 60°; it would remove 93% from 0°, so this family leaves that wind out (SOURCE_NOTES WC9)' }],
   northHills: [
     { id: 'tilden', current: true, at: 'in Tilden east of the Summit', label: 'Tilden Regional Park, about 1.2 km east of Grizzly Peak Blvd at Spruce St (the fire\'s usual start)' },
     { id: 'anza', lonlat: [-122.2470, 37.8981], at: 'on Wildcat Canyon Rd near Lake Anza', label: 'Wildcat Canyon Rd about 150 m north-east of the shore of Lake Anza',
@@ -244,10 +248,10 @@ FAMILY_POINTS.eastWindDay = FAMILY_POINTS.eastWind;
 export function familyOf(sc, data) {
   const pts = FAMILY_POINTS[sc.id]; if (!pts) return [{ id: 'default', point: 'default', windFrom: sc.windFrom, ignition: sc.ignition, label: sc.ignitionLabel, at: '', isDefault: true }];
   const O = data.net.meta.origin;
-  const winds = FAMILY_WINDS.includes(sc.windFrom) ? FAMILY_WINDS : [...FAMILY_WINDS, sc.windFrom].sort((a, b) => a - b);
+  const FW = familyWinds(sc), winds = FW.includes(sc.windFrom) ? FW : [...FW, sc.windFrom].sort((a, b) => a - b);
   return pts.flatMap(p => {
     const ignition = p.current ? sc.ignition : (([x, y]) => [x - O[0], y - O[1]])(toUTM(...p.lonlat));
-    return winds.filter(w => p.current || FAMILY_WINDS.includes(w)).map(w => ({ id: `${p.id}-${w}`, point: p.id, windFrom: w, ignition, label: p.label, at: p.at, lonlat: p.lonlat, source: p.source, isDefault: !!p.current && w === sc.windFrom }));
+    return winds.filter(w => p.current || FW.includes(w)).map(w => ({ id: `${p.id}-${w}`, point: p.id, windFrom: w, ignition, label: p.label, at: p.at, lonlat: p.lonlat, source: p.source, isDefault: !!p.current && w === sc.windFrom }));
   });
 }
 export const defaultMember = (sc, data) => familyOf(sc, data).find(m => m.isDefault).id;
@@ -263,7 +267,7 @@ export function memberScenario(sc, member, data) {
 
 // The passes of a comparison. Families off: the default member at every severity and seed given.
 // Families on: every member at every severity, with enough seeds (1, 2, …) that the total is at least
-// minPasses (ref1923 4×3×2 = 24, northHills 12×3×1 = 36, eastWind and panoramic 8×3×1 = 24).
+// minPasses (ref1923 3×3×2 = 18, northHills 12×3×1 = 36, eastWind and panoramic 8×3×1 = 24).
 // key: `${fire}|${member}|${sev}|${seed}`; a stack's runs add the stack key after the member.
 export function comparisonCases(sc, data, { families = false, severities, seeds, minPasses = 15 }) {
   const fam = familyOf(sc, data);

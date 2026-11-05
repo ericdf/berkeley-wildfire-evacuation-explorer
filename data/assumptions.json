@@ -654,9 +654,9 @@
   "visibility": {
     "poor": {
       "speedFactor": 0.925,
-      "capacityFactor": 0.88
+      "capacityFactor": 1
     },
-    "source": "Free-flow speed: FHWA Traffic Analysis Toolbox Vol. XI (FHWA-JPO-11-019, Dec. 2010), printed p. 7: \"free-flow speeds for all vehicles decreased by 7.5 percent ... during foggy ... conditions\" (Liang et al. 1998, a case study in TRR 1635, not read). Capacity: FHWA Road Weather Management, ops.fhwa.dot.gov/weather/roadimpact.htm, freeway table, Low Visibility, Capacity 12% (citing HCM 2000 chap. 22). Applied here to every street (assumption): FHWA gives no fog or smoke figure for city streets. FHWA-HOP-07-073 sec. 2.1 reports that the HCM says no studies have quantified fog's effect on capacity, which conflicts with the 12% (SOURCE_NOTES VZ1-VZ6).",
+    "source": "Free-flow speed: FHWA Traffic Analysis Toolbox Vol. XI (FHWA-JPO-11-019, Dec. 2010), printed p. 7: \"free-flow speeds for all vehicles decreased by 7.5 percent ... during foggy ... conditions\" (Liang et al. 1998, a case study in TRR 1635, not read). Applied here to every street (assumption): FHWA gives no fog or smoke figure for city streets. Capacity is not cut (Eric, 2026-11-05): FHWA's Road Weather Management page gives 12% for low visibility on freeways citing HCM 2000 chap. 22, which could not be read, and FHWA-HOP-07-073 sec. 2.1 reports that the HCM says no studies have quantified fog's effect on capacity (SOURCE_NOTES VZ1-VZ7).",
     "fireNote": "The fire is not slowed: Berkeley's fog is marine fog that usually comes with an onshore wind and high humidity, which wet fine fuels and slow a fire, but no source found gives a spread-rate change the model could use (SOURCE_NOTES VZ5). Smoke reduces visibility without any of that."
   }
 }

@@ -49,7 +49,7 @@ rewrites of the same block, are alternatives. **Compare with today's plan** runs
 same households in 15 passes (3 severities × 5 seeds; each pass runs both plans) in background workers and reports, at the top of the right-hand panel, per
 measure, the middle value of each plan and how many passes went each way; only the full set earns a
 verdict ("better in every pass", "mixed"), because one pass can point the wrong way; a pass counts as better or worse only when the two plans differ by more than 1%. Watching a plan
-on the map is labeled as one run. Under a finished comparison of two or more changes, **Break down this plan** shows, for each change, what it does alone and what the plan loses without it, and names changes that overlap (SOURCE_NOTES MS14). **Fire families** are opt-in: a box under the fire ("Also test other likely starting points and wind directions") opens a disclosure, and after "Use them" a comparison runs every member of the fire, one ignition point × one wind from 0°, 30°, 45° or 60° (`js/scenarios.js` `familyOf`; ref1923 24 passes, northHills 36, eastWind and panoramic 24; 0° added 2026-11-05, SOURCE_NOTES WC9), with a line per measure where the change helps at some starts and winds and not others. The points and winds are our assumptions anchored to SOURCE_NOTES FF1–FF18; Berkeley's orders stay the fire's, so some members burn into Berkeley zones nobody ordered, while other cities order their zones as the fire nears (FF18, FO3). `node tests/families.mjs` checks the members; `tools/fire-families.mjs` measures the 1923 clip and fire reach outside the orders. The stored results of `tools/mitigations.mjs` are not shown as
+on the map is labeled as one run. Under a finished comparison of two or more changes, **Break down this plan** shows, for each change, what it does alone and what the plan loses without it, and names changes that overlap (SOURCE_NOTES MS14). **Fire families** are opt-in: a box under the fire ("Also test other likely starting points and wind directions") opens a disclosure, and after "Use them" a comparison runs every member of the fire, one ignition point × one wind from 0°, 30°, 45° or 60° (`js/scenarios.js` `familyOf`; ref1923 18 passes, northHills 36, eastWind and panoramic 24; 0° added 2026-11-05 on every fire except the 1923 repeat, whose footprint would remove 93% of it, SOURCE_NOTES WC9), with a line per measure where the change helps at some starts and winds and not others. The points and winds are our assumptions anchored to SOURCE_NOTES FF1–FF18; Berkeley's orders stay the fire's, so some members burn into Berkeley zones nobody ordered, while other cities order their zones as the fire nears (FF18, FO3). `node tests/families.mjs` checks the members; `tools/fire-families.mjs` measures the 1923 clip and fire reach outside the orders. The stored results of `tools/mitigations.mjs` are not shown as
 answers: changes that did not reliably help on the chosen fire there (contraflow, police control,
 guided routing, the Buena Vista link) are greyed out with that explanation, so people see they
 were considered (SOURCE_NOTES MS11). Ready-made A/B questions (`js/presets.js`) sit under
@@ -226,10 +226,10 @@ easing to 5.4 mph), a winter day with a north wind (0°, 5.9 to 9.2 mph) and the
 
 **Visibility** (scenario setting, Expert view, off by default; SOURCE_NOTES VZ1–VZ7). Poor
 visibility (fog or smoke) cuts free-flow speed on every street by 7.5% (FHWA-JPO-11-019 p. 7,
-a fog case study) and every lane and junction capacity by 12% (FHWA Road Weather Management,
-low visibility, freeways), for residents and engines; FHWA has no city-street figure, so the
-transfer is an assumption, and the two FHWA documents disagree on whether a fog capacity figure
-exists. The fire is not slowed. Households and parked cars are drawn as on a clear day
+a fog case study), for residents and engines; FHWA has no city-street figure, so the transfer is
+an assumption. Capacity is not cut (Eric, 2026-11-05): FHWA's only figure, 12% on freeways,
+cites a source that could not be read and that another FHWA report contradicts
+(`capacityFactor` 1 in `data/assumptions.json`). The fire is not slowed. Households and parked cars are drawn as on a clear day
 (`node tests/plan-draws.mjs`).
 
 **Evacuation** (`js/sim.js`). Synthetic households are placed on streets from Genasys zone
