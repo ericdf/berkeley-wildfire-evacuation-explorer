@@ -10,8 +10,8 @@
    "high"
   ],
   "rule": "SOURCE_NOTES P19: Plan B better on the headline in every pair and a central median change of 5% or more; a missing 90% time fails",
-  "runs": 480,
-  "wallMin": 11.4,
+  "runs": 540,
+  "wallMin": 12.9,
   "workers": 4
  },
  "questions": {
@@ -33,7 +33,8 @@
       "noVehicleNoRide": 683.8844000000014,
       "engineBeyond5": 1544.1679000002914,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9445040737163857,
+      "engineShareIgnition": 0.9445040737163857,
+      "engineShareEnd": 0.7950383044496278,
       "engineBlockedSegments": 283
      },
      "B": {
@@ -46,7 +47,22 @@
       "noVehicleNoRide": 402.8339999999993,
       "engineBeyond5": 1544.1679000002914,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9445040737163857,
+      "engineShareIgnition": 0.9445040737163857,
+      "engineShareEnd": 0.7950383044496278,
+      "engineBlockedSegments": 283
+     },
+     "Blez": {
+      "headline": 4767.086633703564,
+      "exposed": 4767.086633703564,
+      "clearP90": 91.5,
+      "orderVehicles": 12381,
+      "otherCityVehicles": 173,
+      "vehicles": 12554,
+      "noVehicleNoRide": 594.1987000000001,
+      "engineBeyond5": 1544.1679000002914,
+      "engineHillPeople": 27875.215500000384,
+      "engineShareIgnition": 0.9445040737163857,
+      "engineShareEnd": 0.7950383044496278,
       "engineBlockedSegments": 283
      }
     }
@@ -68,7 +84,8 @@
       "noVehicleNoRide": 1984.7014999999953,
       "engineBeyond5": 1544.1679000002914,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9445040737163857,
+      "engineShareIgnition": 0.9445040737163857,
+      "engineShareEnd": 0.6699124675824975,
       "engineBlockedSegments": 283
      },
      "B": {
@@ -81,7 +98,22 @@
       "noVehicleNoRide": 1749.3094999999962,
       "engineBeyond5": 1544.1679000002914,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9445040737163857,
+      "engineShareIgnition": 0.9445040737163857,
+      "engineShareEnd": 0.6699124675824975,
+      "engineBlockedSegments": 283
+     },
+     "Blez": {
+      "headline": 3765.803190529078,
+      "exposed": 3765.803190529078,
+      "clearP90": 90.25,
+      "orderVehicles": 13769,
+      "otherCityVehicles": 164,
+      "vehicles": 19230,
+      "noVehicleNoRide": 1913.1509999999978,
+      "engineBeyond5": 1544.1679000002914,
+      "engineHillPeople": 27875.215500000384,
+      "engineShareIgnition": 0.9445040737163857,
+      "engineShareEnd": 0.6699124675824975,
       "engineBlockedSegments": 283
      }
     }
@@ -103,7 +135,8 @@
       "noVehicleNoRide": 306.72769999999986,
       "engineBeyond5": 1544.1679000002914,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9445040737163857,
+      "engineShareIgnition": 0.9445040737163857,
+      "engineShareEnd": 0.8027629705679479,
       "engineBlockedSegments": 283
      },
      "B": {
@@ -116,7 +149,22 @@
       "noVehicleNoRide": 219.89600000000024,
       "engineBeyond5": 1544.1679000002914,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9445040737163857,
+      "engineShareIgnition": 0.9445040737163857,
+      "engineShareEnd": 0.8027629705679479,
+      "engineBlockedSegments": 283
+     },
+     "Blez": {
+      "headline": 11035.523181863207,
+      "exposed": 11035.523181863207,
+      "clearP90": null,
+      "orderVehicles": 537,
+      "otherCityVehicles": 553,
+      "vehicles": 2441,
+      "noVehicleNoRide": 246.05470000000025,
+      "engineBeyond5": 1544.1679000002914,
+      "engineHillPeople": 27875.215500000384,
+      "engineShareIgnition": 0.9445040737163857,
+      "engineShareEnd": 0.8027629705679479,
       "engineBlockedSegments": 283
      }
     }
@@ -138,7 +186,8 @@
       "noVehicleNoRide": 302.4550999999994,
       "engineBeyond5": 1544.1679000002914,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9445040737163857,
+      "engineShareIgnition": 0.9445040737163857,
+      "engineShareEnd": 0.7522184870425481,
       "engineBlockedSegments": 283
      },
      "B": {
@@ -151,7 +200,22 @@
       "noVehicleNoRide": 175.0297999999999,
       "engineBeyond5": 1544.1679000002914,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9445040737163857,
+      "engineShareIgnition": 0.9445040737163857,
+      "engineShareEnd": 0.7522184870425481,
+      "engineBlockedSegments": 283
+     },
+     "Blez": {
+      "headline": 2967.4346683894796,
+      "exposed": 2967.4346683894796,
+      "clearP90": 91.83333333333333,
+      "orderVehicles": 10337,
+      "otherCityVehicles": 2365,
+      "vehicles": 12684,
+      "noVehicleNoRide": 302.4550999999994,
+      "engineBeyond5": 1544.1679000002914,
+      "engineHillPeople": 27875.215500000384,
+      "engineShareIgnition": 0.9445040737163857,
+      "engineShareEnd": 0.7522184870425481,
       "engineBlockedSegments": 283
      }
     }
@@ -175,7 +239,8 @@
       "noVehicleNoRide": 665.7883000000011,
       "engineBeyond5": 1241.4918000002617,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9554625218951134,
+      "engineShareIgnition": 0.9554625218951134,
+      "engineShareEnd": 0.8043227002136645,
       "engineBlockedSegments": 211
      },
      "B": {
@@ -188,7 +253,8 @@
       "noVehicleNoRide": 660.9135000000014,
       "engineBeyond5": 1241.4918000002617,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9554625218951134,
+      "engineShareIgnition": 0.9554625218951134,
+      "engineShareEnd": 0.8043227002136645,
       "engineBlockedSegments": 211
      }
     }
@@ -210,7 +276,8 @@
       "noVehicleNoRide": 1953.8686999999957,
       "engineBeyond5": 1241.4918000002617,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9554625218951134,
+      "engineShareIgnition": 0.9554625218951134,
+      "engineShareEnd": 0.6871447755072368,
       "engineBlockedSegments": 211
      },
      "B": {
@@ -223,7 +290,8 @@
       "noVehicleNoRide": 1953.8686999999957,
       "engineBeyond5": 1241.4918000002617,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9554625218951134,
+      "engineShareIgnition": 0.9554625218951134,
+      "engineShareEnd": 0.6871447755072368,
       "engineBlockedSegments": 211
      }
     }
@@ -245,7 +313,8 @@
       "noVehicleNoRide": 336.17339999999973,
       "engineBeyond5": 1241.4918000002617,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9554625218951134,
+      "engineShareIgnition": 0.9554625218951134,
+      "engineShareEnd": 0.8168499591466581,
       "engineBlockedSegments": 211
      },
      "B": {
@@ -258,7 +327,8 @@
       "noVehicleNoRide": 323.4978000000001,
       "engineBeyond5": 1241.4918000002617,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9554625218951134,
+      "engineShareIgnition": 0.9554625218951134,
+      "engineShareEnd": 0.8168499591466581,
       "engineBlockedSegments": 211
      }
     }
@@ -280,7 +350,8 @@
       "noVehicleNoRide": 296.05759999999947,
       "engineBeyond5": 1241.4918000002617,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9554625218951134,
+      "engineShareIgnition": 0.9554625218951134,
+      "engineShareEnd": 0.7750855049282649,
       "engineBlockedSegments": 211
      },
      "B": {
@@ -293,7 +364,8 @@
       "noVehicleNoRide": 295.9560999999993,
       "engineBeyond5": 1241.4918000002617,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9554625218951134,
+      "engineShareIgnition": 0.9554625218951134,
+      "engineShareEnd": 0.7750065504308604,
       "engineBlockedSegments": 211
      }
     }
@@ -317,7 +389,8 @@
       "noVehicleNoRide": 664.7208000000014,
       "engineBeyond5": 1241.4918000002617,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9554625218951134,
+      "engineShareIgnition": 0.9554625218951134,
+      "engineShareEnd": 0.8043227002136645,
       "engineBlockedSegments": 211
      },
      "B": {
@@ -330,7 +403,8 @@
       "noVehicleNoRide": 683.8844000000014,
       "engineBeyond5": 1544.1679000002914,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9445040737163857,
+      "engineShareIgnition": 0.9445040737163857,
+      "engineShareEnd": 0.7950383044496278,
       "engineBlockedSegments": 283
      }
     }
@@ -352,7 +426,8 @@
       "noVehicleNoRide": 1953.8686999999957,
       "engineBeyond5": 1241.4918000002617,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9554625218951134,
+      "engineShareIgnition": 0.9554625218951134,
+      "engineShareEnd": 0.6871447755072368,
       "engineBlockedSegments": 211
      },
      "B": {
@@ -365,7 +440,8 @@
       "noVehicleNoRide": 1984.7014999999953,
       "engineBeyond5": 1544.1679000002914,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9445040737163857,
+      "engineShareIgnition": 0.9445040737163857,
+      "engineShareEnd": 0.6699124675824975,
       "engineBlockedSegments": 283
      }
     }
@@ -387,7 +463,8 @@
       "noVehicleNoRide": 327.19890000000004,
       "engineBeyond5": 1241.4918000002617,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9554625218951134,
+      "engineShareIgnition": 0.9554625218951134,
+      "engineShareEnd": 0.8168499591466581,
       "engineBlockedSegments": 211
      },
      "B": {
@@ -400,7 +477,8 @@
       "noVehicleNoRide": 306.72769999999986,
       "engineBeyond5": 1544.1679000002914,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9445040737163857,
+      "engineShareIgnition": 0.9445040737163857,
+      "engineShareEnd": 0.8027629705679479,
       "engineBlockedSegments": 283
      }
     }
@@ -422,7 +500,8 @@
       "noVehicleNoRide": 295.9560999999993,
       "engineBeyond5": 1241.4918000002617,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9554625218951134,
+      "engineShareIgnition": 0.9554625218951134,
+      "engineShareEnd": 0.7750065504308604,
       "engineBlockedSegments": 211
      },
      "B": {
@@ -435,7 +514,8 @@
       "noVehicleNoRide": 302.4550999999994,
       "engineBeyond5": 1544.1679000002914,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9445040737163857,
+      "engineShareIgnition": 0.9445040737163857,
+      "engineShareEnd": 0.7522184870425481,
       "engineBlockedSegments": 283
      }
     }
@@ -459,7 +539,8 @@
       "noVehicleNoRide": 683.8844000000014,
       "engineBeyond5": 1544.1679000002914,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9445040737163857,
+      "engineShareIgnition": 0.9445040737163857,
+      "engineShareEnd": 0.7950383044496278,
       "engineBlockedSegments": 283
      },
      "B": {
@@ -472,7 +553,8 @@
       "noVehicleNoRide": 683.8844000000014,
       "engineBeyond5": 1043.3397000002187,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9625033630863784,
+      "engineShareIgnition": 0.9625033630863784,
+      "engineShareEnd": 0.8071824614103461,
       "engineBlockedSegments": 143
      }
     }
@@ -494,7 +576,8 @@
       "noVehicleNoRide": 1984.7014999999953,
       "engineBeyond5": 1544.1679000002914,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9445040737163857,
+      "engineShareIgnition": 0.9445040737163857,
+      "engineShareEnd": 0.6699124675824975,
       "engineBlockedSegments": 283
      },
      "B": {
@@ -507,7 +590,8 @@
       "noVehicleNoRide": 1984.7014999999953,
       "engineBeyond5": 1043.3397000002187,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9625033630863784,
+      "engineShareIgnition": 0.9625033630863784,
+      "engineShareEnd": 0.7067387362381178,
       "engineBlockedSegments": 143
      }
     }
@@ -529,7 +613,8 @@
       "noVehicleNoRide": 306.72769999999986,
       "engineBeyond5": 1544.1679000002914,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9445040737163857,
+      "engineShareIgnition": 0.9445040737163857,
+      "engineShareEnd": 0.8027629705679479,
       "engineBlockedSegments": 283
      },
      "B": {
@@ -542,7 +627,8 @@
       "noVehicleNoRide": 306.72769999999986,
       "engineBeyond5": 1043.3397000002187,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9625033630863784,
+      "engineShareIgnition": 0.9625033630863784,
+      "engineShareEnd": 0.8267765248731023,
       "engineBlockedSegments": 143
      }
     }
@@ -564,7 +650,8 @@
       "noVehicleNoRide": 302.4550999999994,
       "engineBeyond5": 1544.1679000002914,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9445040737163857,
+      "engineShareIgnition": 0.9445040737163857,
+      "engineShareEnd": 0.7522184870425481,
       "engineBlockedSegments": 283
      },
      "B": {
@@ -577,7 +664,8 @@
       "noVehicleNoRide": 302.4550999999994,
       "engineBeyond5": 1043.3397000002187,
       "engineHillPeople": 27875.215500000384,
-      "engineEndShare": 0.9625033630863784,
+      "engineShareIgnition": 0.9625033630863784,
+      "engineShareEnd": 0.8126943572901052,
       "engineBlockedSegments": 143
      }
     }
