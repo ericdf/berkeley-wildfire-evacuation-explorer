@@ -85,8 +85,9 @@ function groupRun(sim, G, track) {
     let people = 0, front = 0, ember = 0, nV = 0, vFront = 0, vNoRoute = 0, eng5 = 0;
     for (let h = 0; h < hh.n; h++) {
       if (!set.has(hh.edge[h]) || hh.gone[h]) continue;
-      people += pph; if (homeAt(sim, h, 'front')) front += pph; if (homeAt(sim, h, 'ember')) ember += pph;
-      if (sim.engineReach0[hh.edge[h]] > lim) eng5 += pph;
+      const wh = sim.hhPersons ? sim.hhPersons[h] : pph; // zone persons per household (DM18)
+      people += wh; if (homeAt(sim, h, 'front')) front += wh; if (homeAt(sim, h, 'ember')) ember += wh;
+      if (sim.engineReach0[hh.edge[h]] > lim) eng5 += wh;
     }
     for (let i = 0; i < v.n; i++) {
       if (v.hh[i] < 0 || v.cls[i] === 2 || v.state[i] === 4 || !set.has(v.edge[i])) continue;
