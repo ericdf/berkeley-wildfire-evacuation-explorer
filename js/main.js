@@ -184,6 +184,10 @@ for (const id of ['p-routing', 'p-compliance']) $(id).addEventListener('change',
 const routingPairs = new Map();
 // Who may need help (docs/design/assisted-evacuation.md option A; js/sim.js needsHelp; SOURCE_NOTES NH1–NH6).
 // Public counts by zone, reported only: nobody in the simulator waits for a pickup.
+// Open or closed, kept across the results panel's re-renders during playback ($('results').innerHTML is replaced every frame).
+let needsHelpOpen = false;
+// The click, not the toggle event: toggle fires after the next re-render may already have replaced the element.
+$('results').addEventListener('click', e => { const sm = e.target.closest?.('details.needs-help > summary'); if (sm) needsHelpOpen = !sm.parentElement.open; });
 function needsHelpPanel(S) {
   const N = S.needsHelp; if (!N) return '';
   const T = N.pickupMin, G = N.groups, r = o => `${fmt(o.range[0])}–${fmt(o.range[1])}`, v = o => `${fmt(o.value)} <span class="muted">(${r(o)})</span>`;
@@ -194,7 +198,7 @@ function needsHelpPanel(S) {
     ['Licensed beds in care homes, nursing facilities and hospitals', G.facilityBeds, o => fmt(o.value), 'derived', 'The ember columns spread each zone\'s licensed capacity evenly over its households\' streets (assumption): they do not say whether embers reached any particular facility, whose locations are not kept. The Time Study plans vehicles at medical facilities 90 minutes after the order.'],
   ];
   const cell = (o, f) => f(o);
-  return `<details class="needs-help"><summary>Who may need help: ${r(G.specialized.transitDependent)} people who may need a wheelchair van or ambulance live on streets embers reached within ${T.transitDependent / 60} hours of their zone's order ${badge('derived')}</summary>
+  return `<details class="needs-help"${needsHelpOpen ? ' open' : ''}><summary>Who may need help: ${r(G.specialized.transitDependent)} people who may need a wheelchair van or ambulance live on streets embers reached within ${T.transitDependent / 60} hours of their zone's order ${badge('derived')}</summary>
     <p class="small">People in zones this run ordered or warned, from public counts by zone. The two right-hand columns count those on streets embers reached before the 2025 Evacuation Time Study's planned pickup: ${T.facilities} minutes after the order at medical facilities and schools, ${T.transitDependent} on transit-dependent pickup routes ${badge('sourced', 'ets.txt §2.4 4.a–c, p. 2-7')}. The simulator runs no pickups, paratransit or facility evacuations: everyone counted here is also among the synthetic households above, which leave on the survey's timing as if they needed no help. Not a prediction and not a casualty count.</p>
     <table class="kv"><tr><th></th><th class="num">In ordered or warned zones</th><th class="num">Embers within ${T.facilities} min of the order</th><th class="num">Within ${T.transitDependent} min</th></tr>
     ${rows.map(([label, g, f, cat, note]) => `<tr><td>${label} ${badge(cat, note)}</td><td class="num">${cell(g.inZones, f)}${g === G.facilityBeds ? ' ' + badge('sourced', 'CDSS and CDPH licensed capacity by zone, summed over the zones ordered or warned: licensed capacity, not occupancy.') : ''}</td><td class="num">${cell(g.facilities, f)}</td><td class="num">${cell(g.transitDependent, f)}</td></tr>`).join('')}
