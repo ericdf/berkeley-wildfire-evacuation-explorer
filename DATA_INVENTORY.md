@@ -61,9 +61,13 @@ Status as of 2026-11-03. Categories: **sourced** (published data used as-is), **
   control for every modeled link. That is the best replacement.
 - **Parking.** Varies by block and seed, with shares from counts of parked cars on City 2020
   orthophotos for 22 hill blocks (`data/field/aerial-parking-counts-2020.json`) and Eric's
-  street photos. Daytime only. The City's no-parking-sign layers are loaded but not yet turned
-  into curb segments. A curb or red-zone inventory and evening counts would replace the
-  remaining assumptions (off-pavement parking, bad parking jobs).
+  street photos. The model's shares are daytime; night shares are an assumption. Eric's
+  night count on 19 of those blocks (2026-11-05, about 1 a.m.;
+  `data/field/evening-parking-counts-2026-11-05.json`, SOURCE_NOTES EV1–EV7) found both sides
+  parked on narrow blocks where the model parks one, and is not yet applied. The City's
+  no-parking-sign layers set curbs only under the opt-in enforcement setting (PH15). A curb or
+  red-zone inventory would replace the remaining assumptions (off-pavement parking, bad
+  parking jobs).
 
 ## Documents read
 
