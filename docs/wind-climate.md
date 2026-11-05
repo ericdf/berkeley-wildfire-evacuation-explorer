@@ -61,8 +61,8 @@ common in winter and rare in summer. The ridge's aggregate pattern agrees: winte
 mostly 200–210°, winter nights mostly 50–60°.
 
 **North winds.** In winter 8.3% of hours blow from 340–20° (6.0% of afternoon hours, 9.8% of night
-hours). Their median speed is 7.5 mph (90th percentile 19.3 mph); by hour, 5.7–5.8 mph at 4–5 p.m.
-LST and 6.3–8.5 mph from 6 to 10 p.m. Their median relative humidity is 56%, and 6.5% of them are at
+hours). Their median speed is 9.2 mph (90th percentile 20.8 mph); by hour, 6.2–6.9 mph at 4–5 p.m.
+LST and 7.5–9.2 mph from 6 to 10 p.m. Their median relative humidity is 59%, and 6.9% of them are at
 25% or below: winter north winds at this station are mostly humid. The sector's most common bin in
 winter is 10–20°.
 
@@ -71,7 +71,7 @@ winter is 10–20°.
 - **Earthquake scenarios** (`js/scenarios.js`): a spring afternoon from 205° with the April hourly onshore
   medians from 3:18 p.m. LST (7.0 → 5.4 mph); a winter day with a north wind from 0° (the middle of the
   340–20° sector, a model choice) with the winter north-wind hourly medians from 4:18 p.m. LST
-  (5.7 → 8.5 mph); and the dry east wind, 45° at 30 mph, as the rare worst case (FF4, FF5). The 6-hour
+  (6.2 → 9.2 mph); and the dry east wind, 45° at 30 mph, as the rare worst case (FF4, FF5). The 6-hour
   runs end before the night reversal, so the schedules change speed, not direction.
 - **Fire families**: a 0° member, from the dry, windy hours of FF4 (340–20° held 17.6% of them) and the
   Red Flag hours of FV13 (19.3%), not from this all-hours record (SOURCE_NOTES WC9).

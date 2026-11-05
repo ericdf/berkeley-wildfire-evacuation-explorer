@@ -78,7 +78,10 @@ function parse(html) {
   const head = rows.find(r => r[1] === '1 am');
   const hourOf = lab => { const m = /^(\d+) (am|pm)$/.exec(lab); if (!m) return null; const h = +m[1] % 12; return m[2] === 'pm' ? h + 12 : h; };
   const cols = head.slice(1).map(hourOf);
-  const tot = rows.find(r => /^Total # obs/.test(r[0]));
+  // Hour counts: the "# obs. passing req." row, the observations the query's filter kept. A filtered page also has a
+  // "Total # obs." row (every observation); its percentages are of the passing count (Codex review of PR #61).
+  // An unfiltered page has one count row, labeled "Total # obs.".
+  const tot = rows.find(r => /obs\. passing/i.test(r[0])) || rows.find(r => /^Total # obs/.test(r[0]));
   const span = /Start Date\s*:\s*([^<]*?)\s*End Date\s*:\s*([^<#]*?)\s*#/.exec(html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' '));
   const hours = Array.from({ length: 24 }, () => ({ n: 0, bins: {} }));
   cols.forEach((h, j) => { if (h != null) hours[h].n = +tot[j + 1] || 0; });
@@ -97,9 +100,9 @@ const fold = bins => { const o = {}; for (const [k, v] of Object.entries(bins)) 
 const dirShare = (agg, lo, hi) => { const b = fold(agg.bins); let s = 0, t = 0; for (const [k, v] of Object.entries(b)) { t += v; if (+k >= lo && +k < hi) s += v; } return t ? s / t : null; };
 const northShare = agg => dirShare(agg, 340, 360) + dirShare(agg, 0, 20);
 const modeBin = agg => { const b = fold(agg.bins); let best = null; for (const [k, v] of Object.entries(b)) if (!best || v > best[1]) best = [+k, v]; return best?.[0]; };
-// Speed bins are 1 mph wide ("a to a+1"); the median is read inside the bin by linear interpolation.
-const quantile = (agg, q) => { const ks = Object.keys(agg.bins).map(Number).sort((a, b) => a - b); const t = ks.reduce((s, k) => s + agg.bins[k], 0); if (!t) return null;
-  let c = 0; for (const k of ks) { const v = agg.bins[k]; if (c + v >= q * t) return k + (q * t - c) / v; c += v; } return ks[ks.length - 1] + 1; };
+// Quantile read inside the bin by linear interpolation; w is the bin width (speed 1 mph, humidity 5%).
+const quantile = (agg, q, w = 1) => { const ks = Object.keys(agg.bins).map(Number).sort((a, b) => a - b); const t = ks.reduce((s, k) => s + agg.bins[k], 0); if (!t) return null;
+  let c = 0; for (const k of ks) { const v = agg.bins[k]; if (c + v >= q * t) return k + w * (q * t - c) / v; c += v; } return ks[ks.length - 1] + w; };
 const r1 = x => x == null ? null : +x.toFixed(1), pct = x => x == null ? null : +(100 * x).toFixed(1);
 const dirTable = agg => { const b = fold(agg.bins), t = Object.values(b).reduce((a, c) => a + c, 0); return Object.fromEntries(range(0, 35).map(i => [i * 10, t ? +(100 * (b[i * 10] || 0) / t).toFixed(1) : 0])); };
 
@@ -127,7 +130,7 @@ for (const season of Object.keys(SEASONS)) {
       hours: d.n, modeBin: modeBin(d), onshorePct: pct(dirShare(d, ...ONSHORE)), onshoreNarrowPct: pct(dirShare(d, ...ONSHORE_NARROW)),
       northPct: pct(northShare(d)), eastPct: pct(dirShare(d, 0, 90)), medianMph: r1(quantile(v, 0.5)), p90Mph: r1(quantile(v, 0.9)),
       onshoreMedianMph: on ? r1(quantile(on, 0.5)) : null, northMedianMph: no ? r1(quantile(no, 0.5)) : null, northP90Mph: no ? r1(quantile(no, 0.9)) : null,
-      northHours: no ? Math.round(no.n) : null, northRhMedian: rh ? r1(quantile(rh, 0.5)) : null,
+      northHours: no ? Math.round(no.n) : null, northRhMedian: rh ? r1(quantile(rh, 0.5, 5)) : null,
       northRhLe25Pct: rh && rh.n ? pct(Object.entries(rh.bins).filter(([k]) => +k < 25).reduce((x, [, c]) => x + c, 0) / rh.n) : null,
       directionPct: dirTable(d) };
   }

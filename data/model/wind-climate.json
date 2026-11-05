@@ -21,7 +21,7 @@
    "18–23"
   ]
  },
- "retrieved": "2026-11-04",
+ "retrieved": "2026-11-05",
  "cokn": {
   "winter": {
    "label": "Dec–Feb",
@@ -38,11 +38,11 @@
      "medianMph": 7.5,
      "p90Mph": 18.8,
      "onshoreMedianMph": 5,
-     "northMedianMph": 8.5,
-     "northP90Mph": 20.1,
-     "northHours": 33978,
+     "northMedianMph": 10.6,
+     "northP90Mph": 21.4,
+     "northHours": 1723,
      "northRhMedian": 60.3,
-     "northRhLe25Pct": 5.1,
+     "northRhLe25Pct": 6,
      "directionPct": {
       "0": 3,
       "10": 4.1,
@@ -91,12 +91,12 @@
      "eastPct": 48.5,
      "medianMph": 8.1,
      "p90Mph": 20,
-     "onshoreMedianMph": 5.2,
-     "northMedianMph": 8.9,
-     "northP90Mph": 21.2,
-     "northHours": 33888,
-     "northRhMedian": 60.6,
-     "northRhLe25Pct": 4.5,
+     "onshoreMedianMph": 5.3,
+     "northMedianMph": 11.3,
+     "northP90Mph": 23.4,
+     "northHours": 1391,
+     "northRhMedian": 61.8,
+     "northRhLe25Pct": 4.2,
      "directionPct": {
       "0": 2.2,
       "10": 3.6,
@@ -146,11 +146,11 @@
      "medianMph": 6.9,
      "p90Mph": 16.9,
      "onshoreMedianMph": 5.5,
-     "northMedianMph": 6,
-     "northP90Mph": 17.1,
-     "northHours": 34240,
-     "northRhMedian": 50.9,
-     "northRhLe25Pct": 7.9,
+     "northMedianMph": 6.5,
+     "northP90Mph": 18.6,
+     "northHours": 1073,
+     "northRhMedian": 54.7,
+     "northRhLe25Pct": 8.6,
      "directionPct": {
       "0": 1.5,
       "10": 2.4,
@@ -200,11 +200,11 @@
      "medianMph": 6.4,
      "p90Mph": 16.8,
      "onshoreMedianMph": 4.3,
-     "northMedianMph": 7.8,
-     "northP90Mph": 17.7,
-     "northHours": 34182,
-     "northRhMedian": 55.5,
-     "northRhLe25Pct": 8.5,
+     "northMedianMph": 8.9,
+     "northP90Mph": 18.9,
+     "northHours": 1676,
+     "northRhMedian": 57.3,
+     "northRhLe25Pct": 9,
      "directionPct": {
       "0": 2.8,
       "10": 3.5,
@@ -254,11 +254,11 @@
      "medianMph": 7.2,
      "p90Mph": 18.2,
      "onshoreMedianMph": 5,
-     "northMedianMph": 7.5,
-     "northP90Mph": 19.3,
-     "northHours": 136288,
-     "northRhMedian": 55.8,
-     "northRhLe25Pct": 6.5,
+     "northMedianMph": 9.2,
+     "northP90Mph": 20.8,
+     "northHours": 5863,
+     "northRhMedian": 58.7,
+     "northRhLe25Pct": 6.9,
      "directionPct": {
       "0": 2.4,
       "10": 3.4,
@@ -309,7 +309,7 @@
      "eastPct": 38.7,
      "medianMph": 7,
      "onshoreMedianMph": 4.7,
-     "northMedianMph": 8.6
+     "northMedianMph": 9.7
     },
     {
      "hour": 1,
@@ -320,7 +320,7 @@
      "eastPct": 39.5,
      "medianMph": 7.1,
      "onshoreMedianMph": 4.7,
-     "northMedianMph": 7.8
+     "northMedianMph": 9.8
     },
     {
      "hour": 2,
@@ -331,7 +331,7 @@
      "eastPct": 41.2,
      "medianMph": 7.4,
      "onshoreMedianMph": 4.9,
-     "northMedianMph": 8
+     "northMedianMph": 9.7
     },
     {
      "hour": 3,
@@ -342,7 +342,7 @@
      "eastPct": 43.9,
      "medianMph": 7.6,
      "onshoreMedianMph": 4.9,
-     "northMedianMph": 8.3
+     "northMedianMph": 11.2
     },
     {
      "hour": 4,
@@ -353,7 +353,7 @@
      "eastPct": 45.1,
      "medianMph": 7.9,
      "onshoreMedianMph": 5.3,
-     "northMedianMph": 10.1
+     "northMedianMph": 11.8
     },
     {
      "hour": 5,
@@ -364,7 +364,7 @@
      "eastPct": 45.9,
      "medianMph": 8,
      "onshoreMedianMph": 5.4,
-     "northMedianMph": 9
+     "northMedianMph": 11.2
     },
     {
      "hour": 6,
@@ -375,7 +375,7 @@
      "eastPct": 47.7,
      "medianMph": 8.1,
      "onshoreMedianMph": 5.1,
-     "northMedianMph": 10.1
+     "northMedianMph": 12.3
     },
     {
      "hour": 7,
@@ -386,7 +386,7 @@
      "eastPct": 48.6,
      "medianMph": 8.3,
      "onshoreMedianMph": 5.2,
-     "northMedianMph": 9.6
+     "northMedianMph": 11.7
     },
     {
      "hour": 8,
@@ -397,7 +397,7 @@
      "eastPct": 49.2,
      "medianMph": 8.5,
      "onshoreMedianMph": 4.9,
-     "northMedianMph": 10.2
+     "northMedianMph": 11.9
     },
     {
      "hour": 9,
@@ -408,7 +408,7 @@
      "eastPct": 48.8,
      "medianMph": 8.2,
      "onshoreMedianMph": 4.9,
-     "northMedianMph": 10.2
+     "northMedianMph": 12.7
     },
     {
      "hour": 10,
@@ -419,7 +419,7 @@
      "eastPct": 48.6,
      "medianMph": 8.1,
      "onshoreMedianMph": 5.5,
-     "northMedianMph": 8.5
+     "northMedianMph": 9.8
     },
     {
      "hour": 11,
@@ -430,7 +430,7 @@
      "eastPct": 48.2,
      "medianMph": 7.8,
      "onshoreMedianMph": 5.7,
-     "northMedianMph": 7
+     "northMedianMph": 8.1
     },
     {
      "hour": 12,
@@ -441,7 +441,7 @@
      "eastPct": 44.6,
      "medianMph": 7.4,
      "onshoreMedianMph": 5.7,
-     "northMedianMph": 5.9
+     "northMedianMph": 6.4
     },
     {
      "hour": 13,
@@ -452,7 +452,7 @@
      "eastPct": 42.6,
      "medianMph": 7.3,
      "onshoreMedianMph": 5.9,
-     "northMedianMph": 6.5
+     "northMedianMph": 6.9
     },
     {
      "hour": 14,
@@ -463,7 +463,7 @@
      "eastPct": 41.4,
      "medianMph": 7.2,
      "onshoreMedianMph": 5.9,
-     "northMedianMph": 6.4
+     "northMedianMph": 6.6
     },
     {
      "hour": 15,
@@ -474,7 +474,7 @@
      "eastPct": 40.8,
      "medianMph": 6.8,
      "onshoreMedianMph": 5.7,
-     "northMedianMph": 5.8
+     "northMedianMph": 6.2
     },
     {
      "hour": 16,
@@ -485,7 +485,7 @@
      "eastPct": 39.8,
      "medianMph": 6.5,
      "onshoreMedianMph": 5.3,
-     "northMedianMph": 5.7
+     "northMedianMph": 6.2
     },
     {
      "hour": 17,
@@ -496,7 +496,7 @@
      "eastPct": 39.1,
      "medianMph": 6.2,
      "onshoreMedianMph": 4.4,
-     "northMedianMph": 5.8
+     "northMedianMph": 6.9
     },
     {
      "hour": 18,
@@ -507,7 +507,7 @@
      "eastPct": 39.3,
      "medianMph": 6.1,
      "onshoreMedianMph": 4.1,
-     "northMedianMph": 6.3
+     "northMedianMph": 7.5
     },
     {
      "hour": 19,
@@ -518,7 +518,7 @@
      "eastPct": 38.4,
      "medianMph": 6.3,
      "onshoreMedianMph": 4.1,
-     "northMedianMph": 8.1
+     "northMedianMph": 9.1
     },
     {
      "hour": 20,
@@ -529,7 +529,7 @@
      "eastPct": 37.5,
      "medianMph": 6.3,
      "onshoreMedianMph": 4.2,
-     "northMedianMph": 7
+     "northMedianMph": 7.6
     },
     {
      "hour": 21,
@@ -540,7 +540,7 @@
      "eastPct": 36.9,
      "medianMph": 6.4,
      "onshoreMedianMph": 4.3,
-     "northMedianMph": 8.5
+     "northMedianMph": 9.2
     },
     {
      "hour": 22,
@@ -551,7 +551,7 @@
      "eastPct": 37.2,
      "medianMph": 6.6,
      "onshoreMedianMph": 4.6,
-     "northMedianMph": 8.3
+     "northMedianMph": 9.2
     },
     {
      "hour": 23,
@@ -562,7 +562,7 @@
      "eastPct": 38,
      "medianMph": 6.8,
      "onshoreMedianMph": 4.6,
-     "northMedianMph": 9.2
+     "northMedianMph": 9.9
     }
    ]
   },
@@ -581,9 +581,9 @@
      "medianMph": 6.5,
      "p90Mph": 13.2,
      "onshoreMedianMph": 6,
-     "northMedianMph": 8.6,
-     "northP90Mph": 17.7,
-     "northHours": 34808,
+     "northMedianMph": 9.1,
+     "northP90Mph": 18.2,
+     "northHours": 1235,
      "northRhMedian": null,
      "northRhLe25Pct": null,
      "directionPct": {
@@ -635,9 +635,9 @@
      "medianMph": 6.2,
      "p90Mph": 13.2,
      "onshoreMedianMph": 5.7,
-     "northMedianMph": 8.3,
-     "northP90Mph": 17.9,
-     "northHours": 34662,
+     "northMedianMph": 9,
+     "northP90Mph": 18.8,
+     "northHours": 1174,
      "northRhMedian": null,
      "northRhLe25Pct": null,
      "directionPct": {
@@ -689,9 +689,9 @@
      "medianMph": 6.9,
      "p90Mph": 12.8,
      "onshoreMedianMph": 6.7,
-     "northMedianMph": 6.7,
-     "northP90Mph": 14,
-     "northHours": 34958,
+     "northMedianMph": 7,
+     "northP90Mph": 14.7,
+     "northHours": 591,
      "northRhMedian": null,
      "northRhLe25Pct": null,
      "directionPct": {
@@ -743,9 +743,9 @@
      "medianMph": 5.9,
      "p90Mph": 12.2,
      "onshoreMedianMph": 5.5,
-     "northMedianMph": 5.9,
-     "northP90Mph": 14.5,
-     "northHours": 34966,
+     "northMedianMph": 6.3,
+     "northP90Mph": 14.9,
+     "northHours": 701,
      "northRhMedian": null,
      "northRhLe25Pct": null,
      "directionPct": {
@@ -797,9 +797,9 @@
      "medianMph": 6.4,
      "p90Mph": 12.8,
      "onshoreMedianMph": 6,
-     "northMedianMph": 7.3,
-     "northP90Mph": 16.3,
-     "northHours": 139394,
+     "northMedianMph": 8.1,
+     "northP90Mph": 17.5,
+     "northHours": 3701,
      "northRhMedian": null,
      "northRhLe25Pct": null,
      "directionPct": {
@@ -852,7 +852,7 @@
      "eastPct": 7.7,
      "medianMph": 6.2,
      "onshoreMedianMph": 5.8,
-     "northMedianMph": 8.2
+     "northMedianMph": 8.5
     },
     {
      "hour": 1,
@@ -863,7 +863,7 @@
      "eastPct": 8.1,
      "medianMph": 6.4,
      "onshoreMedianMph": 6.1,
-     "northMedianMph": 7.5
+     "northMedianMph": 7.6
     },
     {
      "hour": 2,
@@ -874,7 +874,7 @@
      "eastPct": 9.4,
      "medianMph": 6.5,
      "onshoreMedianMph": 6.1,
-     "northMedianMph": 8.4
+     "northMedianMph": 8.6
     },
     {
      "hour": 3,
@@ -885,7 +885,7 @@
      "eastPct": 11.1,
      "medianMph": 6.5,
      "onshoreMedianMph": 6.1,
-     "northMedianMph": 9.7
+     "northMedianMph": 9.8
     },
     {
      "hour": 4,
@@ -896,7 +896,7 @@
      "eastPct": 12.9,
      "medianMph": 6.5,
      "onshoreMedianMph": 6,
-     "northMedianMph": 9.5
+     "northMedianMph": 9.9
     },
     {
      "hour": 5,
@@ -907,7 +907,7 @@
      "eastPct": 15.7,
      "medianMph": 6.5,
      "onshoreMedianMph": 6.1,
-     "northMedianMph": 8.9
+     "northMedianMph": 9.4
     },
     {
      "hour": 6,
@@ -918,7 +918,7 @@
      "eastPct": 17.5,
      "medianMph": 6.4,
      "onshoreMedianMph": 5.8,
-     "northMedianMph": 9.7
+     "northMedianMph": 10.5
     },
     {
      "hour": 7,
@@ -929,7 +929,7 @@
      "eastPct": 20.1,
      "medianMph": 6.2,
      "onshoreMedianMph": 5.7,
-     "northMedianMph": 8.8
+     "northMedianMph": 9.5
     },
     {
      "hour": 8,
@@ -940,7 +940,7 @@
      "eastPct": 21.2,
      "medianMph": 5.9,
      "onshoreMedianMph": 5.3,
-     "northMedianMph": 7.7
+     "northMedianMph": 8.6
     },
     {
      "hour": 9,
@@ -951,7 +951,7 @@
      "eastPct": 20.7,
      "medianMph": 5.9,
      "onshoreMedianMph": 5.3,
-     "northMedianMph": 8.9
+     "northMedianMph": 9.2
     },
     {
      "hour": 10,
@@ -962,7 +962,7 @@
      "eastPct": 19.6,
      "medianMph": 6.3,
      "onshoreMedianMph": 5.7,
-     "northMedianMph": 8.3
+     "northMedianMph": 8.5
     },
     {
      "hour": 11,
@@ -973,7 +973,7 @@
      "eastPct": 17.4,
      "medianMph": 6.6,
      "onshoreMedianMph": 6.3,
-     "northMedianMph": 6.8
+     "northMedianMph": 7
     },
     {
      "hour": 12,
@@ -984,7 +984,7 @@
      "eastPct": 15.4,
      "medianMph": 6.9,
      "onshoreMedianMph": 6.7,
-     "northMedianMph": 7.1
+     "northMedianMph": 7.2
     },
     {
      "hour": 13,
@@ -995,7 +995,7 @@
      "eastPct": 12,
      "medianMph": 7.1,
      "onshoreMedianMph": 6.8,
-     "northMedianMph": 7.3
+     "northMedianMph": 7.5
     },
     {
      "hour": 14,
@@ -1006,7 +1006,7 @@
      "eastPct": 9.4,
      "medianMph": 7.1,
      "onshoreMedianMph": 6.9,
-     "northMedianMph": 7
+     "northMedianMph": 7.2
     },
     {
      "hour": 15,
@@ -1017,7 +1017,7 @@
      "eastPct": 8.1,
      "medianMph": 7,
      "onshoreMedianMph": 6.9,
-     "northMedianMph": 6.4
+     "northMedianMph": 7
     },
     {
      "hour": 16,
@@ -1028,7 +1028,7 @@
      "eastPct": 7,
      "medianMph": 7,
      "onshoreMedianMph": 6.7,
-     "northMedianMph": 6.7
+     "northMedianMph": 6.9
     },
     {
      "hour": 17,
@@ -1039,7 +1039,7 @@
      "eastPct": 6.4,
      "medianMph": 6.5,
      "onshoreMedianMph": 6.2,
-     "northMedianMph": 5.3
+     "northMedianMph": 6
     },
     {
      "hour": 18,
@@ -1061,7 +1061,7 @@
      "eastPct": 5.8,
      "medianMph": 5.6,
      "onshoreMedianMph": 5.3,
-     "northMedianMph": 4.7
+     "northMedianMph": 4.9
     },
     {
      "hour": 20,
@@ -1072,7 +1072,7 @@
      "eastPct": 6.2,
      "medianMph": 5.8,
      "onshoreMedianMph": 5.4,
-     "northMedianMph": 6.4
+     "northMedianMph": 6.5
     },
     {
      "hour": 21,
@@ -1105,7 +1105,7 @@
      "eastPct": 6.9,
      "medianMph": 6.2,
      "onshoreMedianMph": 5.8,
-     "northMedianMph": 8
+     "northMedianMph": 8.1
     }
    ]
   },
@@ -1125,8 +1125,8 @@
      "p90Mph": 12.5,
      "onshoreMedianMph": 7.7,
      "northMedianMph": 8.4,
-     "northP90Mph": 14.2,
-     "northHours": 37432,
+     "northP90Mph": 14.4,
+     "northHours": 506,
      "northRhMedian": null,
      "northRhLe25Pct": null,
      "directionPct": {
@@ -1178,9 +1178,9 @@
      "medianMph": 6.4,
      "p90Mph": 11.9,
      "onshoreMedianMph": 6.3,
-     "northMedianMph": 5.9,
-     "northP90Mph": 12.1,
-     "northHours": 37190,
+     "northMedianMph": 6.1,
+     "northP90Mph": 13,
+     "northHours": 470,
      "northRhMedian": null,
      "northRhLe25Pct": null,
      "directionPct": {
@@ -1232,9 +1232,9 @@
      "medianMph": 6.8,
      "p90Mph": 11.7,
      "onshoreMedianMph": 6.6,
-     "northMedianMph": 6.4,
+     "northMedianMph": 6.5,
      "northP90Mph": 10.7,
-     "northHours": 37374,
+     "northHours": 259,
      "northRhMedian": null,
      "northRhLe25Pct": null,
      "directionPct": {
@@ -1287,8 +1287,8 @@
      "p90Mph": 12,
      "onshoreMedianMph": 6.4,
      "northMedianMph": 6.8,
-     "northP90Mph": 11.7,
-     "northHours": 37456,
+     "northP90Mph": 11.5,
+     "northHours": 337,
      "northRhMedian": null,
      "northRhLe25Pct": null,
      "directionPct": {
@@ -1340,9 +1340,9 @@
      "medianMph": 6.9,
      "p90Mph": 12.1,
      "onshoreMedianMph": 6.7,
-     "northMedianMph": 6.9,
-     "northP90Mph": 12.5,
-     "northHours": 149452,
+     "northMedianMph": 7,
+     "northP90Mph": 13,
+     "northHours": 1572,
      "northRhMedian": null,
      "northRhLe25Pct": null,
      "directionPct": {
@@ -1395,7 +1395,7 @@
      "eastPct": 1.6,
      "medianMph": 7.9,
      "onshoreMedianMph": 7.7,
-     "northMedianMph": 8.7
+     "northMedianMph": 8.8
     },
     {
      "hour": 1,
@@ -1417,7 +1417,7 @@
      "eastPct": 2.2,
      "medianMph": 8.2,
      "onshoreMedianMph": 8,
-     "northMedianMph": 9
+     "northMedianMph": 9.1
     },
     {
      "hour": 3,
@@ -1428,7 +1428,7 @@
      "eastPct": 2.8,
      "medianMph": 7.9,
      "onshoreMedianMph": 7.8,
-     "northMedianMph": 7.8
+     "northMedianMph": 7.9
     },
     {
      "hour": 4,
@@ -1450,7 +1450,7 @@
      "eastPct": 4.1,
      "medianMph": 7.6,
      "onshoreMedianMph": 7.4,
-     "northMedianMph": 8.3
+     "northMedianMph": 8.4
     },
     {
      "hour": 6,
@@ -1472,7 +1472,7 @@
      "eastPct": 6.9,
      "medianMph": 6.8,
      "onshoreMedianMph": 6.7,
-     "northMedianMph": 6.5
+     "northMedianMph": 6.6
     },
     {
      "hour": 8,
@@ -1483,7 +1483,7 @@
      "eastPct": 8.1,
      "medianMph": 6.1,
      "onshoreMedianMph": 6,
-     "northMedianMph": 4.7
+     "northMedianMph": 5.1
     },
     {
      "hour": 9,
@@ -1494,7 +1494,7 @@
      "eastPct": 7.8,
      "medianMph": 5.8,
      "onshoreMedianMph": 5.7,
-     "northMedianMph": 4.6
+     "northMedianMph": 4.7
     },
     {
      "hour": 10,
@@ -1505,7 +1505,7 @@
      "eastPct": 6.2,
      "medianMph": 6.1,
      "onshoreMedianMph": 6,
-     "northMedianMph": 5.9
+     "northMedianMph": 6.1
     },
     {
      "hour": 11,
@@ -1538,7 +1538,7 @@
      "eastPct": 2.4,
      "medianMph": 6.8,
      "onshoreMedianMph": 6.6,
-     "northMedianMph": 5.2
+     "northMedianMph": 5.6
     },
     {
      "hour": 14,
@@ -1549,7 +1549,7 @@
      "eastPct": 2,
      "medianMph": 6.8,
      "onshoreMedianMph": 6.7,
-     "northMedianMph": 5.7
+     "northMedianMph": 5.8
     },
     {
      "hour": 15,
@@ -1582,7 +1582,7 @@
      "eastPct": 1.8,
      "medianMph": 6.6,
      "onshoreMedianMph": 6.4,
-     "northMedianMph": 6.6
+     "northMedianMph": 6.7
     },
     {
      "hour": 18,
@@ -1604,7 +1604,7 @@
      "eastPct": 1.7,
      "medianMph": 6.2,
      "onshoreMedianMph": 6,
-     "northMedianMph": 6.2
+     "northMedianMph": 6.3
     },
     {
      "hour": 20,
@@ -1615,7 +1615,7 @@
      "eastPct": 1.6,
      "medianMph": 6.4,
      "onshoreMedianMph": 6.2,
-     "northMedianMph": 6.8
+     "northMedianMph": 6.7
     },
     {
      "hour": 21,
@@ -1637,7 +1637,7 @@
      "eastPct": 1.4,
      "medianMph": 7,
      "onshoreMedianMph": 6.7,
-     "northMedianMph": 8
+     "northMedianMph": 7.7
     },
     {
      "hour": 23,
@@ -1648,7 +1648,7 @@
      "eastPct": 1.9,
      "medianMph": 7.4,
      "onshoreMedianMph": 7.2,
-     "northMedianMph": 7.7
+     "northMedianMph": 7.6
     }
    ]
   },
@@ -1667,9 +1667,9 @@
      "medianMph": 6.1,
      "p90Mph": 14.2,
      "onshoreMedianMph": 5.2,
-     "northMedianMph": 7.1,
-     "northP90Mph": 18,
-     "northHours": 37112,
+     "northMedianMph": 7.9,
+     "northP90Mph": 18.9,
+     "northHours": 1697,
      "northRhMedian": null,
      "northRhLe25Pct": null,
      "directionPct": {
@@ -1721,9 +1721,9 @@
      "medianMph": 6.2,
      "p90Mph": 15.5,
      "onshoreMedianMph": 5.1,
-     "northMedianMph": 6.9,
-     "northP90Mph": 18.1,
-     "northHours": 37052,
+     "northMedianMph": 7.9,
+     "northP90Mph": 19.7,
+     "northHours": 1272,
      "northRhMedian": null,
      "northRhLe25Pct": null,
      "directionPct": {
@@ -1774,10 +1774,10 @@
      "eastPct": 23.1,
      "medianMph": 5.8,
      "p90Mph": 12,
-     "onshoreMedianMph": 5.5,
-     "northMedianMph": 5.6,
-     "northP90Mph": 12.6,
-     "northHours": 37280,
+     "onshoreMedianMph": 5.4,
+     "northMedianMph": 5.7,
+     "northP90Mph": 13.2,
+     "northHours": 849,
      "northRhMedian": null,
      "northRhLe25Pct": null,
      "directionPct": {
@@ -1829,9 +1829,9 @@
      "medianMph": 5.2,
      "p90Mph": 12.3,
      "onshoreMedianMph": 4.6,
-     "northMedianMph": 6.2,
-     "northP90Mph": 14.4,
-     "northHours": 37270,
+     "northMedianMph": 6.5,
+     "northP90Mph": 15.1,
+     "northHours": 1543,
      "northRhMedian": null,
      "northRhLe25Pct": null,
      "directionPct": {
@@ -1883,9 +1883,9 @@
      "medianMph": 5.8,
      "p90Mph": 13.5,
      "onshoreMedianMph": 5.1,
-     "northMedianMph": 6.3,
-     "northP90Mph": 16.2,
-     "northHours": 148714,
+     "northMedianMph": 6.9,
+     "northP90Mph": 17.5,
+     "northHours": 5361,
      "northRhMedian": null,
      "northRhLe25Pct": null,
      "directionPct": {
@@ -1938,7 +1938,7 @@
      "eastPct": 20,
      "medianMph": 5.7,
      "onshoreMedianMph": 5,
-     "northMedianMph": 7.5
+     "northMedianMph": 8
     },
     {
      "hour": 1,
@@ -1949,7 +1949,7 @@
      "eastPct": 21.1,
      "medianMph": 5.9,
      "onshoreMedianMph": 5.1,
-     "northMedianMph": 6.3
+     "northMedianMph": 6.8
     },
     {
      "hour": 2,
@@ -1960,7 +1960,7 @@
      "eastPct": 24.4,
      "medianMph": 6,
      "onshoreMedianMph": 5.3,
-     "northMedianMph": 6.9
+     "northMedianMph": 7.7
     },
     {
      "hour": 3,
@@ -1971,7 +1971,7 @@
      "eastPct": 26.2,
      "medianMph": 6.2,
      "onshoreMedianMph": 5.4,
-     "northMedianMph": 7.4
+     "northMedianMph": 8.2
     },
     {
      "hour": 4,
@@ -1982,7 +1982,7 @@
      "eastPct": 28.8,
      "medianMph": 6.2,
      "onshoreMedianMph": 5.2,
-     "northMedianMph": 7
+     "northMedianMph": 8.2
     },
     {
      "hour": 5,
@@ -1993,7 +1993,7 @@
      "eastPct": 31.6,
      "medianMph": 6.3,
      "onshoreMedianMph": 5.2,
-     "northMedianMph": 7.2
+     "northMedianMph": 8.1
     },
     {
      "hour": 6,
@@ -2004,7 +2004,7 @@
      "eastPct": 34.8,
      "medianMph": 6.3,
      "onshoreMedianMph": 5.2,
-     "northMedianMph": 7.5
+     "northMedianMph": 8.7
     },
     {
      "hour": 7,
@@ -2015,7 +2015,7 @@
      "eastPct": 36.3,
      "medianMph": 6.3,
      "onshoreMedianMph": 5.1,
-     "northMedianMph": 7.2
+     "northMedianMph": 8.6
     },
     {
      "hour": 8,
@@ -2026,7 +2026,7 @@
      "eastPct": 38.9,
      "medianMph": 6.2,
      "onshoreMedianMph": 4.9,
-     "northMedianMph": 8.2
+     "northMedianMph": 10.2
     },
     {
      "hour": 9,
@@ -2037,7 +2037,7 @@
      "eastPct": 39.9,
      "medianMph": 6,
      "onshoreMedianMph": 4.8,
-     "northMedianMph": 6.2
+     "northMedianMph": 7.2
     },
     {
      "hour": 10,
@@ -2048,7 +2048,7 @@
      "eastPct": 36.8,
      "medianMph": 6,
      "onshoreMedianMph": 5.2,
-     "northMedianMph": 5.9
+     "northMedianMph": 6.5
     },
     {
      "hour": 11,
@@ -2059,7 +2059,7 @@
      "eastPct": 32.6,
      "medianMph": 6.2,
      "onshoreMedianMph": 5.5,
-     "northMedianMph": 7.1
+     "northMedianMph": 7.2
     },
     {
      "hour": 12,
@@ -2070,7 +2070,7 @@
      "eastPct": 29.1,
      "medianMph": 6.3,
      "onshoreMedianMph": 5.9,
-     "northMedianMph": 6.4
+     "northMedianMph": 6.8
     },
     {
      "hour": 13,
@@ -2092,7 +2092,7 @@
      "eastPct": 22.9,
      "medianMph": 6.1,
      "onshoreMedianMph": 5.8,
-     "northMedianMph": 6
+     "northMedianMph": 6.2
     },
     {
      "hour": 15,
@@ -2103,7 +2103,7 @@
      "eastPct": 20.5,
      "medianMph": 5.9,
      "onshoreMedianMph": 5.6,
-     "northMedianMph": 5.2
+     "northMedianMph": 5.3
     },
     {
      "hour": 16,
@@ -2114,7 +2114,7 @@
      "eastPct": 20.3,
      "medianMph": 5.5,
      "onshoreMedianMph": 5.1,
-     "northMedianMph": 5
+     "northMedianMph": 5.5
     },
     {
      "hour": 17,
@@ -2125,7 +2125,7 @@
      "eastPct": 20.1,
      "medianMph": 5,
      "onshoreMedianMph": 4.6,
-     "northMedianMph": 5
+     "northMedianMph": 5.2
     },
     {
      "hour": 18,
@@ -2136,7 +2136,7 @@
      "eastPct": 20.9,
      "medianMph": 4.9,
      "onshoreMedianMph": 4.3,
-     "northMedianMph": 5.5
+     "northMedianMph": 6
     },
     {
      "hour": 19,
@@ -2147,7 +2147,7 @@
      "eastPct": 19.7,
      "medianMph": 5.1,
      "onshoreMedianMph": 4.5,
-     "northMedianMph": 5.8
+     "northMedianMph": 6.1
     },
     {
      "hour": 20,
@@ -2158,7 +2158,7 @@
      "eastPct": 20.1,
      "medianMph": 5.2,
      "onshoreMedianMph": 4.5,
-     "northMedianMph": 6.5
+     "northMedianMph": 6.7
     },
     {
      "hour": 21,
@@ -2169,7 +2169,7 @@
      "eastPct": 20.2,
      "medianMph": 5.3,
      "onshoreMedianMph": 4.6,
-     "northMedianMph": 5.9
+     "northMedianMph": 6
     },
     {
      "hour": 22,
@@ -2180,7 +2180,7 @@
      "eastPct": 20.1,
      "medianMph": 5.5,
      "onshoreMedianMph": 4.8,
-     "northMedianMph": 6.4
+     "northMedianMph": 6.7
     },
     {
      "hour": 23,
@@ -2191,7 +2191,7 @@
      "eastPct": 19.7,
      "medianMph": 5.5,
      "onshoreMedianMph": 4.8,
-     "northMedianMph": 6.9
+     "northMedianMph": 7.5
     }
    ]
   },
@@ -2210,9 +2210,9 @@
      "medianMph": 6.2,
      "p90Mph": 12.8,
      "onshoreMedianMph": 5.9,
-     "northMedianMph": 7.6,
-     "northP90Mph": 17.2,
-     "northHours": 11254,
+     "northMedianMph": 8.4,
+     "northP90Mph": 17.7,
+     "northHours": 406,
      "northRhMedian": null,
      "northRhLe25Pct": null,
      "directionPct": {
@@ -2264,9 +2264,9 @@
      "medianMph": 6.1,
      "p90Mph": 12.5,
      "onshoreMedianMph": 5.6,
-     "northMedianMph": 8.9,
-     "northP90Mph": 16.8,
-     "northHours": 11230,
+     "northMedianMph": 9.3,
+     "northP90Mph": 18.1,
+     "northHours": 411,
      "northRhMedian": null,
      "northRhLe25Pct": null,
      "directionPct": {
@@ -2318,9 +2318,9 @@
      "medianMph": 6.9,
      "p90Mph": 12.2,
      "onshoreMedianMph": 6.8,
-     "northMedianMph": 6,
+     "northMedianMph": 6.4,
      "northP90Mph": 13.6,
-     "northHours": 11270,
+     "northHours": 166,
      "northRhMedian": null,
      "northRhLe25Pct": null,
      "directionPct": {
@@ -2372,9 +2372,9 @@
      "medianMph": 5.7,
      "p90Mph": 11.5,
      "onshoreMedianMph": 5.5,
-     "northMedianMph": 4.9,
-     "northP90Mph": 15.4,
-     "northHours": 11296,
+     "northMedianMph": 5.1,
+     "northP90Mph": 15.2,
+     "northHours": 188,
      "northRhMedian": null,
      "northRhLe25Pct": null,
      "directionPct": {
@@ -2426,9 +2426,9 @@
      "medianMph": 6.3,
      "p90Mph": 12.2,
      "onshoreMedianMph": 6,
-     "northMedianMph": 6.7,
-     "northP90Mph": 15.9,
-     "northHours": 45050,
+     "northMedianMph": 7.8,
+     "northP90Mph": 17,
+     "northHours": 1171,
      "northRhMedian": null,
      "northRhLe25Pct": null,
      "directionPct": {
@@ -2492,7 +2492,7 @@
      "eastPct": 5.5,
      "medianMph": 6.3,
      "onshoreMedianMph": 6,
-     "northMedianMph": 7.2
+     "northMedianMph": 7.3
     },
     {
      "hour": 2,
@@ -2503,7 +2503,7 @@
      "eastPct": 7.5,
      "medianMph": 6.2,
      "onshoreMedianMph": 5.9,
-     "northMedianMph": 6.3
+     "northMedianMph": 6.2
     },
     {
      "hour": 3,
@@ -2514,7 +2514,7 @@
      "eastPct": 9.2,
      "medianMph": 6.3,
      "onshoreMedianMph": 6,
-     "northMedianMph": 10.4
+     "northMedianMph": 10.5
     },
     {
      "hour": 4,
@@ -2525,7 +2525,7 @@
      "eastPct": 11.2,
      "medianMph": 6.2,
      "onshoreMedianMph": 5.8,
-     "northMedianMph": 9.3
+     "northMedianMph": 9.5
     },
     {
      "hour": 5,
@@ -2536,7 +2536,7 @@
      "eastPct": 14.3,
      "medianMph": 6.4,
      "onshoreMedianMph": 6,
-     "northMedianMph": 9.7
+     "northMedianMph": 10.5
     },
     {
      "hour": 6,
@@ -2547,7 +2547,7 @@
      "eastPct": 16,
      "medianMph": 6.2,
      "onshoreMedianMph": 5.7,
-     "northMedianMph": 9.9
+     "northMedianMph": 11.3
     },
     {
      "hour": 7,
@@ -2558,7 +2558,7 @@
      "eastPct": 19.9,
      "medianMph": 6.2,
      "onshoreMedianMph": 5.5,
-     "northMedianMph": 9.1
+     "northMedianMph": 9.8
     },
     {
      "hour": 8,
@@ -2569,7 +2569,7 @@
      "eastPct": 22.2,
      "medianMph": 5.8,
      "onshoreMedianMph": 5.3,
-     "northMedianMph": 8.8
+     "northMedianMph": 9.2
     },
     {
      "hour": 9,
@@ -2580,7 +2580,7 @@
      "eastPct": 20.9,
      "medianMph": 5.8,
      "onshoreMedianMph": 5.3,
-     "northMedianMph": 10
+     "northMedianMph": 10.1
     },
     {
      "hour": 10,
@@ -2591,7 +2591,7 @@
      "eastPct": 18.9,
      "medianMph": 6.1,
      "onshoreMedianMph": 5.7,
-     "northMedianMph": 8.8
+     "northMedianMph": 8.9
     },
     {
      "hour": 11,
@@ -2602,7 +2602,7 @@
      "eastPct": 17.1,
      "medianMph": 6.5,
      "onshoreMedianMph": 6.2,
-     "northMedianMph": 6.9
+     "northMedianMph": 7.1
     },
     {
      "hour": 12,
@@ -2613,7 +2613,7 @@
      "eastPct": 14,
      "medianMph": 6.8,
      "onshoreMedianMph": 6.6,
-     "northMedianMph": 5.9
+     "northMedianMph": 6.9
     },
     {
      "hour": 13,
@@ -2624,7 +2624,7 @@
      "eastPct": 10.1,
      "medianMph": 7.1,
      "onshoreMedianMph": 6.9,
-     "northMedianMph": 7
+     "northMedianMph": 7.1
     },
     {
      "hour": 14,
@@ -2646,7 +2646,7 @@
      "eastPct": 6.2,
      "medianMph": 7.1,
      "onshoreMedianMph": 7,
-     "northMedianMph": 6.3
+     "northMedianMph": 7
     },
     {
      "hour": 16,
@@ -2657,7 +2657,7 @@
      "eastPct": 5,
      "medianMph": 7,
      "onshoreMedianMph": 6.8,
-     "northMedianMph": 7.7
+     "northMedianMph": 8.5
     },
     {
      "hour": 17,
@@ -2679,7 +2679,7 @@
      "eastPct": 3.5,
      "medianMph": 5.9,
      "onshoreMedianMph": 5.7,
-     "northMedianMph": 4.4
+     "northMedianMph": 4.5
     },
     {
      "hour": 19,
@@ -2690,7 +2690,7 @@
      "eastPct": 3.2,
      "medianMph": 5.6,
      "onshoreMedianMph": 5.4,
-     "northMedianMph": 4.6
+     "northMedianMph": 4.7
     },
     {
      "hour": 20,
@@ -2701,7 +2701,7 @@
      "eastPct": 3.7,
      "medianMph": 5.6,
      "onshoreMedianMph": 5.4,
-     "northMedianMph": 5.4
+     "northMedianMph": 5.3
     },
     {
      "hour": 21,
@@ -2712,7 +2712,7 @@
      "eastPct": 4.9,
      "medianMph": 5.6,
      "onshoreMedianMph": 5.4,
-     "northMedianMph": 5.3
+     "northMedianMph": 5
     },
     {
      "hour": 22,
@@ -2723,7 +2723,7 @@
      "eastPct": 4.4,
      "medianMph": 5.8,
      "onshoreMedianMph": 5.5,
-     "northMedianMph": 3.7
+     "northMedianMph": 3.5
     },
     {
      "hour": 23,
@@ -2734,7 +2734,7 @@
      "eastPct": 4.5,
      "medianMph": 5.8,
      "onshoreMedianMph": 5.5,
-     "northMedianMph": 5.9
+     "northMedianMph": 5.8
     }
    ]
   }
