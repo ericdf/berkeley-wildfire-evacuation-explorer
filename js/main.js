@@ -412,10 +412,15 @@ function questionMap() {
   const q = state.tab, v = state.view[q];
   Object.assign(map.layers, GUIDED_LAYERS);
   map.edgeClass = null; map.edgePalette = null; map.streetMode = 'class';
-  if (q === 'spread') { map.layers.fire = true; const C = edgeClasses(state.fire, v); if (C) { map.streetMode = 'robust'; map.edgeClass = C.cls; map.edgePalette = PALETTE.spread; } }
+  // The run-set summary (streets reached across 15 runs) waits until the run on the map has finished, so the
+  // map shows one thing at a time: the fire as it plays, then what recurs across runs (Eric, 2026-11-06).
+  const done = state.sim && state.sim.t >= state.sim.end;
+  state.summaryWaits = !done && (q === 'spread' || (q === 'access' && v === 'wayout'));
+  if (state.summaryWaits) { map.streetMode = 'robust'; map.edgeClass = {}; map.edgePalette = ['#a9a9a9']; } // plain gray streets, so the fire stands out
+  if (q === 'spread') { map.layers.fire = true; const C = done && edgeClasses(state.fire, v); if (C) { map.streetMode = 'robust'; map.edgeClass = C.cls; map.edgePalette = PALETTE.spread; } }
   else if (q === 'routes') { if (v === 'ways') { map.layers.access = true; map.layers.paths = true; } else { map.streetMode = 'engine'; } }
   else if (q === 'access') {
-    if (v === 'wayout') { map.layers.fire = true; if (spread()) { map.streetMode = 'robust'; map.edgeClass = areaEdgeClasses(data, state.fire); map.edgePalette = [...PALETTE.access]; map.edgePalette[0] = '#c8c8c8'; } }
+    if (v === 'wayout') { map.layers.fire = true; if (done && spread()) { map.streetMode = 'robust'; map.edgeClass = areaEdgeClasses(data, state.fire); map.edgePalette = [...PALETTE.access]; map.edgePalette[0] = '#c8c8c8'; } }
     else { map.streetMode = 'engineTime'; map.layers.stations = true; }
   } else { map.layers.fire = true; map.layers.vehicles = true; map.layers.queues = true; }
   map.draw(); legend();
@@ -822,12 +827,12 @@ function newRun() {
   state.playing = false; runLabel('▶ Run'); $('scrub').value = 0;
   if (map.selected?.kind === 'edge' && !d.net.edges[map.selected.id]) { map.selected = null; inspect(null); } // a new road from the previous network
   $('run-plan').textContent = `Plan ${state.editing}${state.preset ? ': ' + state.plans[state.editing].name.replace(/^[AB]: /, '') : ''}`;
-  update(true); map.draw();
+  update(true); map.draw(); questionMap();
 }
 function seek(tSec) {
   if (!state.sim || tSec < state.sim.t) newRun();
   while (state.sim.t < tSec && state.sim.t < state.sim.end) state.sim.step();
-  update(true); map.draw();
+  update(true); map.draw(); questionMap();
 }
 let last = performance.now(), lastUi = 0;
 function loop(now) {
@@ -1090,7 +1095,7 @@ function legend() {
   const access = map.layers.access && data.access ? accessLegend() : '';
   let saved = null; try { saved = localStorage.getItem('bhe-key'); } catch {}
   const open = saved ? saved !== 'hidden' : !matchMedia('(max-width: 760px)').matches; // on a phone the key starts closed: open, it covers half the map
-  $('legend').innerHTML = `<button class="key-toggle" title="${open ? 'Hide' : 'Show'} the map key">${open ? 'Hide key ▾' : 'Show key ▸'}</button>${open ? `<div>${m === 'robust' ? legendHTML(state.tab, state.view[state.tab]) : `<b>${STREET_MODES[m]}</b>${L}`}${extra}${access}</div>` : ''}`;
+  $('legend').innerHTML = `<button class="key-toggle" title="${open ? 'Hide' : 'Show'} the map key">${open ? 'Hide key ▾' : 'Show key ▸'}</button>${open ? `<div>${state.summaryWaits && document.body.classList.contains('simple') ? '<b>Streets</b><div class="small muted">Gray while the run plays. When it finishes, the map colors the streets by how often the modeled fire reached them across 15 runs.</div>' : m === 'robust' ? legendHTML(state.tab, state.view[state.tab]) : `<b>${STREET_MODES[m]}</b>${L}`}${extra}${access}</div>` : ''}`;
   $('legend').querySelector('.key-toggle').onclick = () => { try { localStorage.setItem('bhe-key', open ? 'hidden' : 'shown'); } catch {} legend(); };
 }
 
