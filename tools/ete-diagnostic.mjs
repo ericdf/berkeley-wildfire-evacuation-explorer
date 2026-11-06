@@ -40,7 +40,7 @@ for (const sc of makeScenarios(data).filter(s => REGIONS.includes(s.id))) for (c
     const P = [], E = [], X = [];
     for (let i = 0; i < v.n; i++) {
       if (v.cls[i] || v.state[i] === 4 || v.fromOrder[i] !== 1) continue;
-      const pl = (v.depart[i] - T0) / 60, en = (entryT[i] - T0) / 60, x = (Math.min(v.exit[i], v.arrive[i]) - T0) / 60;
+      const pl = (v.depart[i] - T0) / 60, en = (entryT[i] - T0) / 60, x = (Math.min(v.exit[i], v.zarr[i]) - T0) / 60;
       P.push(pl); E.push(en); X.push(x); agg.n++;
       if (isFinite(en)) { agg.wait.push(en - pl); if (isFinite(x)) { agg.road.push(x - en); const b = [15, 30, 45, 60, 75, 90, 105, 120, 150, 180].find(c => Math.abs(en - c) <= 7.5); if (b != null) (agg.byEntry[b] ||= []).push(x - en); } }
     }
