@@ -1,7 +1,7 @@
 // Simple-view fires and questions. A question is offered on a fire only where Plan B beat Plan A
 // on its headline measure in all 15 same-seed runs (low, central and high severity x seeds 1-5)
 // by a clear margin (central-severity median change of 5% or more); SOURCE_NOTES P19-P22,
-// 2026-11-01, P31 for the north-hills fire, P32 for the east-wind fire from 60° and P33 after other cities' orders (FO1), P34 at 1 km (FO6) and P35 with each person counted once (FO8), 2026-11-02, DM18 under the ACS household mix, 2026-11-04, and again on the merged fire model and mix when PR #59 merged, 2026-11-05 (node tools/simple-questions.mjs). Each question fixes the time of day
+// 2026-11-01, P31 for the north-hills fire, P32 for the east-wind fire from 60° and P33 after other cities' orders (FO1), P34 at 1 km (FO6) and P35 with each person counted once (FO8), 2026-11-02, DM18 under the ACS household mix, 2026-11-04, and again on the merged fire model and mix when PR #59 merged, 2026-11-05, and after evacuees drive on to the model exits, 2026-11-06 (CD20) (node tools/simple-questions.mjs). Each question fixes the time of day
 // (per plan where `tods` is set); the plans start from DEFAULT_PLAN. `on` holds the "What to look
 // for" text for each fire it is offered on, with central-severity medians from that test; `off`
 // gives the one-line reason it is withheld.
@@ -31,8 +31,8 @@ export const PRESETS = [
     on: {
       eastWind: 'In Plan B about a sixth fewer modeled residents are not yet out when modeled embers reach their street (about 6,300 against 5,300 in the medium-severity case). If only the City\'s smaller Leave Early Zones do it, the drop is about 2%: most hill residents live outside them.',
       ref1923: 'In Plan B about 30% fewer modeled residents are not yet out when modeled embers reach their street (about 4,050 against 2,850 in the medium-severity case).',
-      panoramic: `In Plan B about a seventh fewer modeled residents are not yet out when modeled embers reach their street (about 13,500 against 11,550 in the medium-severity case). ${PANORAMIC_UNORDERED}`,
-      northHills: 'In Plan B about a fifth fewer modeled residents are not yet out when modeled embers reach their street (about 4,850 against 3,750 in the medium-severity case). If only the City\'s smaller Leave Early Zones do it, the drop is about 10%.',
+      panoramic: `In Plan B about a seventh fewer modeled residents are not yet out when modeled embers reach their street (about 13,600 against 11,650 in the medium-severity case). ${PANORAMIC_UNORDERED}`,
+      northHills: 'In Plan B about a fifth fewer modeled residents are not yet out when modeled embers reach their street (about 5,000 against 3,900 in the medium-severity case). If only the City\'s smaller Leave Early Zones do it, the drop is about 8%.',
     },
     off: {},
     headline: { label: 'Modeled residents not yet out when embers reached their street', f: exposed, dir: -1 },
@@ -45,12 +45,13 @@ export const PRESETS = [
     A: plan('A: first order 20 min after ignition', { orderDelayMin: 20 }),
     B: plan('B: first order 5 min after ignition', { orderDelayMin: 5 }),
     on: {
-      ref1923: 'About a fifth fewer modeled residents are not yet out when modeled embers reach their street (about 5,950 against 4,850 in the medium-severity case). The gain comes from people leaving ahead of the modeled fire, not from faster traffic.',
-      eastWind: 'About 8% fewer modeled residents are not yet out when modeled embers reach their street (about 7,400 against 6,850 in the medium-severity case). The gain comes from people leaving ahead of the modeled fire, not from faster traffic.',
-      panoramic: `About 5% fewer modeled residents are not yet out when modeled embers reach their street (about 14,600 against 13,900 in the medium-severity case), a smaller gain than on the two larger fires. ${PANORAMIC_UNORDERED}`,
-      northHills: 'About 11% fewer modeled residents are not yet out when modeled embers reach their street (about 5,600 against 5,000 in the medium-severity case). The gain comes from people leaving ahead of the modeled fire, not from faster traffic.',
+      ref1923: 'About a fifth fewer modeled residents are not yet out when modeled embers reach their street (about 6,000 against 4,800 in the medium-severity case). The gain comes from people leaving ahead of the modeled fire, not from faster traffic.',
+      eastWind: 'About 7% fewer modeled residents are not yet out when modeled embers reach their street (about 7,400 against 6,900 in the medium-severity case). The gain comes from people leaving ahead of the modeled fire, not from faster traffic.',
+      panoramic: `About 6% fewer modeled residents are not yet out when modeled embers reach their street (about 14,800 against 13,950 in the medium-severity case), a smaller gain than on the two larger fires. ${PANORAMIC_UNORDERED}`,
     },
-    off: {},
+    off: {
+      northHills: 'Plan B does better in 10 of 15 runs, not all: in the 5 low-severity runs it leaves 62–75 fewer modeled residents at home when modeled embers reach their street but 86–147 more on the road on streets the embers reached, as cars drive on toward the edge of the modeled area (SOURCE_NOTES CD20).',
+    },
     headline: { label: 'Modeled residents not yet out when embers reached their street', f: exposed, dir: -1 },
   },
   {
