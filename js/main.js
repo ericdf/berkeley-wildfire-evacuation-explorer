@@ -278,8 +278,8 @@ $('growth').onchange = () => { growthNote(); r0Note(); newRun(); };
 mixNote();
 ['severity', 'seed', 'tod'].forEach(id => $(id).onchange = () => { todNote(); newRun(); });
 $('street-mode').onchange = e => { map.streetMode = e.target.value; map.draw(); legend(); };
-$('speed').onchange = e => state.speed = +e.target.value;
-$('run').onclick = () => { if (state.sim.t >= state.sim.end) newRun(); state.playing = !state.playing; runLabel(state.playing ? '❚❚ Pause' : '▶ Run'); update(false); };
+$('speed').onchange = e => { state.speed = +e.target.value; state.playRate = null; };
+$('run').onclick = () => { if (state.sim.t >= state.sim.end) newRun(); state.playing = !state.playing; state.playRate = null; state.playAt = null; runLabel(state.playing ? '❚❚ Pause' : '▶ Run'); update(false); };
 $('reset').onclick = () => newRun();
 $('map-run').onclick = () => $('run').click();
 $('map-reset').onclick = () => newRun();
@@ -412,10 +412,15 @@ function questionMap() {
   const q = state.tab, v = state.view[q];
   Object.assign(map.layers, GUIDED_LAYERS);
   map.edgeClass = null; map.edgePalette = null; map.streetMode = 'class';
-  if (q === 'spread') { map.layers.fire = true; const C = edgeClasses(state.fire, v); if (C) { map.streetMode = 'robust'; map.edgeClass = C.cls; map.edgePalette = PALETTE.spread; } }
+  // The run-set summary (streets reached across 15 runs) waits until the run on the map has finished, so the
+  // map shows one thing at a time: the fire as it plays, then what recurs across runs (Eric, 2026-11-06).
+  const done = state.sim && state.sim.t >= state.sim.end;
+  state.summaryWaits = !done && (q === 'spread' || (q === 'access' && v === 'wayout'));
+  if (state.summaryWaits) { map.streetMode = 'robust'; map.edgeClass = {}; map.edgePalette = ['#a9a9a9']; } // plain gray streets, so the fire stands out
+  if (q === 'spread') { map.layers.fire = true; const C = done && edgeClasses(state.fire, v); if (C) { map.streetMode = 'robust'; map.edgeClass = C.cls; map.edgePalette = PALETTE.spread; } }
   else if (q === 'routes') { if (v === 'ways') { map.layers.access = true; map.layers.paths = true; } else { map.streetMode = 'engine'; } }
   else if (q === 'access') {
-    if (v === 'wayout') { map.layers.fire = true; if (spread()) { map.streetMode = 'robust'; map.edgeClass = areaEdgeClasses(data, state.fire); map.edgePalette = [...PALETTE.access]; map.edgePalette[0] = '#c8c8c8'; } }
+    if (v === 'wayout') { map.layers.fire = true; if (done && spread()) { map.streetMode = 'robust'; map.edgeClass = areaEdgeClasses(data, state.fire); map.edgePalette = [...PALETTE.access]; map.edgePalette[0] = '#c8c8c8'; } }
     else { map.streetMode = 'engineTime'; map.layers.stations = true; }
   } else { map.layers.fire = true; map.layers.vehicles = true; map.layers.queues = true; }
   map.draw(); legend();
@@ -822,20 +827,26 @@ function newRun() {
   state.playing = false; runLabel('▶ Run'); $('scrub').value = 0;
   if (map.selected?.kind === 'edge' && !d.net.edges[map.selected.id]) { map.selected = null; inspect(null); } // a new road from the previous network
   $('run-plan').textContent = `Plan ${state.editing}${state.preset ? ': ' + state.plans[state.editing].name.replace(/^[AB]: /, '') : ''}`;
-  update(true); map.draw();
+  update(true); map.draw(); questionMap();
 }
 function seek(tSec) {
   if (!state.sim || tSec < state.sim.t) newRun();
   while (state.sim.t < tSec && state.sim.t < state.sim.end) state.sim.step();
-  update(true); map.draw();
+  update(true); map.draw(); questionMap();
 }
 let last = performance.now(), lastUi = 0;
 function loop(now) {
-  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  // Up to 0.5 s of wall time per frame, so a slower computer keeps the chosen Speed in bigger jumps instead of
+  // falling behind it (at 0.1 s, a CPU 4 times slower played 15 min/s at about 7). A longer gap, such as a
+  // background tab, is not made up.
+  const dt = Math.min(0.5, (now - last) / 1000); last = now;
   const sim = state.sim;
   if (state.playing && sim) {
-    let steps = Math.min(400, Math.round(state.speed * dt / sim.dt));
-    while (steps-- > 0 && sim.t < sim.end) sim.step();
+    state.stepDue = (state.stepDue || 0) + state.speed * dt / sim.dt; // fractional steps carry over, so 1 min/s is not rounded to 0 steps a frame
+    let steps = Math.min(400, Math.floor(state.stepDue)); state.stepDue = Math.min(1, state.stepDue - steps);
+    const t0 = sim.t; while (steps-- > 0 && sim.t < sim.end) sim.step();
+    const wall = (now - (state.playAt ?? now)) / 1000; state.playAt = now; // achieved model seconds per wall second, smoothed
+    if (wall > 0 && wall < 2) state.playRate = state.playRate ? state.playRate + Math.min(1, wall / 2) * ((sim.t - t0) / wall - state.playRate) : (sim.t - t0) / wall;
     if (sim.t >= sim.end) { state.playing = false; runLabel('▶ Run again'); update(true); map.draw(); if (document.body.classList.contains('simple')) renderSimple(); requestAnimationFrame(loop); return; }
     $('scrub').value = Math.floor(sim.t / 60);
     map.draw();
@@ -850,7 +861,7 @@ function update(full) {
   const done = sim.t >= sim.end;
   $('clock').classList.toggle('done', done);
   $('scrub-t').textContent = hm(sim.t);
-  $('clock').innerHTML = `${done ? '<span class="done-tag">✓ Run complete</span> ' : ''}Model time ${hm(sim.t)} <span class="of">of ${hm(sim.end)} (not a forecast)${done ? '' : state.playing ? ' · running' : sim.t > 0 ? ' · paused' : ''}</span> <span class="sub">${esc(sc.name)} · ${SEVERITY[sim.sevKey].label} severity · seed ${sim.seed} · ${esc(sim.plan.name)}</span>`;
+  $('clock').innerHTML = `${done ? '<span class="done-tag">✓ Run complete</span> ' : ''}Model time ${hm(sim.t)} <span class="of">of ${hm(sim.end)} (not a forecast)${done ? '' : state.playing ? ' · running' + (state.playRate && state.playRate < 0.85 * state.speed ? ` · this computer plays it at about ${Math.max(1, Math.round(state.playRate / 60))} min/s, slower than the chosen speed` : '') : sim.t > 0 ? ' · paused' : ''}</span> <span class="sub">${esc(sc.name)} · ${SEVERITY[sim.sevKey].label} severity · seed ${sim.seed} · ${esc(sim.plan.name)}</span>`;
   const c = (k, v, cls = '', tip = '') => `<div class="card ${cls}" title="${esc(tip)}"><div class="v">${v}</div><div class="k">${k}${tip ? ' <span class="tip">ⓘ</span>' : ''}</div></div>`;
   const tr = (label, value, tip) => `<tr title="${esc(tip)}"><td>${label} <span class="tip">ⓘ</span></td><td class="num">${value}</td></tr>`;
   const exposed = S.exposedHome + S.exposedRoad + S.exposedNoVehicle + S.notOrderedExposed;
@@ -1084,7 +1095,7 @@ function legend() {
   const access = map.layers.access && data.access ? accessLegend() : '';
   let saved = null; try { saved = localStorage.getItem('bhe-key'); } catch {}
   const open = saved ? saved !== 'hidden' : !matchMedia('(max-width: 760px)').matches; // on a phone the key starts closed: open, it covers half the map
-  $('legend').innerHTML = `<button class="key-toggle" title="${open ? 'Hide' : 'Show'} the map key">${open ? 'Hide key ▾' : 'Show key ▸'}</button>${open ? `<div>${m === 'robust' ? legendHTML(state.tab, state.view[state.tab]) : `<b>${STREET_MODES[m]}</b>${L}`}${extra}${access}</div>` : ''}`;
+  $('legend').innerHTML = `<button class="key-toggle" title="${open ? 'Hide' : 'Show'} the map key">${open ? 'Hide key ▾' : 'Show key ▸'}</button>${open ? `<div>${state.summaryWaits && document.body.classList.contains('simple') ? '<b>Streets</b><div class="small muted">Gray while the run plays. When it finishes, the map colors the streets by how often the modeled fire reached them across 15 runs.</div>' : m === 'robust' ? legendHTML(state.tab, state.view[state.tab]) : `<b>${STREET_MODES[m]}</b>${L}`}${extra}${access}</div>` : ''}`;
   $('legend').querySelector('.key-toggle').onclick = () => { try { localStorage.setItem('bhe-key', open ? 'hidden' : 'shown'); } catch {} legend(); };
 }
 
