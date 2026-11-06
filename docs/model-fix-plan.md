@@ -29,11 +29,14 @@ Until the gate passes, the display of evacuation times stays as it is on `main`,
 
 ## Steps
 
-### Step 1: CD3 bug (no model-behavior change intended)
+### Step 1: CD3 bug (model change; driving may change)
 
-- Reproduce the free-exit artifact from CD3 on the diagnostic case. Record the count of cars counted out at nodes in no zone, by fire and region.
-- Fix the bug so those cars are not counted out. Leave driving behavior unchanged; the fix should lower measured out-counts, not change routes.
-- Exit: no out-count at a zone-less node; the diagnostic re-run is in SOURCE_NOTES. Calibration will move; record the moves, do not tune to them.
+Decided by Eric, 2026-11-06 (recommendations accepted):
+
+- Step 1 may change routes and driving, limited to the smallest change that stops counting cars out at zone-less nodes. The bug and the routing share code, so the fix cannot leave driving unchanged.
+- A car that reaches a gap outside every zone outline is counted out only at a designated exit in a zone. Until then it keeps driving. This is the step 2 behavior, applied in step 1.
+- Reproduce the free-exit artifact from CD3 on the diagnostic case. Record the zone-less out-counts by fire and region before and after (CD8–CD11 hold the baseline).
+- Exit: no out-count at a zone-less node; no gridlock (CD6 locked up when the changes were combined; test them one at a time first); the diagnostic re-run and calibration results are in SOURCE_NOTES. Calibration will move; record the moves, do not tune to them.
 
 ### Step 2: edge behavior (CD4)
 
