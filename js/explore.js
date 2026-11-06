@@ -75,7 +75,7 @@ export function spreadFindings(H, data, fire, fireTitle) {
     const r = { c: tot(CLS.consistent), s: tot(CLS.sensitive), m: tot(CLS.mixed) };
     const line = (o, lab, text) => o.km > 0.05 ? `<li>${chip(lab, tip)} ${text}: <b>about ${fmt(Math.round(o.res / 10) * 10)} modeled residents</b> ${H.badge('synthetic')} on ${fmt(o.km, 1)} km of street.</li>` : '';
     return line(r.c, 'consistent', `The modeled ${what} reached these streets in every or nearly every run (at least ${Math.ceil(0.9 * C.runs)} of ${C.runs})`)
-      + line(r.s, 'sensitive', `Reached mainly at faster spread rates (most high-severity runs, few low-severity ones): these depend on the fire severity assumption`)
+      + line(r.s, 'sensitive', `Reached at some fire severities and not others (the card for each street gives the low, medium and high counts): these depend on the fire severity assumption`)
       + line(r.m, 'mixed', `Reached in some runs and not others, without a clear pattern by severity`);
   };
   const runs = SA.runs.filter(x => x.fire === fire), em = runs.map(x => x.emberResidents);
@@ -131,7 +131,7 @@ export function accessFindings(H, data, fire, fireTitle) {
   const cutP = presence(Object.fromEntries(SEVS.map(s => [s, [runs.filter(r => r.sev === s && r.cutOff > 0).length, runs.filter(r => r.sev === s).length]])));
   return `<ul class="findings">
     ${line(C, 'consistent', `The modeled fire front reached the only drivable way out in every or nearly every run`)}
-    ${line(Sv, 'sensitive', `Reached mainly at faster spread rates`)}
+    ${line(Sv, 'sensitive', `Reached at some fire severities and not others`)}
     ${line(M, 'mixed', `Reached in some runs only`)}
     ${C.length ? `<li class="sub small">In the consistent areas, a median of about ${fmt(Math.round(notLeft(C) / 10) * 10)} modeled residents had not yet left when the front reached their way out ${H.badge('synthetic', 'Departure timing from the 2025 Evacuation Time Study survey (Table 5-9), today\'s plan (first order 10 minutes after ignition). Driving times come from the traffic model, which runs faster than the City study (Assumptions & limits, Model performance), so this count is likely low.')}. These areas have a potential loss-of-access vulnerability in these scenarios.</li>` : ''}
     <li>${chip(assumption(b5, b5alt) || 'consistent', `Night parked cars, ${P.length} parking draws; the same on every fire. Under the night parking rule used before the 2026-11-05 count: ${fmt(b5alt)}. SOURCE_NOTES NP1–NP9, ER1–ER4.`)} <b>About ${fmt(Math.round(b5 / 10) * 10)} of ${fmt(Math.round(hillTot / 10) * 10)} modeled hill residents</b> ${H.badge('synthetic')} in Berkeley's Fire Zones 2–3 live where the modeled road network gives no engine route meeting the City's 5-minute standard ${H.badge('sourced', 'City of Berkeley 5-minute engine travel standard')}, at ignition, with the night's parked cars; for about ${fmt(Math.round(nr / 10) * 10)} no modeled engine route reaches their street at all. Under the earlier night parking rule: about ${fmt(Math.round(b5alt / 10) * 10)}.</li>
@@ -145,12 +145,12 @@ export function legendHTML(q, view) {
   const sw = (c, t) => `<div><span class="sw" style="background:${c}"></span>${t}</div>`, n = SA ? SA.meta.severities.length * SA.meta.seeds.length : 15;
   if (q === 'spread') {
     const P = PALETTE.spread, what = view === 'front' ? 'the modeled fire front' : 'modeled embers';
-    return `<div class="gl"><b>Streets ${what} reached across ${n} runs</b>${sw(P[4], 'In every or nearly every run (consistent)')}${sw(P[3], 'Mainly at faster spread rates (sensitive)')}${sw(P[2], 'In some runs only (mixed)')}${sw(P[1], 'In no run, or nearly none')}
+    return `<div class="gl"><b>Streets ${what} reached across ${n} runs</b>${sw(P[4], 'In every or nearly every run (consistent)')}${sw(P[3], 'At some fire severities, not others (sensitive)')}${sw(P[2], 'In some runs only (mixed)')}${sw(P[1], 'In no run, or nearly none')}
       <div class="small muted">Colors summarize ${n} runs of this fire (low, medium and high severity × ${SA ? SA.meta.seeds.length : 5} seeds). The orange and brown shading is the one run you are watching.</div></div>`;
   }
   if (q === 'access' && view === 'wayout') {
     const P = PALETTE.access;
-    return `<div class="gl"><b>Streets with one modeled way out: did the modeled fire front reach that way out?</b>${sw(P[4], 'In every or nearly every run (consistent)')}${sw(P[3], 'Mainly at faster spread rates (sensitive)')}${sw(P[2], 'In some runs only (mixed)')}${sw(P[1], 'In no run, or nearly none')}${sw('#c8c8c8', 'Streets with more than one way out')}
+    return `<div class="gl"><b>Streets with one modeled way out: did the modeled fire front reach that way out?</b>${sw(P[4], 'In every or nearly every run (consistent)')}${sw(P[3], 'At some fire severities, not others (sensitive)')}${sw(P[2], 'In some runs only (mixed)')}${sw(P[1], 'In no run, or nearly none')}${sw('#c8c8c8', 'Streets with more than one way out')}
       <div class="small muted">${n} runs of this fire. Click a street for its card.</div></div>`;
   }
   return '';
