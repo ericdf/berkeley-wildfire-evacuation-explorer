@@ -831,7 +831,10 @@ function seek(tSec) {
 }
 let last = performance.now(), lastUi = 0;
 function loop(now) {
-  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  // Up to 0.5 s of wall time per frame, so a slower computer keeps the chosen Speed in bigger jumps instead of
+  // falling behind it (at 0.1 s, a CPU 4 times slower played 15 min/s at about 7). A longer gap, such as a
+  // background tab, is not made up.
+  const dt = Math.min(0.5, (now - last) / 1000); last = now;
   const sim = state.sim;
   if (state.playing && sim) {
     let steps = Math.min(400, Math.round(state.speed * dt / sim.dt));
