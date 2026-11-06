@@ -1089,7 +1089,7 @@ No simulator code or data changed (`js/`, `data/assumptions.json`, `data/model/n
 
 ## Why the simulator's evacuation times run fast: departure and road time, 2026-11-05
 
-Eric, 2026-11-05: the simulator must not show a value that is a serious undercount. Fire off, the simulator's 90% evacuation time is 13–15 min shorter than the 2025 Evacuation Time Study's at night and 19–80 min shorter on fall weekdays, except on Panoramic Hill (E21, calibration table in `HANDOFF.md`). `node tools/ete-diagnostic.mjs` (3 seeds, main at 095c208; `data/model/ete-diagnostic.json`) splits each order-zone vehicle's time into departure (when it got onto the road) and road time (until it left the order area, the study's measure, E37). The experiments in CD4–CD6 ran on a scratch copy with one line of `js/sim.js` changed; nothing in the repository's model changed.
+Eric, 2026-11-05: the simulator must not show a value that is a serious undercount. Eric, 2026-11-06: the site stays unreleased until its findings are reliable. Fire off, the simulator's 90% evacuation time is 13–15 min shorter than the 2025 Evacuation Time Study's at night and 19–80 min shorter on fall weekdays, except on Panoramic Hill (E21, calibration table in `HANDOFF.md`). `node tools/ete-diagnostic.mjs` (3 seeds, main at 095c208; `data/model/ete-diagnostic.json`) splits each order-zone vehicle's time into departure (when it got onto the road) and road time (until it left the order area, the study's measure, E37). The experiments in CD4–CD6 ran on a scratch copy with one line of `js/sim.js` changed; nothing in the repository's model changed.
 
 | ID | Insight (source) | Status |
 |---|---|---|

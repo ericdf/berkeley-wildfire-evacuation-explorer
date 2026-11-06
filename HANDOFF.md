@@ -67,6 +67,7 @@ After the diverter rebuild and the OKL-003 Census override (2026-11-01) these mo
 - The City's aerial photos are public; the project keeps derived counts only, to stay small.
 - Tuning approach: fix jams first, tune only a few settings, check on cases not used for tuning.
 - "Not a prediction" statements stay (exception to the style guide's denial-first rule).
+- No public release while the simulator shows a value that is a serious undercount (Eric, 2026-11-05 and 2026-11-06). The `pages` site is unreleased: nobody outside the project has the link. Release waits until the evacuation-time gap against the Time Study is closed (punch list item 2; SOURCE_NOTES CD1–CD7).
 - Follow `../berkeley-council-analysis/docs/STYLE.md` in chat and in products (see `CLAUDE.md`).
 
 ## Rename (done 2026-11-01)
