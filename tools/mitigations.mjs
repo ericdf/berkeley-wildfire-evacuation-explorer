@@ -57,7 +57,9 @@ const MEASURES = {
     def: 'vehicles on the road at the end of the run with no route to safety (summary().vehiclesNoRoute; the results panel\'s "vehicles cut off by fire")' },
   engine: { label: 'Hill residents an engine cannot reach within 5 minutes', get: S => S.engineReachBeyond5People, unit: 'people',
     def: 'synthetic Berkeley Fire Zones 2–3 residents whose street no engine reaches from a station within the City\'s 5-minute standard, at ignition, under the run\'s parked cars (summary().engineReachBeyond5People); the same on every fire for a seed' },
-  clear90: { label: '90% clearance (min)', get: S => S.clearP90, unit: 'minutes', time: true,
+  noRoute: { label: 'Hill residents with no engine route', get: S => S.engineReachUnreachablePeople, unit: 'people',
+    def: 'synthetic Berkeley Fire Zones 2–3 residents whose street no engine route reaches at all from a Berkeley station, at ignition, under the run\'s parked cars and fixed barriers (summary().engineReachUnreachablePeople); added 2026-11-06 for the spread-and-access explorer\'s paired comparisons (SOURCE_NOTES SA1–SA12)' },
+  clear90: { label: '90% clearance, model minutes (not a forecast)', get: S => S.clearP90, unit: 'minutes', time: true,
     def: 'minutes from the first order until 90% of vehicles starting in Order zones have left the order area (summary().clearP90, the Time Study\'s ETE); null if never reached in the run, which counts as slower than any finished run' },
 };
 const MKEYS = Object.keys(MEASURES);

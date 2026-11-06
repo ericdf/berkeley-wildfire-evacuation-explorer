@@ -876,8 +876,8 @@ export class Evacuation {
       const alt = run(true, true);
       const names = [...new Set(alt.route.filter(eid => !this.engineOK[eid]).map(eid => titleCase(edges[eid].name)))];
       this.log(alt.eta < Infinity
-        ? `Engines cannot reach the fire edge near ${this.nodeName(target)}: parked cars leave less than an engine's width on ${names.slice(0, 3).join(', ')}.`
-        : `Engines cannot reach the fire edge near ${this.nodeName(target)}: fire has closed the approaches.`, 'responder', target);
+        ? `No modeled engine route reaches the fire edge near ${this.nodeName(target)}: parked cars leave less than an engine's width on ${names.slice(0, 3).join(', ')}.`
+        : `No modeled engine route reaches the fire edge near ${this.nodeName(target)}: the modeled fire has closed the approaches.`, 'responder', target);
     }
     else if (!initial && prevEta != null && r.eta > 2 * this.responder.free && prevEta <= 2 * this.responder.free)
       this.log(`Responder approach slowed to ${(r.eta / 60).toFixed(1)} min (${(this.responder.free / 60).toFixed(1)} min on empty roads): oncoming evacuees on streets with one usable lane.`, 'responder');
@@ -919,7 +919,7 @@ export class Evacuation {
     if (warned) this.log(`${warned.toLocaleString()} households in warning zones choose to leave (Time Study: 50% of warned households).`, 'order');
     if (shadow) this.log(`${shadow.toLocaleString()} households outside the order and warning zones leave anyway (${shadowVeh.toLocaleString()} vehicles heading out of the model area; Time Study: 20% shadow evacuation).`, 'order');
     if (riders) this.log(`${riders.toLocaleString()} households without a vehicle ride with a neighbor.`, 'order');
-    if (stranded) this.log(`${stranded.toLocaleString()} households without a vehicle found no ride. Phase 1 gives them no transport: they stay where they are and are counted as at risk.`, 'warn');
+    if (stranded) this.log(`${stranded.toLocaleString()} households without a vehicle found no ride. Phase 1 gives them no transport: in the model they stay home and count among residents not yet out.`, 'warn');
   }
   logOrders() {
     const due = [];

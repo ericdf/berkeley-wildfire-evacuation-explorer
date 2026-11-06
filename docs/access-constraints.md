@@ -1,6 +1,6 @@
 # Access-constrained areas: where one street segment is the only way out
 
-Built 2026-11-01 by `tools/access-constraints.mjs` from `data/model/network.json`. Machine-readable results: `data/model/access-constraints.json`. This is an educational comparison tool, not a prediction and not an official evacuation plan. Residents are synthetic (zone populations spread over street length), and every area is described at street-segment level; no parcels or addresses are used.
+Built 2026-11-06 by `tools/access-constraints.mjs` from `data/model/network.json`. Machine-readable results: `data/model/access-constraints.json`. This is an educational comparison tool, not a prediction and not an official evacuation plan. Residents are synthetic (zone populations spread over street length), and every area is described at street-segment level; no parcels or addresses are used.
 
 ## Findings
 

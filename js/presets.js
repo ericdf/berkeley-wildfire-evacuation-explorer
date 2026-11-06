@@ -35,7 +35,7 @@ export const PRESETS = [
       northHills: 'In Plan B about a fifth fewer people are still there when embers arrive (about 4,850 against 3,750 in the medium-severity case), and 90% of cars are out about a minute sooner. If only the City\'s smaller Leave Early Zones do it, the drop is about 10%.',
     },
     off: {},
-    headline: { label: 'People still there when embers arrived', f: exposed, dir: -1 },
+    headline: { label: 'Modeled residents not yet out when embers reached their street', f: exposed, dir: -1 },
   },
   {
     id: 'orderSooner',
@@ -51,10 +51,13 @@ export const PRESETS = [
       northHills: 'About 11% fewer people are still there when embers arrive (about 5,600 against 4,950 in the medium-severity case). The time to clear the roads hardly changes: the gain is people getting out ahead of the fire, not faster traffic.',
     },
     off: {},
-    headline: { label: 'People still there when embers arrived', f: exposed, dir: -1 },
+    headline: { label: 'Modeled residents not yet out when embers reached their street', f: exposed, dir: -1 },
   },
   {
     id: 'timeOfDay',
+    // Not offered in Guided view since 2026-11-06: its headline is a clearance time, which the explorer no longer
+    // reports as a result (product brief; SOURCE_NOTES SA10, CD1–CD16). Kept here so tests/plan-draws.mjs still checks it.
+    hidden: true,
     title: 'Weekday midday or night',
     question: 'The same fire and the same plan: how much does a weekday afternoon slow the evacuation compared with night?',
     tod: 'S4', tods: { A: 'S4', B: 'S6' },
@@ -89,6 +92,6 @@ export const PRESETS = [
       + (id === 'panoramic' ? 'Evacuation time cannot be compared here, because in most runs not all ordered cars get out within the 4 hours simulated.'
         : 'Evacuation time does not change: on a two-way street, removing parking opens the oncoming lane, not a second lane out. People still there when embers arrive show no consistent change either: engines do not fight the fire in this simulator, and parking changes traffic on hill streets only a little.')])),
     off: {},
-    headline: { label: 'Hill residents an engine cannot reach within 5 minutes', f: S => S.engineReachBeyond5People, dir: -1 },
+    headline: { label: 'Hill residents with no engine route meeting the 5-minute standard', f: S => S.engineReachBeyond5People, dir: -1 },
   },
 ];
