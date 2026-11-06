@@ -11,7 +11,7 @@ assumption, and names the runs behind it.
 **This tool explores modeled wildfire and access scenarios using public data and stated assumptions. Its maps show what happens in these simulations, not what will happen in an actual emergency. Fire behavior, road access, traffic, and emergency response can differ. This is not an evacuation order or route recommendation, not an official evacuation plan and not a prediction. Follow current instructions from Berkeley and Alameda County emergency officials:** the City's
 [Fire Weather and Evacuation page](https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation).
 
-**Why no evacuation times.** The traffic model clears roads much faster than the City's 2025 Evacuation Time Study: with the fire off, its 90%-out times run 12–45% short of the study's on 6 of 8 calibration cases and within 10% on Panoramic Hill (SOURCE_NOTES CD1–CD16, `docs/model-fix-plan.md`). So the explorer does not headline, rank or summarize with clearance times. Where a clock still appears (the run's clock, Expert view's results and Compare) it is labeled model time, not a forecast. The comparison with the study sits in Assumptions & limits, Model performance, as a known limitation. Product brief: `docs/product-brief-spread-access.md` (Eric, 2026-11-06).
+**Why no evacuation times.** The traffic model clears roads much faster than the City's 2025 Evacuation Time Study: with the fire off, its 90%-out times run 4–39% short of the study's on 7 of 8 calibration cases, more than 10% short on 3 (R02, the 1923 repeat, weekday 39% and night 12%; R05, Fire Zones 2–3, weekday 20%), and within 10% on Panoramic Hill (SOURCE_NOTES CD1–CD19, `docs/model-fix-plan.md`). So the explorer does not headline, rank or summarize with clearance times. Where a clock still appears (the run's clock, Expert view's results and Compare) it is labeled model time, not a forecast. The comparison with the study sits in Assumptions & limits, Model performance, as a known limitation. Product brief: `docs/product-brief-spread-access.md` (Eric, 2026-11-06).
 
 The design brief is `specification.md`. Every insight taken from a document (the City's 2025 Evacuation Time Study, SB 99 and AB 747 reports, StoryMap and others), with page references and what we did with it, is in `SOURCE_NOTES.md`. What is still missing is listed in `DATA_INVENTORY.md`; problems found in other publishers' data, and whether they have been told, in `ISSUES.md`; where the project stands and what comes next, in `HANDOFF.md`. Design notes for work in progress are in `docs/design/`, and reports from finished analyses in `docs/`.
 
@@ -248,8 +248,10 @@ the zones Berkeley's plan orders; cars from zones only another city orders are o
 (`summary().otherCityVehicles`; `clearP90All` counts them too). Directed links have a capacity and
 storage, and every intersection has a capacity. The 2025 study named intersections
 as the main constraint. Vehicles may use every street and re-route every minute around
-queues, fire and embers toward the nearest node outside every ordered zone and the ember
-area. Households waiting for a commuter (Time Study) wait for that person to drive home
+queues, fire and embers toward the model exits, where streets leave the model area, as the
+study's evacuees drive to destinations beyond its region (SOURCE_NOTES CD4, CD17). A car
+counts as out of the order and warning area at the first node inside a zone not under order
+or warning and drives on; the ETE stops there, as the study measures it. Households waiting for a commuter (Time Study) wait for that person to drive home
 first, against the outbound traffic; a commuter turned back by fire leaves the household one
 car short. A vehicle stuck 3 minutes at the head of a queue squeezes forward, so the queue
 model cannot lock up for good (as it did at the Marin traffic circle).

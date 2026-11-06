@@ -260,10 +260,12 @@ export class Evacuation {
     for (const L of this.links) if (deg[L.to] >= 3 && rank[L.to] >= 0) L.ff += DL[DK[rank[L.to]]] || 0;
 
     // ---- destinations ----
-    // Evacuees (class 0) are safe at any node outside every ordered or warned zone and never
-    // under embers. Shadow evacuees (class 1) drive out of the modeled area (the Time Study's
-    // network covers its Shadow Region and its destinations lie beyond it).
-    this.safe = [new Uint8Array(nN), new Uint8Array(nN)];
+    // Evacuees (class 0) and shadow evacuees (class 1) drive on to the model exits, where streets leave
+    // the modeled area: the Time Study's evacuees drive to destinations beyond its region (SOURCE_NOTES
+    // CD4, CD16, CD17). An evacuee is out of the order and warning area (`out0`) at a node inside a zone
+    // that is not under order or warning, or at a model exit, never under embers; the household counts as
+    // out there, the car keeps driving, and the ETE count is unchanged (`exit`, `zarr`).
+    this.safe = [new Uint8Array(nN), new Uint8Array(nN)]; this.out0 = new Uint8Array(nN);
     this.nodeZone = new Int16Array(nN).fill(-1); this.nodeOrdered = new Uint8Array(nN);
     const exits = data.exitNodes || (data.exitNodes = new Set(net.meta.exitNodes || []));
     for (let n = 0; n < nN; n++) {
@@ -273,10 +275,10 @@ export class Evacuation {
       this.nodeOrdered[n] = z >= 0 && this.orderT[z] < Infinity ? 1 : 0;
       const told = z >= 0 && (this.orderT[z] < Infinity || this.warnT[z] < Infinity);
       const embers = c >= 0 && fire.ember[c] < Infinity;
-      // Evacuees are safe at a node inside a zone that is not under order or warning, or at a model exit. A node in no zone
-      // is not a destination: cars keep driving to a designated exit in a zone (SOURCE_NOTES CD10–CD12).
-      this.safe[0][n] = ((z >= 0 && !told) || exits.has(n)) && !embers ? 1 : 0;
-      this.safe[1][n] = exits.has(n) && !embers ? 1 : 0;
+      // Out of the order and warning area: a node inside a zone that is not under order or warning, or a model exit. A node
+      // in no zone does not count: cars keep driving to a node inside a zone (SOURCE_NOTES CD10–CD12).
+      this.out0[n] = ((z >= 0 && !told) || exits.has(n)) && !embers ? 1 : 0;
+      this.safe[0][n] = this.safe[1][n] = exits.has(n) && !embers ? 1 : 0;
     }
 
     // ---- households ----
@@ -526,7 +528,7 @@ export class Evacuation {
       link: new Int32Array(nV).fill(-1), enter: new Float64Array(nV), state: new Uint8Array(nV), arrive: new Float64Array(nV).fill(Infinity), exposed: new Uint8Array(nV), fireFront: new Uint8Array(nV),
       dest: new Int32Array(nV).fill(-1), pidx: new Int32Array(nV), edge: Int32Array.from(order, i => vEdge(i)),
       exit: new Float64Array(nV).fill(Infinity), fromOrder: new Uint8Array(nV),
-      zarr: new Float64Array(nV).fill(Infinity), exitNode: new Int32Array(nV).fill(-1), arrNode: new Int32Array(nV).fill(-1), cntNode: new Int32Array(nV).fill(-1) }; // zarr: time of leaving the modeled area at a node inside a zone (the ETE counts only these); exitNode, arrNode: nodes of the exit stamp and of the removal; cntNode: the node where the counted-out time is taken (set in the ETE summary)
+      out: new Uint8Array(nV), zarr: new Float64Array(nV).fill(Infinity), exitNode: new Int32Array(nV).fill(-1), arrNode: new Int32Array(nV).fill(-1), cntNode: new Int32Array(nV).fill(-1) }; // zarr: time of leaving the modeled area at a node inside a zone (the ETE counts only these); out: the car has left the order and warning area (markOut); exitNode, arrNode: nodes of the exit stamp and of the removal; cntNode: the node where the counted-out time is taken (set in the ETE summary)
     // Time Study ETE counts vehicles starting in Order zones until they reach a zone under Warning
     // or not under threat (Table 7-1/7-2 notes; SOURCE_NOTES E37).
     for (let i = 0; i < nV; i++) {
@@ -570,7 +572,7 @@ export class Evacuation {
     const din = this.inDist || (this.inDist = new Float64Array(nN)), prevL = this.inPrev || (this.inPrev = new Int32Array(nN));
     din.fill(Infinity); prevL.fill(-1);
     const heap = new MinHeap();
-    for (let n = 0; n < nN; n++) if (this.safe[0][n] && outL[n].length) { din[n] = 0; heap.push(0, n); }
+    for (let n = 0; n < nN; n++) if (this.out0[n] && outL[n].length) { din[n] = 0; heap.push(0, n); }
     while (heap.size) {
       const [d, n] = heap.pop(); if (d > din[n]) continue;
       for (const lid of outL[n]) { const L = links[lid]; const nd = d + cost[lid]; if (nd < din[L.to]) { din[L.to] = nd; prevL[L.to] = lid; heap.push(nd, L.to); } }
@@ -639,6 +641,7 @@ export class Evacuation {
           continue;
         }
         if (v.exit[i] === Infinity && this.nodeZone[L.to] >= 0 && !this.nodeOrdered[L.to]) { v.exit[i] = t; v.exitNode[i] = L.to; } // counted out only at a node inside a zone
+        if (k === 0 && !v.out[i] && this.out0[L.to]) this.markOut(i); // out of the order and warning area; the car drives on
         if (this.safe[k][L.to]) { L.q.shift(); L.lastOut = t; B.budget--; if (L.share) L.share.used[L.dir]++; v.arrNode[i] = L.to; if (this.nodeZone[L.to] >= 0) v.zarr[i] = t; this.arrive(i); continue; }
         if (nb[L.to] < 1) break;
         const tr = this.guidance?.tree(i, k, L.e); // null: Today's tree
@@ -735,7 +738,13 @@ export class Evacuation {
   }
 
   arrive(i) {
-    const { v, hh } = this; v.state[i] = 2; v.arrive[i] = this.t; v.link[i] = -1;
+    const { v } = this; v.state[i] = 2; v.arrive[i] = this.t; v.link[i] = -1;
+    this.markOut(i);
+  }
+
+  // A household is out (hh.arrived) once all its vehicles have left the order and warning area (out0) or the model.
+  markOut(i) {
+    const { v, hh } = this; if (v.out[i]) return; v.out[i] = 1;
     const h = v.hh[i]; if (h < 0) return; hh.vehLeft[h]++;
     if (hh.vehLeft[h] >= hh.veh[h]) hh.arrived[h] = this.t;
   }
