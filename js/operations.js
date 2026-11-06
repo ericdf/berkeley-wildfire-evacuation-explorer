@@ -148,7 +148,7 @@ export function setupOperations(sim) {
     const narrow = [...status.values()].filter(s => !s.ok).length;
     ops.log.push([0, `Contraflow plan (${CONTRAFLOW_SETS[plan.contraflow]}, ${signs ? `pre-installed signs and gates, ${{ grid: 'grid power only', battery: 'battery backup', mechanical: 'mechanical fallback' }[power]}` : 'officer-staffed'}): ${ok.length} of ${cand.length} street segments are wide enough for two outbound lanes with this plan's parked cars; ${narrow} are not and stay two-way. ${signs ? `Signs and gates go at all ${installedEntries} entry points on the wide-enough segments${boundaryEntries ? `, ${boundaryEntries} of them where this run's order times split a street into pieces activated at different times` : ''}${C.costPerEntryUSD[power] ? ` (about $${fmtK(installedEntries * C.costPerEntryUSD[power][0])}–$${fmtK(installedEntries * C.costPerEntryUSD[power][1])}; gates not costed)` : ' (no public unit cost found for mechanical signs and gates)'}. ` : ''}${comps.length} contraflow pieces with ${cf.plannedEntries} entry points lie in zones this run orders or warns${never ? `; ${never} wide-enough segment${never > 1 ? 's lie' : ' lies'} in zones it never orders or warns and stay${never > 1 ? '' : 's'} two-way` : ''}.`, 'plan']);
     const notRunning = comps.filter(c => c.state !== 'scheduled');
-    if (notRunning.length) ops.log.push([0, `Contraflow will not run on ${notRunning.length} of the pieces in the order area: ${[...new Set(notRunning.map(c => c.state.replace('not running: ', '')))].slice(0, 3).join('; ')}.`, 'warn']);
+    if (notRunning.length) ops.log.push([0, `Contraflow does not run on ${notRunning.length} of the pieces in the order area: ${[...new Set(notRunning.map(c => c.state.replace('not running: ', '')))].slice(0, 3).join('; ')}.`, 'warn']);
   }
 
   // ---- police control of junctions (plan) ----
@@ -200,7 +200,7 @@ export function stepOperations(sim) {
   }
   if (started) {
     const names = [...new Set(started.map(([c]) => titleCase(c.name)))], segs = started.reduce((a, [, n]) => a + n, 0);
-    sim.log(`Contraflow starts on ${segs} street segment${segs > 1 ? 's' : ''} (${names.slice(0, 6).join(', ')}${names.length > 6 ? ` and ${names.length - 6} more` : ''}): both lanes carry traffic out; drivers heading in must turn back or find another way, and engines cannot drive up these segments.`, 'plan', sim.data.net.edges[started[0][0].ids[0]].a);
+    sim.log(`Contraflow starts on ${segs} street segment${segs > 1 ? 's' : ''} (${names.slice(0, 6).join(', ')}${names.length > 6 ? ` and ${names.length - 6} more` : ''}): both lanes carry traffic out; drivers heading in turn back or find another way, and the model sends no engine up these segments.`, 'plan', sim.data.net.edges[started[0][0].ids[0]].a);
   }
   if (changed) sim.route(); // closed directions and priorities take effect at once; route() draws no random numbers
 }

@@ -3,17 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Berkeley Wildfire Evacuation Explorer</title>
-<meta name="description" content="See how a wildfire evacuation could unfold on Berkeley&#39;s real streets, and try changes that could get more people out in time. A teaching tool built from public data: it compares choices; it doesn&#39;t predict what will happen and isn&#39;t an official evacuation plan.">
+<title>Berkeley Wildfire Spread and Access Explorer</title>
+<meta name="description" content="Explore how different wildfire scenarios could affect Berkeley&#39;s neighborhoods and routes, and see which access vulnerabilities and possible mitigations recur across scenarios. An educational scenario tool built from public data: not a prediction, not an official evacuation plan and not an evacuation order.">
 <link rel="stylesheet" href="css/style.css">
 <link rel="icon" href="data:,">
 </head>
 <body>
 <header>
   <div class="title">
-    <h1>Berkeley Wildfire Evacuation Explorer</h1>
-    <div class="welcome">See how a wildfire evacuation could unfold on Berkeley's real streets, and try changes that could get more people out in time.</div>
-    <div class="disclaimer">A teaching tool built from public data: it compares choices; it doesn't predict what will happen and isn't an official evacuation plan. For real instructions, see the <a href="https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation" target="_blank" rel="noopener">City's fire weather page</a>.</div>
+    <h1>Berkeley Wildfire Spread and Access Explorer</h1>
+    <div class="welcome">Explore how different wildfire scenarios could affect Berkeley's neighborhoods and routes, and see which access vulnerabilities and possible mitigations recur across scenarios.</div>
+    <div class="disclaimer">An educational scenario tool built from public data. Its maps show what happens in these simulations, not what will happen in a real fire: not a prediction, not an official evacuation map or plan, and not an evacuation order or route recommendation. Follow current instructions from Berkeley and Alameda County emergency officials (<a href="https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation" target="_blank" rel="noopener">City's fire weather and evacuation page</a>).</div>
   </div>
   <nav>
     <button id="btn-intro">ⓘ How to use</button>
@@ -122,7 +122,7 @@
           <button id="reset">⟲ Restart</button>
           <label class="inline">Speed <select id="speed"><option value="60">1 min/s</option><option value="300">5 min/s</option><option value="900" selected>15 min/s</option></select></label>
         </div>
-        <label class="scrub-label" for="scrub">Time since ignition: <b id="scrub-t">0:00</b> (drag to jump)</label>
+        <label class="scrub-label" for="scrub">Model time since ignition (not a forecast): <b id="scrub-t">0:00</b> (drag to jump)</label>
         <input id="scrub" type="range" min="0" max="240" step="1" value="0">
         <div id="run-status" class="run-status"></div>
       </div>
@@ -158,10 +158,11 @@
 
   <aside id="right">
     <section id="inspector" class="expert-only"><h2>Inspector</h2><p class="muted small">Click a street or an evacuation zone (turn on the Evacuation zones layer) to see its attributes. Hover a badge (ⓘ) for where each value comes from.</p></section>
+    <section id="card" class="simple-only"></section>
     <section id="try-out" class="simple-only"></section>
     <section id="results"></section>
     <section id="compare-out"></section>
-    <section id="log"><h2>Event log</h2><ol id="events"></ol></section>
+    <section id="log"><h2>Event log (model time, h:mm after ignition)</h2><ol id="events"></ol></section>
   </aside>
 </main>
 <footer id="license-foot">© 2026 Eric Friedman. Code: <a href="https://github.com/ericdf/berkeley-wildfire-evacuation-explorer/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>. Writing, including this page's text: <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>. Both require attribution. Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a> (ODbL); other data from the publishers under Data sources, on their terms. <a href="https://github.com/ericdf/berkeley-wildfire-simulator" target="_blank" rel="noopener">Source code</a></footer>

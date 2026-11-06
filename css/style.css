@@ -223,3 +223,26 @@ label.famopt input { margin-right: 4px; }
   dialog, #modal.intro, #modal.wide { width: calc(100vw - 16px); max-width: none; max-height: 90vh; padding: 12px 14px; }
   table { display: block; overflow-x: auto; }
 }
+/* Guided view: four questions (js/explore.js), robustness labels (js/robust.js) */
+.firehead { margin-bottom: 8px; }
+.firehead select { margin-top: 2px; }
+.qtabs { flex-wrap: wrap; }
+.qtabs button { flex: 1 1 45%; text-align: left; }
+.qtabs .step { display: inline-block; width: 16px; height: 16px; line-height: 16px; text-align: center; border-radius: 50%; background: #e7e1d6; color: #4b3a2a; font-size: 10px; font-weight: 700; margin-right: 2px; }
+.qtabs button.on .step { background: #fff; }
+h2.qtitle { margin-top: 10px; text-transform: none; letter-spacing: 0; font-size: 15px; }
+.views { margin: 8px 0 4px; display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+.views button.on { background: #4b3a2a; color: #fff; border-color: #4b3a2a; }
+ul.findings { padding-left: 0; list-style: none; margin: 6px 0; }
+ul.findings > li { margin: 0 0 7px; font-size: 12px; }
+ul.findings > li.sub { margin-left: 12px; color: #444; }
+.robust { display: inline-block; font-size: 10.5px; font-weight: 600; padding: 1px 6px; border-radius: 10px; border: 1px solid; white-space: nowrap; margin-right: 2px; }
+.r-consistent { color: #14532d; background: #dcfce7; border-color: #86efac; }
+.r-mixed { color: #78350f; background: #fef3c7; border-color: #fcd34d; }
+.r-sensitive { color: #581c87; background: #f3e8ff; border-color: #d8b4fe; }
+table.card-q td:first-child { width: 34%; font-weight: 600; vertical-align: top; color: #4b3a2a; }
+table.card-q td { vertical-align: top; }
+@media (max-width: 760px) { .robust { white-space: normal; } }
+#legend .gl { max-width: 260px; }
+#legend .gl div { white-space: normal; }
+#legend .gl { margin-top: 22px; }

@@ -6,17 +6,21 @@
 
 // Measures of a live comparison, from Evacuation.summary(). Lower is better for every one; a run
 // that never reaches 90% clearance (null) counts as slower than any that does.
+// Order (product brief, "Mitigations as paired scenarios"): access measures first, then exposure, then model time.
+// group: 'access' and 'exposure' lead the comparison; 'time' is secondary, labeled model time, and never ranks a change.
 export const MEASURES = {
-  ember: { label: 'People still there when embers arrived', f: S => S.exposedHome + S.exposedRoad + S.exposedNoVehicle + S.notOrderedExposed,
-    tip: 'Synthetic people at home when embers first reached their street, or on the road in a car under embers after leaving; each person counted once. Not a casualty count.' },
-  front: { label: 'People still there when the fire front arrived', f: S => S.fireFrontHome + S.fireFrontRoad,
-    tip: 'Synthetic people at home when the fire front itself reached their street, or on the road in a car on a burning street after leaving; each person counted once, as in the outcomes panel. Not a casualty count.' },
-  cutOff: { label: 'Cars cut off by fire', f: S => S.vehiclesNoRoute,
-    tip: 'Cars on the road with no remaining way out at the end of the run.' },
-  engine: { label: 'Hill residents an engine cannot reach within 5 minutes', f: S => S.engineReachBeyond5People,
-    tip: 'Residents of Fire Zones 2–3 whose street no engine can reach from a Berkeley station within the City\'s 5-minute standard, with the plan\'s parked cars. Engines only drive in this simulator; they do not fight the fire.' },
-  clear90: { label: 'Minutes after the first order until 90% of ordered cars are out', f: S => S.clearP90, time: true,
-    tip: 'From the first evacuation order (10 minutes after ignition in today\'s plan) until 90% of the cars that start in ordered zones have left them, as the Evacuation Time Study measures it. "Not reached" counts as slower than any time.' },
+  engine: { group: 'access', label: 'Hill residents with no engine route meeting the 5-minute standard', f: S => S.engineReachBeyond5People,
+    tip: 'Synthetic residents of Berkeley\'s Fire Zones 2–3 whose street the modeled road network gives no engine route to from a Berkeley station within the City\'s 5-minute standard, at ignition, with the plan\'s parked cars. Engines only drive in this simulator; they do not fight the fire.' },
+  noRoute: { group: 'access', label: 'Hill residents with no modeled engine route at all', f: S => S.engineReachUnreachablePeople,
+    tip: 'Synthetic residents of Berkeley\'s Fire Zones 2–3 whose street no modeled engine route reaches from a Berkeley station, at ignition, past the plan\'s parked cars and fixed barriers.' },
+  cutOff: { group: 'access', label: 'Cars with no open modeled route out', f: S => S.vehiclesNoRoute,
+    tip: 'Cars on the road at the end of the run for which the modeled fire had closed every route out. A model state, not a count of people trapped.' },
+  ember: { group: 'exposure', label: 'Modeled residents not yet out when embers reached their street', f: S => S.exposedHome + S.exposedRoad + S.exposedNoVehicle + S.notOrderedExposed,
+    tip: 'Synthetic people at home when modeled embers first reached their street, or on the road in a car under embers after leaving; each person counted once. Depends on departure timing and on the traffic model, which runs faster than the City study. Not a casualty count.' },
+  front: { group: 'exposure', label: 'Modeled residents not yet out when the fire front reached their street', f: S => S.fireFrontHome + S.fireFrontRoad,
+    tip: 'Synthetic people at home when the modeled fire front reached their street, or on the road in a car on a burning street; each person counted once. Not a casualty count.' },
+  clear90: { group: 'time', label: 'Model minutes after the first order until 90% of ordered cars are out (not a forecast)', f: S => S.clearP90, time: true,
+    tip: 'Simulated model time, not a forecast: the traffic model\'s 90% times run 12–45% short of the City\'s 2025 Evacuation Time Study on 6 of its 8 calibration cases (Assumptions & limits, Model performance). Never used to rank a change. "Not reached" counts as slower than any time.' },
 };
 
 let MIT = null;
@@ -42,7 +46,7 @@ export const costText = c => !c ? 'Cost not priced' : c.capital ? `${money(c.cap
 // and never better. Stored measure labels come from the table (its "front" counts people at home).
 export function stored(id, fire) {
   const s = MIT?.summaries.find(x => x.lever === id && x.fire === fire); if (!s) return null;
-  const ms = Object.entries(s.measures);
+  const ms = Object.entries(s.measures).filter(([k]) => k !== 'clear90'); // model time never decides whether a change is offered (product brief)
   const reliable = ms.some(([, m]) => m.holds || (m.worse === 0 && m.better >= Math.ceil(m.n * 0.75)));
   const harms = ms.filter(([, m]) => m.better === 0 && m.worse >= Math.ceil(m.n * 0.75)).map(([k, m]) => ({ label: MIT.meta.measures[k]?.label || k, worse: m.worse, n: m.n }));
   return { reliable, harms, runs: s.runs };

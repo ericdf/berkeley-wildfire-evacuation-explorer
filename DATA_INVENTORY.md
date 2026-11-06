@@ -123,3 +123,14 @@ California ADU and SB 9 statutes (Gov. Code §66314, §66323, §65852.21, §6630
   `data/raw/docs/sb99.txt` for the comparison. Still missing for egress and retreat options:
   parcel geometry without owner fields (count of parcels a new connection would cross), housing
   units by Census block in aggregate, and cost ranges for road building, acquisition and buyouts.
+- Spread-and-access run set (`data/model/spread-access.json`, derived and synthetic, 2026-11-06): built by
+  `tools/spread-access.mjs` from 60 runs of today's plan (four Guided-view fires, fall night, low/central/high
+  severity × seeds 1–5) plus 5 parking-only constructions under the pre-2026-11-05 night parking rule. Stores
+  per street segment the number of runs in which the modeled embers or fire front reached it (no household
+  records), mean synthetic persons per segment, per access-constrained area the runs in which the fire front
+  reached its entrance and summary counts, per run the summary measures, and per new road in the mitigation
+  table the runs in which the fire reached it. No new external source: it reuses the inputs above.
+  Re-access status (2026-11-06): `data/model/access-constraints.json` was rebuilt on the current network and
+  matches the 2026-11-01 build except its date. Known gaps the explorer discloses (Assumptions & limits): signal
+  timings, night parking beyond one count, non-resident parking locations, Lab gate operations and signal
+  battery backup; none requires a government response or fieldwork to use the explorer.

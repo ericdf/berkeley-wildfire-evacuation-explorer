@@ -244,6 +244,8 @@ export class MapView {
     else if (m === 'walkRise') { // the segment's figure, or its zone's pooled one where it has fewer than 5 buildings
       const W = this.data.walk, sg = W?.segments?.[e.id], v = sg ? (sg.p90RiseM ?? W.zones?.[sg.zone]?.p90RiseM) : null;
       c = v == null ? '#d4d4d4' : riseColor(v); if (v != null) w = Math.max(w, 2.5); }
+    else if (m === 'robust') { // Guided view (js/explore.js): a class per segment across the run set, colored by edgePalette
+      const k = this.edgeClass?.[e.id] ?? 0; c = this.edgePalette?.[k] || '#d4d4d4'; if (k >= 2) w = Math.max(w, 2.5); }
     else if (m === 'ops') { // js/operations.js: contraflow status on this plan
       const st = sim?.ops?.cf?.status.get(e.id), comp = st && sim.ops.cf.comps[st.comp];
       c = !st ? '#d4d4d4' : !st.ok ? '#e07a1e' : comp?.state === 'running' ? '#1d4ed8' : comp?.state === 'scheduled' ? '#93c5fd' : '#9ca3af';

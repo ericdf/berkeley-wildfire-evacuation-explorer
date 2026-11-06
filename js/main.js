@@ -11,8 +11,9 @@ import { ROUTING, routingOf, complianceOf, worseOff, worseOffBeyondChance } from
 import { SHUTOFF } from './operations.js';
 import { loadMitigations, mit, MEASURES, GROUPS, stored, costText, costBadge } from './mitigate.js';
 import { stackable, conflict, stackOf, dataFor } from './levers.js';
-import { loadGoal, goalData, goalHTML, goalOutHTML, wireGoal } from './goal.js';
 import { LINK_PROVENANCE } from '../tools/egress-link.mjs';
+import { loadSpread, spread, QUESTIONS, VIEWS, PALETTE, edgeClasses, areaEdgeClasses, spreadFindings, routesFindings, accessFindings, legendHTML, cardHTML, leverAccessHTML } from './explore.js';
+import { direction, chip, levelText } from './robust.js';
 // localStorage can be missing or throw (private windows, blocked site data); the page works without it.
 const store = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
 
@@ -20,6 +21,7 @@ const $ = id => document.getElementById(id);
 const fmt = (x, d = 0) => x == null || Number.isNaN(x) ? '—' : x === Infinity ? '∞' : Number(x).toLocaleString(undefined, { maximumFractionDigits: d, minimumFractionDigits: d });
 const mins = x => x == null ? '—' : x === Infinity ? 'none' : `${fmt(x)} min`;
 const hm = s => { const m = Math.floor(s / 60); return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`; };
+const expertOnly = html => html.replace(/^<tr /, '<tr class="expert-only" '); // Expert view only (model time; product brief)
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const CAT = { sourced: 'sourced', derived: 'derived', assumption: 'assumption', 'model rule': 'rule', mixed: 'derived', synthetic: 'synthetic', unknown: 'missing' };
 const badge = (cat, tip) => `<span class="badge b-${CAT[cat] || 'missing'}"${tip ? ` title="${esc(tip)}"` : ''}>${cat === 'unknown' ? 'no data' : cat}${tip ? ' ⓘ' : ''}</span>`;
@@ -31,7 +33,7 @@ const state = {
   editing: 'A', preset: null, fire: null, playing: false, speed: 900, sim: null, fires: new Map(), batch: 0,
 };
 
-const [data] = await Promise.all([loadData(), loadMitigations()]);
+const [data] = await Promise.all([loadData(), loadMitigations(), loadSpread()]);
 const grid = buildFireGrid(data);
 const scenarios = makeScenarios(data);
 state.fire = FIRES.find(f => f.id === localStorage.getItem('bhe-fire'))?.id ?? FIRES[0].id;
@@ -52,10 +54,12 @@ for (const [k, label] of Object.entries(LAYER_NAMES)) {
   if ((k === 'access' && !data.access) || (k === 'demand' && !data.demand) || (k === 'structures' && !data.structures)) continue; // optional data files
   const l = document.createElement('label');
   l.innerHTML = `<input type="checkbox" ${map.layers[k] ? 'checked' : ''}> ${label}`;
+  l.querySelector('input').dataset.k = k;
   l.querySelector('input').onchange = e => { map.layers[k] = e.target.checked; if (k === 'access') inspect(map.selected); map.draw(); legend(); };
   $('layers').append(l);
 }
 
+function syncLayerBoxes() { $('layers').querySelectorAll('input[data-k]').forEach(b => b.checked = !!map.layers[b.dataset.k]); $('street-mode').value = map.streetMode; }
 const scenario = () => scenarios.find(s => s.id === $('scenario').value);
 const PLAN_FIELDS = ['name', 'alertKm', 'orderDelayMin', 'hillsOrderMin', 'earlyShare', 'earlyZones', 'hillsParking', 'parkingEnforce', 'r0',
   'contraflow', 'contraflowMode', 'contraflowPower', 'contraflowFallback', 'police', 'officers', 'officerDelayMin'];
@@ -86,7 +90,7 @@ function opsNote() {
   const lane = data.A.access.movingLaneM / 0.3048, cost = O.contraflow.costPerEntryUSD[$('p-contraflowPower').value];
   $('cf-note').innerHTML = cf === 'none' ? '' : `${cf === 'main' ? `${fmt(data.contraflow?.meta.segments)} street segments on ${fmt(data.contraflow?.meta.streets)} streets that carried the most order-zone traffic out of the hills in status-quo runs, plus the entrances of the larger access-constrained areas ${badge('model rule', data.contraflow?.meta.rule)}.`
     : `${(p.contraflowEdges || []).length} street segments chosen. Click a street on the map and use “Add to contraflow” in the Inspector.`}
-    A street runs two outbound lanes only where at least ${fmt(2 * lane)} ft stays clear between this plan's parked cars; narrower streets stay two-way (the Inspector says which). Once it starts, nobody drives in: returning commuters turn back or find another way, and engines cannot drive up it. Junction capacity is unchanged. ${signs
+    A street runs two outbound lanes only where at least ${fmt(2 * lane)} ft stays clear between this plan's parked cars; narrower streets stay two-way (the Inspector says which). Once it starts, nobody drives in: returning commuters turn back or find another way, and the model sends no engine up it. Junction capacity is unchanged. ${signs
     ? `Signs switch on ${O.contraflow.signDelayMin} min after the zone's order${$('p-contraflowPower').value === 'mechanical' ? ` plus ${O.contraflow.mechanicalExtraMin} min to swing gates and unfold signs by hand` : ''} ${badge('assumption', A_NOTE('operations.contraflow'))}; a sign fails if the fire reaches it first${$('p-contraflowPower').value === 'grid' ? ' or the power is shut off' : ''}. ${cost ? `Signs cost about $${fmt(cost[0] / 1000)}k–$${fmt(cost[1] / 1000)}k per entry point; gates are not costed` : 'No public unit cost was found for mechanical signs and gates'} ${badge('assumption', A_NOTE('operations.contraflow.costPerEntryUSD'))}.`
     : `One officer per entry point (each junction where a driver could turn into the closed direction), from the shared pool below ${badge('assumption', A_NOTE('operations.contraflow'))}.`}`;
   const pol = $('p-police').value;
@@ -123,7 +127,7 @@ function nightParkingNote() {
   const N = data.A.parking.range.night, ft = m => fmt(m / 0.3048);
   $('nightparking-note').innerHTML = $('nightParking').value === 'pre20261105'
     ? `The rule used before 2026-11-05: residents stop parking a second side where under ${ft(data.A.parking.range.minLeftForCarsM)} ft would remain ${badge('model rule', A_NOTE('parking.range'))}, so most hill streets of 24 ft or less have cars on one side at night. Results match the simulator as it was before the night count.`
-    : `At night, on hill streets ${ft(N.narrowMinM)}–${ft(N.narrowMaxM)} ft wide, residents park both sides on ${fmt(100 * N.narrowBothShareHills)}% of segments, leaving one car's width (${ft(N.narrowPinchClearM)} ft): cars take turns and an engine cannot pass ${badge('assumption', A_NOTE('parking.range.night.narrow'))}. From one night's count at about 1 a.m. on 11 narrow blocks.`;
+    : `At night, on hill streets ${ft(N.narrowMinM)}–${ft(N.narrowMaxM)} ft wide, residents park both sides on ${fmt(100 * N.narrowBothShareHills)}% of segments, leaving one car's width (${ft(N.narrowPinchClearM)} ft): cars take turns and a modeled engine does not pass ${badge('assumption', A_NOTE('parking.range.night.narrow'))}. From one night's count at about 1 a.m. on 11 narrow blocks.`;
 }
 $('nightParking').onchange = () => { nightParkingNote(); newRun(); };
 // Fuel (scenario setting, Expert view, off by default): LANDFIRE FBFM40 in place of the fire-zone proxy (js/fire.js withLandfireFuel).
@@ -252,11 +256,11 @@ function routingPanel(sim, S, done) {
   const w = worseOff(P.runs[0], P.mine, thr), wb = worseOffBeyondChance(P.runs[0], P.runs[1], P.mine, P.runs[2], thr), floor = worseOff(P.runs[0], P.runs[1], thr), better = worseOff(P.mine, P.runs[0], thr);
   if (!w) return html;
   return html + `<table class="kv">
-    ${tr(`Households worse off than under ${esc(ROUTING[base].short)}`, fmt(w.households), `Same fire, households, parked cars and seed; only routing differs. Worse off: still there when embers or the fire front reached them, or cut off, where they were not under ${ROUTING[base].short}, or reaching safety more than ${thr} min later or not at all (model rule).`)}
+    ${tr(`Households worse off than under ${esc(ROUTING[base].short)}`, fmt(w.households), `Same fire, households, parked cars and seed; only routing differs. Worse off: still there when embers or the fire front reached them, or cut off, where they were not under ${ROUTING[base].short}, or leaving the order and warning area more than ${thr} min later or not at all (model rule).`)}
     ${tr('…beyond chance: worse off in both of two junction serving orders', `${fmt(wb.households)}${wb.later ? ` · worst ${fmt(wb.worstDelayMin)} min later` : ''}`, 'This run and a rerun with another order of serving cars at junctions, against the comparison and its rerun: a household counts only if it does worse in both runs than in both comparison runs. This filters out most households whose outcome changed by the luck of reaching a junction first.')}
     ${tr('…of these, newly still there when embers or the fire front arrived, or cut off', fmt(wb.embers + wb.fireFront + wb.cutOff), 'Households whose outcome level got worse, not only their arrival time.')}
     ${tr('Chance alone: households "worse off" when only the junction serving order changes', fmt(floor.households), `Two runs of ${ROUTING[base].short} that differ only in the order cars are served at junctions. A count near this one is within chance.`)}
-    ${tr(`Households better off than under ${esc(ROUTING[base].short)} · average change in time to safety`, `${fmt(better.households)} · ${w.meanGainMin == null ? '—' : `${w.meanGainMin >= 0 ? fmt(w.meanGainMin, 1) + ' min faster' : fmt(-w.meanGainMin, 1) + ' min slower'}`}`, 'Average over households that reached safety in both runs.')}
+    ${tr(`Households better off than under ${esc(ROUTING[base].short)} · average change in model time to leave the order area`, `${fmt(better.households)} · ${w.meanGainMin == null ? '—' : `${w.meanGainMin >= 0 ? fmt(w.meanGainMin, 1) + ' min faster' : fmt(-w.meanGainMin, 1) + ' min slower'}`}`, 'Average over households that left the order and warning area in both runs.')}
   </table><p class="small muted">Synthetic households on an illustrative fire: a comparison, not a prediction.</p>`;
 }
 
@@ -304,7 +308,7 @@ $('nbhd').onchange = e => {
 // reliably help on this fire (js/mitigate.js stored), so people see they were considered.
 // A single pass can point the wrong way, so a comparison always runs all 15 passes and only the full
 // set earns a verdict; a run watched on the map is labeled as one run.
-Object.assign(state, { tab: 'watch', goal: {}, picked: new Set(), todayCache: new Map(), stackRuns: new Map(), tries: [], tryBatch: null, families: false });
+Object.assign(state, { tab: 'spread', view: { spread: 'ember', routes: 'ways', access: 'wayout' }, goal: {}, picked: new Set(), todayCache: new Map(), stackRuns: new Map(), tries: [], tryBatch: null, families: false });
 // todayCache: today's plan, keyed `${fire}|${member}|${severity}|${seed}`; stackRuns: measures of any stack of changes, keyed
 // `${fire}|${member}|${stack key}|${severity}|${seed}` (Break down this plan reuses them). member is a fire family member
 // (js/scenarios.js familyOf); with families off every pass runs the fire's default member, which is the fire as it is.
@@ -369,38 +373,97 @@ function syncFamilies() {
 const famBox = b => b.onchange = () => { if (b.checked) { b.checked = false; disclose(true); } else setFamilies(false); };
 famBox($('families'));
 
+// Four guided questions (product brief, Eric 2026-11-06; js/explore.js). The fire scenario picked at the top applies to all four.
+// "Set a goal" (js/goal.js) is not offered: its stored table predates the current model and ranks by clearance time (SOURCE_NOTES SA11).
+const FIRE_TITLE = () => FIRES.find(f => f.id === state.fire)?.title || state.fire;
 function renderSimple() {
   homePlayback(); // out of #simple before it is rebuilt; moved back into the tab below
-  const tabs = `<div class="tabs"><button data-tab="watch" class="${state.tab === 'watch' ? 'on' : ''}">Today's plan</button><button data-tab="try" class="${state.tab === 'try' ? 'on' : ''}">Change the plan</button><button data-tab="goal" class="${state.tab === 'goal' ? 'on' : ''}">Set a goal</button></div>`;
-  $('simple').innerHTML = tabs + (state.tab === 'watch' ? watchHTML() : state.tab === 'goal' ? goalHTML(goalCtx()) : tryHTML());
+  const q = QUESTIONS.find(x => x.id === state.tab) || QUESTIONS[0];
+  const tabs = `<div class="tabs qtabs">${QUESTIONS.map((x, i) => `<button data-tab="${x.id}" class="${x.id === q.id ? 'on' : ''}" title="${esc(x.title)}"><span class="step">${i + 1}</span> ${esc(x.tab)}</button>`).join('')}</div>`;
+  $('simple').innerHTML = fireHeadHTML() + tabs + `<h2 class="qtitle">${esc(q.title)}</h2>` + (q.id === 'changes' ? tryHTML() : questionHTML(q.id));
   $('simple').querySelectorAll('[data-tab]').forEach(b => b.onclick = () => showTab(b.dataset.tab));
   $('simple').querySelectorAll('.fire-pick').forEach(b => b.onclick = () => pickFire(b.dataset.fire));
   $('simple').querySelectorAll('.pace-pick').forEach(b => b.onclick = () => setPace(b.dataset.pace));
+  $('simple').querySelectorAll('[data-view]').forEach(b => b.onclick = () => { state.view[state.tab] = b.dataset.view; renderSimple(); });
+  $('simple').querySelectorAll('[data-area]').forEach(b => b.onclick = () => zoomToArea(b.dataset.area));
   if ($('try-fire')) $('try-fire').onchange = e => pickFire(e.target.value);
-  if ($('go-try')) $('go-try').onclick = () => showTab('try');
-  if (state.tab === 'try') wireTry();
+  if ($('go-changes')) $('go-changes').onclick = () => showTab('changes');
+  if (state.tab === 'changes') wireTry();
   $('simple').querySelectorAll('.fam-box').forEach(famBox); syncFamilies();
-  if (state.tab === 'goal') wireGoal(goalCtx());
   if ($('pb-slot') && document.body.classList.contains('simple')) $('pb-slot').replaceWith($('playback')); // Expert keeps them in its Run section
-  $('playback').classList.toggle('today', state.tab === 'watch');
-  showMarks(); renderTries();
+  $('playback').classList.toggle('today', state.tab !== 'changes');
+  questionMap(); showMarks(); renderTries(); inspect(map.selected, true);
 }
 // Comparisons go at the top of the right-hand panel, where results are read (Eric, 2026-11-02).
 function renderTries() {
-  const show = state.tab === 'try';
-  if (state.tab === 'goal') { $('try-out').innerHTML = goalOutHTML(goalCtx()); wireGoal(goalCtx()); return; }
+  const show = state.tab === 'changes';
   $('try-out').innerHTML = (show && state.presetOut ? `<h2>Ready-made comparison</h2>${state.presetOut}` : '') + (show && state.tries.length ? `<h2>Your plan compared with today's plan</h2>${triesHTML()}` : '');
   if ($('bd-go')) $('bd-go').onclick = () => breakdown(state.tries[0]);
 }
+// The fire scenario, shared by the four questions.
+function fireHeadHTML() {
+  return `<div class="firehead"><label class="small"><b>Fire scenario</b> <select id="try-fire">${FIRES.map(f => `<option value="${f.id}"${f.id === state.fire ? ' selected' : ''}>${esc(f.title)}</option>`).join('')}</select></label>
+    <div class="small muted">${esc(FIRES.find(f => f.id === state.fire)?.line || '')} The ignition, wind and Berkeley's orders are the scenario's choices, not a forecast of where a fire will start. Oakland, Kensington, Albany and the other neighbors order their own zones once the modeled fire comes within ${data.A.orders.firePathKm} km ${badge('model rule', 'The distance and the 10-minute delay are assumptions (Eric\'s choice, 2026-11-02, after comparing 2 km and 1 km); no source gives when these jurisdictions order a zone. Their cars use the same roads. SOURCE_NOTES FO1–FO6.')}.</div></div>`;
+}
+// Map layers for each question and view: only what the question needs (product brief, Resident-facing experience 3).
+const GUIDED_LAYERS = { terrain: true, contours: true, streets: true, paths: false, evacZones: false, fireZones: false, neighborhoods: false, fire1923: false, cityBoundary: true, stations: false, noParking: false, tightTurns: false, access: false, demand: false, structures: false, fire: false, vehicles: false, queues: false, responder: false };
+function questionMap() {
+  if (!document.body.classList.contains('simple')) return;
+  const q = state.tab, v = state.view[q];
+  Object.assign(map.layers, GUIDED_LAYERS);
+  map.edgeClass = null; map.edgePalette = null; map.streetMode = 'class';
+  if (q === 'spread') { map.layers.fire = true; const C = edgeClasses(state.fire, v); if (C) { map.streetMode = 'robust'; map.edgeClass = C.cls; map.edgePalette = PALETTE.spread; } }
+  else if (q === 'routes') { if (v === 'ways') { map.layers.access = true; map.layers.paths = true; } else { map.streetMode = 'engine'; } }
+  else if (q === 'access') {
+    if (v === 'wayout') { map.layers.fire = true; if (spread()) { map.streetMode = 'robust'; map.edgeClass = areaEdgeClasses(data, state.fire); map.edgePalette = [...PALETTE.access]; map.edgePalette[0] = '#c8c8c8'; } }
+    else { map.streetMode = 'engineTime'; map.layers.stations = true; }
+  } else { map.layers.fire = true; map.layers.vehicles = true; map.layers.queues = true; }
+  map.draw(); legend();
+}
+function zoomToArea(id) {
+  const a = data.access?.byId.get(id); if (!a) return;
+  const [x0, y0, x1, y1] = a.bbox; map.fit([x0 - 200, y0 - 200, x1 + 200, y1 + 200]);
+  map.selected = { kind: 'edge', id: a.chokeEdges[0] }; inspect(map.selected); map.draw();
+}
+const H_ = { badge, esc, fmt };
+function viewsHTML(q) {
+  const V = VIEWS[q]; if (!V) return '';
+  return `<div class="views small">Show on the map: ${V.map(([k, l]) => `<button class="${state.view[q] === k ? 'on' : ''}" data-view="${k}">${esc(l)}</button>`).join('')}</div>`;
+}
+// One run of today's plan, watched on the map (questions 1 and 3).
+function watchBlock(what) {
+  const today = !state.preset || state.preset.id === 'today', done = today && simDone();
+  return `<h3>Watch one run</h3>
+    ${paceHTML()}
+    <p class="small muted">${what} Today's plan: the first evacuation order 10 minutes after the fire starts and today's street parking, on a fall night. <b>Run</b> plays one simulation from ignition, with one draw of the fire and one set of synthetic households; the clock shows <b>model time</b>, not a forecast. The findings above summarize 15 runs.</p>
+    <div id="pb-slot"></div>
+    ${done ? '<div class="nudge"><b>Next:</b> see which changes keep connections available in these runs. <button id="go-changes" class="primary">Which changes preserve access? →</button></div>' : ''}`;
+}
+function questionHTML(q) {
+  const fire = state.fire, ft = FIRE_TITLE();
+  if (q === 'spread') return `<p class="small">The modeled fire starts at the scenario's ignition point and spreads with its wind, slope and a fuel proxy. Embers fly ahead of the front. Below: which streets the modeled embers and fire front reached across 15 runs of this fire (low, medium and high severity × 5 random seeds), and how consistent that is. Choosing another fire changes every question.</p>
+    ${famHTML()}
+    ${spreadFindings(H_, data, fire, ft)}
+    ${viewsHTML('spread')}
+    ${watchBlock('The map colors streets by how often embers (or the front) reached them; the run you watch draws its own fire on top.')}`;
+  if (q === 'routes') return `<p class="small">Some hill streets have only one modeled drivable way out: a single link whose closure would leave them with no route for cars. These come from the street network, not from any fire, so they are the same in every scenario. Narrow streets matter because parked cars can leave less room than a fire engine needs.</p>
+    ${routesFindings(H_, data)}
+    ${viewsHTML('routes')}
+    <p class="small muted">${state.view.routes === 'ways' ? 'Blue bands mark streets behind a single way out, darker with more modeled residents behind it; a dark bar marks the entrance (red when it is under 10 ft clear with both sides parked).' : 'Streets are colored by whether a fire engine fits past this run\'s parked cars (one night parking draw, seed 1). Other draws park differently; the findings above cover 5.'} Click a street for its card.</p>`;
+  if (q === 'access') return `<p class="small">This question combines the fire scenario with the road network: where the modeled fire front reached a street's only way out, and where parked cars leave no modeled engine route within the City's 5-minute standard. These are potential loss-of-access vulnerabilities in these scenarios.</p>
+    ${famHTML()}
+    ${accessFindings(H_, data, fire, ft)}
+    ${viewsHTML('access')}
+    ${watchBlock(state.view.access === 'engine' ? 'Streets are colored by modeled engine drive time from Berkeley\'s 7 stations at ignition, with this run\'s parked cars.' : 'Streets with one way out are colored by how often the modeled fire front reached that way out across 15 runs.')}`;
+  return '';
+}
 // The playback controls' home is Expert view's Run section (index.html #playback).
 const homePlayback = () => $('run-section').querySelector('h2').after($('playback'));
-// Set a goal (js/goal.js): its stored combinations load on first use; an answer opens in Change the plan and runs there.
-const goalCtx = () => ({ state, FIRES, fmt, leverById, pickFire, render: renderSimple, paceHTML, paceShort: () => PACE[state.pace].short,
-  openInTry: ids => { state.picked = new Set(ids.filter(leverById)); state.tab = 'try'; renderSimple(); compareStack(); } });
+const TAB_ALIAS = { watch: 'spread', try: 'changes', goal: 'changes' }; // tab names before the 2026-11-06 reframe
 function showTab(t) {
-  state.tab = t;
-  if (t === 'goal' && !goalData()) loadGoal().then(() => state.tab === 'goal' && renderSimple());
-  if (t === 'watch' && state.preset?.id !== 'today') applyPreset(todayPreset()); // the Today's plan tab plays today's plan only
+  state.tab = TAB_ALIAS[t] || t;
+  // Questions 1–3 watch today's plan only; Changes keeps the plan the user built.
+  if (state.tab !== 'changes' && state.preset?.id !== 'today') applyPreset(todayPreset());
   else renderSimple();
   $('simple').scrollTop = 0;
 }
@@ -414,30 +477,13 @@ function marksOf(l, focus = false) {
   return out;
 }
 function showMarks(focusId) {
-  map.marks = document.body.classList.contains('simple') && state.tab === 'try' ? [...pickedLevers().filter(l => l.id !== focusId), ...(focusId ? [leverById(focusId)] : [])].flatMap(l => marksOf(l, l.id === focusId)) : [];
+  map.marks = document.body.classList.contains('simple') && state.tab === 'changes' ? [...pickedLevers().filter(l => l.id !== focusId), ...(focusId ? [leverById(focusId)] : [])].flatMap(l => marksOf(l, l.id === focusId)) : [];
   map.draw();
 }
 function zoomToLever(l) {
   const pts = marksOf(l).flatMap(m => m.geom); if (!pts.length) return;
   const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
   map.fit([Math.min(...xs) - 300, Math.min(...ys) - 300, Math.max(...xs) + 300, Math.max(...ys) + 300]); showMarks(l.id);
-}
-
-function watchHTML() {
-  const today = !state.preset || state.preset.id === 'today', done = today && simDone();
-  return `<h2><span class="step">1</span> Pick a fire scenario</h2>
-    <p class="small muted"><b>Fire scenario:</b> what Berkeley doesn't control (where the fire starts, the wind, the time of day). <b>Plan:</b> what it does control, what is built or changed beforehand and how it responds on the day. Each run tests a plan against a fire scenario.</p>
-    <div class="fires">${FIRES.map(f => `<button class="fire-pick${f.id === state.fire ? ' on' : ''}" data-fire="${f.id}"><b>${esc(f.title)}</b><span>${esc(f.line)}</span></button>`).join('')}</div>
-    <p class="small muted">Oakland, Kensington, Albany and the other neighbors order their own zones once the fire comes within ${data.A.orders.firePathKm} km ${badge('model rule', 'The distance and the 10-minute delay are assumptions (Eric\'s choice, 2026-11-02, after comparing 2 km and 1 km); no source gives when these jurisdictions order a zone. Their cars use the same roads. SOURCE_NOTES FO1–FO6.')}.</p>
-    ${famHTML()}
-    ${paceHTML()}
-    <h2><span class="step">2</span> Watch it with today's plan</h2>
-    <p class="small">Today's plan assumes <b>the first evacuation order 10 minutes after the fire starts</b> and <b>today's street parking</b>; the fire scenario here is <b>a fall night</b> at <b title="${esc(PACE[state.pace].tip)}">${esc(PACE[state.pace].short)}</b> (change the pace above; the rest in Expert mode).</p>
-    <p class="small muted"><b>Run:</b> one simulation of a plan against the fire scenario, from ignition to ${hm(scenario().durationMin * 60)} (h:mm) later, with one draw of the fire and one set of synthetic households. Another draw can turn out differently, which is why Change the plan compares many. The outcomes on the right are this run's, not a prediction. Restart starts again from ignition; drag the <b>time since ignition</b> slider below the buttons to jump to a moment.</p>
-    <div id="pb-slot"></div>
-    ${done ? `<div class="nudge"><b>Explore changes that would mitigate damage and loss of life.</b>
-      <p class="small">Leave earlier, clear a curb, add a road, buy out the most exposed blocks: try changes alone or together, and compare them with today's plan on this fire.</p>
-      <button id="go-try" class="primary">Change the plan →</button></div>` : ''}`;
 }
 
 function leverItem(l) {
@@ -448,7 +494,7 @@ function leverItem(l) {
   return `<div class="lever pick${on ? ' on' : ''}${grey ? ' grey' : ''}">
     <div class="lever-h"><label><input type="checkbox" data-lever="${esc(l.id)}"${on ? ' checked' : ''}${grey || clash ? ' disabled' : ''}> <b>${esc(l.title)}</b></label><span class="cost">${esc(costText(l.cost))} ${costBadge(l.cost)}</span></div>
     ${l.what ? `<div class="small">${esc(l.what[0].toUpperCase() + l.what.slice(1))}.</div>` : ''}
-    ${grey ? `<div class="small greynote">Tested on this fire in ${st.runs} passes against today's plan: it did not reliably help.${harm} Shown so you can see it was considered.${state.families ? ' Tested on this fire\'s usual start and wind.' : ''}</div>` : ''}
+    ${grey ? `<div class="small greynote">Tested on this fire in ${st.runs} passes against today's plan: it did not improve any access or exposure measure in every pass, or in three of four with none worse.${harm} Shown so you can see it was considered.${state.families ? ' Tested on this fire\'s usual start and wind.' : ''}</div>` : ''}
     ${clash ? `<div class="small muted">Can't add with “${esc(clash.p.title)}”: ${esc(clash.why)}.</div>` : ''}
     ${marksOf(l).length ? `<button class="linkish" data-show="${esc(l.id)}">Show on map</button>` : ''}
     ${l.cannotMeasure ? `<details class="cant"><summary>What the simulator can't tell you</summary>${esc(l.cannotMeasure)}</details>` : ''}
@@ -460,16 +506,15 @@ function tryHTML() {
   if (!M) return '<p class="small muted">The list of changes (data/model/mitigations.json) did not load.</p>';
   const all = M.levers.filter(stackable), picked = pickedLevers(), p = state.preset, n = passesFor(state.fire).length;
   const running = state.tryBatch != null;
-  return `<h2>Fire scenario: <select id="try-fire">${FIRES.map(f => `<option value="${f.id}"${f.id === state.fire ? ' selected' : ''}>${esc(f.title)}</option>`).join('')}</select></h2>
+  return `<p class="small">Pick a change and compare it with today's plan on this fire scenario. Start with one change at a time. A comparison makes ${n} paired runs, or passes (${state.families ? passWords(state.fire, passesFor(state.fire)) : `low, medium and high severity × ${M.meta.seeds.length} random seeds`}): each pass runs today's plan and your plan on the same fire, the same synthetic households, the same parked cars and the same seed, so only the change differs. The answer leads with access: whether a modeled connection stays available, hill residents with no engine route or none within 5 minutes, cars with no open route, and residents behind a single way out. Each line says whether its direction is consistent, mixed or sensitive across the passes.</p>
     ${famHTML()}
     ${paceHTML()}
-    <p class="small">Build your plan from today's plan by picking changes, alone or together: changes made before the fire, and how Berkeley responds on the day. Then compare it with today's plan against this fire scenario. A comparison makes ${n} passes (${state.families ? passWords(state.fire, passesFor(state.fire)) : `low, medium and high severity × ${M.meta.seeds.length} random seeds`}); each pass runs both plans on the same fire and the same synthetic households. One pass can point the wrong way. Outcomes appear at the top of the right-hand panel.</p>
     <div class="yourplan"><b>Your plan:</b> today's plan${picked.length ? ' + ' + picked.map(l => esc(l.title)).join(' + ') : ', nothing changed yet'}
       <div class="btns"><button id="watch-today2">▶ Watch today's plan</button><button id="watch-mine"${picked.length ? '' : ' disabled'}>▶ Watch your plan</button>
       <button id="try-compare" class="primary"${picked.length && !running ? '' : ' disabled'}>Compare with today's plan (${n} passes)</button>${picked.length ? ' <button id="try-clear">Clear</button>' : ''}</div>
       ${picked.length ? '' : '<p class="small muted">Pick at least one change below to make your plan.</p>'}
       <div id="pb-slot"></div>
-      <p class="small muted">Watching makes a single run of a plan against the fire scenario. Compare uses multiple passes to achieve a useful comparison.</p>
+      <p class="small muted">Watching makes a single run against the fire scenario, on model time. Compare uses ${n} passes, because one pass can point the wrong way.</p>
       <p class="small muted">On the map: <span class="mk" style="background:#15803d"></span>street changed, <span class="mk" style="background:repeating-linear-gradient(90deg,#15803d 0 4px,transparent 4px 7px)"></span>new road, <span class="mk" style="background:#7e22ce"></span>bought out. Point at a change to see where it is.${state.families ? ` Red circles mark the starting points the comparison tries, with lines for winds from ${familyWinds(scenario()).map(w => `${w}°`).join(', ')}.` : ''}</p></div>
     ${state.tries.length ? '<p class="small"><b>Your comparisons are at the top of the right-hand panel →</b></p>' : ''}
     ${GROUPS.map(([phase, sub]) => `<h3 class="phase">${esc(phase)}</h3>` + sub.map(([title, groups]) => { const ls = all.filter(l => groups.includes(l.group)); return ls.length ? `<h4>${esc(title)}</h4>${ls.map(leverItem).join('')}` : ''; }).join('')).join('')}
@@ -485,7 +530,7 @@ function presetsHTML() {
       <button class="primary" id="simple-compare">Compare A and B (9 passes)</button> <button id="simple-close">✕ Close</button></div>
       ${state.presetOut ? '<p class="small"><b>The answer is at the top of the right-hand panel →</b></p>' : ''}
       <p class="small muted">Compare makes 9 passes (low, medium and high severity, 3 random seeds each); each pass runs both plans on the same fire and households. It takes a few minutes and puts the answer at the top of the right-hand panel. Trust a difference that shows up in every pass.</p></div>` : ''}
-    <div class="presets">${PRESETS.map(q => { const ok = q.on[state.fire]; return `<button class="preset${p?.id === q.id ? ' on' : ''}" data-id="${q.id}"${ok ? '' : ' disabled'}><b>${esc(q.title)}</b><span>${esc(q.question)}</span>${ok ? '' : `<span class="why">Not offered on ${esc(fire.title)}: ${esc(q.off[state.fire])}</span>`}</button>`; }).join('')}</div>
+    <div class="presets">${PRESETS.filter(q => !q.hidden).map(q => { const ok = q.on[state.fire]; return `<button class="preset${p?.id === q.id ? ' on' : ''}" data-id="${q.id}"${ok ? '' : ' disabled'}><b>${esc(q.title)}</b><span>${esc(q.question)}</span>${ok ? '' : `<span class="why">Not offered on ${esc(fire.title)}: ${esc(q.off[state.fire])}</span>`}</button>`; }).join('')}</div>
     <p class="small muted">These questions use their own Plan A and time of day. The Expert switch at the top lets you set everything yourself.</p>`;
 }
 
@@ -617,10 +662,10 @@ function breakdownHTML(T) {
   const ls = T.ids.map(leverById), keys = T.cases.map(c => c.key);
   const run = (vk, c) => state.stackRuns.get(runKey(T, vk, c));
   const today = m => keys.map(k => T.A[k][m]), full = m => keys.map(k => T.B[k][m]);
-  const v = (m, x) => x == null ? (MEASURES[m].time ? 'not reached' : '—') : MEASURES[m].time ? `${Math.round(x)} min` : fmt(x);
+  const v = (m, x) => x == null ? '—' : fmt(x);
   const rows = ls.map(l => {
     const rest = ls.filter(x => x !== l), aK = stackOf([l]).key, wK = stackOf(rest).key;
-    const per = Object.keys(MEASURES).map(m => {
+    const per = Object.keys(MEASURES).filter(m => !MEASURES[m].time).map(m => { // model time never decides a verdict (product brief)
       const alone = T.cases.map(c => run(aK, c)[m]), without = T.cases.map(c => run(wK, c)[m]);
       return { m, alone, without, ta: tally(alone, today(m)), tc: tally(full(m), without) };
     });
@@ -661,7 +706,7 @@ function memberLines(T) {
     return [...by].map(([p, ws]) => { const all = ws.length === fam.filter(f => f.point === p).length;
       return single ? `with wind from ${ws.map(w => `${w}°`).join(' or ')}` : `${fam.find(f => f.point === p).at}${all ? '' : ` with wind from ${ws.map(w => `${w}°`).join(' or ')}`}`; }).join(', or ');
   };
-  const lines = Object.entries(MEASURES).map(([m, d]) => {
+  const lines = Object.entries(MEASURES).filter(([, d]) => !d.time).map(([m, d]) => {
     const cls = fam.map(mem => { const ks = T.cases.filter(c => c.member === mem.id).map(c => c.key), t = tally(ks.map(k => T.B[k][m]), ks.map(k => T.A[k][m]));
       return { mem, c: holds(t) || mostly(t) ? 'helps' : t.better === 0 && t.worse >= Math.ceil(0.75 * t.n) ? 'harms' : 'none' }; });
     if (new Set(cls.map(x => x.c)).size < 2) return '';
@@ -671,32 +716,50 @@ function memberLines(T) {
   }).filter(Boolean).join('');
   return lines ? `<h3>Where the fire starts and how the wind blows</h3><ul class="small">${lines}</ul>` : `<p class="small muted">Every start and wind gave the same verdict on every measure.</p>`;
 }
+// Paired verdict for one measure over a comparison's passes, with its robustness label (js/robust.js): passes are
+// grouped by fire severity, the uncertain setting each fire is run at (low, medium, high).
+function pairedVerdict(T, keys, m) {
+  const byLevel = {};
+  for (const key of keys) {
+    const c = T.cases.find(x => x.key === key), lv = c?.sev || 'all', t = byLevel[lv] ||= { better: 0, worse: 0, n: 0 };
+    const a = T.A[key][m], b = T.B[key][m]; t.n++;
+    if (!tolSame(a, b)) asNum(b) < asNum(a) ? t.better++ : t.worse++;
+  }
+  return direction(byLevel);
+}
+function verdictHTML(T, d, k) {
+  const same = d.n - d.better - d.worse, noise = same ? `, within 1% in ${same}` : '';
+  if (!T.done) return `<span class="muted">${d.better} better, ${d.worse} worse${noise} so far (${k} of ${T.n} passes)</span>`;
+  const tip = `${T.n} passes: ${T.families ? passWords(T.fire, T.cases) : 'low, medium and high severity × random seeds'}; same fire, households, parked cars and seed in each pass. By severity: ${levelText(d.levels)}. A share of passes is not a probability.`;
+  const words = d.label === 'consistent' ? (d.dir === 'better' ? `better in ${d.better} of ${d.n} passes${d.same ? `, within 1% in ${d.same}` : ''}` : d.dir === 'worse' ? `worse in ${d.worse} of ${d.n} passes` : `no real difference: within 1% in ${same} of ${d.n} passes`)
+    : `better in ${d.better}, worse in ${d.worse}${noise} of ${d.n} passes${d.label === 'sensitive' ? ` (${levelText(d.levels)})` : ''}`;
+  const cls = d.label === 'consistent' ? (d.dir === 'better' ? 'good' : d.dir === 'worse' ? 'bad' : 'muted') : 'mixed';
+  return `${chip(d.label, tip)} <span class="${cls}">${words}</span>`;
+}
 function triesHTML() {
   if (!state.tries.length) return '';
   return state.tries.map((T, i) => {
     const keys = Object.keys(T.B).filter(k => T.A[k]), k = keys.length, fire = FIRES.find(f => f.id === T.fire);
-    const rows = Object.entries(MEASURES).map(([m, d]) => {
-      let better = 0, worse = 0;
-      for (const key of keys) { const a = T.A[key][m], b = T.B[key][m]; if (tolSame(a, b)) continue; asNum(b) < asNum(a) ? better++ : worse++; }
-      const same = k - better - worse;
-      const v = x => x == null ? (k ? (d.time ? 'not reached' : '—') : '…') : d.time ? `${Math.round(x)} min` : fmt(x);
-      const noise = same ? `, within 1% in ${same}` : '';
-      const verdict = !T.done ? `<span class="muted">${better} better, ${worse} worse${noise} so far (${k} of ${T.n} passes)</span>`
-        : better === k ? `<span class="good">Better in every pass (${k} of ${k})</span>` : worse === k ? `<span class="bad">Worse in every pass (${k} of ${k})</span>`
-        : same === k ? '<span class="muted">No real difference: within 1% in every pass</span>'
-        : worse === 0 ? `Better in ${better} of ${k} passes, never worse${noise}` : better === 0 ? `<span class="bad">Worse in ${worse} of ${k} passes, never better${noise}</span>`
-        : `<span class="mixed">Mixed: better in ${better}, worse in ${worse}${noise} of ${k} passes</span>`;
-      return `<tr title="${esc(d.tip)}"><td>${esc(d.label)} <span class="tip">ⓘ</span></td><td class="num">${v(median(keys.map(x => T.A[x][m])))}</td><td class="num">${v(median(keys.map(x => T.B[x][m])))}</td><td>${verdict}</td></tr>`;
-    }).join('');
+    const row = m => {
+      const d = MEASURES[m], v = x => x == null ? (k ? (d.time ? 'not reached' : '—') : '…') : d.time ? `${Math.round(x)} model min` : fmt(x);
+      return `<tr title="${esc(d.tip)}"><td>${esc(d.label)} <span class="tip">ⓘ</span></td><td class="num">${v(median(keys.map(x => T.A[x][m])))}</td><td class="num">${v(median(keys.map(x => T.B[x][m])))}</td><td>${verdictHTML(T, pairedVerdict(T, keys, m), k)}</td></tr>`;
+    };
+    const rowsOf = g => Object.keys(MEASURES).filter(m => MEASURES[m].group === g).map(row).join('');
+    const head = '<tr><th></th><th>Today\'s plan</th><th>Your plan</th><th>Your plan, pass by pass</th></tr>';
+    const conn = T.ids.map(leverById).map(l => leverAccessHTML(H_, l, T.fire, fire.title)).filter(Boolean).join('');
     const cant = T.ids.map(leverById).filter(l => l?.cannotMeasure);
     return `<div class="tryres${i ? ' old' : ''}"><div><b>Today's plan + ${T.titles.map(esc).join(' + ')}</b> · ${esc(fire.title)}${T.families ? ` · ${familyPoints(scenById(T.fire)).length > 1 ? 'other starts and winds' : 'other winds'}` : ''} · ${T.done ? `${T.n} passes${T.ms != null ? ` in ${secs(T.ms)}` : ''}` : `running, ${k} of ${T.n} passes so far`}</div>
-      ${i ? '' : `<table class="cmp"><tr><th></th><th>Today's plan</th><th>Your plan</th><th>Your plan, pass by pass</th></tr>${rows}</table>
-      <p class="small muted">Middle value of the passes so far for each plan. A pass counts as better or worse only when the two plans differ by more than 1%; smaller differences are treated as noise. Synthetic households on an illustrative fire: compare the plans, don't read the numbers as predictions.${T.done ? ' Where a line is mixed, your plan did better in some passes and worse in others; don\'t rely on it.' : ' Wait for every pass before trusting a difference.'}</p>
+      ${i ? '' : `${conn ? `<h3>Connections</h3><ul class="small">${conn}</ul>` : ''}
+      <h3>Access ${badge('synthetic')}</h3><table class="cmp">${head}${rowsOf('access')}</table>
+      <h3>Exposure ${badge('synthetic')}</h3><table class="cmp">${head}${rowsOf('exposure')}</table>
+      <details class="small"><summary>Model time (secondary; not a forecast)</summary><table class="cmp">${head}${rowsOf('time')}</table>
+        <p class="small muted">Simulated model time from the first order. The traffic model's 90% times run 12–45% short of the City's 2025 Evacuation Time Study on 6 of its 8 calibration cases, so these minutes are not real-world estimates and never decide whether a change helps (Assumptions &amp; limits, Model performance).</p></details>
+      <p class="small muted">Middle value of the passes so far for each plan. A pass counts as better or worse only when the two plans differ by more than 1%. <b>Consistent</b>: the same direction in at least 90% of passes; <b>sensitive</b>: the result depends mainly on the fire severity assumption; <b>mixed</b>: it changes direction or disappears in some passes. Synthetic households on an illustrative fire: these say what happens in these simulations, not what would happen in a real fire. A change that preserves a modeled connection in these runs does not guarantee safe evacuation.</p>
       ${memberLines(T)}
       ${T.families && T.done ? `<p class="small muted">Passes: ${esc(passWords(T.fire, T.cases))}. The starts and winds are our choices, not probabilities, and count equally. Evacuation orders stay this fire's.</p>` : ''}
       ${T.done ? (T.ids.length >= 2 ? bdButtonHTML(T) : `<p class="small"><b>Keep exploring:</b> add another change to see whether it adds anything.</p>`) : ''}
       ${cant.length ? `<details class="cant"><summary>What the simulator can't tell you about these changes</summary><ul class="small">${cant.map(l => `<li><b>${esc(l.title)}:</b> ${esc(l.cannotMeasure)}</li>`).join('')}</ul></details>` : ''}`}
-      ${i ? `<table class="cmp small">${rows}</table>` : ''}</div>`;
+      ${i ? `<table class="cmp small">${Object.keys(MEASURES).filter(m => MEASURES[m].group !== 'time').map(row).join('')}</table>` : ''}</div>`;
   }).join('');
 }
 // Today's plan on the chosen fire (the mitigation baseline: DEFAULT_PLAN, fall night).
@@ -723,10 +786,14 @@ function applyPreset(idOrPreset) {
 }
 function setMode(m) {
   // Guided view runs without growth (world()), so a switch rebuilds the run once the class has changed.
+  // Guided view sets the map layers per question (questionMap); Expert view gets its own back.
+  const wasSimple = document.body.classList.contains('simple');
+  if (m === 'simple' && !wasSimple) state.expertMap = { layers: { ...map.layers }, mode: map.streetMode };
   const rerun = (document.body.classList.contains('simple') || document.body.classList.contains('expert')) && !document.body.classList.contains(m) && ($('growth').value !== 'none' || $('powerShutoff').value !== 'none' || $('quake').value !== 'none' || $('visibility').value !== 'clear' || $('householdMix').value !== (data.demand ? 'place' : 'citywide') || $('fuel').value !== 'proxy' || $('nrPlacement').value !== 'area' || $('walkAccess').value !== 'none' || $('nightParking').value !== 'count2026');
   document.body.classList.toggle('simple', m === 'simple'); document.body.classList.toggle('expert', m === 'expert');
   document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
   localStorage.setItem('bhe-mode', m);
+  if (m !== 'simple' && wasSimple && state.expertMap) { Object.assign(map.layers, state.expertMap.layers); map.streetMode = state.expertMap.mode; map.edgeClass = null; syncLayerBoxes(); legend(); }
   if (m !== 'simple') { map.marks = []; map.draw(); homePlayback(); } // Change-the-plan outlines and the moved playback controls belong to the Guided view
   // Street, road and buyout changes run only in the Guided view (Expert's controls and Compare carry plan
   // settings only), so leaving it drops the stack: Plan B keeps its plan settings under a name that says so.
@@ -783,34 +850,33 @@ function update(full) {
   const done = sim.t >= sim.end;
   $('clock').classList.toggle('done', done);
   $('scrub-t').textContent = hm(sim.t);
-  $('clock').innerHTML = `${done ? '<span class="done-tag">✓ Run complete</span> ' : ''}t + ${hm(sim.t)} <span class="of">of ${hm(sim.end)}${done ? '' : state.playing ? ' · running' : sim.t > 0 ? ' · paused' : ''}</span> <span class="sub">${esc(sc.name)} · ${SEVERITY[sim.sevKey].label} severity · seed ${sim.seed} · ${esc(sim.plan.name)}</span>`;
+  $('clock').innerHTML = `${done ? '<span class="done-tag">✓ Run complete</span> ' : ''}Model time ${hm(sim.t)} <span class="of">of ${hm(sim.end)} (not a forecast)${done ? '' : state.playing ? ' · running' : sim.t > 0 ? ' · paused' : ''}</span> <span class="sub">${esc(sc.name)} · ${SEVERITY[sim.sevKey].label} severity · seed ${sim.seed} · ${esc(sim.plan.name)}</span>`;
   const c = (k, v, cls = '', tip = '') => `<div class="card ${cls}" title="${esc(tip)}"><div class="v">${v}</div><div class="k">${k}${tip ? ' <span class="tip">ⓘ</span>' : ''}</div></div>`;
   const tr = (label, value, tip) => `<tr title="${esc(tip)}"><td>${label} <span class="tip">ⓘ</span></td><td class="num">${value}</td></tr>`;
   const exposed = S.exposedHome + S.exposedRoad + S.exposedNoVehicle + S.notOrderedExposed;
-  if ($('run-status')) $('run-status').innerHTML = done ? `<b>✓ Run complete.</b> ${esc(sim.plan.name)} ran the full ${hm(sim.end)} (h:mm) after ignition. The outcomes on the right are final for this run; Run again restarts it.` : '';
-  $('results').innerHTML = `<h2>${done ? 'Outcomes at the end of the run' : 'Outcomes so far'} ${badge('synthetic')}</h2>
-    <p class="small muted">People are synthetic households placed from Genasys zone population estimates (2020 Census blocks where Genasys publishes none); the fire is an illustrative overlay. Compare plans on the same scenario and seed; do not read the numbers as predictions.</p>
+  if ($('run-status')) $('run-status').innerHTML = done ? `<b>✓ Run complete.</b> ${esc(sim.plan.name)} ran the full ${hm(sim.end)} (h:mm of model time) after ignition. The outcomes on the right are final for this one run; Run again restarts it.` : '';
+  $('results').innerHTML = `<h2>${done ? 'This run, at the end' : 'This run, so far'} ${badge('synthetic')}</h2>
+    <p class="small muted">One run of one modeled scenario. People are synthetic households placed from Genasys zone population estimates (2020 Census blocks where Genasys publishes none); the fire is an illustrative overlay. These numbers show what happens in this simulation, not what would happen in a real fire: not a prediction.</p>
     <div class="cards">
       ${c('people in ordered zones', fmt(S.orderedPeople), '', `Residents of zones under an evacuation order so far. An order means leave now; the 2025 Evacuation Time Study assumes everyone in an order zone leaves. Of them, ${fmt(S.otherCityOrderedPeople)} live in zones of other cities and the County (Oakland, Kensington, Albany and others), which order a zone once the fire comes within ${data.A.orders.firePathKm} km (model rule; the distance is an assumption).`)}
       ${c('warned and leaving', fmt(S.warnedLeaving), '', 'Residents of zones under an evacuation warning (get ready, and leave now if you need extra time) who leave anyway. The Time Study assumes half of warned households leave.')}
-      ${c('reached safety', fmt(S.reachedSafety), 'good', `Ordered or warned people whose household's vehicles left the order/warning area and ember zone. Includes ${fmt(S.riders)} people riding with a neighbor.`)}
+      ${c('out of the order and warning area', fmt(S.reachedSafety), 'good', `Ordered or warned people whose household's vehicles left the order and warning area and the modeled ember area (model rule). Includes ${fmt(S.riders)} people riding with a neighbor.`)}
       ${c('shadow evacuees on the move', fmt(S.shadowLeaving), '', `"Shadow evacuees" are people outside every order and warning zone who leave anyway, out of caution. The Time Study assumes 20% of them leave. They drive out of the modeled area and add ${fmt(S.shadowVehicles)} cars to the roads, but they are not counted in evacuation time.`)}
       ${c('left early (before ignition)', fmt(S.leftEarly), S.leftEarly ? 'good' : '', 'People who left on the Red Flag warning, before the fire started (plan setting: early departure). They are never in the evacuation traffic.')}
-      ${c('on the road now', fmt(S.onRoad), '', 'Ordered or warned people whose car has left home but has not yet reached safety.')}
+      ${c('on the road now', fmt(S.onRoad), '', 'Ordered or warned people whose car has left home but has not yet left the order and warning area.')}
       ${c('ordered, not yet left', fmt(S.notLeft), S.notLeft ? 'bad' : '', 'People in ordered or warned zones still at home: getting ready (departure times from the Time Study survey), waiting for a commuter to drive home, or picking up children.')}
       ${c('no vehicle and no ride', fmt(S.noVehicle), S.noVehicle ? 'bad' : '', 'Carless households that found no neighbor to ride with (Time Study: 86.9% rideshare). Phase 2 adds buses, paratransit and check-ins.')}
-      ${c('still there when embers arrived', fmt(exposed), exposed ? 'bad' : '', `People still at home when embers first reached their street, or on the road in a car that drove a street under embers after they left; each person counted once, where they were when embers first reached them. Not a count of deaths or injuries: many would shelter or come through unharmed. At home ${fmt(S.exposedHome)}; on roads ${fmt(S.exposedRoad)}; without a vehicle ${fmt(S.exposedNoVehicle)}; in zones with no order ${fmt(S.notOrderedExposed)}`)}
-      ${c('still there when the fire front arrived', fmt(S.fireFrontHome + S.fireFrontRoad), S.fireFrontHome + S.fireFrontRoad ? 'bad' : '', `People still at home when the fire itself reached their street, or on the road in a car that drove a burning street after they left; each person counted once. A harsher measure than embers. Still not a count of deaths or injuries. At home ${fmt(S.fireFrontHome)}; on roads ${fmt(S.fireFrontRoad)}`)}
-      ${c('vehicles cut off by fire', fmt(S.vehiclesNoRoute), S.vehiclesNoRoute ? 'bad' : '', 'Cars with no road out: the fire had closed every route from their street, almost always before they set off. Parking rules do not change this number; leaving earlier does.')}
+      ${c('not yet out when embers reached their street', fmt(exposed), exposed ? 'bad' : '', `People still at home when embers first reached their street, or on the road in a car that drove a street under embers after they left; each person counted once, where they were when embers first reached them. Not a count of deaths or injuries: many would shelter or come through unharmed. At home ${fmt(S.exposedHome)}; on roads ${fmt(S.exposedRoad)}; without a vehicle ${fmt(S.exposedNoVehicle)}; in zones with no order ${fmt(S.notOrderedExposed)}`)}
+      ${c('not yet out when the fire front reached their street', fmt(S.fireFrontHome + S.fireFrontRoad), S.fireFrontHome + S.fireFrontRoad ? 'bad' : '', `People still at home when the fire itself reached their street, or on the road in a car that drove a burning street after they left; each person counted once. A harsher measure than embers. Still not a count of deaths or injuries. At home ${fmt(S.fireFrontHome)}; on roads ${fmt(S.fireFrontRoad)}`)}
+      ${c('cars with no open modeled route', fmt(S.vehiclesNoRoute), S.vehiclesNoRoute ? 'bad' : '', 'Cars for which the modeled fire had closed every route from where they were, almost always before they set off. A model state, not a count of people trapped. Parking rules do not change this number; leaving earlier does.')}
     </div>
     <table class="kv" style="margin-top:8px">
-      ${tr('Evacuation time after the first order (Time Study ETE): 50% / 90% / all vehicles out', `${mins(S.clearP50)} / ${mins(S.clearP90)} / ${S.clearP100 == null ? 'not yet' : mins(S.clearP100)}`, `Minutes from the first evacuation order until half, 90% and all of the cars that started in zones Berkeley's plan orders have left the order and warning area. This is how the 2025 Evacuation Time Study measures its evacuation time estimate (ETE). The ${fmt(S.otherCityVehicles)} cars from zones only other cities order are on the same roads but not in this count; counting them, 90% are out after ${mins(S.clearP90All)}.`)}
-      ${studyRow(sc)}
-      ${tr('Last household with a car out (after the first order)', S.lastHousehold == null ? 'not yet' : mins(S.lastHousehold), 'Minutes from the first order until the last ordered or warned household with a car reached safety.')}
+      ${expertOnly(tr('Model time after the first order until 50% / 90% / all vehicles are out (not a forecast)', `${mins(S.clearP50)} / ${mins(S.clearP90)} / ${S.clearP100 == null ? 'not yet' : mins(S.clearP100)}`, `Simulated model time, not a forecast: the traffic model's 90% times run 12–45% short of the City's 2025 Evacuation Time Study on 6 of its 8 calibration cases (Assumptions & limits, Model performance). Minutes from the first evacuation order until half, 90% and all of the cars that started in zones Berkeley's plan orders have left the order and warning area. This is how the 2025 Evacuation Time Study measures its evacuation time estimate (ETE). The ${fmt(S.otherCityVehicles)} cars from zones only other cities order are on the same roads but not in this count; counting them, 90% are out after ${mins(S.clearP90All)}.`))}
+      ${expertOnly(tr('Last household with a car out, model time after the first order (not a forecast)', S.lastHousehold == null ? 'not yet' : mins(S.lastHousehold), 'Model minutes from the first order until the last ordered or warned household with a car left the order and warning area. Not a forecast.'))}
       ${tr('Vehicles on roads now · peak queued', `${fmt(S.vehiclesOnRoad)} · ${fmt(S.peakQueued)}`, 'Cars on the road at this moment, and the most cars waiting in queues at any one moment so far.')}
-      ${tr(`Fire-engine travel to the fire edge: at ignition → now (City standard: ${data.A.access.engineServiceMin} min)`, `${S.responderFree === Infinity ? '<b style="color:#b91c1c">blocked by parked cars</b>' : mins(S.responderFree)} → ${S.responderBlocked ? '<b style="color:#b91c1c">blocked</b>' : mins(S.responderEta)}`, 'Minutes for a fire engine to drive from the nearest station to the nearest point of the fire edge it can reach: at ignition, and now, with evacuation traffic in the way. At ignition, "blocked by parked cars" means parked cars leave less than an engine\'s width on every route. Later, "blocked" means no route is left: parked cars, streets the fire has burned across, fixed barriers or a contraflow street\'s closed direction cut every one. The City\'s standard is 5 minutes.')}
-      ${tr(`Hill homes an engine can reach within ${data.A.access.engineServiceMin} minutes (City standard)`, `${fmt(S.engineReach5Share * 100, 1)}% · ${fmt(S.engineReach5People)} people`, `Share of synthetic residents of Berkeley's Fire Zones 2–3 whose street a fire engine can reach from the nearest of Berkeley's 7 fire stations within the City's ${data.A.access.engineServiceMin}-minute standard, at ignition, before traffic and fire, under this plan's parking rules and this seed's parked cars. Model rule: the engine must reach the nearer end of the home's street segment by a route on which every segment leaves an engine's width (10 ft) clear and no fixed barrier closes it; the home's own segment need not pass. ${fmt(S.engineReachUnreachablePeople)} of ${fmt(S.engineReachHillPeople)} hill residents have no engine route at all. Now, with evacuation traffic and the fire: ${fmt(S.engineReach5ShareNow * 100, 1)}% (a street the fire has reached counts as not reached; engines cannot drive up a contraflow street); averaged every 5 min since the first order: ${fmt(S.engineReach5ShareLiveMean * 100, 1)}%. This measures access only: engines do not fight the fire in this simulator, so it says nothing about firefighting outcomes. Color streets by "Engine drive time" (Expert view, Map) to see where.`)}
-      ${tr('Street segments too narrow for an engine (this plan and seed)', fmt(S.engineBlockedSegments), 'Street segments where parked cars leave less than 10 ft, an engine\'s width, under this plan\'s parking rules and this seed\'s parked cars.')}
+      ${tr(`Modeled engine drive to the fire edge, model time: at ignition → now (City standard: ${data.A.access.engineServiceMin} min)`, `${S.responderFree === Infinity ? '<b style="color:#b91c1c">no modeled route past parked cars</b>' : mins(S.responderFree)} → ${S.responderBlocked ? '<b style="color:#b91c1c">no modeled route</b>' : mins(S.responderEta)}`, 'Model minutes for a fire engine to drive from the nearest station to the nearest point of the fire edge it can reach: at ignition, and now, with evacuation traffic in the way. At ignition, "no modeled route past parked cars" means parked cars leave less than an engine\'s width on every modeled route. Later, "no modeled route" means none is left: parked cars, streets the fire has burned across, fixed barriers or a contraflow street\'s closed direction cut every one. The City\'s standard is 5 minutes.')}
+      ${tr(`Hill homes an engine can reach within ${data.A.access.engineServiceMin} minutes (City standard)`, `${fmt(S.engineReach5Share * 100, 1)}% · ${fmt(S.engineReach5People)} people`, `Share of synthetic residents of Berkeley's Fire Zones 2–3 whose street a fire engine can reach from the nearest of Berkeley's 7 fire stations within the City's ${data.A.access.engineServiceMin}-minute standard, at ignition, before traffic and fire, under this plan's parking rules and this seed's parked cars. Model rule: the engine must reach the nearer end of the home's street segment by a route on which every segment leaves an engine's width (10 ft) clear and no fixed barrier closes it; the home's own segment need not pass. ${fmt(S.engineReachUnreachablePeople)} of ${fmt(S.engineReachHillPeople)} hill residents have no engine route at all. Now, with evacuation traffic and the fire: ${fmt(S.engineReach5ShareNow * 100, 1)}% (a street the fire has reached counts as not reached; the model sends no engine up a contraflow street); averaged every 5 min since the first order: ${fmt(S.engineReach5ShareLiveMean * 100, 1)}%. This measures access only: engines do not fight the fire in this simulator, so it says nothing about firefighting outcomes. Color streets by "Engine drive time" (Expert view, Map) to see where.`)}
+      ${tr('Street segments narrower than an engine needs with this run\'s parked cars', fmt(S.engineBlockedSegments), 'Street segments where parked cars leave less than 10 ft, an engine\'s width, under this plan\'s parking rules and this seed\'s parked cars.')}
       ${tr('Two-way segments where oncoming drivers take turns', fmt(S.sharedLanes), 'Two-way street segments where parked cars leave room for only one moving car, so drivers meeting from opposite directions take turns at gaps such as driveways.')}
       ${tr('Commuters driving home into the area: home · turned back', `${fmt(S.commutersHome)} of ${fmt(S.commutersInbound)} · ${fmt(S.commutersTurnedBack)}`, 'On weekdays some households wait for a family member to drive home before leaving (Time Study: 13% of households midweek). How many of those commuters got home, out of all driving in, and how many turned back because the fire, or a contraflow street closed to inbound traffic, left no way home.')}
       ${S.contraflowPlannedEntries || S.officersUsed || S.signalsDark ? tr('Traffic operations: contraflow segments running · officers used · junctions officers control · signals dark', `${fmt(S.contraflowSegments)} · ${fmt(S.officersUsed)} · ${fmt(S.junctionsControlled)} · ${fmt(S.signalsDark)}`, 'Contraflow street segments with both lanes outbound so far; officers assigned from the plan\'s pool to contraflow entry points and junctions; junctions under officer control; signals dark in the Red Flag power shutoff (scenario setting). Model rules and assumptions; see Assumptions & limits. The event log lists what started when and what did not run.') : ''}
@@ -830,16 +896,19 @@ function update(full) {
   $('events').innerHTML = sim.events.map(e => `<li class="k-${e.kind}"><span class="t">t+${hm(e.t)}</span>${esc(e.text)}</li>`).join('');
   if (map.selected) inspect(map.selected, true);
 }
-// The Time Study's 90% time for the same region and time of day, so users can see how far off the
-// simulator runs. The gap comes mostly from signal timing and non-resident parking, which we lack.
-function studyRow(sc) {
-  const id = sc.id === 'eastWindDay' ? 'eastWind' : sc.id, T = ETE_TARGETS[id], tk = $('tod').value;
-  if (!T?.p90[tk]) return '';
-  // The simulator's fire-off time on the study's zones (tests/calibration.mjs → data/model/calibration.json).
-  const C = data.calibration?.regions?.[id]?.[tk]?.p90, M = data.calibration?._meta, gap = C ? Math.round(T.p90[tk] - C.median) : null;
-  const sim = !C ? 'The simulator\'s fire-off time for this region is not in this build (run node tests/calibration.mjs).'
-    : `With the fire off, on the study's zones and the Time Study's citywide household mix, the simulator gets ${Math.round(C.median)} min here ${badge('synthetic', `Simulator runs, fire off, ${M.seeds} seeds (tests/calibration.mjs, data/model/calibration.json, built ${M.built}); the gap is the study's time minus this median (derived).`)} (median of ${M.seeds} seeds, ${Math.round(C.range[0])}–${Math.round(C.range[1])} min; tests/calibration.mjs, ${esc(M.built)})${Math.abs(gap) < 10 ? ', within 10 min of the study.' : gap > 0 ? `, ${gap} min faster than the study, probably because it lacks the City's signal timing${tk === 'S1' || tk === 'S4' ? ' and where commuters and students park' : ''}. Treat its times here as a lower bound.` : `, ${-gap} min slower than the study.`}`;
-  return `<tr><td>For scale: the 2025 Evacuation Time Study's 90% time for ${esc(T.region)}, ${esc(TIME_OF_DAY[tk].label)} (status quo, no fire) ${badge('sourced', '2025 Evacuation Time Study, Table 7-1 (js/scenarios.js ETE_TARGETS); the number at the right.')}<div class="small muted">${sim} See Assumptions &amp; limits.</div></td><td class="num">${mins(T.p90[tk])}</td></tr>`;
+// Model performance (Assumptions & limits): the simulator's fire-off 90% times against the 2025 Evacuation Time Study,
+// shown as a known limitation of the traffic model, not as validation (product brief, "Evacuation-time outputs";
+// SOURCE_NOTES CD1–CD16). Times come from tests/calibration.mjs (data/model/calibration.json) and ETE_TARGETS.
+function modelPerformanceHTML() {
+  const C = data.calibration, M = C?._meta;
+  const rows = Object.entries(ETE_TARGETS).flatMap(([id, T]) => ['S4', 'S6'].map(tk => {
+    const v = T.p90[tk], c = C?.regions?.[id]?.[tk]?.p90, d = c ? Math.round(100 * (c.median - v) / v) : null;
+    return `<tr><td>${esc(T.region)}</td><td>${esc(TIME_OF_DAY[tk].label)}</td><td class="num">${v}</td><td class="num">${c ? Math.round(c.median) : '—'}</td><td class="num">${d == null ? '—' : `${d > 0 ? '+' : ''}${d}%`}</td></tr>`;
+  })).join('');
+  return `<h3>Model performance: evacuation time against the City study (a known limitation)</h3>
+  <p class="small">The explorer does not report evacuation times as results, because its traffic model clears roads much faster than the City's 2025 Evacuation Time Study in most cases. With the fire off, on the study's zones, the simulator's time until 90% of order-zone vehicles are out ${badge('synthetic', `tests/calibration.mjs, ${M?.seeds ?? 3} seeds, built ${M?.built ?? 'n/a'}; the Time Study's citywide household mix.`)} against the study's ${badge('sourced', '2025 Evacuation Time Study, Table 7-1 (js/scenarios.js ETE_TARGETS).')}:</p>
+  <table><tr><th>Region</th><th>Time Study case</th><th class="num">Study, min</th><th class="num">Simulator, min</th><th class="num">Difference</th></tr>${rows}</table>
+  <p class="small">Departures match the study; the gap is time on the road. The simulator has almost no congestion inside the order area (median road time 1–5 min against the study's 40–80 min on a 1923 weekday), evacuees leave the model at the edge of the order and warning area instead of driving on, and junctions carry flow without the City's signal timings (SOURCE_NOTES CD1–CD7). A counting fix on 2026-11-06 (CD12–CD15) moved the 90% times by at most 2 min. The next model steps (CD16, docs/model-fix-plan.md) are not built. This comparison is a record of the traffic model's limitation. It does not validate the fire spread or access results, which come from the fire model and the street network, and it is the reason any clock the explorer shows is labeled model time, not a forecast.</p>`;
 }
 // Disputed input beside the results it moves (SOURCE_NOTES DM3, DM18): the household mix this run did not use, on
 // this fire, from tools/demand-compare.mjs (today's plan, medium severity, the fire's usual time of day).
@@ -885,6 +954,8 @@ function zoneDemandRows(id, row) {
 function inspect(sel, quiet) {
   const box = $('inspector');
   map.selectedArea = sel?.kind === 'edge' && map.layers.access ? data.access?.edgeAreas.get(sel.id)?.[0] ?? null : null;
+  // Guided view: a card that answers what the feature is, why it is highlighted, who depends on it, how consistent that is and what it does not establish.
+  if (document.body.classList.contains('simple')) { $('card').innerHTML = cardHTML(H_, data, sel, { q: state.tab, fire: state.fire, fireTitle: FIRE_TITLE(), sim: state.sim, levers: pickedLevers() }); if (!quiet) map.draw(); return; }
   if (!sel) { box.innerHTML = '<h2>Inspector</h2><p class="muted small">Click a street or an evacuation zone.</p>'; return; }
   const sim = state.sim, F = data.net.meta.fields, net = (sim?.data || data).net; // a watched stack may add links
   const row = (k, v, cat, note) => `<tr><td>${k}</td><td>${v}${badge(cat, note)}</td></tr>`;
@@ -982,7 +1053,7 @@ function opsRows(e, sim, row) {
     const j = J.find(x => x.node === n); if (!j) continue;
     const ctl = sim.ops?.police?.nodes.includes(n), dark = sim.ops?.shutoff && j.signal && (sim.world.powerShutoff === 'all' || j.hills);
     out += row(`Junction ${esc(j.name)}`, `${j.signal ? `${j.control === 'pretimed' ? 'pre-timed' : 'actuated'} signal (City layer)` : 'no signal'}${j.appF ? `; Time Study congestion point: ${esc(j.appF)}` : ''}`, j.signal ? 'sourced' : 'derived', data.signals.meta.rule);
-    if (ctl) out += row('Officer control (this plan)', sim.ops.police.controlled ? `officers in control since t+${hm(sim.ops.police.t)}` : `officers take over at t+${hm(sim.ops.police.t)}`, 'assumption', `Officers from the plan's pool arrive ${sim.plan.officerDelayMin ?? data.A.operations.police.delayMin} min after the first order; the junction then passes ${Math.round(data.A.operations.police.capacityUplift * 100)}% more vehicles and serves approaches heading toward safety first (SOURCE_NOTES CF7, CF8).`);
+    if (ctl) out += row('Officer control (this plan)', sim.ops.police.controlled ? `officers in control since t+${hm(sim.ops.police.t)}` : `officers take over at t+${hm(sim.ops.police.t)}`, 'assumption', `Officers from the plan's pool arrive ${sim.plan.officerDelayMin ?? data.A.operations.police.delayMin} min after the first order; the junction then passes ${Math.round(data.A.operations.police.capacityUplift * 100)}% more vehicles and serves approaches heading out of the order area first (SOURCE_NOTES CF7, CF8).`);
     if (dark) out += row('Power shutoff (scenario)', ctl ? 'signal dark; all-way stop until officers arrive' : 'signal dark: all-way stop', 'model rule', `Signals ${sim.world.powerShutoff === 'all' ? 'across the city' : 'in and next to the hills'} go dark from the start and pass at most ${data.A.operations.powerShutoff.allWayStopVph} vehicles per hour (SOURCE_NOTES CF9, CF10). No source says which Berkeley signals went dark in past shutoffs.`);
   }
   return out;
@@ -1013,7 +1084,7 @@ function legend() {
   const access = map.layers.access && data.access ? accessLegend() : '';
   let saved = null; try { saved = localStorage.getItem('bhe-key'); } catch {}
   const open = saved ? saved !== 'hidden' : !matchMedia('(max-width: 760px)').matches; // on a phone the key starts closed: open, it covers half the map
-  $('legend').innerHTML = `<button class="key-toggle" title="${open ? 'Hide' : 'Show'} the map key">${open ? 'Hide key ▾' : 'Show key ▸'}</button>${open ? `<div><b>${STREET_MODES[m]}</b>${L}${extra}${access}</div>` : ''}`;
+  $('legend').innerHTML = `<button class="key-toggle" title="${open ? 'Hide' : 'Show'} the map key">${open ? 'Hide key ▾' : 'Show key ▸'}</button>${open ? `<div>${m === 'robust' ? legendHTML(state.tab, state.view[state.tab]) : `<b>${STREET_MODES[m]}</b>${L}`}${extra}${access}</div>` : ''}`;
   $('legend').querySelector('.key-toggle').onclick = () => { try { localStorage.setItem('bhe-key', open ? 'hidden' : 'shown'); } catch {} legend(); };
 }
 
@@ -1055,21 +1126,21 @@ $('compare').onclick = () => {
   worker.postMessage({ batch, jobs });
 };
 const METRICS = [
-  ['People still there when embers arrived', S => S.exposedHome + S.exposedRoad + S.exposedNoVehicle + S.notOrderedExposed, -1],
+  ['Modeled residents not yet out when embers reached their street', S => S.exposedHome + S.exposedRoad + S.exposedNoVehicle + S.notOrderedExposed, -1],
   ['  …at home with a car, not yet left', S => S.exposedHome, -1],
   ['  …on roads', S => S.exposedRoad, -1],
   ['  …without a vehicle', S => S.exposedNoVehicle, -1],
-  ['People still there when the fire front arrived', S => S.fireFrontHome + S.fireFrontRoad, -1],
+  ['Modeled residents not yet out when the fire front reached their street', S => S.fireFrontHome + S.fireFrontRoad, -1],
   ['People in ordered zones', S => S.orderedPeople, 0],
   ['Added residents (growth)', S => S.addedResidents, 0],
   ['People with no vehicle and no ride', S => S.noVehicle, -1],
   ['Left early', S => S.leftEarly, 0],
   ['Vehicles evacuating', S => S.vehicles, 0],
-  ['90% of vehicles out, min after order (ETE)', S => S.clearP90, -1],
+  ['Model time until 90% of vehicles are out, min after order (not a forecast)', S => S.clearP90, -1],
   ['Peak vehicles queued', S => S.peakQueued, -1],
-  ['Vehicles cut off by fire (no road out)', S => S.vehiclesNoRoute, -1],
-  ['Engine travel time at ignition (min; ∞ = blocked by parked cars)', S => S.responderFree, -1],
-  ['Hill residents an engine cannot reach within 5 min (at ignition)', S => S.engineReachBeyond5People, -1],
+  ['Cars with no open modeled route', S => S.vehiclesNoRoute, -1],
+  ['Modeled engine drive to the fire edge at ignition (model min; ∞ = no route past parked cars)', S => S.responderFree, -1],
+  ['Hill residents with no engine route meeting the 5-min standard (at ignition)', S => S.engineReachBeyond5People, -1],
   ['Hill residents with no engine route (at ignition)', S => S.engineReachUnreachablePeople, -1],
   ['Segments too narrow for an engine', S => S.engineBlockedSegments, -1],
   ['Commuters turned back (fire, or a contraflow street closed to them)', S => S.commutersTurnedBack, -1],
@@ -1118,13 +1189,15 @@ function takeaway(results, scope) {
   const ma = med(pairs.map(x => x[0])), mb = med(pairs.map(x => x[1]));
   const better = pairs.filter(([a, b]) => (b - a) * dir > 0).length, worse = pairs.filter(([a, b]) => (b - a) * dir < 0).length;
   const robust = better === pairs.length || worse === pairs.length;
+  const byLevel = {}; for (const a of results.filter(r => r.job.planKey === 'A')) { const t = byLevel[a.job.sev] ||= { better: 0, worse: 0, n: 0 }, d = (f(twin(a).summary) - f(a.summary)) * dir; t.n++; if (d > 0) t.better++; else if (d < 0) t.worse++; }
+  const D = direction(byLevel), dtip = `${pairs.length} paired runs: low, medium and high severity × seeds; same fire, households and parked cars in each pair. By severity: ${levelText(byLevel)}. A share of runs is not a probability.`;
   const exF = S => S.exposedHome + S.exposedRoad + S.exposedNoVehicle + S.notOrderedExposed;
   let other = '';
-  if (f.toString() !== exF.toString() && !/embers arrived/.test(label)) {
+  if (f.toString() !== exF.toString() && !/embers/.test(label)) {
     const ex = results.filter(r => r.job.planKey === 'A').map(a => exF(twin(a).summary) - exF(a.summary));
-    if (!(ex.every(x => x < -0.5) || ex.every(x => x > 0.5))) other = ` People still there when embers arrived show no clear difference (B − A ranges from ${fmt(Math.min(...ex))} to ${fmt(Math.max(...ex))} across runs).${p.otherNote ? ' ' + esc(p.otherNote) : ''}`;
+    if (!(ex.every(x => x < -0.5) || ex.every(x => x > 0.5))) other = ` Modeled residents not yet out when embers reached their street show no clear difference (B − A ranges from ${fmt(Math.min(...ex))} to ${fmt(Math.max(...ex))} across runs).${p.otherNote ? ' ' + esc(p.otherNote) : ''}`;
   }
-  return `<div class="takeaway${robust ? '' : ' mixed'}"><b>${esc(label)}:</b> about ${fmt(ma)} under Plan A and ${fmt(mb)} under Plan B (median of ${pairs.length} runs). Plan B did better in ${better} of ${pairs.length} runs and worse in ${worse}.${robust ? '' : ' The difference does not hold in every run, so treat it as uncertain.'}${other} These are synthetic households on an illustrative fire, not a prediction.</div>`;
+  return `<div class="takeaway${robust ? '' : ' mixed'}">${chip(D.label, dtip)} <b>${esc(label)}:</b> about ${fmt(ma)} under Plan A and ${fmt(mb)} under Plan B (median of ${pairs.length} runs). Plan B did better in ${better} of ${pairs.length} runs and worse in ${worse}.${robust ? '' : ' The difference does not hold in every run, so treat it as uncertain.'}${other} These are synthetic households on an illustrative fire: they show what happens in these simulations, not a prediction.</div>`;
 }
 // ---------- households worse off (Compare, when Plan A and Plan B differ in routing; js/guidance.js) ----------
 function routingDiffers() {
@@ -1150,13 +1223,13 @@ function householdTable(results, g, scope) {
   const row = (label, xs, tip, d = 0) => `<tr title="${esc(tip)}"><td>${esc(label)}</td><td class="num">${fmt(medOf(xs), d)}<div class="small muted">${rangeOf(xs)}</div></td></tr>`;
   const thr = data.A.routing.worseOffDelayMin;
   return `<table><tr><th>Household by household, B against A ${badge('synthetic')}</th><th class="num">median (range)</th></tr>
-    ${row('Households worse off under B', P.map(p => p.w.households), `Still there when embers or the fire front reached them, or cut off, where they were not under A, or reaching safety more than ${thr} min later or not at all (model rule).`)}
+    ${row('Households worse off under B', P.map(p => p.w.households), `Still there when embers or the fire front reached them, or cut off, where they were not under A, or leaving the order and warning area more than ${thr} min later or not at all (model rule).`)}
     ${row('  …beyond chance: worse off under B in both serving orders than under A in both', P.map(p => p.wb.households), 'Each plan also runs a second time with another order of serving cars at junctions; a household counts only if it does worse under both B runs than under both A runs.')}
     ${row('  …of these, newly still there when embers or the fire front arrived, or cut off', P.map(p => p.wb.embers + p.wb.fireFront + p.wb.cutOff), 'Outcome level worse, not only time.')}
-    ${row('  …of these, worst delay (min)', P.map(p => p.wb.later ? p.wb.worstDelayMin : 0), 'Largest delay among households beyond chance that reached safety later.')}
+    ${row('  …of these, worst delay (min)', P.map(p => p.wb.later ? p.wb.worstDelayMin : 0), 'Largest delay among households beyond chance that left the order and warning area later.')}
     ${row('Chance alone: A against A rerun with another serving order', P.map(p => p.floor.households), 'Households "worse off" when nothing changes except which car reaches a junction first.')}
     ${row('Households better off under B', P.map(p => p.better.households), 'Households worse off under A than under B, by the same rule.')}
-    ${row('Average change in time to safety (min; + = faster under B)', P.map(p => p.w.meanGainMin), 'Households that reached safety under both plans.', 1)}
+    ${row('Average change in model time to leave the order area (min; + = faster under B)', P.map(p => p.w.meanGainMin), 'Households that left the order and warning area under both plans.', 1)}
   </table>`;
 }
 function householdTakeaway(results, scope) {
@@ -1177,39 +1250,24 @@ function explain(results, g, scope) {
 // ---------- modals ----------
 function modal(html, cls = '') { $('modal').className = cls; $('modal-body').innerHTML = html; $('modal').showModal(); }
 const INPUTS = [
-  ['Fire scenario', 'Where the fire starts and how the wind blows, and so which zones the City orders out.', 'Which neighborhoods are under order; how fast embers reach homes.'],
-  ['Time of day', 'Who is home, commuters driving home against the outbound traffic, and employees, students and visitors (Evacuation Time Study cases).', 'Evacuation time: weekdays are slower than nights.'],
-  ['Severity', 'Fire spread speed and ember distance: half or double the medium case.', 'People still there when embers or the fire front arrived.'],
-  ['Random seed', 'Which households live where, where cars are parked, and random spot fires.', 'Small differences. Trust a difference that holds across seeds.'],
-  ['Decision delay', 'Minutes from ignition to the first evacuation order.', 'Households still home when embers arrive.'],
-  ['Zones ordered', 'Only the City\'s pre-defined zones, or also zones within 1–3 km of the fire, or all hill zones at once. Other cities and the County order their zones within 1 km of the fire under every plan, so at 1 km the setting adds mostly Berkeley zones.', 'Exposure falls; more cars on the road at once.'],
-  ['Early departure', 'Share of households in the City\'s Leave Early Zones who leave on a Red Flag day, before any fire.', 'Exposure falls; evacuation time barely changes.'],
-  ['Future growth', 'Added homes in the hills, from none to the 2025 Evacuation Time Study\'s maximum ADU build-out (27,060 units). Both plans face the same growth.', 'Evacuation time and people still there when embers arrived.'],
-  ['R0', 'A plan setting that bars added units in one area: Leave Early Zones, Fire Zones 2–3 or areas behind a choke point.', 'How much of the growth\'s effect R0 removes.'],
-  ['Driver information and routing', 'How drivers find their way: Today\'s model (everyone well informed, idealized), habit, an ordinary navigation app, constrained egress guidance, or unconstrained system-optimal routing (comparison only), and the share of drivers who follow.', 'Households worse off, household by household, and people still there when embers arrived. Expert view only.'],
-  ['Hayward Fault earthquake', 'A scenario setting: street segments at the fault close before the fire starts, at a lower bound (crossing the mapped fault) or an upper bound (in the State Earthquake Fault Zone), and every City signal goes dark. The fire is still the wildfire scenario\'s.', 'Cars with no route out, engine reach, evacuation time.'],
-  ['Visibility', 'A scenario setting: clear, or poor from fog or smoke, which lowers free-flow speed on every street by 7.5% (an FHWA fog figure; applying it to every street is an assumption). Lane and junction capacity is not cut, and the fire is not slowed.', 'Engine reach; evacuation time barely moves.'],
-  ['Red Flag power shutoff', 'A scenario setting: signals in the hills, or all 146 City signals, go dark and run as all-way stops; grid-powered contraflow signs fail.', 'Evacuation time and queues at the dark junctions.'],
-  ['Contraflow', 'Both lanes of chosen two-way streets run outbound once officers or pre-installed signs start it. Only where at least 20 ft stays clear between parked cars.', 'Commuters turned back, live engine reach, evacuation time.'],
-  ['Police control of junctions', 'Officers from a shared pool take over pre-timed signals and the Time Study\'s congestion points after an arrival delay.', 'Evacuation time and queues at the controlled junctions.'],
-  ['Parking on hill streets', 'How much of the street parked cars take: today\'s mix, one side only, tight to the curb, none on narrow roads, or none.', 'Hill homes a fire engine can reach within the City\'s 5-minute standard. Engines do not fight the fire in this simulator, so better engine access has no effect on the fire. Evacuation flow barely changes.'],
+  ['Fire scenario', 'Where the modeled fire starts and how the wind blows, and so which zones the scenario orders out. Four illustrative fires; none is a forecast of where a fire will start.', 'Every question: where embers and the front reach, which ways out they reach.'],
+  ['Fire severity', 'How fast the modeled fire spreads and how far embers fly: low, medium (calibrated to the City\'s 1923 repeat) and high (the 1991 fire\'s pace in its first hour). Findings cover all three.', 'Whether a finding is consistent or depends on spread rate (sensitive).'],
+  ['Random seed', 'Which synthetic households live where, where cars are parked tonight, and random spot fires. Findings cover seeds 1–5.', 'Whether a finding repeats across draws (consistent) or not (mixed).'],
+  ['Night parking', 'Today\'s rule: both sides of most 17–24 ft hill streets parked at night, from one night\'s count of 11 blocks (2026-11-05). Expert view also runs the earlier rule.', 'Engine access: findings that change with the rule are labeled sensitive.'],
+  ['A change (question 4)', 'Leave earlier, decide faster, clear a curb, widen a block, add a road, buy out blocks, traffic operations. Each is compared with today\'s plan on the same fires, households, parked cars and seeds.', 'Whether a modeled connection stays available, engine reach, cars with no open route, and exposure.'],
+  ['Expert view', 'Every scenario and plan setting: time of day, growth, power shutoff, earthquake, visibility, routing, contraflow, police control.', 'Everything above, plus model time (labeled, not a forecast).'],
 ];
 function intro() {
-  modal(`<div class="intro"><h2>Berkeley Wildfire Evacuation Explorer</h2>
-  <p>Run a wildfire on Berkeley's real streets and watch residents' cars, parked cars and fire engines compete for the same narrow roads. Compare two ways of running an evacuation on the same fire and the same households.</p>
-  <p class="note">This is a teaching tool, not a prediction and not an official evacuation plan. The households are synthetic and the fire is illustrative. For real instructions see the <a href="https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation" target="_blank" rel="noopener">City's fire weather and evacuation page</a>.</p>
-  <div class="steps"><div><b>Today's plan</b>Pick one of four illustrative fires and watch it with today's plan: fire is orange, embers amber, cars blue, queues red. The outcomes on the right are the run you watched.</div><div><b>Change the plan</b>Explore changes that would mitigate damage and loss of life: leave earlier, clear a curb, add a road, buy out the most exposed blocks. Stack them and compare your plan with today's plan in 15 passes; each pass runs both plans on the same fire and households.</div><div><b>Set a goal</b>Say what a plan should achieve, such as cutting people still home when embers arrive by a quarter, and see the smallest combinations of changes that did it at the pace you pick, each checked on fresh passes. Open any of them in Change the plan.</div><div><b>Trust what holds</b>One pass can point the wrong way. A difference counts only where it shows up in every pass. Each change says what the simulator can't tell you about it.</div></div>
+  modal(`<div class="intro"><h2>Berkeley Wildfire Spread and Access Explorer</h2>
+  <p>Explore how different wildfire scenarios could affect Berkeley's neighborhoods and routes, and see which access vulnerabilities and possible mitigations recur across scenarios. The map uses Berkeley's real streets and terrain, illustrative fires and synthetic households.</p>
+  <p class="note">This tool explores modeled wildfire and access scenarios using public data and stated assumptions. Its maps show what happens in these simulations, not what will happen in an actual emergency. Fire behavior, road access, traffic, and emergency response can differ. This is not an evacuation order or route recommendation, and not an official evacuation plan or a prediction. Follow current instructions from Berkeley and Alameda County emergency officials: <a href="https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation" target="_blank" rel="noopener">City of Berkeley fire weather and evacuation</a>.</p>
+  <p><b>Choose a fire scenario to explore where fire may spread, which routes may become vulnerable, and what access options a mitigation could preserve.</b></p>
+  <div class="steps"><div><b>1 · Where could fire spread?</b>The modeled fire front and ember exposure for the chosen ignition and wind, across 15 runs.</div><div><b>2 · Which routes are critical?</b>Streets with only one modeled drivable way out, the links many residents share, and entrances narrower than a fire engine needs.</div><div><b>3 · What could lose access?</b>Where the modeled fire reached a street's only way out, and where parked cars leave no engine route within the City's 5-minute standard.</div><div><b>4 · Which changes preserve access?</b>One change at a time against the same runs, with and without it: which connections and access measures change, and whether that repeats.</div></div>
+  <p class="small">Every finding says whether it is <b>consistent</b> in the tested scenarios, <b>mixed</b> across them, or <b>sensitive</b> to an assumption, and names the runs behind it. A share of model runs is not a probability. Every number shows whether it is sourced, derived, an assumption, a model rule or synthetic.</p>
   <h3>The inputs and what they change</h3>
   <table><tr><th>Input</th><th>What it sets</th><th>What to watch</th></tr>${INPUTS.map(r => `<tr><td><b>${r[0]}</b></td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`).join('')}</table>
-  <h3>Reading the outcomes</h3>
-  <ul class="small">
-    <li><b>People still there when embers arrived</b>: each person counted once, where they were when embers first reached them: at home with a car, at home without a car, at home in a zone with no order, or on the road in a car that drove a street under embers. <b>…when the fire front arrived</b> is the harsher version. Neither is a count of deaths or injuries: the simulator does not model whether a house survives, whether people can shelter, or smoke. Use them to compare plans.</li>
-    <li><b>Evacuation time</b>: minutes after the first order until 90% of cars have left the order area, with the 2025 Evacuation Time Study's figure next to it for scale. The simulator lacks the City's signal timing, so on weekdays its times run 25–80 min short of the study's.</li>
-    <li><b>Fire-engine travel</b> from the nearest station to the fire edge, and streets where parked cars leave less than an engine's width.</li>
-    <li><b>Hill homes an engine can reach within 5 minutes</b>: the share of residents of Berkeley's Fire Zones 2–3 whose street an engine can reach from the nearest station within the City's 5-minute standard, given the plan's parked cars, before traffic and fire. It measures access only: engines do not fight the fire in this simulator.</li>
-  </ul>
-  <p class="small muted">In Guided view, changes that did not reliably help on the chosen fire in earlier tests (15 passes per fire) are shown greyed out with that explanation, so you can see they were considered. Expert view (the Guided / Expert switch at the top right of the page) opens every control: scenario, severity, seed, time of day and both plans. Every number shows whether it is sourced, derived, an assumption, a model rule or synthetic; see Assumptions &amp; limits and Data sources. Streets and residents beyond Berkeley (Oakland, Albany, Kensington, El Cerrito) are included up to the edge of the elevation data; north Kensington and Oakland south of about 37.84° N are not.</p>
-  <div class="start"><button id="intro-expert">Open expert view</button><button class="primary" id="intro-simple">Start: pick a fire</button></div></div>`, 'intro');
+  <p class="small muted">The traffic model clears roads faster than the City's 2025 Evacuation Time Study, so the explorer does not report evacuation times as results; where a clock appears it is model time, not a forecast (Assumptions &amp; limits, Model performance). Streets and residents beyond Berkeley (Oakland, Albany, Kensington, El Cerrito) are included up to the edge of the elevation data; north Kensington and Oakland south of about 37.84° N are not.</p>
+  <div class="start"><button id="intro-expert">Open expert view</button><button class="primary" id="intro-simple">Start: choose a fire scenario</button></div></div>`, 'intro');
   const go = m => { localStorage.setItem('bhe-intro-seen', '1'); $('modal').close(); setMode(m); };
   $('intro-simple').onclick = () => go('simple'); $('intro-expert').onclick = () => go('expert');
 }
@@ -1218,13 +1276,13 @@ $('btn-intro').onclick = intro;
 function guidedNote() {
   if (store.get('bhe-guided-seen') || $('modal').open || !document.body.classList.contains('simple')) return;
   modal(`<div class="guided-note"><h2>Guided view sets most inputs for you</h2>
-  <p>Guided view runs each fire with fixed settings, most of them in the middle of their range, so you can compare plans without tuning dozens of inputs. A real fire can go better or worse. Two of those choices matter most:</p>
+  <p>Guided view runs each fire with fixed settings so you can compare scenarios without tuning dozens of inputs. Two of those choices matter most for access:</p>
   <ul>
-    <li><b>When the order goes out.</b> The first evacuation order comes 10 minutes after the fire starts. A fire spotted late, or a slow decision, pushes it later; a fast one brings it sooner. The question "Decide faster" shows how much the timing alone changes who is still home when embers arrive.</li>
-    <li><b>How well traffic flows.</b> Traffic signals keep working, and every driver knows the best way out. On a Red Flag day the utility may cut power to the hills and leave signals dark, and many drivers take their usual route instead of the best one.</li>
+    <li><b>When the order goes out.</b> The first evacuation order comes 10 minutes after the modeled fire starts. The ready-made comparison "Decide faster" (question 4) shows how much the timing alone changes who is still home when embers arrive.</li>
+    <li><b>Parked cars at night.</b> Both sides of most 17–24 ft hill streets are parked, leaving one car's width. That rule rests on one night's count; findings that change with it are labeled sensitive.</li>
   </ul>
-  <p>Expert view (the switch at the top right) lets you set these and every other input: when the order goes out, power shutoffs, how drivers pick routes, time of day, future housing growth and more.</p>
-  <div class="start"><button class="primary" id="guided-ok">Got it!</button></div></div>`, 'guided');
+  <p>Expert view (the switch at the top right) lets you set every input, including power shutoffs, routing, time of day and future housing growth.</p>
+  <div class="start"><button class="primary" id="guided-ok">Got it</button></div></div>`, 'guided');
   $('guided-ok').onclick = () => $('modal').close();
 }
 $('modal').addEventListener('close', () => {
@@ -1267,10 +1325,10 @@ $('btn-assumptions').onclick = () => {
     <li>Vehicles may use every street. They head for the nearest road node outside every ordered or warned zone and the ember area, and, under Today's model, re-plan every minute around queues, fire and embers. Other ways drivers could find their route are under Driver information and routing below.</li>
     <li>Each link passes at most its capacity, holds at most its storage, and each intersection passes at most its capacity. On two-way streets with only one moving lane between parked cars, both directions share that lane: when cars come from both ways they take turns at gaps such as driveways, and the street loses capacity. Removing parking does not add evacuation lanes on two-way streets.</li>
     <li>Parked cars vary by block and seed: hill blocks are parked on one side or both, some cars sit partly off the pavement, and an occasional bad parking job (a wide vehicle, or a car far from the curb) narrows the gap. Residents stop parking where less than 8 ft would remain for a car. The City survey's "width with parking" is treated as the both-sides case.</li>
-    <li>At night, hill streets ${fmt(data.A.parking.range.night.narrowMinM / 0.3048)}–${fmt(data.A.parking.range.night.narrowMaxM / 0.3048)} ft wide are parked on both sides on ${fmt(100 * data.A.parking.range.night.narrowBothShareHills)}% of segments, leaving one car's width (8 ft): cars take turns and an engine cannot pass ${badge('assumption', A_NOTE('parking.range.night.narrow'))}. The rule rests on one night's count, at about 1 a.m. on 2026-11-05, of 11 narrow blocks, 10 of them parked on both sides. An Expert-view setting (Scenario) restores the rule used before that count.</li>
+    <li>At night, hill streets ${fmt(data.A.parking.range.night.narrowMinM / 0.3048)}–${fmt(data.A.parking.range.night.narrowMaxM / 0.3048)} ft wide are parked on both sides on ${fmt(100 * data.A.parking.range.night.narrowBothShareHills)}% of segments, leaving one car's width (8 ft): cars take turns and a modeled engine does not pass ${badge('assumption', A_NOTE('parking.range.night.narrow'))}. The rule rests on one night's count, at about 1 a.m. on 2026-11-05, of 11 narrow blocks, 10 of them parked on both sides. An Expert-view setting (Scenario) restores the rule used before that count.</li>
     <li>Households awaiting a commuter (Time Study) wait for that person to drive home first. The commuter enters at the edge of the evacuating area nearest home and drives in against the outbound traffic. A commuter turned back by fire leaves the household one car short.</li>
     <li>Gridlock relief: a vehicle stuck ${data.A.capacity.gridlockReliefS} s at the head of a queue squeezes forward. Without it the queue model can lock up for good in rings such as traffic circles.</li>
-    <li>Engines travel from the nearest station to the road point nearest the ignition that the fire has not yet reached. They cannot pass segments narrower than an engine (with parked cars), and are delayed by oncoming evacuees where only one lane is clear.</li>
+    <li>Engines travel from the nearest station to the road point nearest the ignition that the fire has not yet reached. Modeled engines do not pass segments narrower than an engine (with parked cars), and are delayed by oncoming evacuees where only one lane is clear.</li>
     <li>Engine reach ${badge('model rule')}: a home counts as reached within the City's ${data.A.access.engineServiceMin}-minute standard ${badge('sourced')} when an engine from one of Berkeley's 7 stations can drive to the nearer end of the home's street segment in that time, at ignition, before traffic and fire, on a route where every segment leaves 10 ft clear between parked cars and no fixed barrier closes it (gates and removable bollards cost ${data.A.access.barrierDelayS / 60} min). The home's own segment need not pass: the engine stops at its end. Engines drive both ways on one-way streets at 1.15 times the posted speed, with no turn or grade delays, so drive times are short: in the runs tested nearly every hill home with an engine route is within 5 minutes, and the measure mostly counts homes that parked cars cut off. Stations in Oakland, Kensington and Albany are not modeled, so the measure covers Berkeley's evacuation zones only. It says nothing about what an engine does on arrival.</li>
   </ul>
   <h3>Driver information and routing (plan setting, Expert view)</h3>
@@ -1278,27 +1336,26 @@ $('btn-assumptions').onclick = () => {
   <ul class="small">${Object.values(ROUTING).map(o => `<li><b>${esc(o.label)}</b> ${badge(o.category)}: ${esc(o.note)}</li>`).join('')}
     <li><b>Share of drivers who follow</b> ${badge('assumption')}: 100%, 65%, 50% or 15%. 15%: after the 2017 Northern and Southern California fires, 18–19% of surveyed evacuees used GPS and followed its route, and 7.5% after the 2018 Carr fire (Wong, Broader and Shaheen 2020, UC Institute of Transportation Studies, Table 10). 65%: in a 2024 evacuation drill in Roxborough Park, Colorado, 78 of 122 answers said the driver followed the route instructions (Dugstad et al. 2026). No real wildfire has measured compliance with official route guidance. The share stands in for everything the simulator cannot show: phone networks down or overloaded, people who distrust or ignore instructions, and agencies unwilling to direct people because of liability.</li>
     <li><b>Constrained guidance, settings</b>: forecast margin ${data.A.routing.forecastMarginMin} min ${badge('assumption')}; time tolerance ${data.A.routing.timeToleranceS} s ${badge('assumption')}; one second in the forecast ember area counts as ${data.A.routing.emberSecondWeight} s of driving ${badge('model rule')}; load balancing counts each car's queue delay ${1 + data.A.routing.systemQueueWeight} times ${badge('model rule')}. A street counts as in the forecast ember or fire area if embers or the front are forecast there by the time the driver would leave it, plus the margin. The forecast is the simulator's own fire, so it is never wrong; a real forecast would be uncertain, and the margin stands in for that. The comparison is the route the driver would take on their own (by habit). The time check uses current queues, and every following car at a junction gets the same route, so "never worse off" holds when the route is offered, not after the cars it sends together have built new queues. A route that is strictly safer under the forecast may be slower: with a perfect forecast the margin buys no safety in the simulator and only costs time, so some guided households reach safety later than by habit (see Households worse off below).</li>
-    <li><b>Households worse off</b> ${badge('model rule')} (Compare, when the plans differ in routing; outcomes panel, against Habit or Today's model): a household is worse off under Plan B if it is still there when embers or the fire front reach it, or cut off, where it was not under Plan A, or reaches safety more than ${data.A.routing.worseOffDelayMin} min later, or not at all. Runs are paired by seed, households by identity. Which car reaches a junction first is partly chance, and changing only that order moves hundreds to thousands of households by more than ${data.A.routing.worseOffDelayMin} min, so Compare runs each plan a second time with another serving order and counts households worse off under both B runs than under both A runs ("beyond chance"). In test runs on three fires (SOURCE_NOTES DG23), every option, constrained guidance included, left some households worse off than Habit beyond chance in nearly every run, while leaving thousands better off.</li>
+    <li><b>Households worse off</b> ${badge('model rule')} (Compare, when the plans differ in routing; outcomes panel, against Habit or Today's model): a household is worse off under Plan B if it is still there when embers or the fire front reach it, or cut off, where it was not under Plan A, or leaves the order and warning area more than ${data.A.routing.worseOffDelayMin} min later, or not at all. Runs are paired by seed, households by identity. Which car reaches a junction first is partly chance, and changing only that order moves hundreds to thousands of households by more than ${data.A.routing.worseOffDelayMin} min, so Compare runs each plan a second time with another serving order and counts households worse off under both B runs than under both A runs ("beyond chance"). In test runs on three fires (SOURCE_NOTES DG23), every option, constrained guidance included, left some households worse off than Habit beyond chance in nearly every run, while leaving thousands better off.</li>
     <li><b>What no simulator run can justify.</b> These runs compare designs on synthetic households and an illustrative fire. None of them justifies deploying route guidance in an evacuation; at most they help decide whether a carefully constrained pilot study is worth designing. The simulator does not model the liability of telling people which way to go, how people respond to an instruction they do not trust, or what happens when the guidance itself is wrong.</li>
   <h3>Contraflow, police control and power shutoff ${badge('model rule')} ${badge('assumption')}</h3>
   <ul class="small">
-    <li><b>Contraflow</b> (plan setting): once it starts, both lanes of a chosen two-way street carry traffic away from the order area and the inbound direction is closed. It runs only where at least ${fmt(2 * data.A.access.movingLaneM / 0.3048)} ft stays clear between the plan's parked cars (two 10-ft lanes); on narrower streets it gains nothing and the street stays two-way. The main hill exit streets are those that carried the most order-zone traffic out of the hills in status-quo runs, plus the entrances of the larger access-constrained areas (<code>tools/contraflow-streets.mjs</code>). A street runs contraflow only while its zone is ordered or warned: a segment in a zone told later starts later, and one in a zone the run never orders or warns stays two-way. Junction capacity is unchanged, so where the junction at the bottom of a street is the bottleneck, contraflow adds room to queue but not throughput. Costs it models: returning commuters cannot drive in (they turn back or reroute), and engines cannot drive up a contraflow street (they take another route or cannot reach). Officer-staffed contraflow needs one officer at every entry point (the street's outbound end and every side-street junction) and starts when they arrive; pre-installed signs and gates start ${OPS().contraflow.signDelayMin} min after the order. A sign fails if the fire reaches it first, or if it runs on grid power alone during a power shutoff; a failed sign falls back to officers or to no contraflow. Battery backup is assumed to last the whole run, which a shutoff that starts a day ahead of the fire might not allow. Not modeled: drivers who ignore the signs, wrong-way crashes, the time to clear inbound traffic off the street before it reverses, and rehearsal making people leave sooner.</li>
-    <li><b>Police control of junctions</b> (plan setting): officers arrive a set time after the first order and staff contraflow entry points first, then target junctions on the evacuation routes, busiest first (by the households whose first route passes through). An officer-controlled junction passes ${Math.round(OPS().police.capacityUplift * 100)}% more vehicles than its model capacity and lets approaches heading toward safety go first. That uplift is an assumption kept modest: the Time Study models staffed control as actuated signal timing (§4.3, p. 4-7) and finds converting pre-timed signals to actuated cuts evacuation time by up to 13% (p. 10-9); manual control can also do worse than a signal. The simulator models signals only as a capacity per road class, so officer control acts on that capacity, not on real signal phases.</li>
+    <li><b>Contraflow</b> (plan setting): once it starts, both lanes of a chosen two-way street carry traffic away from the order area and the inbound direction is closed. It runs only where at least ${fmt(2 * data.A.access.movingLaneM / 0.3048)} ft stays clear between the plan's parked cars (two 10-ft lanes); on narrower streets it gains nothing and the street stays two-way. The main hill exit streets are those that carried the most order-zone traffic out of the hills in status-quo runs, plus the entrances of the larger access-constrained areas (<code>tools/contraflow-streets.mjs</code>). A street runs contraflow only while its zone is ordered or warned: a segment in a zone told later starts later, and one in a zone the run never orders or warns stays two-way. Junction capacity is unchanged, so where the junction at the bottom of a street is the bottleneck, contraflow adds room to queue but not throughput. Costs it models: returning commuters do not drive in (they turn back or reroute), and the model sends no engine up a contraflow street (engines take another route or find none). Officer-staffed contraflow needs one officer at every entry point (the street's outbound end and every side-street junction) and starts when they arrive; pre-installed signs and gates start ${OPS().contraflow.signDelayMin} min after the order. A sign fails if the fire reaches it first, or if it runs on grid power alone during a power shutoff; a failed sign falls back to officers or to no contraflow. Battery backup is assumed to last the whole run, which a shutoff that starts a day ahead of the fire might not allow. Not modeled: drivers who ignore the signs, wrong-way crashes, the time to clear inbound traffic off the street before it reverses, and rehearsal making people leave sooner.</li>
+    <li><b>Police control of junctions</b> (plan setting): officers arrive a set time after the first order and staff contraflow entry points first, then target junctions on the evacuation routes, busiest first (by the households whose first route passes through). An officer-controlled junction passes ${Math.round(OPS().police.capacityUplift * 100)}% more vehicles than its model capacity and lets approaches heading out of the order area go first. That uplift is an assumption kept modest: the Time Study models staffed control as actuated signal timing (§4.3, p. 4-7) and finds converting pre-timed signals to actuated cuts evacuation time by up to 13% (p. 10-9); manual control can also do worse than a signal. The simulator models signals only as a capacity per road class, so officer control acts on that capacity, not on real signal phases.</li>
     <li><b>Night parking on narrow hill streets</b> (scenario setting, both plans; Expert view only): the default parks both sides of most 17–24 ft hill streets at night, leaving 8 ft ${badge('assumption', A_NOTE('parking.range.night.narrow'))}; the other option is the rule used before the 2026-11-05 count, under which residents stop parking a second side where under 8 ft would remain. Daytime parking is the same under both.</li>
     <li><b>Home-to-street access time</b> (scenario setting, both plans; Expert view only; off by default): a household leaves its street later by the terrain's extra walking time from door to curb, for three legs (two trips out with belongings, one back) ${badge('assumption')}. Height and distance come from Microsoft building footprints and the 4 m lidar DEM, joined to the nearest street ${badge('derived')}; walking speed on slopes from Tobler's hiking function and stair speeds from Fruin (${badge('sourced')}). Each household's delay is drawn from a separate random stream, so turning the setting on moves no other draw. Reduced-mobility times (MUTCD 3.0 ft/s, NIST stair speeds) are reported in <code>docs/walk-access.md</code> and not applied. The DEM is bare earth: it shows no retaining walls, inside stairs or floor levels, and the route is a straight line, so a winding stair or driveway takes longer than this.</li>
     <li><b>Red Flag power shutoff</b> (scenario setting): dark signals run as all-way stops (California Vehicle Code §21800(d)) at about ${fmt(OPS().powerShutoff.allWayStopVph)} vehicles per hour through the junction, or less where the model's capacity was already lower. No public source says which Berkeley signals have battery backup, so none is assumed. An officer at a dark signal restores it to officer control. Streetlights, phones, alerts and water pressure, which a shutoff also affects, are not modeled.</li>
     <li><b>Weekday non-resident placement</b> (scenario setting, Expert view; default by area): the Time Study gives employee, student and visitor vehicles by area, not by street ${badge('sourced')}. By area spreads each area's vehicles over its streets by length ${badge('model rule')}. By workplace keeps those totals and places employees within a 10-minute walk (800 m) of the blocks where LEHD LODES 2023 counts jobs held by people living outside Berkeley ${badge('derived')}, and UC and Lab cars in off-street parking from OpenStreetMap, scaled to UC's published 5,500 spaces ${badge('model rule')}. LODES counts every employer, the study only those with 100 or more staff, and LODES puts all of UC's jobs on one block, so UC uses parking instead. With it on, weekday 90% times move by 0–5 min (calibration, fire off); the weekday gap to the study stays (docs/weekday-placement.md).</li>
   </ul>
-  <h3>Information gaps and how far off they make the simulator</h3>
+  ${modelPerformanceHTML()}
+  <h3>Known data gaps ${badge('assumption')}</h3>
   <ul class="small">
-    <li><b>Traffic signal timing ${badge('assumption')}.</b> The City has not published its signal timings, so every junction gets a typical delay and a capacity by road class (<code>intersections</code> above). The 2025 Time Study used the City's timings and found intersections to be the main constraint. The simulator therefore clears traffic too fast when roads are busy. Measured against the study (90% of order-zone vehicles out, no fire, median of 3 seeds):
-      <ul>
-        <li>Panoramic Hill: within about 10 min of the study at all times of day.</li>
-        <li>1923 repeat and Fire Zones 2–3, nights and weekends: 15–25 min too fast (study 1 h 45 min to 1 h 55 min; simulator about 1 h 30 min).</li>
-        <li>Same regions on weekdays: 25–80 min too fast. On a fall weekday the study takes 2 h 55 min for the 1923 region; the simulator takes about 1 h 35 min.</li>
-        <li>North Berkeley Hills (the north-hills fire): 13–29 min too fast at night and on weekends, 19–30 min on weekdays (fall weekday: study 2 h 5 min, simulator about 1 h 46 min).</li>
-      </ul>
-      Read weekday clearance times for the large regions as a lower bound: the study's times run up to 1.8 times the simulator's. Part of the gap also comes from where employees and students park, which the simulator places by area. Differences between two plans are more reliable than either plan's clock time, but a plan that sends more traffic through signals the study found congested (around the UC campus, and the pre-timed signal at Cedar St and MLK Jr Way) can look better in the simulator than it would on the street. The outcomes panel shows the study's time for the same case.</li>
+    <li><b>Traffic signal timing.</b> The City has not published its signal timings, so every junction gets a typical delay and a capacity by road class (<code>intersections</code> above). The 2025 Time Study used the City's timings and found intersections to be the main constraint.</li>
+    <li><b>Parked cars at night.</b> One night's count (2026-11-05, about 1 a.m., 19 of 22 blocks) sets the night rule; there is no count for streets under 17 ft or for corners. Findings that change with the rule are labeled sensitive.</li>
+    <li><b>Where employees, students and visitors park.</b> The Time Study gives vehicles by area, not by street; the simulator places them by area.</li>
+    <li><b>How the Lab runs its gates, and which Berkeley signals have battery backup.</b> No public source; the simulator assumes exit-only gates and no backup.</li>
+    <li><b>Fire behavior.</b> The fire uses a fuel proxy from the City fire zones, not vegetation data by default; where its embers land does not follow the County's Ember Threat Zones (docs/fire-validation.md).</li>
+    <li>None of these needs a government response or a field survey to use the explorer; each is disclosed here and in DATA_INVENTORY.md.</li>
   </ul>
   <h3>What Phase 1 does not do</h3>
   <ul class="small">

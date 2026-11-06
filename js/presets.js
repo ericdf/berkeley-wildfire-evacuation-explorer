@@ -29,13 +29,13 @@ export const PRESETS = [
     A: plan('A: everyone waits for an order'),
     B: plan('B: half of hill households leave on the Red Flag warning', { earlyShare: 0.5, earlyZones: 'fz23' }),
     on: {
-      eastWind: 'In Plan B about a sixth fewer people are still there when embers arrive (about 6,300 against 5,250 in the medium-severity case), and 90% of cars are out about a minute sooner. If only the City\'s smaller Leave Early Zones do it, the drop is about 2%: most hill residents live outside them.',
-      ref1923: 'In Plan B about 30% fewer people are still there when embers arrive (about 4,050 against 2,850 in the medium-severity case), and 90% of cars are out about 2 minutes sooner (89 against 91 min).',
-      panoramic: `In Plan B about a seventh fewer people are still there when embers arrive (about 13,500 against 11,600 in the medium-severity case). ${PANORAMIC_UNORDERED} In most runs not all ordered cars get out within the 4 hours simulated, so watch the count, not the clearance time.`,
-      northHills: 'In Plan B about a fifth fewer people are still there when embers arrive (about 4,850 against 3,750 in the medium-severity case), and 90% of cars are out about a minute sooner. If only the City\'s smaller Leave Early Zones do it, the drop is about 10%.',
+      eastWind: 'In Plan B about a sixth fewer modeled residents are not yet out when modeled embers reach their street (about 6,300 against 5,300 in the medium-severity case). If only the City\'s smaller Leave Early Zones do it, the drop is about 2%: most hill residents live outside them.',
+      ref1923: 'In Plan B about 30% fewer modeled residents are not yet out when modeled embers reach their street (about 4,050 against 2,850 in the medium-severity case).',
+      panoramic: `In Plan B about a seventh fewer modeled residents are not yet out when modeled embers reach their street (about 13,500 against 11,550 in the medium-severity case). ${PANORAMIC_UNORDERED}`,
+      northHills: 'In Plan B about a fifth fewer modeled residents are not yet out when modeled embers reach their street (about 4,850 against 3,750 in the medium-severity case). If only the City\'s smaller Leave Early Zones do it, the drop is about 10%.',
     },
     off: {},
-    headline: { label: 'People still there when embers arrived', f: exposed, dir: -1 },
+    headline: { label: 'Modeled residents not yet out when embers reached their street', f: exposed, dir: -1 },
   },
   {
     id: 'orderSooner',
@@ -45,16 +45,19 @@ export const PRESETS = [
     A: plan('A: first order 20 min after ignition', { orderDelayMin: 20 }),
     B: plan('B: first order 5 min after ignition', { orderDelayMin: 5 }),
     on: {
-      ref1923: 'About a fifth fewer people are still there when embers arrive (about 5,800 against 4,650 in the medium-severity case). The time to clear the roads hardly changes: the gain is people getting out ahead of the fire, not faster traffic.',
-      eastWind: 'About 8% fewer people are still there when embers arrive (about 7,400 against 6,800 in the medium-severity case). The time to clear the roads hardly changes: the gain is people getting out ahead of the fire, not faster traffic.',
-      panoramic: `About 5% fewer people are still there when embers arrive (about 14,600 against 13,900 in the medium-severity case), a smaller gain than on the two larger fires. ${PANORAMIC_UNORDERED}`,
-      northHills: 'About 11% fewer people are still there when embers arrive (about 5,600 against 4,950 in the medium-severity case). The time to clear the roads hardly changes: the gain is people getting out ahead of the fire, not faster traffic.',
+      ref1923: 'About a fifth fewer modeled residents are not yet out when modeled embers reach their street (about 5,950 against 4,850 in the medium-severity case). The gain comes from people leaving ahead of the modeled fire, not from faster traffic.',
+      eastWind: 'About 8% fewer modeled residents are not yet out when modeled embers reach their street (about 7,400 against 6,850 in the medium-severity case). The gain comes from people leaving ahead of the modeled fire, not from faster traffic.',
+      panoramic: `About 5% fewer modeled residents are not yet out when modeled embers reach their street (about 14,600 against 13,900 in the medium-severity case), a smaller gain than on the two larger fires. ${PANORAMIC_UNORDERED}`,
+      northHills: 'About 11% fewer modeled residents are not yet out when modeled embers reach their street (about 5,600 against 5,000 in the medium-severity case). The gain comes from people leaving ahead of the modeled fire, not from faster traffic.',
     },
     off: {},
-    headline: { label: 'People still there when embers arrived', f: exposed, dir: -1 },
+    headline: { label: 'Modeled residents not yet out when embers reached their street', f: exposed, dir: -1 },
   },
   {
     id: 'timeOfDay',
+    // Not offered in Guided view since 2026-11-06: its headline is a clearance time, which the explorer no longer
+    // reports as a result (product brief; SOURCE_NOTES SA10, CD1–CD16). Kept here so tests/plan-draws.mjs still checks it.
+    hidden: true,
     title: 'Weekday midday or night',
     question: 'The same fire and the same plan: how much does a weekday afternoon slow the evacuation compared with night?',
     tod: 'S4', tods: { A: 'S4', B: 'S6' },
@@ -81,14 +84,13 @@ export const PRESETS = [
     // Headline and numbers: SOURCE_NOTES ER2, rerun under the night parking rule in NP6 (central medians). Reach at ignition
     // depends on the seed's parked cars, not the fire, so it is the same on every fire; the end-of-run share (traffic and fire) differs.
     on: Object.fromEntries([['eastWind', '50%', '80%', 4], ['ref1923', '46%', '71%', 6], ['panoramic', '50%', '82%', 4], ['northHills', '55%', '76%', 4]].map(([id, la, lb, hours]) => [id,
-      'Count the hill residents a fire engine cannot reach from a station within the City\'s 5-minute standard, before traffic and fire: about 9,900 of Berkeley\'s 27,900 Fire Zones 2–3 residents with today\'s parking, about 1,050 with parking on one side (central case; fewer in every run). '
-      + 'At night residents park both sides of most hill streets 17–24 ft wide, leaving one car\'s width: cars get through by taking turns, an engine does not. That rule rests on one night\'s count, at about 1 a.m., of 11 narrow blocks. '
-      + 'With parking on one side, most of those left are on Panoramic Hill: its lowest block of Panoramic Way is 17 ft wide, and in 4 of the 5 test seeds a car parked there leaves less than an engine\'s width, cutting off about 990 people. '
+      'Count the modeled hill residents for whom the modeled road network gives no engine route from a station within the City\'s 5-minute standard, before traffic and fire: about 9,900 of Berkeley\'s 27,900 Fire Zones 2–3 residents with today\'s parking, about 1,050 with parking on one side (central case; fewer in every run). '
+      + 'At night residents park both sides of most hill streets 17–24 ft wide, leaving one car\'s width: modeled cars get through by taking turns, a modeled engine does not. That rule rests on one night\'s count, at about 1 a.m., of 11 narrow blocks. '
+      + 'With parking on one side, most of those left are on Panoramic Hill: its lowest block of Panoramic Way is 17 ft wide, and in 4 of the 5 test seeds a car parked there leaves less than an engine\'s width, leaving about 990 modeled residents with no engine route. '
       + `By the end of the ${hours}-hour run, with evacuation traffic and burned streets, an engine can reach ${la} of hill residents within 5 minutes under Plan A and ${lb} under Plan B. `
       + 'Color streets by "Engine drive time" (Expert view, Map) to see where. One-side parking also cuts street segments too narrow for an engine from about 1,100 to 143. '
-      + (id === 'panoramic' ? 'Evacuation time cannot be compared here, because in most runs not all ordered cars get out within the 4 hours simulated.'
-        : 'Evacuation time does not change: on a two-way street, removing parking opens the oncoming lane, not a second lane out. People still there when embers arrive show no consistent change either: engines do not fight the fire in this simulator, and parking changes traffic on hill streets only a little.')])),
+      + 'Modeled residents not yet out when embers reach their street show no consistent change: engines do not fight the fire in this simulator, and on a two-way street removing parking opens the oncoming lane, not a second lane out.'])),
     off: {},
-    headline: { label: 'Hill residents an engine cannot reach within 5 minutes', f: S => S.engineReachBeyond5People, dir: -1 },
+    headline: { label: 'Hill residents with no engine route meeting the 5-minute standard', f: S => S.engineReachBeyond5People, dir: -1 },
   },
 ];
