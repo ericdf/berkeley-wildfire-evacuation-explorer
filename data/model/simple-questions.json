@@ -1,6 +1,6 @@
 {
  "meta": {
-  "built": "2026-11-05",
+  "built": "2026-11-06",
   "tool": "tools/simple-questions.mjs",
   "householdMix": "place",
   "seeds": 5,
@@ -11,7 +11,7 @@
   ],
   "rule": "SOURCE_NOTES P19: Plan B better on the headline in every pair and a central median change of 5% or more; a missing 90% time fails",
   "runs": 540,
-  "wallMin": 15.6,
+  "wallMin": 14.3,
   "workers": 4
  },
  "questions": {
@@ -19,14 +19,14 @@
    "eastWind": {
     "wins": 15,
     "pairs": 15,
-    "centralChange": -0.1648,
+    "centralChange": -0.1635,
     "offered": true,
     "offeredNow": true,
     "medians": {
      "A": {
-      "headline": 6306.890062495023,
-      "exposed": 6306.890062495023,
-      "clearP90": 92,
+      "headline": 6309.253074996644,
+      "exposed": 6309.253074996644,
+      "clearP90": 93.58333333333333,
       "orderVehicles": 13801,
       "otherCityVehicles": 173,
       "vehicles": 13984,
@@ -38,9 +38,9 @@
       "engineBlockedSegments": 1116
      },
      "B": {
-      "headline": 5267.616197673601,
-      "exposed": 5267.616197673601,
-      "clearP90": 90.83333333333333,
+      "headline": 5277.377960463971,
+      "exposed": 5277.377960463971,
+      "clearP90": 91.91666666666667,
       "orderVehicles": 7733,
       "otherCityVehicles": 84,
       "vehicles": 7824,
@@ -54,7 +54,7 @@
      "Blez": {
       "headline": 6210.210118745837,
       "exposed": 6210.210118745837,
-      "clearP90": 91.5,
+      "clearP90": 92.58333333333333,
       "orderVehicles": 12381,
       "otherCityVehicles": 173,
       "vehicles": 12554,
@@ -70,14 +70,14 @@
    "ref1923": {
     "wins": 15,
     "pairs": 15,
-    "centralChange": -0.2942,
+    "centralChange": -0.2974,
     "offered": true,
     "offeredNow": true,
     "medians": {
      "A": {
-      "headline": 4027.5471810581394,
-      "exposed": 4027.5471810581394,
-      "clearP90": 90.75,
+      "headline": 4051.292471587213,
+      "exposed": 4051.292471587213,
+      "clearP90": 91.25,
       "orderVehicles": 14840,
       "otherCityVehicles": 164,
       "vehicles": 20409,
@@ -89,9 +89,9 @@
       "engineBlockedSegments": 1116
      },
      "B": {
-      "headline": 2842.838481058151,
-      "exposed": 2842.838481058151,
-      "clearP90": 88.75,
+      "headline": 2846.325681058151,
+      "exposed": 2846.325681058151,
+      "clearP90": 88.83333333333333,
       "orderVehicles": 10900,
       "otherCityVehicles": 81,
       "vehicles": 15960,
@@ -103,12 +103,12 @@
       "engineBlockedSegments": 1116
      },
      "Blez": {
-      "headline": 3815.214171587225,
-      "exposed": 3815.214171587225,
-      "clearP90": 90.5,
+      "headline": 3797.6598810581513,
+      "exposed": 3797.6598810581513,
+      "clearP90": 90.66666666666667,
       "orderVehicles": 13769,
       "otherCityVehicles": 164,
-      "vehicles": 19229,
+      "vehicles": 19228,
       "noVehicleNoRide": 1913.1509999999978,
       "engineBeyond5": 9926.408900000708,
       "engineHillPeople": 27875.215500000384,
@@ -126,8 +126,8 @@
     "offeredNow": true,
     "medians": {
      "A": {
-      "headline": 13523.803743736184,
-      "exposed": 13523.803743736184,
+      "headline": 13523.698487485373,
+      "exposed": 13523.698487485373,
       "clearP90": null,
       "orderVehicles": 711,
       "otherCityVehicles": 809,
@@ -154,8 +154,8 @@
       "engineBlockedSegments": 1116
      },
      "Blez": {
-      "headline": 12169.677762481966,
-      "exposed": 12169.677762481966,
+      "headline": 12160.314362481968,
+      "exposed": 12160.314362481968,
       "clearP90": null,
       "orderVehicles": 537,
       "otherCityVehicles": 809,
@@ -172,14 +172,14 @@
    "northHills": {
     "wins": 15,
     "pairs": 15,
-    "centralChange": -0.2203,
+    "centralChange": -0.2275,
     "offered": true,
     "offeredNow": true,
     "medians": {
      "A": {
-      "headline": 4835.329712710631,
-      "exposed": 4835.329712710631,
-      "clearP90": 92.33333333333333,
+      "headline": 4854.7266415243685,
+      "exposed": 4854.7266415243685,
+      "clearP90": 93.91666666666667,
       "orderVehicles": 11356,
       "otherCityVehicles": 2874,
       "vehicles": 14255,
@@ -191,9 +191,9 @@
       "engineBlockedSegments": 1116
      },
      "B": {
-      "headline": 3770.3138271175303,
-      "exposed": 3770.3138271175303,
-      "clearP90": 91.16666666666667,
+      "headline": 3750.2809415243996,
+      "exposed": 3750.2809415243996,
+      "clearP90": 92.58333333333333,
       "orderVehicles": 6176,
       "otherCityVehicles": 2126,
       "vehicles": 8292,
@@ -205,9 +205,9 @@
       "engineBlockedSegments": 1116
      },
      "Blez": {
-      "headline": 4340.4831415243925,
-      "exposed": 4340.4831415243925,
-      "clearP90": 92,
+      "headline": 4353.549441524392,
+      "exposed": 4353.549441524392,
+      "clearP90": 93.33333333333333,
       "orderVehicles": 10337,
       "otherCityVehicles": 2874,
       "vehicles": 13217,
@@ -230,12 +230,12 @@
     "offeredNow": true,
     "medians": {
      "A": {
-      "headline": 7392.170801402399,
-      "exposed": 7392.170801402399,
-      "clearP90": 105.41666666666667,
-      "orderVehicles": 15949,
+      "headline": 7408.129689932322,
+      "exposed": 7408.129689932322,
+      "clearP90": 106.25,
+      "orderVehicles": 15948,
       "otherCityVehicles": 173,
-      "vehicles": 16126,
+      "vehicles": 16125,
       "noVehicleNoRide": 670.9930000000012,
       "engineBeyond5": 1241.4918000002617,
       "engineHillPeople": 27875.215500000384,
@@ -244,12 +244,12 @@
       "engineBlockedSegments": 211
      },
      "B": {
-      "headline": 6817.9259993122305,
-      "exposed": 6817.9259993122305,
-      "clearP90": 105.41666666666667,
-      "orderVehicles": 15950,
+      "headline": 6832.421391248812,
+      "exposed": 6832.421391248812,
+      "clearP90": 106.08333333333333,
+      "orderVehicles": 15949,
       "otherCityVehicles": 173,
-      "vehicles": 16127,
+      "vehicles": 16126,
       "noVehicleNoRide": 664.7208000000014,
       "engineBeyond5": 1241.4918000002617,
       "engineHillPeople": 27875.215500000384,
@@ -262,18 +262,18 @@
    "ref1923": {
     "wins": 15,
     "pairs": 15,
-    "centralChange": -0.1961,
+    "centralChange": -0.1812,
     "offered": true,
     "offeredNow": true,
     "medians": {
      "A": {
-      "headline": 5809.74671894101,
-      "exposed": 5809.74671894101,
-      "clearP90": 98.83333333333333,
-      "orderVehicles": 24186,
+      "headline": 5937.102902720266,
+      "exposed": 5937.102902720266,
+      "clearP90": 100.41666666666667,
+      "orderVehicles": 24185,
       "otherCityVehicles": 163,
-      "vehicles": 34965,
-      "noVehicleNoRide": 1953.8686999999957,
+      "vehicles": 34960,
+      "noVehicleNoRide": 1956.4142999999956,
       "engineBeyond5": 1241.4918000002617,
       "engineHillPeople": 27875.215500000384,
       "engineShareIgnition": 0.9554625218951134,
@@ -281,12 +281,12 @@
       "engineBlockedSegments": 211
      },
      "B": {
-      "headline": 4670.6017467566,
-      "exposed": 4670.6017467566,
-      "clearP90": 97.16666666666667,
+      "headline": 4861.51338924752,
+      "exposed": 4861.51338924752,
+      "clearP90": 98.91666666666667,
       "orderVehicles": 24186,
       "otherCityVehicles": 163,
-      "vehicles": 34966,
+      "vehicles": 34965,
       "noVehicleNoRide": 1953.8686999999957,
       "engineBeyond5": 1241.4918000002617,
       "engineHillPeople": 27875.215500000384,
@@ -299,13 +299,13 @@
    "panoramic": {
     "wins": 15,
     "pairs": 15,
-    "centralChange": -0.0503,
+    "centralChange": -0.0506,
     "offered": true,
     "offeredNow": true,
     "medians": {
      "A": {
-      "headline": 14609.742074821426,
-      "exposed": 14609.742074821426,
+      "headline": 14618.879974821426,
+      "exposed": 14618.879974821426,
       "clearP90": null,
       "orderVehicles": 905,
       "otherCityVehicles": 760,
@@ -318,8 +318,8 @@
       "engineBlockedSegments": 211
      },
      "B": {
-      "headline": 13875.589663105602,
-      "exposed": 13875.589663105602,
+      "headline": 13878.726263105604,
+      "exposed": 13878.726263105604,
       "clearP90": null,
       "orderVehicles": 912,
       "otherCityVehicles": 760,
@@ -336,32 +336,32 @@
    "northHills": {
     "wins": 15,
     "pairs": 15,
-    "centralChange": -0.115,
+    "centralChange": -0.1083,
     "offered": true,
     "offeredNow": true,
     "medians": {
      "A": {
-      "headline": 5580.278764419627,
-      "exposed": 5580.278764419627,
-      "clearP90": 106.91666666666667,
-      "orderVehicles": 12751,
+      "headline": 5587.823076425631,
+      "exposed": 5587.823076425631,
+      "clearP90": 108.33333333333333,
+      "orderVehicles": 12748,
       "otherCityVehicles": 2608,
-      "vehicles": 15399,
-      "noVehicleNoRide": 300.8769999999994,
+      "vehicles": 15398,
+      "noVehicleNoRide": 306.0589999999995,
       "engineBeyond5": 1241.4918000002617,
       "engineHillPeople": 27875.215500000384,
       "engineShareIgnition": 0.9554625218951134,
-      "engineShareEnd": 0.7435877638088898,
+      "engineShareEnd": 0.7451668537569788,
       "engineBlockedSegments": 211
      },
      "B": {
-      "headline": 4938.4392575831735,
-      "exposed": 4938.4392575831735,
-      "clearP90": 106.41666666666667,
-      "orderVehicles": 12753,
+      "headline": 4982.6849279639055,
+      "exposed": 4982.6849279639055,
+      "clearP90": 107.75,
+      "orderVehicles": 12752,
       "otherCityVehicles": 2608,
       "vehicles": 15399,
-      "noVehicleNoRide": 295.9560999999993,
+      "noVehicleNoRide": 298.3665999999993,
       "engineBeyond5": 1241.4918000002617,
       "engineHillPeople": 27875.215500000384,
       "engineShareIgnition": 0.9554625218951134,
@@ -375,18 +375,18 @@
    "eastWind": {
     "wins": 15,
     "pairs": 15,
-    "centralChange": -0.1259,
+    "centralChange": -0.1206,
     "offered": true,
     "offeredNow": true,
     "medians": {
      "A": {
-      "headline": 105.25,
-      "exposed": 7028.858988710416,
-      "clearP90": 105.25,
-      "orderVehicles": 15949,
+      "headline": 106.41666666666667,
+      "exposed": 7029.63635802743,
+      "clearP90": 106.41666666666667,
+      "orderVehicles": 15948,
       "otherCityVehicles": 173,
-      "vehicles": 16126,
-      "noVehicleNoRide": 664.7208000000014,
+      "vehicles": 16125,
+      "noVehicleNoRide": 667.2664000000015,
       "engineBeyond5": 1241.4918000002617,
       "engineHillPeople": 27875.215500000384,
       "engineShareIgnition": 0.9554625218951134,
@@ -394,9 +394,9 @@
       "engineBlockedSegments": 211
      },
      "B": {
-      "headline": 92,
-      "exposed": 6306.890062495023,
-      "clearP90": 92,
+      "headline": 93.58333333333333,
+      "exposed": 6309.253074996644,
+      "clearP90": 93.58333333333333,
       "orderVehicles": 13801,
       "otherCityVehicles": 173,
       "vehicles": 13984,
@@ -412,14 +412,14 @@
    "ref1923": {
     "wins": 15,
     "pairs": 15,
-    "centralChange": -0.07,
+    "centralChange": -0.0791,
     "offered": true,
     "offeredNow": false,
     "medians": {
      "A": {
-      "headline": 97.58333333333333,
-      "exposed": 4964.787283445715,
-      "clearP90": 97.58333333333333,
+      "headline": 99.08333333333333,
+      "exposed": 5127.657983475962,
+      "clearP90": 99.08333333333333,
       "orderVehicles": 24186,
       "otherCityVehicles": 163,
       "vehicles": 34965,
@@ -431,9 +431,9 @@
       "engineBlockedSegments": 211
      },
      "B": {
-      "headline": 90.75,
-      "exposed": 4027.5471810581394,
-      "clearP90": 90.75,
+      "headline": 91.25,
+      "exposed": 4051.292471587213,
+      "clearP90": 91.25,
       "orderVehicles": 14840,
       "otherCityVehicles": 164,
       "vehicles": 20409,
@@ -455,7 +455,7 @@
     "medians": {
      "A": {
       "headline": null,
-      "exposed": 14137.877771703665,
+      "exposed": 14140.625371703665,
       "clearP90": null,
       "orderVehicles": 909,
       "otherCityVehicles": 760,
@@ -469,7 +469,7 @@
      },
      "B": {
       "headline": null,
-      "exposed": 13523.803743736184,
+      "exposed": 13523.698487485373,
       "clearP90": null,
       "orderVehicles": 711,
       "otherCityVehicles": 809,
@@ -486,28 +486,28 @@
    "northHills": {
     "wins": 15,
     "pairs": 15,
-    "centralChange": -0.133,
+    "centralChange": -0.1291,
     "offered": true,
     "offeredNow": true,
     "medians": {
      "A": {
-      "headline": 106.5,
-      "exposed": 5146.5568940668045,
-      "clearP90": 106.5,
-      "orderVehicles": 12752,
+      "headline": 107.83333333333333,
+      "exposed": 5133.478521960888,
+      "clearP90": 107.83333333333333,
+      "orderVehicles": 12751,
       "otherCityVehicles": 2608,
       "vehicles": 15399,
-      "noVehicleNoRide": 298.3665999999993,
+      "noVehicleNoRide": 300.8769999999994,
       "engineBeyond5": 1241.4918000002617,
       "engineHillPeople": 27875.215500000384,
       "engineShareIgnition": 0.9554625218951134,
-      "engineShareEnd": 0.7436667183062942,
+      "engineShareEnd": 0.7451668537569788,
       "engineBlockedSegments": 211
      },
      "B": {
-      "headline": 92.33333333333333,
-      "exposed": 4835.329712710631,
-      "clearP90": 92.33333333333333,
+      "headline": 93.91666666666667,
+      "exposed": 4854.7266415243685,
+      "clearP90": 93.91666666666667,
       "orderVehicles": 11356,
       "otherCityVehicles": 2874,
       "vehicles": 14255,
@@ -531,8 +531,8 @@
     "medians": {
      "A": {
       "headline": 9926.408900000708,
-      "exposed": 6306.890062495023,
-      "clearP90": 92,
+      "exposed": 6309.253074996644,
+      "clearP90": 93.58333333333333,
       "orderVehicles": 13801,
       "otherCityVehicles": 173,
       "vehicles": 13984,
@@ -545,8 +545,8 @@
      },
      "B": {
       "headline": 1043.3397000002187,
-      "exposed": 6313.769274996644,
-      "clearP90": 92,
+      "exposed": 6317.198231247454,
+      "clearP90": 93.33333333333333,
       "orderVehicles": 13801,
       "otherCityVehicles": 173,
       "vehicles": 13984,
@@ -568,8 +568,8 @@
     "medians": {
      "A": {
       "headline": 9926.408900000708,
-      "exposed": 4027.5471810581394,
-      "clearP90": 90.75,
+      "exposed": 4051.292471587213,
+      "clearP90": 91.25,
       "orderVehicles": 14840,
       "otherCityVehicles": 164,
       "vehicles": 20409,
@@ -582,8 +582,8 @@
      },
      "B": {
       "headline": 1043.3397000002187,
-      "exposed": 4041.1066810581397,
-      "clearP90": 90.83333333333333,
+      "exposed": 4053.32848105814,
+      "clearP90": 91.08333333333333,
       "orderVehicles": 14840,
       "otherCityVehicles": 164,
       "vehicles": 20409,
@@ -605,7 +605,7 @@
     "medians": {
      "A": {
       "headline": 9926.408900000708,
-      "exposed": 13523.803743736184,
+      "exposed": 13523.698487485373,
       "clearP90": null,
       "orderVehicles": 711,
       "otherCityVehicles": 809,
@@ -619,7 +619,7 @@
      },
      "B": {
       "headline": 1043.3397000002187,
-      "exposed": 13513.198787485373,
+      "exposed": 13505.86826248213,
       "clearP90": null,
       "orderVehicles": 711,
       "otherCityVehicles": 809,
@@ -642,8 +642,8 @@
     "medians": {
      "A": {
       "headline": 9926.408900000708,
-      "exposed": 4835.329712710631,
-      "clearP90": 92.33333333333333,
+      "exposed": 4854.7266415243685,
+      "clearP90": 93.91666666666667,
       "orderVehicles": 11356,
       "otherCityVehicles": 2874,
       "vehicles": 14255,
@@ -656,8 +656,8 @@
      },
      "B": {
       "headline": 1043.3397000002187,
-      "exposed": 4838.1249838968915,
-      "clearP90": 92.33333333333333,
+      "exposed": 4839.523870338107,
+      "clearP90": 93.75,
       "orderVehicles": 11356,
       "otherCityVehicles": 2874,
       "vehicles": 14255,
