@@ -14,7 +14,8 @@ Status words: **open** (not reported), **reported** (told the publisher; say who
 **Status:** reported 2026-11-04: Eric emailed the note to the City, and the recipient acknowledged it. Found 2026-11-03 (Claude Code, Phase 3 step 3a, PR #53).
 Eric asked on 2026-11-04 that it be recorded here, and on the same day that a note to the City be drafted. The email,
 "Structure-distance layer: NEAR_DIST reads about 27% high (Web Mercator)", carried I3 as a second item and
-the evidence below. Not yet fixed by the publisher (layer last edited 2023-09-13).
+the evidence below. 2026-11-06: the City replied that staff will correct the layer. Not yet corrected (layer still
+last edited 2023-09-13 on 2026-11-06).
 
 **The layer.** City of Berkeley ArcGIS Online, `Distance_between_structures_in_Fire_Zones_2_and_3_WFL1`, layer 3
 "Distance Between Structures" (the same 7,706 features are in `Structure_Distance_in_Berkeley_Fire_Zones_2_and_3_WFL1`,
@@ -132,7 +133,9 @@ was written 2026-11-04 as an email in Eric's drafts (see Status), with evidence 
 
 **Status:** reported 2026-11-04: Eric emailed it as a separate note, acknowledged. Found 2026-11-03 (Claude Code, Phase 3 design note, PR #48).
 Subject: "Public layer home_hardening_csv_test may expose household
-records". Whether the layer's sharing has changed is not checked.
+records". **Fixed 2026-11-06:** the City changed the layer's sharing. Checked without signing in on 2026-11-06:
+the layer and its count query return "Token Required", and it is gone from the public service list and ArcGIS Online
+search. No records were requested.
 
 **The layer.** City of Berkeley ArcGIS Online, `home_hardening_csv_test`, layer 0: 390 points, last edited 2026-05-08.
 Its field names include `property_address`, `own_rent`, `inspector_name`, `date_submitted`, `status` and requested vent
