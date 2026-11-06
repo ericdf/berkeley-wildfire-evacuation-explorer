@@ -278,8 +278,8 @@ $('growth').onchange = () => { growthNote(); r0Note(); newRun(); };
 mixNote();
 ['severity', 'seed', 'tod'].forEach(id => $(id).onchange = () => { todNote(); newRun(); });
 $('street-mode').onchange = e => { map.streetMode = e.target.value; map.draw(); legend(); };
-$('speed').onchange = e => state.speed = +e.target.value;
-$('run').onclick = () => { if (state.sim.t >= state.sim.end) newRun(); state.playing = !state.playing; runLabel(state.playing ? '❚❚ Pause' : '▶ Run'); update(false); };
+$('speed').onchange = e => { state.speed = +e.target.value; state.playRate = null; };
+$('run').onclick = () => { if (state.sim.t >= state.sim.end) newRun(); state.playing = !state.playing; state.playRate = null; state.playAt = null; runLabel(state.playing ? '❚❚ Pause' : '▶ Run'); update(false); };
 $('reset').onclick = () => newRun();
 $('map-run').onclick = () => $('run').click();
 $('map-reset').onclick = () => newRun();
@@ -837,8 +837,11 @@ function loop(now) {
   const dt = Math.min(0.5, (now - last) / 1000); last = now;
   const sim = state.sim;
   if (state.playing && sim) {
-    let steps = Math.min(400, Math.round(state.speed * dt / sim.dt));
-    while (steps-- > 0 && sim.t < sim.end) sim.step();
+    state.stepDue = (state.stepDue || 0) + state.speed * dt / sim.dt; // fractional steps carry over, so 1 min/s is not rounded to 0 steps a frame
+    let steps = Math.min(400, Math.floor(state.stepDue)); state.stepDue = Math.min(1, state.stepDue - steps);
+    const t0 = sim.t; while (steps-- > 0 && sim.t < sim.end) sim.step();
+    const wall = (now - (state.playAt ?? now)) / 1000; state.playAt = now; // achieved model seconds per wall second, smoothed
+    if (wall > 0 && wall < 2) state.playRate = state.playRate ? state.playRate + Math.min(1, wall / 2) * ((sim.t - t0) / wall - state.playRate) : (sim.t - t0) / wall;
     if (sim.t >= sim.end) { state.playing = false; runLabel('▶ Run again'); update(true); map.draw(); if (document.body.classList.contains('simple')) renderSimple(); requestAnimationFrame(loop); return; }
     $('scrub').value = Math.floor(sim.t / 60);
     map.draw();
@@ -853,7 +856,7 @@ function update(full) {
   const done = sim.t >= sim.end;
   $('clock').classList.toggle('done', done);
   $('scrub-t').textContent = hm(sim.t);
-  $('clock').innerHTML = `${done ? '<span class="done-tag">✓ Run complete</span> ' : ''}Model time ${hm(sim.t)} <span class="of">of ${hm(sim.end)} (not a forecast)${done ? '' : state.playing ? ' · running' : sim.t > 0 ? ' · paused' : ''}</span> <span class="sub">${esc(sc.name)} · ${SEVERITY[sim.sevKey].label} severity · seed ${sim.seed} · ${esc(sim.plan.name)}</span>`;
+  $('clock').innerHTML = `${done ? '<span class="done-tag">✓ Run complete</span> ' : ''}Model time ${hm(sim.t)} <span class="of">of ${hm(sim.end)} (not a forecast)${done ? '' : state.playing ? ' · running' + (state.playRate && state.playRate < 0.85 * state.speed ? ` · this computer plays it at about ${Math.max(1, Math.round(state.playRate / 60))} min/s, slower than the chosen speed` : '') : sim.t > 0 ? ' · paused' : ''}</span> <span class="sub">${esc(sc.name)} · ${SEVERITY[sim.sevKey].label} severity · seed ${sim.seed} · ${esc(sim.plan.name)}</span>`;
   const c = (k, v, cls = '', tip = '') => `<div class="card ${cls}" title="${esc(tip)}"><div class="v">${v}</div><div class="k">${k}${tip ? ' <span class="tip">ⓘ</span>' : ''}</div></div>`;
   const tr = (label, value, tip) => `<tr title="${esc(tip)}"><td>${label} <span class="tip">ⓘ</span></td><td class="num">${value}</td></tr>`;
   const exposed = S.exposedHome + S.exposedRoad + S.exposedNoVehicle + S.notOrderedExposed;
