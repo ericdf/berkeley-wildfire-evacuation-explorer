@@ -273,7 +273,9 @@ export class Evacuation {
       this.nodeOrdered[n] = z >= 0 && this.orderT[z] < Infinity ? 1 : 0;
       const told = z >= 0 && (this.orderT[z] < Infinity || this.warnT[z] < Infinity);
       const embers = c >= 0 && fire.ember[c] < Infinity;
-      this.safe[0][n] = (!told || exits.has(n)) && !embers ? 1 : 0; // outside the order/warning area, or out of the modeled area
+      // Evacuees are safe at a node inside a zone that is not under order or warning, or at a model exit. A node in no zone
+      // is not a destination: cars keep driving to a designated exit in a zone (SOURCE_NOTES CD10–CD12).
+      this.safe[0][n] = ((z >= 0 && !told) || exits.has(n)) && !embers ? 1 : 0;
       this.safe[1][n] = exits.has(n) && !embers ? 1 : 0;
     }
 
@@ -523,7 +525,8 @@ export class Evacuation {
     this.v = { n: nV, hh: Int32Array.from(order, i => vHH[i]), depart: Float64Array.from(order, i => vDep[i]), cls: Uint8Array.from(order, i => vCls[i]),
       link: new Int32Array(nV).fill(-1), enter: new Float64Array(nV), state: new Uint8Array(nV), arrive: new Float64Array(nV).fill(Infinity), exposed: new Uint8Array(nV), fireFront: new Uint8Array(nV),
       dest: new Int32Array(nV).fill(-1), pidx: new Int32Array(nV), edge: Int32Array.from(order, i => vEdge(i)),
-      exit: new Float64Array(nV).fill(Infinity), fromOrder: new Uint8Array(nV) };
+      exit: new Float64Array(nV).fill(Infinity), fromOrder: new Uint8Array(nV),
+      zarr: new Float64Array(nV).fill(Infinity), exitNode: new Int32Array(nV).fill(-1), arrNode: new Int32Array(nV).fill(-1), cntNode: new Int32Array(nV).fill(-1) }; // zarr: time of leaving the modeled area at a node inside a zone (the ETE counts only these); exitNode, arrNode: nodes of the exit stamp and of the removal; cntNode: the node where the counted-out time is taken (set in the ETE summary)
     // Time Study ETE counts vehicles starting in Order zones until they reach a zone under Warning
     // or not under threat (Table 7-1/7-2 notes; SOURCE_NOTES E37).
     for (let i = 0; i < nV; i++) {
@@ -635,8 +638,8 @@ export class Evacuation {
           N.q.push(i); v.link[i] = nl; v.enter[i] = t; v.pidx[i]++; this.active.add(nl);
           continue;
         }
-        if (v.exit[i] === Infinity && !this.nodeOrdered[L.to]) v.exit[i] = t;
-        if (this.safe[k][L.to]) { L.q.shift(); L.lastOut = t; B.budget--; if (L.share) L.share.used[L.dir]++; this.arrive(i); continue; }
+        if (v.exit[i] === Infinity && this.nodeZone[L.to] >= 0 && !this.nodeOrdered[L.to]) { v.exit[i] = t; v.exitNode[i] = L.to; } // counted out only at a node inside a zone
+        if (this.safe[k][L.to]) { L.q.shift(); L.lastOut = t; B.budget--; if (L.share) L.share.used[L.dir]++; v.arrNode[i] = L.to; if (this.nodeZone[L.to] >= 0) v.zarr[i] = t; this.arrive(i); continue; }
         if (nb[L.to] < 1) break;
         const tr = this.guidance?.tree(i, k, L.e); // null: Today's tree
         let opts = tr ? tr.at(L.to, L.from) : this.next[k][L.to]; if (!opts) break;
@@ -1001,7 +1004,8 @@ export class Evacuation {
       if (v.fireFront[i]) fireVeh++;
       if (v.cls[i] || v.state[i] === 4) continue; nEvac++;
       if (!v.fromOrder[i]) continue;
-      const x = Math.min(v.exit[i], v.arrive[i]);
+      const xa = v.zarr[i], x = Math.min(v.exit[i], xa);
+      if (x < Infinity) v.cntNode[i] = v.exit[i] <= xa ? v.exitNode[i] : v.arrNode[i];
       if (v.fromOrder[i] === 2) { nOther++; if (x < Infinity) arrOther.push(x - this.firstOrderT); continue; }
       n0++; if (x < Infinity) arr.push(x - this.firstOrderT);
     }
