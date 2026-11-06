@@ -20,7 +20,7 @@ export const MEASURES = {
   front: { group: 'exposure', label: 'Modeled residents not yet out when the fire front reached their street', f: S => S.fireFrontHome + S.fireFrontRoad,
     tip: 'Synthetic people at home when the modeled fire front reached their street, or on the road in a car on a burning street; each person counted once. Not a casualty count.' },
   clear90: { group: 'time', label: 'Model minutes after the first order until 90% of ordered cars are out (not a forecast)', f: S => S.clearP90, time: true,
-    tip: 'Simulated model time, not a forecast: the traffic model\'s 90% times run 11–45% short of the City\'s 2025 Evacuation Time Study on 6 of its 8 calibration cases (Assumptions & limits, Model performance). Never used to rank a change. "Not reached" counts as slower than any time.' },
+    tip: 'Simulated model time, not a forecast: the traffic model\'s 90% times run 12–45% short of the City\'s 2025 Evacuation Time Study on 6 of its 8 calibration cases (Assumptions & limits, Model performance). Never used to rank a change. "Not reached" counts as slower than any time.' },
 };
 
 let MIT = null;
