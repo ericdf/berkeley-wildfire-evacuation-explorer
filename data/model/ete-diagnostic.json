@@ -1,0 +1,581 @@
+{
+ "_meta": {
+  "built": "2026-11-05",
+  "tool": "tools/ete-diagnostic.mjs",
+  "seeds": 3,
+  "commit": "095c208",
+  "householdMix": "citywide",
+  "note": "Fire off, the Time Study order and warning zones, today plan with the first order at ignition. Minutes after the first order; vehicles starting in Berkeley order zones only. Medians over 3 seeds; road time and wait pooled over seeds. A check of the traffic model against the 2025 Evacuation Time Study (SOURCE_NOTES CD1-CD7), not a prediction."
+ },
+ "ref1923|S4": {
+  "region": "R02 1923 Fire",
+  "studyP90": 175,
+  "orderVehiclesPerSeed": 25418,
+  "p90Exit": 95.1,
+  "p90PlannedDeparture": 91,
+  "p90Entry": 91.1,
+  "startedBy60": 72.1,
+  "startedBy120": 97.2,
+  "outBy60": 60.5,
+  "outBy120": 96.7,
+  "waitToEnter": {
+   "median": 0,
+   "p90": 0.1
+  },
+  "roadTime": {
+   "median": 4.3,
+   "p90": 18.7
+  },
+  "roadTimeByEntryMin": {
+   "15": {
+    "n": 13548,
+    "median": 3.9,
+    "p90": 12.1
+   },
+   "30": {
+    "n": 17964,
+    "median": 7.8,
+    "p90": 31.2
+   },
+   "45": {
+    "n": 13883,
+    "median": 8.3,
+    "p90": 27.3
+   },
+   "60": {
+    "n": 8450,
+    "median": 4.8,
+    "p90": 15.2
+   },
+   "75": {
+    "n": 6796,
+    "median": 3.1,
+    "p90": 8.5
+   },
+   "90": {
+    "n": 4882,
+    "median": 2.3,
+    "p90": 5.6
+   },
+   "105": {
+    "n": 2876,
+    "median": 2.1,
+    "p90": 4.4
+   },
+   "120": {
+    "n": 1620,
+    "median": 1.9,
+    "p90": 4.3
+   },
+   "150": {
+    "n": 368,
+    "median": 2,
+    "p90": 4.3
+   },
+   "180": {
+    "n": 81,
+    "median": 2.7,
+    "p90": 4.2
+   }
+  }
+ },
+ "ref1923|S6": {
+  "region": "R02 1923 Fire",
+  "studyP90": 105,
+  "orderVehiclesPerSeed": 16070,
+  "p90Exit": 90.3,
+  "p90PlannedDeparture": 88,
+  "p90Entry": 88,
+  "startedBy60": 64.3,
+  "startedBy120": 99,
+  "outBy60": 60.5,
+  "outBy120": 98.7,
+  "waitToEnter": {
+   "median": 0,
+   "p90": 0.1
+  },
+  "roadTime": {
+   "median": 2.3,
+   "p90": 5.2
+  },
+  "roadTimeByEntryMin": {
+   "15": {
+    "n": 6006,
+    "median": 2,
+    "p90": 4.4
+   },
+   "30": {
+    "n": 9062,
+    "median": 2.3,
+    "p90": 5.4
+   },
+   "45": {
+    "n": 9718,
+    "median": 2.5,
+    "p90": 5.8
+   },
+   "60": {
+    "n": 8314,
+    "median": 2.5,
+    "p90": 5.5
+   },
+   "75": {
+    "n": 6512,
+    "median": 2.3,
+    "p90": 5
+   },
+   "90": {
+    "n": 4130,
+    "median": 2.2,
+    "p90": 4.7
+   },
+   "105": {
+    "n": 1798,
+    "median": 2,
+    "p90": 4.4
+   },
+   "120": {
+    "n": 602,
+    "median": 2.2,
+    "p90": 4.3
+   },
+   "150": {
+    "n": 19,
+    "median": 2.5,
+    "p90": 4
+   },
+   "180": {
+    "n": 6,
+    "median": 1.2,
+    "p90": 3.2
+   }
+  }
+ },
+ "eastWind|S4": {
+  "region": "R05 Fire Zones 2 & 3",
+  "studyP90": 140,
+  "orderVehiclesPerSeed": 17248,
+  "p90Exit": 105.3,
+  "p90PlannedDeparture": 103.7,
+  "p90Entry": 103.7,
+  "startedBy60": 54.3,
+  "startedBy120": 95.3,
+  "outBy60": 52.2,
+  "outBy120": 94.8,
+  "waitToEnter": {
+   "median": 0,
+   "p90": 0.1
+  },
+  "roadTime": {
+   "median": 1.3,
+   "p90": 3.3
+  },
+  "roadTimeByEntryMin": {
+   "15": {
+    "n": 5199,
+    "median": 1.2,
+    "p90": 3.3
+   },
+   "30": {
+    "n": 8163,
+    "median": 1.3,
+    "p90": 3.4
+   },
+   "45": {
+    "n": 8844,
+    "median": 1.3,
+    "p90": 3.5
+   },
+   "60": {
+    "n": 8286,
+    "median": 1.4,
+    "p90": 3.3
+   },
+   "75": {
+    "n": 7362,
+    "median": 1.3,
+    "p90": 3.2
+   },
+   "90": {
+    "n": 5459,
+    "median": 1.3,
+    "p90": 3.2
+   },
+   "105": {
+    "n": 3222,
+    "median": 1.3,
+    "p90": 3
+   },
+   "120": {
+    "n": 1877,
+    "median": 1.3,
+    "p90": 2.9
+   },
+   "150": {
+    "n": 431,
+    "median": 1.2,
+    "p90": 2.9
+   },
+   "180": {
+    "n": 104,
+    "median": 1.3,
+    "p90": 2.7
+   }
+  }
+ },
+ "eastWind|S6": {
+  "region": "R05 Fire Zones 2 & 3",
+  "studyP90": 105,
+  "orderVehiclesPerSeed": 15094,
+  "p90Exit": 91.8,
+  "p90PlannedDeparture": 90,
+  "p90Entry": 90,
+  "startedBy60": 58.2,
+  "startedBy120": 98.9,
+  "outBy60": 55.6,
+  "outBy120": 98.7,
+  "waitToEnter": {
+   "median": 0,
+   "p90": 0.1
+  },
+  "roadTime": {
+   "median": 1.3,
+   "p90": 3.3
+  },
+  "roadTimeByEntryMin": {
+   "15": {
+    "n": 4177,
+    "median": 1.3,
+    "p90": 3.1
+   },
+   "30": {
+    "n": 7371,
+    "median": 1.3,
+    "p90": 3.3
+   },
+   "45": {
+    "n": 9027,
+    "median": 1.4,
+    "p90": 3.3
+   },
+   "60": {
+    "n": 8935,
+    "median": 1.4,
+    "p90": 3.3
+   },
+   "75": {
+    "n": 7236,
+    "median": 1.3,
+    "p90": 3.1
+   },
+   "90": {
+    "n": 4473,
+    "median": 1.3,
+    "p90": 3.2
+   },
+   "105": {
+    "n": 2017,
+    "median": 1.3,
+    "p90": 2.9
+   },
+   "120": {
+    "n": 691,
+    "median": 1.3,
+    "p90": 2.8
+   },
+   "150": {
+    "n": 29,
+    "median": 1,
+    "p90": 2.1
+   },
+   "180": {
+    "n": 8,
+    "median": 0.5,
+    "p90": 3.5
+   }
+  }
+ },
+ "panoramic|S4": {
+  "region": "R04 Panoramic Hill",
+  "studyP90": 105,
+  "orderVehiclesPerSeed": 1286,
+  "p90Exit": 107,
+  "p90PlannedDeparture": 102.6,
+  "p90Entry": 102.7,
+  "startedBy60": 56.1,
+  "startedBy120": 95.3,
+  "outBy60": 54,
+  "outBy120": 94.2,
+  "waitToEnter": {
+   "median": 0,
+   "p90": 0.1
+  },
+  "roadTime": {
+   "median": 1.3,
+   "p90": 7
+  },
+  "roadTimeByEntryMin": {
+   "15": {
+    "n": 397,
+    "median": 0.8,
+    "p90": 3
+   },
+   "30": {
+    "n": 628,
+    "median": 1,
+    "p90": 4.2
+   },
+   "45": {
+    "n": 762,
+    "median": 1.3,
+    "p90": 13.9
+   },
+   "60": {
+    "n": 570,
+    "median": 1.5,
+    "p90": 16.3
+   },
+   "75": {
+    "n": 532,
+    "median": 1.6,
+    "p90": 12.7
+   },
+   "90": {
+    "n": 365,
+    "median": 1.5,
+    "p90": 26.8
+   },
+   "105": {
+    "n": 226,
+    "median": 1.5,
+    "p90": 23
+   },
+   "120": {
+    "n": 106,
+    "median": 1.4,
+    "p90": 14.3
+   },
+   "150": {
+    "n": 30,
+    "median": 1.6,
+    "p90": 3.4
+   },
+   "180": {
+    "n": 5,
+    "median": 1.4,
+    "p90": 3.6
+   }
+  }
+ },
+ "panoramic|S6": {
+  "region": "R04 Panoramic Hill",
+  "studyP90": 100,
+  "orderVehiclesPerSeed": 1080,
+  "p90Exit": 93,
+  "p90PlannedDeparture": 90.3,
+  "p90Entry": 90.3,
+  "startedBy60": 58.7,
+  "startedBy120": 99.3,
+  "outBy60": 56.5,
+  "outBy120": 98.9,
+  "waitToEnter": {
+   "median": 0,
+   "p90": 0.1
+  },
+  "roadTime": {
+   "median": 1.3,
+   "p90": 3.3
+  },
+  "roadTimeByEntryMin": {
+   "15": {
+    "n": 287,
+    "median": 1,
+    "p90": 3
+   },
+   "30": {
+    "n": 523,
+    "median": 1.4,
+    "p90": 3.3
+   },
+   "45": {
+    "n": 692,
+    "median": 1.4,
+    "p90": 3.4
+   },
+   "60": {
+    "n": 623,
+    "median": 1.4,
+    "p90": 3.5
+   },
+   "75": {
+    "n": 493,
+    "median": 1.4,
+    "p90": 3.3
+   },
+   "90": {
+    "n": 336,
+    "median": 1.4,
+    "p90": 3.5
+   },
+   "105": {
+    "n": 138,
+    "median": 1.3,
+    "p90": 2.9
+   },
+   "120": {
+    "n": 54,
+    "median": 1.3,
+    "p90": 2.6
+   },
+   "150": {
+    "n": 1,
+    "median": 1.3,
+    "p90": 1.3
+   }
+  }
+ },
+ "northHills|S4": {
+  "region": "R09 North Berkeley Hills",
+  "studyP90": 125,
+  "orderVehiclesPerSeed": 12600,
+  "p90Exit": 106.1,
+  "p90PlannedDeparture": 104.3,
+  "p90Entry": 104.3,
+  "startedBy60": 52.8,
+  "startedBy120": 95.3,
+  "outBy60": 50.5,
+  "outBy120": 94.6,
+  "waitToEnter": {
+   "median": 0,
+   "p90": 0.1
+  },
+  "roadTime": {
+   "median": 1.6,
+   "p90": 3.6
+  },
+  "roadTimeByEntryMin": {
+   "15": {
+    "n": 3672,
+    "median": 1.5,
+    "p90": 3.6
+   },
+   "30": {
+    "n": 5694,
+    "median": 1.8,
+    "p90": 3.9
+   },
+   "45": {
+    "n": 6368,
+    "median": 1.8,
+    "p90": 3.9
+   },
+   "60": {
+    "n": 6247,
+    "median": 1.6,
+    "p90": 3.6
+   },
+   "75": {
+    "n": 5455,
+    "median": 1.6,
+    "p90": 3.5
+   },
+   "90": {
+    "n": 4176,
+    "median": 1.6,
+    "p90": 3.3
+   },
+   "105": {
+    "n": 2482,
+    "median": 1.5,
+    "p90": 3.3
+   },
+   "120": {
+    "n": 1434,
+    "median": 1.5,
+    "p90": 3.2
+   },
+   "150": {
+    "n": 333,
+    "median": 1.3,
+    "p90": 3.2
+   },
+   "180": {
+    "n": 81,
+    "median": 1.6,
+    "p90": 3.1
+   }
+  }
+ },
+ "northHills|S6": {
+  "region": "R09 North Berkeley Hills",
+  "studyP90": 105,
+  "orderVehiclesPerSeed": 11178,
+  "p90Exit": 92.1,
+  "p90PlannedDeparture": 89.9,
+  "p90Entry": 90,
+  "startedBy60": 57.5,
+  "startedBy120": 98.9,
+  "outBy60": 54.6,
+  "outBy120": 98.6,
+  "waitToEnter": {
+   "median": 0,
+   "p90": 0.1
+  },
+  "roadTime": {
+   "median": 1.6,
+   "p90": 3.5
+  },
+  "roadTimeByEntryMin": {
+   "15": {
+    "n": 2940,
+    "median": 1.5,
+    "p90": 3.3
+   },
+   "30": {
+    "n": 5446,
+    "median": 1.6,
+    "p90": 3.6
+   },
+   "45": {
+    "n": 6700,
+    "median": 1.7,
+    "p90": 3.6
+   },
+   "60": {
+    "n": 6682,
+    "median": 1.7,
+    "p90": 3.7
+   },
+   "75": {
+    "n": 5382,
+    "median": 1.6,
+    "p90": 3.5
+   },
+   "90": {
+    "n": 3378,
+    "median": 1.6,
+    "p90": 3.4
+   },
+   "105": {
+    "n": 1466,
+    "median": 1.5,
+    "p90": 3.3
+   },
+   "120": {
+    "n": 532,
+    "median": 1.4,
+    "p90": 3.1
+   },
+   "150": {
+    "n": 21,
+    "median": 1.3,
+    "p90": 2.6
+   },
+   "180": {
+    "n": 6,
+    "median": 1.3,
+    "p90": 2.8
+   }
+  }
+ }
+}
