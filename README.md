@@ -248,8 +248,10 @@ the zones Berkeley's plan orders; cars from zones only another city orders are o
 (`summary().otherCityVehicles`; `clearP90All` counts them too). Directed links have a capacity and
 storage, and every intersection has a capacity. The 2025 study named intersections
 as the main constraint. Vehicles may use every street and re-route every minute around
-queues, fire and embers toward the nearest node outside every ordered zone and the ember
-area. Households waiting for a commuter (Time Study) wait for that person to drive home
+queues, fire and embers toward the model exits, where streets leave the model area, as the
+study's evacuees drive to destinations beyond its region (SOURCE_NOTES CD4, CD17). A car
+counts as out of the order and warning area at the first node inside a zone not under order
+or warning and drives on; the ETE stops there, as the study measures it. Households waiting for a commuter (Time Study) wait for that person to drive home
 first, against the outbound traffic; a commuter turned back by fire leaves the household one
 car short. A vehicle stuck 3 minutes at the head of a queue squeezes forward, so the queue
 model cannot lock up for good (as it did at the Marin traffic circle).
