@@ -84,7 +84,7 @@ The findings come from `data/model/spread-access.json`, built by `node tools/spr
 
 ### Reading the results
 
-- **Consistent, mixed, sensitive.** Every headline finding in Guided view carries one of three labels, computed from the runs it rests on (`js/robust.js`, SOURCE_NOTES SA4–SA6): *consistent in the tested scenarios* (in at least 90% of runs: 14 of 15, 5 of 5), *sensitive to assumptions* (its share of runs differs by 0.6 or more between low and high fire severity, or the alternative night parking rule moves it by 25% or more) or *mixed across scenarios* (everything else). The tooltip names the runs. A share of model runs is not a probability.
+- **Consistent, mixed, sensitive.** Every headline finding in Guided view carries one of three labels, computed from the runs it rests on (`js/robust.js`, SOURCE_NOTES SA4–SA6): *consistent in the tested scenarios* (in at least 90% of runs: 14 of 15, 5 of 5), *sensitive to assumptions* (its share of runs differs by 0.6 or more between fire severity levels, in either direction, or the alternative night parking rule moves it by 25% or more) or *mixed across scenarios* (everything else). The tooltip names the runs. A share of model runs is not a probability.
 
 - **People still there when embers arrived** counts each person once, where they were when
   embers first reached them: still home with a car, still home without a vehicle, still home
