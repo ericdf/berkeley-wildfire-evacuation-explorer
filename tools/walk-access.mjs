@@ -408,7 +408,7 @@ for (const sc of scenarios) {
   // no walking out past the fire's start: targets on the upwind side of the ignition point are left out (model rule)
   const exitSet = new Set(net.meta.exitNodes.map(x => typeof x === 'object' ? x.node : x));
   // and, unlike the simulator, a street in no evacuation zone (Tilden's park roads) is not a target unless it is a model-area exit
-  const t = []; for (let n = 0; n < nN; n++) if (sim.safe[0][n] && (sim.nodeZone[n] >= 0 || exitSet.has(n)) && (net.nodes[n][0] - ix) * dwx + (net.nodes[n][1] - iy) * dwy >= 0) t.push(n); // the simulator's safe rule: outside the order/warning area (or out of the model area) and never reached by embers
+  const t = []; for (let n = 0; n < nN; n++) if (sim.out0[n] && (sim.nodeZone[n] >= 0 || exitSet.has(n)) && (net.nodes[n][0] - ix) * dwx + (net.nodes[n][1] - iy) * dwy >= 0) t.push(n); // the simulator's safe rule: outside the order/warning area (or out of the model area) and never reached by embers
   const toldZones = new Set(); layers.evacZones.forEach((z, i) => { if (told(i)) toldZones.add(z.id); });
   targetSets[sc.id] = { name: sc.name, nodes: t, toldZones };
 }
