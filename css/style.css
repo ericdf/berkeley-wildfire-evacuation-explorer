@@ -363,3 +363,5 @@ details.cg-none[open] summary span { display: none; }
 #g-sheet .g-src { margin-top: 8px; font-size: 13px; }
 #g-sheet .g-src summary { color: var(--accent); cursor: pointer; }
 #g-sheet .g-src b { font-size: 13px; }
+.gv-about { margin: -6px auto 8px; font-size: 13px; }
+.gv-about .linkish { font-size: 13px; }

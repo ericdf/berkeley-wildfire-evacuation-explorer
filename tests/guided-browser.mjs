@@ -80,7 +80,7 @@ for (const [di, name] of DEVICES.entries()) {
   if (sheet) {
     await p.locator('#g-sheet .g-src summary').click();
     const src = await p.locator('#g-sheet').innerText();
-    check(/model rule/.test(src) && (!/ft of pavement/.test(src) || /(sourced|derived)/.test(src) && /synthetic/.test(src)), `${name}: the street card gives each figure's provenance`);
+    check(/model rule/.test(src) && (!/ft of pavement/.test(src) || /(sourced|derived|assumption)/.test(src) && /synthetic/.test(src)), `${name}: the street card gives each figure's provenance`);
     await shot('06-street-card'); await p.click('#g-sheet .g-x');
   }
 
@@ -102,6 +102,9 @@ for (const [di, name] of DEVICES.entries()) {
   await p.click('[data-go="changes"] >> nth=0');
   const heads = await p.locator('h3.cg').allTextContents();
   check(heads[0]?.startsWith('Fewer people') && heads.includes('No consistent benefit in our tests'), `${name}: changes grouped by result (${heads.join(' | ')})`);
+  await p.click('[data-about-gains]');
+  check(/Where it comes from/.test(await p.locator('#modal .gx').innerText()), `${name}: About these gains gives provenance`);
+  await p.locator('#modal .close').click();
   await noScroll('on changes'); const hc = await panelHeight('Changes view');
   await shot('09-changes');
   const order2 = async () => (await p.locator('[data-pick]').evaluateAll(bs => bs.map(b => b.dataset.pick))).join(',');
@@ -126,7 +129,13 @@ for (const [di, name] of DEVICES.entries()) {
   check(cmp1 === 5 && /^−/.test(diff), `${name}: one-change comparison from the table, engine row ${diff}`);
   const hcmp = await panelHeight('Comparison (one change)');
   await shot('13-compare-1');
-  await p.locator('[data-explain-cmp="engine"]').click(); await shot('14-explain-compare'); await p.locator('#modal .close').click();
+  for (const id of ['ember', 'front', 'engine', 'oneWay', 'cutOff']) {
+    await p.locator(`[data-explain-cmp="${id}"]`).click();
+    const t = await p.locator('#modal .gx').innerText();
+    check(/Where it comes from/.test(t) && /(synthetic|derived)/.test(t), `${name}: comparison Explain this for ${id} gives provenance`);
+    if (id === 'engine') await shot('14-explain-compare');
+    await p.locator('#modal .close').click();
+  }
 
   // Three changes: conflict, overlap warning, live comparison
   await p.click('[data-go="changes"] >> nth=0');

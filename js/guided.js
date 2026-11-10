@@ -162,7 +162,7 @@ export function guidedUI(ctx) {
     if (e.widthM && state.sim) {
       lines.push(`${fmt(e.widthM / 0.3048)} ft of pavement, ${fmt(state.sim.clear[sel.id] / 0.3048)} ft clear with this run's parked cars.`);
       const ws = e.widthSrc || '', wcat = e.newLink || e.opened ? 'assumption' : ws.startsWith('city:') ? 'sourced' : ws.startsWith('assumption:') ? 'assumption' : 'derived';
-      src.push(['Pavement width', wcat, e.newLink || e.opened ? 'A hypothetical road\'s assumed width (tools/egress-link.mjs).' : ws || 'No width source recorded.']);
+      src.push(['Pavement width', wcat, e.newLink || e.opened ? 'A hypothetical road\'s assumed width (tools/egress-link.mjs).' : ws.replace(/^(city|assumption|derived):\s*/, '') || 'No width source recorded.']);
       src.push(['Clear width', 'synthetic', 'Pavement minus this run\'s parked cars: which blocks are parked on one or both sides is drawn for the seed from the parking rules (js/parking.js), not measured on this block.']);
     }
     const res = SA?.residentsPerEdge?.[sel.id];
@@ -200,6 +200,12 @@ export function guidedUI(ctx) {
     if (!card.live || !state.sim) return null;
     return MEASURES[card.live].f(state.sim.summary());
   }
+  // Where a result's figure comes from: its provenance categories (shared by the result and comparison pop-ups).
+  function provenance(c) {
+    return c.id === 'oneWay' ? `${badge('derived')} Network analysis of County and OpenStreetMap streets (tools/access-constraints.mjs); residents ${badge('synthetic')}, placed from zone population counts.`
+      : c.id === 'cutOff' ? `${badge('synthetic')} Cars of synthetic households, placed from zone population counts and driven by the traffic model; the fire is an illustrative ${badge('model rule')} run on the scenario's ignition and wind.`
+      : `${badge('synthetic')} Synthetic households placed from zone population counts; the fire is an illustrative ${badge('model rule')} run on the scenario's ignition and wind.`;
+  }
   function explain(id) {
     const c = cardById(id), f = baseFigure(c), L = f.label, w = watched(c);
     const sev = f.bySev ? `Median by fire severity: ${SEVS.map(s => `${SEV_WORD[s]} ${n(f.bySev[s].median)}`).join(', ')}; range ${n(f.min)}–${n(f.max)}.` : '';
@@ -207,8 +213,7 @@ export function guidedUI(ctx) {
     const runs = c.id === 'oneWay' ? `The street network is the same in every run, so this does not change from run to run. ${fmt(f.areas)} hill areas. The Ways out map chip shows which of these ways out the fire reached in the runs of this fire.`
       : c.id === 'engine' ? `${runSet()}. Engine reach is measured at ignition, so it depends on the night's parked cars (one draw per seed) and not on the fire. ${sev}`
       : `${runSet()}. ${sev}`;
-    const cat = c.id === 'oneWay' ? `${badge('derived')} Network analysis of County and OpenStreetMap streets (tools/access-constraints.mjs); residents ${badge('synthetic')}.`
-      : `${badge('synthetic')} Synthetic households placed from zone population counts; the fire is an illustrative ${badge('model rule')} run on the scenario's ignition and wind.`;
+    const cat = provenance(c);
     ctx.modal(`<div class="gx"><h2>${n(f.value)} ${c.line}</h2>
       <h3>What it counts</h3><p>${c.counts}</p>
       <h3>The runs behind it</h3><p>${runs}</p>
@@ -254,10 +259,23 @@ export function guidedUI(ctx) {
     }
     const sub = `${esc(fireTitle())} · gains: median of ${mit().meta.severities.length * mit().meta.seeds.length} paired runs`;
     return `<div class="gv-back"><button class="linkish" data-go="results">← Results</button><button class="linkish" data-go="map">Map</button></div>${head('Changes that could help', sub)}
+      <p class="gv-about"><button class="linkish" data-about-gains>About these gains</button></p>
       <div class="sortbar" role="group" aria-label="Sort">Sort by <button data-sort="benefit" aria-pressed="${g.sort === 'benefit'}">Benefit</button><button data-sort="cost" aria-pressed="${g.sort === 'cost'}">Cost</button></div>
       ${body}
       <div class="pickbar${g.picked.length ? '' : ' empty'}">${warn.map(w => `<p class="cr-w">${w}</p>`).join('')}
         <div class="pickrow"><span>${g.picked.length ? `${g.picked.length} change${g.picked.length > 1 ? 's' : ''} selected${g.picked.length >= 3 ? ' (up to 3)' : ''}` : 'Pick up to 3 changes'}</span>${g.picked.length ? '<button data-clear>Clear</button>' : ''}<button class="primary" data-runpicks${g.picked.length ? '' : ' disabled'}>Run</button></div></div>`;
+  }
+
+  // How the Changes view's gains, groups and labels are made (SOURCE_NOTES GV6).
+  function aboutGains() {
+    const M = mit(), runs = M.meta.severities.length * M.meta.seeds.length;
+    ctx.modal(`<div class="gx"><h2>About these gains</h2>
+      <h3>What a gain is</h3><p>Each change was run against today's plan on ${runs} paired runs of ${esc(fireTitle())} (low, medium and high fire severity × random seeds ${M.meta.seeds[0]}–${M.meta.seeds.at(-1)}, a fall night): the same fire, households and parked cars with and without the change. The gain is the median of the ${runs} differences.</p>
+      <h3>Where it comes from</h3><p>${badge('synthetic')} Synthetic households placed from zone population counts, on an illustrative ${badge('model rule')} fire. Stored table: data/model/mitigations.json, built ${esc(M.meta.built)}.</p>
+      <h3>Groups</h3><p>${badge('model rule')} A change joins a group when it does better on that result in every run, or in at least three of four runs and never worse. A change can sit in more than one group. A change whose ready-made question is withheld on this fire is listed under "No consistent benefit" and cannot be picked here.</p>
+      <h3>This fire or any fire</h3><p>Engine reach is measured at ignition, so its gain is the same on every fire. People and cars depend on the fire.</p>
+      <h3>Labels</h3><p>${MEANS.consistent} ${MEANS.mixed} ${MEANS.sensitive} Any difference counts, as in the stored table.</p>
+      <h3>Costs</h3><p>Tap a cost for its source and category.</p></div>`, 'gx');
   }
 
   // A change's cost and where it comes from (lever.cost; js/mitigate.js costBadge): a screening range built from sourced
@@ -309,6 +327,7 @@ export function guidedUI(ctx) {
     ctx.modal(`<div class="gx"><h2>${cap(c.line)}: ${n(r.a)} → ${n(r.b)}</h2>
       <h3>What it counts</h3><p>${c.counts}</p>
       <h3>The runs behind it</h3><p>${passes}</p>
+      <h3>Where it comes from</h3><p>${provenance(c)}${r.network && r.gain ? ` Second ways out from new roads ${badge('derived')}: data/model/egress-candidates.json.` : ''}</p>
       <h3>${chipHTML(r.d.label)}</h3><p>${MEANS[r.d.label] || ''} ${r.network ? '' : g.applied.length === 1 ? 'As in the stored table, any difference counts as better or worse.' : 'A run counts as better or worse only when the two differ by more than 1%.'}</p>
       <h3>Limits</h3><p>${c.limits}</p>
       ${w != null ? `<h3>The run you watched</h3><p>${n(w)} with your changes (medium severity, seed 1).</p>` : ''}</div>`, 'gx');
@@ -329,6 +348,7 @@ export function guidedUI(ctx) {
     P.querySelectorAll('[data-explain]').forEach(b => b.onclick = () => explain(b.dataset.explain));
     P.querySelectorAll('[data-explain-cmp]').forEach(b => b.onclick = () => explainCompare(b.dataset.explainCmp));
     P.querySelectorAll('[data-sort]').forEach(b => b.onclick = () => { g.sort = b.dataset.sort; rerender(); });
+    P.querySelector('[data-about-gains]')?.addEventListener('click', aboutGains);
     P.querySelectorAll('[data-cost]').forEach(b => b.onclick = () => explainCost(leverById(b.dataset.cost)));
     P.querySelectorAll('[data-pick]').forEach(b => b.onclick = () => { const id = b.dataset.pick; g.picked = g.picked.includes(id) ? g.picked.filter(x => x !== id) : [...g.picked, id].slice(0, 3); rerender(); });
     P.querySelector('details.cg-none')?.addEventListener('toggle', e => { g.noneOpen = e.target.open; });
