@@ -47,6 +47,7 @@ export function guidedUI(ctx) {
   function pickFire(id) {
     state.fire = id; ctx.store.set('bhe-fire', id);
     cancelLive(); g.applied = []; g.sel = null;
+    g.picked = g.picked.filter(id => !model().withheld(state.fire, id)); // withheld on the new fire (P19)
     setup(); show('map');
   }
   // Today's plan, or today's plan with the applied changes, on the chosen fire (js/main.js guidedRun).
@@ -145,6 +146,8 @@ export function guidedUI(ctx) {
       if (area && st) {
         const p = presence(Object.fromEntries(SEVS.map(s => [s, SA.areas?.[state.fire]?.[area.id]?.front?.[s] || [0, SA.meta.seeds.length]])));
         lines.push(`Only one way out, through ${esc(area.chokeStreets.join(' / '))}. About ${fmt(round10(st.residents))} modeled residents live behind it.`);
+        // A known placement artifact (SOURCE_NOTES AC4): the count likely belongs to homes reached another way.
+        if (area.allocationWarning) lines.push(`<span class="cr-w">Population placement artifact: ${esc(area.allocationWarning)}. These residents most likely live on streets reached another way (docs/access-constraints.md, Data problems 2).</span>`);
         lines.push(`The fire front reached that way out in ${p.k} of ${p.n} runs. ${chipHTML(p.label)}`);
       } else lines.push('More than one way out: no single closure cuts it off.');
     } else if (g.chip === 'engine' && state.sim?.engineReach0) {
@@ -215,11 +218,15 @@ export function guidedUI(ctx) {
       const gain = it.gain != null ? `<span class="cr-g">${it.gain >= 0.5 ? fmt(round10(it.gain)) : 'Under 1'} ${GAIN[it.card.key]} · ${SCOPE[it.anyFire ? 'any' : 'this']}</span> ${chipHTML(it.d.label)}`
         : it.withheld ? `<span class="cr-g">Not offered on this fire: ${esc(it.withheld.split(':')[0])}.</span>`
         : `<span class="cr-g">${it.worse?.length ? `Worse: ${it.worse.map(w => `${esc(w.card.line)} in ${w.worse} of ${w.n} runs`).join('; ')}.` : 'No result improved in most runs.'}</span>`;
-      return `<button class="cr${on ? ' on' : ''}" data-pick="${esc(l.id)}" aria-pressed="${on}"${clash || full ? ' disabled' : ''}>
-        <span class="cr-t"><b>${esc(l.title)}</b><span class="cr-c">${esc(costLine(l.cost))}</span></span>
+      // A change withheld on this fire under P19 cannot be picked here (GV6). The cost sits beside the pick button,
+      // and opens its provenance (category, source, note).
+      const off = !on && (clash || full || it.withheld);
+      return `<div class="cr${on ? ' on' : ''}${off ? ' off' : ''}"><button class="cr-pick" data-pick="${esc(l.id)}" aria-pressed="${on}"${off ? ' disabled' : ''}>
+        <span class="cr-t"><b>${esc(l.title)}</b></span>
         <span class="cr-s">${gain}</span>
         ${fr && gid === 'engine' ? `<span class="cr-s muted">Also a second way out for about ${fmt(round10(fr.value))} hill residents</span>` : ''}
-        ${clash ? `<span class="cr-w">Changes the same block as “${esc(clash.p.title)}”: pick one.</span>` : ''}</button>`;
+        ${clash ? `<span class="cr-w">Changes the same block as “${esc(clash.p.title)}”: pick one.</span>` : ''}</button>
+        <button class="cr-c linkish" data-cost="${esc(l.id)}" aria-label="Cost of ${esc(l.title)}: ${esc(costLine(l.cost))}. Where it comes from">${esc(costLine(l.cost))} ⓘ</button></div>`;
     };
     // "No consistent benefit" comes last and folded, unless one of its changes is picked.
     const body = groups.map(gr => gr.id === 'none'
@@ -237,6 +244,18 @@ export function guidedUI(ctx) {
       ${body}
       <div class="pickbar${g.picked.length ? '' : ' empty'}">${warn.map(w => `<p class="cr-w">${w}</p>`).join('')}
         <div class="pickrow"><span>${g.picked.length ? `${g.picked.length} change${g.picked.length > 1 ? 's' : ''} selected${g.picked.length >= 3 ? ' (up to 3)' : ''}` : 'Pick up to 3 changes'}</span>${g.picked.length ? '<button data-clear>Clear</button>' : ''}<button class="primary" data-runpicks${g.picked.length ? '' : ' disabled'}>Run</button></div></div>`;
+  }
+
+  // A change's cost and where it comes from (lever.cost; js/mitigate.js costBadge): a screening range built from sourced
+  // unit costs and assumptions (derived), this project's "little capital cost" (assumption), or not priced.
+  function explainCost(l) {
+    const c = l?.cost; if (!l) return;
+    const cat = c?.capital ? 'derived' : /^Little capital/.test(c?.note || '') ? 'assumption' : null;
+    ctx.modal(`<div class="gx"><h2>${esc(l.title)}: ${esc(costLine(c))}</h2>
+      <h3>Where it comes from</h3><p>${cat ? badge(cat) : badge('unknown')} ${c?.capital ? 'A screening range, not a project budget or appraisal.' : cat ? 'This project\'s judgment that the change needs little capital spending; its other costs are not priced.' : 'No cost estimate in this table.'}</p>
+      ${c?.note ? `<h3>Notes</h3><p>${esc(c.note)}</p>` : ''}
+      ${c?.source ? `<h3>Source</h3><p>${esc(c.source)}</p>` : ''}
+      ${l.cannotMeasure ? `<h3>What the simulator can't tell you</h3><p>${esc(l.cannotMeasure)}</p>` : ''}</div>`, 'gx');
   }
 
   // ---------- comparison ----------
@@ -296,6 +315,7 @@ export function guidedUI(ctx) {
     P.querySelectorAll('[data-explain]').forEach(b => b.onclick = () => explain(b.dataset.explain));
     P.querySelectorAll('[data-explain-cmp]').forEach(b => b.onclick = () => explainCompare(b.dataset.explainCmp));
     P.querySelectorAll('[data-sort]').forEach(b => b.onclick = () => { g.sort = b.dataset.sort; rerender(); });
+    P.querySelectorAll('[data-cost]').forEach(b => b.onclick = () => explainCost(leverById(b.dataset.cost)));
     P.querySelectorAll('[data-pick]').forEach(b => b.onclick = () => { const id = b.dataset.pick; g.picked = g.picked.includes(id) ? g.picked.filter(x => x !== id) : [...g.picked, id].slice(0, 3); rerender(); });
     P.querySelector('details.cg-none')?.addEventListener('toggle', e => { g.noneOpen = e.target.open; });
     P.querySelector('[data-clear]')?.addEventListener('click', () => { g.picked = []; rerender(); });

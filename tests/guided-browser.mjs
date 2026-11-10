@@ -135,6 +135,10 @@ for (const [di, name] of DEVICES.entries()) {
   const warn = await p.locator('.pickbar .cr-w').allTextContents();
   check(warn.some(w => /Panoramic/.test(w)), `${name}: overlap warning on the same street (${warn[0] || 'none'})`);
   await shot('15-pick-3');
+  await p.locator('[data-cost="redCurbFoot"]').first().click();
+  const costText = await p.locator('#modal .gx').innerText();
+  check(/Where it comes from/.test(costText) && /derived/.test(costText) && /Source/.test(costText), `${name}: the cost opens its provenance`);
+  await shot('15b-cost'); await p.locator('#modal .close').click();
   if (di === 0 && !quick) {
     await p.click('[data-runpicks]');
     await waitRunEnd();
@@ -155,6 +159,13 @@ for (const [di, name] of DEVICES.entries()) {
   await p.waitForTimeout(500);
   check(await visible('#g-run') && !(await visible('#g-tag')), `${name}: a new fire resets to today's plan`);
   await noScroll('after a fire change'); await shot('18-fire-change');
+  // P19: decide faster is withheld on the north hills and cannot be picked there.
+  await p.selectOption('#g-fire', 'northHills'); await p.waitForTimeout(300);
+  await p.click('#g-run'); await waitRunEnd(); await p.click('#g-explore'); await p.click('[data-go="changes"] >> nth=0');
+  await p.locator('details.cg-none summary').click();
+  check(await p.locator('[data-pick="orderSooner"]').first().isDisabled(), `${name}: decide faster cannot be picked on the north hills`);
+  await shot('19-north-withheld');
+  await p.click('[data-go="map"] >> nth=0');
 
   check(!errors.length, `${name}: no console errors${errors.length ? `: ${errors.slice(0, 3).join(' | ')}` : ''}`);
   console.log(`     heights: results ${hr.sh}/${hr.ch}, changes ${hc.sh}/${hc.ch}, comparison ${hcmp.sh}/${hcmp.ch}`);
