@@ -125,7 +125,7 @@ export function guidedUI(ctx) {
     if (!done()) return fireKey + '<div><span class="dot" style="background:#1d4ed8"></span>Car leaving</div>' + sw('rgba(200,20,40,.8)', 'Queue');
     const runs = mit() ? mit().meta.severities.length * mit().meta.seeds.length : 15;
     if (g.chip === 'fire') { const P = ctx.PALETTE.spread; return `<b>Embers reached the street, in ${runs} runs</b>${sw(P[4], 'Nearly every run')}${sw(P[3], 'Depends on fire severity')}${sw(P[2], 'Some runs')}${sw(P[1], 'No run')}${fireKey}`; }
-    if (g.chip === 'ways') { const P = ctx.PALETTE.access; return `<b>Streets with one way out: fire reached it, in ${runs} runs</b>${sw(P[4], 'Nearly every run')}${sw(P[3], 'Depends on fire severity')}${sw(P[2], 'Some runs')}${sw(P[1], 'No run')}${sw('#c8c8c8', 'More than one way out')}`; }
+    if (g.chip === 'ways') { const P = ctx.PALETTE.access; return `<b>Streets with one way out: fire reached it, in ${runs} runs</b>${g.applied.length ? '<div class="small muted">Today\'s street network, without your changes.</div>' : ''}${sw(P[4], 'Nearly every run')}${sw(P[3], 'Depends on fire severity')}${sw(P[2], 'Some runs')}${sw(P[1], 'No run')}${sw('#c8c8c8', 'More than one way out')}`; }
     const m = data.A.access.engineServiceMin;
     return `<b>Engine drive time from the nearest station</b>${sw('#2f8a4a', `Within ${m} min`)}${sw('#e0a21e', `${m}–8 min`)}${sw('#c0262d', 'Over 8 min')}${sw('#7f1d1d', 'No engine route')}<div class="small muted">At ignition, with this run's parked cars.</div>`;
   }
@@ -137,11 +137,15 @@ export function guidedUI(ctx) {
     if (!sel || sel.kind !== 'edge' || !done()) { box.hidden = true; return; }
     const net = (state.sim?.data || data).net, e = net.edges[sel.id]; if (!e) { box.hidden = true; return; }
     const name = e.newLink || e.opened ? 'New road (a change you picked)' : e.name ? e.name.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) : 'Unnamed street';
-    const lines = [];
+    const lines = [], src = []; // src: where each figure on the card comes from (folded under the card)
     const SA = spread();
     if (g.chip === 'fire' && SA && sel.id < SA.meta.edges) {
       for (const [m, w] of [['ember', 'Embers'], ['front', 'The fire front']]) { const p = presence(ctx.edgeClasses(state.fire, m).levels(sel.id)); lines.push(`${w} reached it in ${p.k} of ${p.n} runs (${levelText(p.levels)}). ${chipHTML(p.label)}`); }
+      src.push(['Runs reached', 'model rule', 'The illustrative fire model run on this fire\'s ignition and wind; a street counts when embers or the front reach the 30 m cell at its middle (data/model/spread-access.json). The fire does not depend on the plan.']);
     } else if (g.chip === 'ways') {
+      // Single ways out are today's street network (data/model/access-constraints.json); a new road you applied is not in it.
+      if (g.applied.length) lines.push('<i>Today\'s street network and plan, without your changes.</i>');
+      src.push(['One way out', 'derived', 'Network analysis of County and OpenStreetMap streets (tools/access-constraints.mjs). Fire front at the way out: 15 runs of this fire with today\'s plan.']);
       const area = data.access?.edgeAreas.get(sel.id)?.[0], st = area && SA?.areaStatic?.[area.id];
       if (area && st) {
         const p = presence(Object.fromEntries(SEVS.map(s => [s, SA.areas?.[state.fire]?.[area.id]?.front?.[s] || [0, SA.meta.seeds.length]])));
@@ -153,11 +157,21 @@ export function guidedUI(ctx) {
     } else if (g.chip === 'engine' && state.sim?.engineReach0) {
       const t = state.sim.engineReach0[sel.id];
       lines.push(t === Infinity ? 'No engine route reaches it past the parked cars and barriers in this run.' : `An engine reaches it in ${fmt(t / 60, 1)} min from the nearest station in this run.`);
+      src.push(['Engine time', 'model rule', 'Drive time from the nearest of Berkeley\'s 7 stations at ignition, past this run\'s parked cars and fixed barriers, at the model\'s engine speeds.']);
     }
-    if (e.widthM && state.sim) lines.push(`${fmt(e.widthM / 0.3048)} ft of pavement, ${fmt(state.sim.clear[sel.id] / 0.3048)} ft clear with this run's parked cars.`);
+    if (e.widthM && state.sim) {
+      lines.push(`${fmt(e.widthM / 0.3048)} ft of pavement, ${fmt(state.sim.clear[sel.id] / 0.3048)} ft clear with this run's parked cars.`);
+      const ws = e.widthSrc || '', wcat = e.newLink || e.opened ? 'assumption' : ws.startsWith('city:') ? 'sourced' : ws.startsWith('assumption:') ? 'assumption' : 'derived';
+      src.push(['Pavement width', wcat, e.newLink || e.opened ? 'A hypothetical road\'s assumed width (tools/egress-link.mjs).' : ws || 'No width source recorded.']);
+      src.push(['Clear width', 'synthetic', 'Pavement minus this run\'s parked cars: which blocks are parked on one or both sides is drawn for the seed from the parking rules (js/parking.js), not measured on this block.']);
+    }
     const res = SA?.residentsPerEdge?.[sel.id];
-    if (res) lines.push(`About ${fmt(res, res < 10 ? 1 : 0)} modeled residents on this block.`);
-    box.innerHTML = `<button class="g-x" aria-label="Close">✕</button><b>${esc(name)}</b>${lines.map(l => `<p>${l}</p>`).join('')}`;
+    if (res) {
+      lines.push(`About ${fmt(res, res < 10 ? 1 : 0)} modeled residents on this block.`);
+      src.push(['Residents', 'synthetic', 'Synthetic households placed from zone population counts, averaged over the runs; not addresses.']);
+    }
+    const why = src.length ? `<details class="g-src"><summary>Where these come from</summary>${src.map(([k, c, t]) => `<p><b>${k}</b> ${badge(c)} ${esc(t)}</p>`).join('')}</details>` : '';
+    box.innerHTML = `<button class="g-x" aria-label="Close">✕</button><b>${esc(name)}</b>${lines.map(l => `<p>${l}</p>`).join('')}${why}`;
     box.hidden = false;
     box.querySelector('.g-x').onclick = () => { box.hidden = true; map.selected = null; g.sel = null; map.draw(); };
   }

@@ -77,7 +77,12 @@ for (const [di, name] of DEVICES.entries()) {
     if (await visible('#g-sheet')) { sheet = true; break; }
   }
   check(sheet, `${name}: tapping a street opens its card`);
-  if (sheet) { await shot('06-street-card'); await p.click('#g-sheet .g-x'); }
+  if (sheet) {
+    await p.locator('#g-sheet .g-src summary').click();
+    const src = await p.locator('#g-sheet').innerText();
+    check(/model rule/.test(src) && (!/ft of pavement/.test(src) || /(sourced|derived)/.test(src) && /synthetic/.test(src)), `${name}: the street card gives each figure's provenance`);
+    await shot('06-street-card'); await p.click('#g-sheet .g-x');
+  }
 
   // Results
   await p.click('#g-explore');

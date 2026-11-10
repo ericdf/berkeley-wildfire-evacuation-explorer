@@ -360,3 +360,6 @@ details.cg-none[open] summary span { display: none; }
 .cr.off { background: #f4f3f0; }
 .cr-t b { display: block; padding-right: 9.5em; }
 .cr .cr-c { position: absolute; top: 7px; right: 10px; font-size: 12px; color: #6b5d50; text-decoration: underline dotted; margin: 0; }
+#g-sheet .g-src { margin-top: 8px; font-size: 13px; }
+#g-sheet .g-src summary { color: var(--accent); cursor: pointer; }
+#g-sheet .g-src b { font-size: 13px; }
