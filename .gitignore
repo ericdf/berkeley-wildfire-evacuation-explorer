@@ -24,3 +24,6 @@ data/raw/osm/buildings.json
 data/raw/osm/buildings-tiles/
 # HayWired fire-following data release download (tools/build-haywired.mjs); data/model/haywired-ignitions.json keeps the Berkeley values.
 data/raw/usgs/
+
+# Guided-view screenshots for PR descriptions (tests/guided-browser.mjs); not committed.
+docs/screens/

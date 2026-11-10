@@ -2,13 +2,11 @@
 
 Explore how different wildfire scenarios could affect Berkeley's neighborhoods and routes, and see which access vulnerabilities and possible mitigations recur across scenarios. Live at https://ericdf.github.io/berkeley-wildfire-evacuation-explorer/ (the repository keeps its name, `berkeley-wildfire-evacuation-explorer`).
 
-A browser scenario explorer on Berkeley's real street network and terrain. Choose a fire
-scenario and work through four questions: where could fire spread, which routes are critical,
-what could lose access, and which changes preserve access. Every finding comes from runs of the
-same model scenarios, says whether it is consistent across them, mixed, or sensitive to an
-assumption, and names the runs behind it.
+A browser scenario explorer on Berkeley's real street network and terrain. Pick a fire, run it,
+then see five results for that fire (each summarized over 15 runs and labeled consistent, mixed or
+sensitive) and which tested changes improve them.
 
-**This tool explores modeled wildfire and access scenarios using public data and stated assumptions. Its maps show what happens in these simulations, not what will happen in an actual emergency. Fire behavior, road access, traffic, and emergency response can differ. This is not an evacuation order or route recommendation, not an official evacuation plan and not a prediction. Follow current instructions from Berkeley and Alameda County emergency officials:** the City's
+Official instructions: the City's
 [Fire Weather and Evacuation page](https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation).
 
 **Why no evacuation times.** The traffic model clears roads much faster than the City's 2025 Evacuation Time Study: with the fire off, its 90%-out times run 4–39% short of the study's on 7 of 8 calibration cases, more than 10% short on 3 (R02, the 1923 repeat, weekday 39% and night 12%; R05, Fire Zones 2–3, weekday 20%), and within 10% on Panoramic Hill (SOURCE_NOTES CD1–CD19, `docs/model-fix-plan.md`). So the explorer does not headline, rank or summarize with clearance times. Where a clock still appears (the run's clock, Expert view's results and Compare) it is labeled model time, not a forecast. The comparison with the study sits in Assumptions & limits, Model performance, as a known limitation. Product brief: `docs/product-brief-spread-access.md` (Eric, 2026-11-06).
@@ -35,14 +33,14 @@ Loading takes a few seconds: about 10 MB of terrain and 2 MB of street network.
 
 ## Playing
 
-On a phone (under 760 px wide) the page is one column: the map first, then the choices, then the results. Drag the map with one finger, pinch to zoom, tap a street to select it. Guided view is the phone view; Expert view works but is built for a larger screen.
+Guided view fits a phone: the map screen takes one screen with no page scrolling; drag the map with one finger, pinch to zoom, tap a street for its card. Expert view works on a phone but is built for a larger screen; on a phone it is one column: the map, then the choices, then the results.
 
-**Guided view** (the default; called Simple view until 2026-11-04; reorganized around four questions on 2026-11-06, `js/explore.js`, SOURCE_NOTES SA1–SA12). Pick one of four fire scenarios at the top: a dry east wind from Grizzly Peak Blvd (all of Fire Zones 2–3 ordered), the 1923 fire repeated today, Panoramic Hill, or a fire from Tilden into the north hills (remembered across visits). Then work through four tabs. Each shows only the map layers its question needs, a plain-language key, findings labeled **consistent**, **mixed** or **sensitive** with the runs behind them, and a card for any street clicked: what it is, why it is highlighted, who depends on it, how consistent that is and what it does not establish.
+**Guided view** (the default; rebuilt phone first on 2026-11-10, `js/guided.js`, `js/guided-data.js`, SOURCE_NOTES GV1–GV9). Four screens, the same on a phone and a desktop:
 
-1. **Where could fire spread?** Streets colored by how often the modeled embers (or the fire front) reached them across 15 runs of the fire (low, medium and high severity × seeds 1–5), with the synthetic residents on those streets. Watch one run of today's plan on top; "Like 1923" or "Like 1991" sets the watched run's pace.
-2. **Which routes are critical?** Streets with only one modeled drivable way out (`data/model/access-constraints.json`), the ways out the most modeled residents share, and entrances narrower than a fire engine needs with the night's parked cars (5 parking draws, and the earlier night parking rule as the sensitivity).
-3. **What could lose access?** Areas whose only way out the modeled fire front reached, by robustness class; modeled residents behind them who had not yet left when it did; hill residents with no engine route meeting the City's 5-minute standard; cars with no open modeled route.
-4. **Which changes preserve access?** Pick a change (leave early, decide faster, parking, a red curb, widening, new roads, buyouts, traffic management), each with its cost, provenance and "What the simulator can't tell you". **Compare with today's plan** runs both plans on the same fire, households, parked cars and seed in 15 passes and leads with access: new connections (residents no longer behind a single way out; runs in which the modeled fire reached the connection), hill residents with no engine route or none within 5 minutes, and cars with no open route; then exposure (modeled residents not yet out when embers or the front reached their street); model time last, collapsed and never used to judge a change. Each line carries its robustness label over the 15 passes. Changes stack (`js/levers.js`); Break down this plan, fire families and the ready-made comparisons (leave early, decide faster, parked cars and engines) stay. Changes that did not improve any access or exposure measure on the chosen fire in the stored table (`data/model/mitigations.json`) are greyed out with that explanation.
+1. **Map.** Pick one of four fires (a dry east wind from Grizzly Peak Blvd, the 1923 fire repeated today, Panoramic Hill, a fire from Tilden into the north hills) and press **Run simulation**: one run of today's plan (first order 10 minutes after ignition, today's parking, a fall night, medium severity, seed 1), fire and traffic only. Afterwards, chips switch the map between **Fire** (streets colored by how often embers reached them in 15 runs), **Ways out** (streets with one modeled way out, colored by how often the fire front reached it) and **Engine reach** (engine drive time at ignition); tapping a street opens a short card.
+2. **Results.** Five cards, most important first: people not yet out when embers reached their street, when the fire front did, hill residents with no engine route within 5 minutes, hill residents on streets with only one way out, and cars left with no open route. Each figure is the median of today's plan's 15 runs of that fire (low, medium and high severity × seeds 1–5) in `data/model/mitigations.json`, or the network figure in `data/model/spread-access.json`, with a consistent / mixed / sensitive label and an **Explain this** pop-up (what it counts, the runs, the provenance category, limits, the watched run's figure).
+3. **Changes.** Every tested change, grouped by the result it improves on that fire, derived from the table's verdicts (better in every run, or in three of four and never worse); the rest under "No consistent benefit in our tests". Each row gives the gain (on this fire, or on any fire for engine reach), its label and its cost. Pick up to three and Run.
+4. **Comparison.** Each result for today's plan and with the changes, the difference and its label: one change from the stored table, two or three from 15 paired runs in the browser.
 
 The findings come from `data/model/spread-access.json`, built by `node tools/spread-access.mjs` (60 runs of today's plan, about 10 min on one worker); rerun it after any model, network or mitigation-table change. **Set a goal** (the former third tab, `js/goal.js`) is not offered: its table (`data/model/goal-combos.json`, about 15 h to rebuild) predates the current fire model, night parking rule and the 2026-11-06 counting fix, and ranks combinations partly by clearance time (SOURCE_NOTES SA11).
 
@@ -385,6 +383,8 @@ flow.
 | `js/main.js` | UI: controls, results, inspector, comparison, modals |
 | `js/map.js`, `js/terrain.js` | Canvas map, hillshade and contours |
 | `js/fire.js`, `js/sim.js`, `js/parking.js`, `js/scenarios.js`, `js/rng.js` | Models and presets |
+| `js/guided.js`, `js/guided-data.js` | Guided view: the map, Results, Changes and Comparison screens; result figures, change groups and one-change comparisons read from `data/model/mitigations.json` and `spread-access.json` (SOURCE_NOTES GV1–GV9) |
+| `js/explore.js` | Guided view's map colors across the 15 runs of a fire (streets embers or the front reached; ways out the front reached) |
 | `js/presets.js` | Guided view: its fires, the "Other questions", per-fire "What to look for" text and the reasons a question is withheld |
 | `js/mitigate.js` | Guided view, Change the plan: the change catalog from `data/model/mitigations.json`, the comparison measures, cost badges, and which changes the stored runs grey out |
 | `js/goal.js` | Guided view, Set a goal: evaluates a goal against `data/model/goal-combos.json` and lists the smallest combinations that meet it |
@@ -426,6 +426,7 @@ flow.
 | `tests/headless.mjs` | Runs every scenario × two plans in Node and prints summaries |
 | `tests/calibration.mjs`, `tests/stuck.mjs`, `tests/leftover.mjs` | Compare with the Time Study (fire off; `PLACEMENT=workplace`, `CASES=S1,S4`, `REGIONS=ref1923` select the setting, cases and scenarios); list jammed links; list order-zone vehicles that never leave |
 | `tests/plan-draws.mjs` | Checks that Plan A and Plan B of every Guided-view question see the same households for a seed (each fire, seeds 1–3), the same with maximum growth under each R0 area, and that growth leaves today's households and the shared random stream unchanged |
+| `tests/guided.mjs`, `tests/guided-browser.mjs` | Guided view: change groups, P19 withholding and figures against the tables (Node); the full phone flow in Playwright on iPhone 13, iPhone SE and a 1280 px desktop, with no page scroll on the map screen (needs `python3 tools/serve.py` and Playwright) |
 | `tests/growth.mjs` | Future growth and R0 with the fire on, seeds 1–5 (`SOURCE_NOTES.md` R4, R5); `GROWTH=max node tests/calibration.mjs` gives R3 |
 | `tests/routing.mjs` | Driver information and routing with the fire on, seeds 1–5: every option, households worse off against Habit (also beyond chance), and a check that every option sees the same households and shared random stream as Today's model (`SOURCE_NOTES.md` DG19–DG24) |
 | `tools/other-city-orders.mjs` | Zones, residents and vehicles other cities' orders add, by city, per fire, family member, severity and seed; `--runs` adds today's plan's headline measures (SOURCE_NOTES FO3, FO4) |

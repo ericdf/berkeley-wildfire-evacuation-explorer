@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Berkeley Wildfire Spread and Access Explorer</title>
-<meta name="description" content="Explore how different wildfire scenarios could affect Berkeley&#39;s neighborhoods and routes, and see which access vulnerabilities and possible mitigations recur across scenarios. An educational scenario tool built from public data: not a prediction, not an official evacuation plan and not an evacuation order.">
+<meta name="description" content="Explore how different wildfire scenarios could affect Berkeley&#39;s neighborhoods and routes, and see which access vulnerabilities and possible mitigations recur across scenarios. Built from public data.">
 <link rel="stylesheet" href="css/style.css">
 <link rel="icon" href="data:,">
 </head>
@@ -12,10 +12,19 @@
 <header>
   <div class="title">
     <h1>Berkeley Wildfire Spread and Access Explorer</h1>
-    <div class="welcome">Explore how different wildfire scenarios could affect Berkeley's neighborhoods and routes, and see which access vulnerabilities and possible mitigations recur across scenarios.</div>
-    <div class="disclaimer">An educational scenario tool built from public data. Its maps show what happens in these simulations, not what will happen in a real fire: not a prediction, not an official evacuation map or plan, and not an evacuation order or route recommendation. Follow current instructions from Berkeley and Alameda County emergency officials (<a href="https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation" target="_blank" rel="noopener">City's fire weather and evacuation page</a>).</div>
+    <div class="welcome expert-only">Explore how different wildfire scenarios could affect Berkeley's neighborhoods and routes, and see which access vulnerabilities and possible mitigations recur across scenarios.</div>
+    <div class="disclaimer expert-only">An educational scenario tool built from public data. Its maps show what happens in these simulations, not what will happen in a real fire: not a prediction, not an official evacuation map or plan, and not an evacuation order or route recommendation. Follow current instructions from Berkeley and Alameda County emergency officials (<a href="https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation" target="_blank" rel="noopener">City's fire weather and evacuation page</a>).</div>
   </div>
-  <nav>
+  <button id="g-info" class="simple-only" aria-label="Menu: how to use, assumptions, sources" aria-haspopup="true">ⓘ</button>
+  <div id="g-menu" class="simple-only" hidden role="menu">
+    <button data-menu="intro" role="menuitem">How to use</button>
+    <button data-menu="assumptions" role="menuitem">Assumptions &amp; limits</button>
+    <button data-menu="sources" role="menuitem">Data sources</button>
+    <a href="https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation" target="_blank" rel="noopener" role="menuitem">Official City fire weather &amp; evacuation info ↗</a>
+    <button data-menu="expert" role="menuitem">Expert view</button>
+    <p class="small">© 2026 Eric Friedman. Code: <a href="https://github.com/ericdf/berkeley-wildfire-evacuation-explorer/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>. Writing: <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>. Map data © OpenStreetMap contributors (ODbL).</p>
+  </div>
+  <nav class="expert-only">
     <button id="btn-intro">ⓘ How to use</button>
     <button id="btn-assumptions">Assumptions &amp; limits</button>
     <button id="btn-sources">Data sources</button>
@@ -24,10 +33,10 @@
   </nav>
 </header>
 
+<div id="g-fireline" class="simple-only"><label for="g-fire">Fire:</label> <select id="g-fire"></select></div>
 <main>
   <aside id="left">
     <p id="phone-note" class="expert-only phone-only">Expert view is built for a larger screen. On a phone, Guided view works best.</p>
-    <section id="simple" class="simple-only"></section>
 
     <section class="expert-only">
       <h2>1 · Scenario</h2>
@@ -147,19 +156,22 @@
     </section>
   </aside>
 
+  <section id="g-panel" class="simple-only" hidden></section>
   <div id="mapwrap">
     <canvas id="map"></canvas>
     <div id="sim-banner" hidden><span id="sim-banner-text"></span><div class="track"><div id="sim-banner-bar"></div></div></div>
     <div id="clockbar"><div id="clock">Ready</div><div id="map-controls"><button id="map-run" class="primary" title="Run or pause the plan shown on the map">▶ Run</button><button id="map-reset" title="Start the plan shown on the map again from ignition">⟲ Restart</button></div></div>
     <div id="legend"></div>
     <div id="status"></div>
+    <div id="g-chips" class="simple-only" role="group" aria-label="Map layers" hidden><button data-chip="fire">Fire</button><button data-chip="ways">Ways out</button><button data-chip="engine">Engine reach</button></div>
+    <div id="g-tag" class="simple-only" hidden></div>
+    <div id="g-ctrl" class="simple-only"><button id="g-run" class="primary">Run simulation</button><div id="g-after" hidden><button id="g-explore" class="primary">Explore results</button><button id="g-again">Run again</button></div></div>
+    <div id="g-sheet" class="simple-only" hidden></div>
     <div id="loading">Loading street network, terrain and City layers…</div>
   </div>
 
   <aside id="right">
     <section id="inspector" class="expert-only"><h2>Inspector</h2><p class="muted small">Click a street or an evacuation zone (turn on the Evacuation zones layer) to see its attributes. Hover a badge (ⓘ) for where each value comes from.</p></section>
-    <section id="card" class="simple-only"></section>
-    <section id="try-out" class="simple-only"></section>
     <section id="results"></section>
     <section id="compare-out"></section>
     <section id="log"><h2>Event log (model time, h:mm after ignition)</h2><ol id="events"></ol></section>

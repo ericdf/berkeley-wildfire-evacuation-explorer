@@ -23,7 +23,9 @@ The parts of STYLE.md about Council explainers, Substack teasers and quizzes app
 
 ## Project rules
 
-- The simulator is an educational comparison tool, never a prediction. Saying so plainly ("not a prediction", "not an official evacuation plan") is required by the spec and is an intended exception to STYLE.md's rule against denial-first sentences; keep those statements wherever results are shown. Every number in the simulator carries its provenance category (sourced, derived, assumption, model rule, synthetic).
+- The simulator is an explorer; the name carries the framing. Do not add "not a prediction", "not a forecast" or "not an official plan" statements (Eric, 2026-11-10, dropping the earlier requirement: "Never use throat clearing like this. The name says what we need to say."). Limits that bound a finding stay, stated once where they matter (for example, a count of people at a moment is not a casualty count; the traffic model runs faster than the City study).
+- Every number in the simulator carries its provenance category (sourced, derived, assumption, model rule, synthetic). In Guided view the category sits behind the number's "Explain this" pop-up; Expert view shows it inline as badges (Eric, 2026-11-10; SOURCE_NOTES GV5, GV9).
+- Guided view is phone first: the map screen fits one phone screen with no page scrolling, and the Results and Changes views stay near two screens (`node tests/guided-browser.mjs`).
 - Log every insight taken from a document, a photo or a conversation in `SOURCE_NOTES.md`, with the source (document and page, or who said it and when) and what we did with it. Record conflicts between sources there too.
 - Do not store personal or household-level information; keep derived counts, not imagery.
 - Serve the simulator with `python3 tools/serve.py` and open `http://127.0.0.1:8766`. Port 8765 belongs to another project.

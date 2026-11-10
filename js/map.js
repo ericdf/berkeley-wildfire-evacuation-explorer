@@ -36,6 +36,7 @@ export class MapView {
     this.streetMode = 'class';
     this.sim = null; this.selected = null; this.hover = null;
     this.family = []; // fire families on: [{ ignition, winds }] for the starting points a comparison tries (js/main.js syncFamilies)
+    this.barriers = true; // diverter, bollard and gate marks on the streets layer
     this.marks = []; // Guided view, Change the plan: [{ geom, kind: 'street' | 'link' | 'buyout', focus }] for the picked changes
     this.zoneShapes = data.layers.evacZones.map((z, i) => ({ i, rings: z.rings, bb: bbox(z.rings) }));
     this.resize();
@@ -273,7 +274,7 @@ export class MapView {
       }
     }
     // Diverters (City list, shape from OpenStreetMap), bollards and gates that close a street to residents' cars
-    for (const e of data.net.edges) {
+    for (const e of this.barriers ? data.net.edges : []) { // Guided view hides them (js/guided.js)
       if (!e.barrier?.closed) continue;
       const [mx, my] = data.edgeMid[e.id], x = this.sx(mx), y = this.sy(my), r = Math.max(3, Math.min(6, this.scale * 4));
       if (x < -10 || y < -10 || x > this.w + 10 || y > this.h + 10) continue;
