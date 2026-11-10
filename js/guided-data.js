@@ -46,11 +46,12 @@ export const median = xs => {
   const s = xs.filter(x => x != null && Number.isFinite(x)).sort((a, b) => a - b), n = s.length;
   return n ? (n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2) : null;
 };
-// When a pass counts as better or worse. Live comparisons: only beyond 1% (MS11; js/main.js tolSame). The stored table
-// (tools/mitigations.mjs cmp, its holds rule, P19) counts any difference beyond floating-point rounding (relative 1e-9);
-// table-based rows and one-change comparisons use the table's rule so they agree with its verdicts (SOURCE_NOTES GV6, GV8).
-export const LIVE_NOISE = 0.01, TABLE_NOISE = 1e-9;
-export const sameWithin = (a, b, noise = LIVE_NOISE) => a === b || (a != null && b != null && Math.abs(a - b) <= noise * Math.max(Math.abs(a), Math.abs(b)));
+// When a pass counts as better or worse: one rule everywhere in Guided view, the stored table's (tools/mitigations.mjs cmp,
+// its holds rule, P19): any difference beyond floating-point rounding (relative 1e-9), for table rows, one-change comparisons
+// and live stacks alike; the consistent / mixed / sensitive label says whether a difference holds up (Eric, 2026-11-10,
+// SOURCE_NOTES GV10). Expert view's Compare keeps MS11's 1% rule (js/main.js tolSame, a separate code path).
+export const NOISE = 1e-9;
+export const sameWithin = (a, b, noise = NOISE) => a === b || (a != null && b != null && Math.abs(a - b) <= noise * Math.max(Math.abs(a), Math.abs(b)));
 // Rounding for display: residents to 10, small counts as they are.
 export const round10 = x => x == null ? null : Math.abs(x) >= 100 ? Math.round(x / 10) * 10 : Math.round(x);
 
@@ -101,7 +102,7 @@ export function makeGuided(M, SA, presets = []) {
   }
 
   // Pass-by-pass tally of a change against today's plan on one measure, grouped by severity (lower is better).
-  function tallyBySev(pairs, noise = LIVE_NOISE) {
+  function tallyBySev(pairs, noise = NOISE) {
     const by = {};
     for (const { sev, a, b } of pairs) {
       const t = by[sev] ||= { better: 0, worse: 0, n: 0 }; t.n++;
@@ -118,7 +119,7 @@ export function makeGuided(M, SA, presets = []) {
     const P = tablePairs(fire, leverId, key);
     // gain: the median of the same-seed differences (today's plan minus the change), so it follows the pairs.
     const a = median(P.map(p => p.a)), b = median(P.map(p => p.b)), gain = median(P.map(p => p.a != null && p.b != null ? p.a - p.b : null));
-    return { a, b, gain, d: tallyBySev(P, TABLE_NOISE), n: P.length, noise: TABLE_NOISE };
+    return { a, b, gain, d: tallyBySev(P), n: P.length };
   }
 
   // The stored verdict on one measure (js/mitigate.js stored): better in every run (holds), or in at least three of

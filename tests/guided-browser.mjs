@@ -105,8 +105,15 @@ for (const [di, name] of DEVICES.entries()) {
   await p.click('[data-about-gains]');
   check(/Where it comes from/.test(await p.locator('#modal .gx').innerText()), `${name}: About these gains gives provenance`);
   await p.locator('#modal .close').click();
+  // Top 3 per group, the rest behind "Show N more".
+  const perGroup = await p.locator('#g-panel').evaluate(P => [...P.querySelectorAll('h3.cg')].filter(h => !h.closest('details')).map(h => { let n = 0; for (let e = h.nextElementSibling; e && !e.matches('h3, details'); e = e.nextElementSibling) if (e.matches('.cr')) n++; return n; }));
+  check(perGroup.every(n => n <= 3), `${name}: at most 3 changes per group before Show more (${perGroup.join(', ')})`);
   await noScroll('on changes'); const hc = await panelHeight('Changes view');
   await shot('09-changes');
+  const before = await p.locator('.cr').count();
+  await p.locator('[data-more]').first().click();
+  check((await p.locator('.cr').count()) > before && /Show fewer/.test(await p.locator('[data-more]').first().innerText()), `${name}: Show more lists the rest of a group`);
+  await p.locator('[data-more]').first().click();
   const order2 = async () => (await p.locator('[data-pick]').evaluateAll(bs => bs.map(b => b.dataset.pick))).join(',');
   const byBenefit = await order2();
   await p.click('[data-sort="cost"]');
@@ -127,6 +134,9 @@ for (const [di, name] of DEVICES.entries()) {
   const cmp1 = await p.locator('.rc.cmp').count();
   const diff = await p.locator('.rc.cmp').nth(2).locator('.cmpgrid b').nth(2).innerText();
   check(cmp1 === 5 && /^−/.test(diff), `${name}: one-change comparison from the table, engine row ${diff}`);
+  // Difference colors: improvement green, worse amber, no change gray.
+  const cls = await p.locator('.rc.cmp .cmpgrid div:nth-child(3) b').evaluateAll(bs => bs.map(b => [b.textContent, b.className]));
+  check(cls.every(([t, c]) => t === 'No change' ? c === 'same' : t.startsWith('−') ? c === 'good' : t.startsWith('+') ? c === 'worse' : true), `${name}: difference colors (${cls.map(([t, c]) => `${t}:${c}`).join(' ')})`);
   const hcmp = await panelHeight('Comparison (one change)');
   await shot('13-compare-1');
   for (const id of ['ember', 'front', 'engine', 'oneWay', 'cutOff']) {
@@ -139,6 +149,7 @@ for (const [di, name] of DEVICES.entries()) {
 
   // Three changes: conflict, overlap warning, live comparison
   await p.click('[data-go="changes"] >> nth=0');
+  for (const b of await p.locator('[data-more]').all()) await b.click(); // every group open, so the picks below are listed
   await p.click('[data-pick="parkingOneSide"] >> nth=0'); // unpick
   await p.click('[data-pick="redCurbFoot"] >> nth=0');
   check(await p.locator('[data-pick="widen-WP-001"]').first().isDisabled(), `${name}: widening the red-curbed block is blocked (same block)`);

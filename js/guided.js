@@ -19,7 +19,7 @@ const SCOPE = { this: 'this fire', any: 'any fire' };
 
 export function guidedUI(ctx) {
   const { data, map, state, $, esc, fmt, FIRES, PRESETS, mit, spread, MEASURES, badge } = ctx;
-  const g = state.g = { screen: 'map', chip: 'fire', applied: [], picked: [], sort: 'benefit', live: null, sel: null };
+  const g = state.g = { more: {}, screen: 'map', chip: 'fire', applied: [], picked: [], sort: 'benefit', live: null, sel: null };
   let G = null;
   const model = () => G ??= makeGuided(mit(), spread(), PRESETS);
   const fireTitle = () => FIRES.find(f => f.id === state.fire)?.title || state.fire;
@@ -229,6 +229,7 @@ export function guidedUI(ctx) {
     if (!mit()) return `${head('Changes that could help', '')}<p>The change table did not load.</p>${footHTML('changes')}`;
     const groups = model().groups(state.fire).filter(x => x.items.length);
     const picked = g.picked.map(leverById).filter(Boolean);
+    const seen = new Set(); // changes already given a full row, in render order
     const row = (it, gid) => {
       const l = it.lever, on = g.picked.includes(l.id);
       const clash = !on && picked.map(p => ({ p, why: ctx.conflict(p, l) })).find(x => x.why);
@@ -240,27 +241,39 @@ export function guidedUI(ctx) {
       // A change withheld on this fire under P19 cannot be picked here (GV6). The cost sits beside the pick button,
       // and opens its provenance (category, source, note).
       const off = !on && (clash || full || it.withheld);
+      // A change already listed in an earlier group: one compact line (its cost and notes are on the full row above).
+      if (seen.has(l.id)) return `<div class="cr cr-dup${on ? ' on' : ''}${off ? ' off' : ''}"><button class="cr-pick" data-pick="${esc(l.id)}" aria-pressed="${on}"${off ? ' disabled' : ''}><span class="cr-s"><b>${esc(l.title)}</b> · ${gain}</span></button></div>`;
+      seen.add(l.id);
       return `<div class="cr${on ? ' on' : ''}${off ? ' off' : ''}"><button class="cr-pick" data-pick="${esc(l.id)}" aria-pressed="${on}"${off ? ' disabled' : ''}>
-        <span class="cr-t"><b>${esc(l.title)}</b></span>
+        <span class="cr-t"><b style="padding-right:${(0.5 * (costLine(l.cost).length + 3)).toFixed(1)}em">${esc(l.title)}</b></span>
         <span class="cr-s">${gain}</span>
         ${fr && gid === 'engine' ? `<span class="cr-s muted">Also a second way out for about ${fmt(round10(fr.value))} hill residents</span>` : ''}
         ${clash ? `<span class="cr-w">Changes the same block as “${esc(clash.p.title)}”: pick one.</span>` : ''}</button>
         <button class="cr-c linkish" data-cost="${esc(l.id)}" aria-label="Cost of ${esc(l.title)}: ${esc(costLine(l.cost))}. Where it comes from">${esc(costLine(l.cost))} ⓘ</button></div>`;
     };
+    // Each group shows its top 3 by the current sort, plus any picked change below them, and a control for the rest
+    // (Eric, 2026-11-10: keep the Changes view near two screens on an iPhone SE).
+    const TOP = 3;
+    const shortList = gr => {
+      const all = sortItems(gr.items, g.sort), open = g.more[gr.id];
+      const shown = open ? all : all.filter((it, i) => i < TOP || g.picked.includes(it.lever.id));
+      const rest = all.length - shown.length;
+      const ctl = all.length > TOP && (rest > 0 || open) ? `<button class="linkish cg-more" data-more="${gr.id}" aria-expanded="${!!open}">${open ? 'Show fewer' : `Show ${rest} more`}</button>` : '';
+      return shown.map(it => row(it, gr.id)).join('') + ctl;
+    };
     // "No consistent benefit" comes last and folded, unless one of its changes is picked.
     const body = groups.map(gr => gr.id === 'none'
       ? `<details class="cg-none"${gr.items.some(it => g.picked.includes(it.lever.id)) || g.noneOpen ? ' open' : ''}><summary><h3 class="cg">${esc(gr.title)}</h3><span>${gr.items.length} changes</span></summary>${sortItems(gr.items, g.sort).map(it => row(it, gr.id)).join('')}</details>`
-      : `<h3 class="cg">${esc(gr.title)}</h3>${sortItems(gr.items, g.sort).map(it => row(it, gr.id)).join('')}`).join('');
+      : `<h3 class="cg">${esc(gr.title)}</h3>${shortList(gr)}`).join('');
     // Picks that act on the same street: their gains can overlap, so the combined gain may be less than the sum.
     const warn = [];
     for (let i = 0; i < picked.length; i++) for (let j = i + 1; j < picked.length; j++) {
       const a = streetsOf(picked[i], data.net, data.nodeEdges), b = streetsOf(picked[j], data.net, data.nodeEdges), both = [...a].filter(x => b.has(x));
       if (both.length) warn.push(`“${esc(picked[i].title)}” and “${esc(picked[j].title)}” both change ${esc(both.slice(0, 2).map(s => s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())).join(' and '))}: together they may gain less than the two added up.`);
     }
-    const sub = `${esc(fireTitle())} · gains: median of ${mit().meta.severities.length * mit().meta.seeds.length} paired runs`;
+    const sub = `${esc(fireTitle())} · pick up to 3, then Run`;
     return `<div class="gv-back"><button class="linkish" data-go="results">← Results</button><button class="linkish" data-go="map">Map</button></div>${head('Changes that could help', sub)}
-      <p class="gv-about"><button class="linkish" data-about-gains>About these gains</button></p>
-      <div class="sortbar" role="group" aria-label="Sort">Sort by <button data-sort="benefit" aria-pressed="${g.sort === 'benefit'}">Benefit</button><button data-sort="cost" aria-pressed="${g.sort === 'cost'}">Cost</button></div>
+      <div class="sortbar"><span role="group" aria-label="Sort">Sort <button data-sort="benefit" aria-pressed="${g.sort === 'benefit'}">Benefit</button><button data-sort="cost" aria-pressed="${g.sort === 'cost'}">Cost</button></span><button class="linkish gv-about" data-about-gains>About these gains</button></div>
       ${body}
       <div class="pickbar${g.picked.length ? '' : ' empty'}">${warn.map(w => `<p class="cr-w">${w}</p>`).join('')}
         <div class="pickrow"><span>${g.picked.length ? `${g.picked.length} change${g.picked.length > 1 ? 's' : ''} selected${g.picked.length >= 3 ? ' (up to 3)' : ''}` : 'Pick up to 3 changes'}</span>${g.picked.length ? '<button data-clear>Clear</button>' : ''}<button class="primary" data-runpicks${g.picked.length ? '' : ' disabled'}>Run</button></div></div>`;
@@ -309,8 +322,10 @@ export function guidedUI(ctx) {
     const cards = CARDS.map(c => {
       const r = compareRow(c);
       const v = x => r ? n(x) : '…';
-      const diff = !r ? '…' : r.d.dir === 'same' || Math.abs(r.gain) < 0.5 ? 'No change' : `${r.gain > 0 ? '−' : '+'}${fmt(round10(Math.abs(r.gain)))}${r.atLeast ? ' or more' : ''}`;
-      const cls = !r || r.d.dir === 'same' ? '' : r.gain > 0 ? ' good' : ' bad';
+      // Difference: improvement green, worse amber, no change gray (Eric, 2026-11-10).
+      const same = r && (r.d.dir === 'same' || Math.abs(r.gain) < 0.5);
+      const diff = !r ? '…' : same ? 'No change' : `${r.gain > 0 ? '−' : '+'}${fmt(round10(Math.abs(r.gain)))}${r.atLeast ? ' or more' : ''}`;
+      const cls = !r ? '' : same ? 'same' : r.gain > 0 ? 'good' : 'worse';
       return `<div class="rc cmp"><div class="rc-l">${cap(c.line)}</div>
         <div class="cmpgrid"><div><small>Today's plan</small><b>${v(r?.a)}</b></div><div><small>With changes</small><b>${v(r?.b)}</b></div><div><small>Difference</small><b class="${cls}">${diff}</b></div></div>
         <div class="rc-f">${r ? chipHTML(r.d.label) : ''}<button class="linkish" data-explain-cmp="${c.id}"${r ? '' : ' disabled'}>Explain this</button></div></div>`;
@@ -323,12 +338,12 @@ export function guidedUI(ctx) {
     const c = cardById(id), r = compareRow(c); if (!r) return;
     const w = watched(c), src = g.applied.length === 1 ? 'From the stored table (data/model/mitigations.json), built 2026-11-06.' : 'Run live in your browser.';
     const passes = r.network ? (r.gain ? `New roads give about ${fmt(round10(r.gain))}${r.atLeast ? ' or more' : ''} hill residents a second way out ${badge('derived')} (data/model/egress-candidates.json, network analysis of 2026-11-01).${r.atLeast ? ' Two of your roads give a second way out to some of the same areas, so the larger single figure is shown as a floor.' : ''} Buyouts remove households but are not subtracted here.` : 'None of your changes adds a road, so the street network\'s single ways out stay as they are.')
-      : `${runSet()}, each run with and without the changes. Better in ${r.d.better}, worse in ${r.d.worse}, within 1% in ${r.d.same} of ${r.d.n}. By severity: ${levelText(r.d.levels)}. ${src}`;
+      : `${runSet()}, each run with and without the changes. Better in ${r.d.better}, worse in ${r.d.worse}, the same in ${r.d.same} of ${r.d.n}. By severity: ${levelText(r.d.levels)}. ${src}`;
     ctx.modal(`<div class="gx"><h2>${cap(c.line)}: ${n(r.a)} → ${n(r.b)}</h2>
       <h3>What it counts</h3><p>${c.counts}</p>
       <h3>The runs behind it</h3><p>${passes}</p>
       <h3>Where it comes from</h3><p>${provenance(c)}${r.network && r.gain ? ` Second ways out from new roads ${badge('derived')}: data/model/egress-candidates.json.` : ''}</p>
-      <h3>${chipHTML(r.d.label)}</h3><p>${MEANS[r.d.label] || ''} ${r.network ? '' : g.applied.length === 1 ? 'As in the stored table, any difference counts as better or worse.' : 'A run counts as better or worse only when the two differ by more than 1%.'}</p>
+      <h3>${chipHTML(r.d.label)}</h3><p>${MEANS[r.d.label] || ''} ${r.network ? '' : 'Any difference counts as better or worse; the label says whether it holds across the runs.'}</p>
       <h3>Limits</h3><p>${c.limits}</p>
       ${w != null ? `<h3>The run you watched</h3><p>${n(w)} with your changes (medium severity, seed 1).</p>` : ''}</div>`, 'gx');
   }
@@ -348,6 +363,7 @@ export function guidedUI(ctx) {
     P.querySelectorAll('[data-explain]').forEach(b => b.onclick = () => explain(b.dataset.explain));
     P.querySelectorAll('[data-explain-cmp]').forEach(b => b.onclick = () => explainCompare(b.dataset.explainCmp));
     P.querySelectorAll('[data-sort]').forEach(b => b.onclick = () => { g.sort = b.dataset.sort; rerender(); });
+    P.querySelectorAll('[data-more]').forEach(b => b.onclick = () => { g.more[b.dataset.more] = !g.more[b.dataset.more]; rerender(); });
     P.querySelector('[data-about-gains]')?.addEventListener('click', aboutGains);
     P.querySelectorAll('[data-cost]').forEach(b => b.onclick = () => explainCost(leverById(b.dataset.cost)));
     P.querySelectorAll('[data-pick]').forEach(b => b.onclick = () => { const id = b.dataset.pick; g.picked = g.picked.includes(id) ? g.picked.filter(x => x !== id) : [...g.picked, id].slice(0, 3); rerender(); });

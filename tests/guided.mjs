@@ -56,5 +56,9 @@ check(fr.atLeast && fr.value === Math.max(SA.leverStatic['link-CITY-1'].hillResi
 const byCost = sortItems(east.find(g => g.id === 'engine').items, 'cost');
 check(costLine(byCost[0].lever.cost) === 'Little capital cost' && byCost.every((it, i) => i === 0 || (it.lever.cost?.capital?.[0] ?? (/^Little/.test(it.lever.cost?.note || '') ? 0 : Infinity)) >= (byCost[i - 1].lever.cost?.capital?.[0] ?? (/^Little/.test(byCost[i - 1].lever.cost?.note || '') ? 0 : Infinity))), 'cost sort: cheapest first, unpriced last');
 
+// One rule (GV10): a difference of 10 on about 9,900 (the Dwight Way road on engine reach) counts in a live tally too.
+const live = G.tallyBySev([{ sev: 'central', a: 9926, b: 9916 }, { sev: 'central', a: 9926, b: 9926 + 1e-9 }]);
+check(live.better === 1 && live.worse === 0, 'one noise rule: a 0.1% difference counts; floating-point rounding does not');
+
 console.log(fail ? `\n${fail} check(s) failed` : '\nall checks passed');
 process.exit(fail ? 1 : 0);
