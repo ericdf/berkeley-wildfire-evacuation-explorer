@@ -307,7 +307,7 @@ body.simple #legend div { white-space: normal; }
 .cmpgrid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin: 2px 0 8px; }
 .cmpgrid small { display: block; color: var(--muted); font-size: 12px; }
 .cmpgrid b { font-size: 20px; font-variant-numeric: tabular-nums; }
-.cmpgrid b.good { color: #15803d; } .cmpgrid b.bad { color: #b91c1c; }
+.cmpgrid b.good { color: #15803d; } .cmpgrid b.worse { color: #b45309; } .cmpgrid b.same { color: var(--muted); font-weight: 600; }
 .gv-foot { display: flex; flex-direction: column; gap: 8px; margin: 14px auto 18px; }
 .gv-foot button { font-size: 16px; padding: 11px; border-radius: 8px; }
 .gprog { margin: 0 auto 10px; font-size: 13px; }
@@ -365,3 +365,12 @@ details.cg-none[open] summary span { display: none; }
 #g-sheet .g-src b { font-size: 13px; }
 .gv-about { margin: -6px auto 8px; font-size: 13px; }
 .gv-about .linkish { font-size: 13px; }
+.cg-more { display: block; margin: 0 0 4px 2px; font-size: 13.5px; padding: 4px 0; }
+.sortbar > span { display: flex; align-items: center; gap: 6px; }
+.sortbar .gv-about { margin: 0 0 0 auto; font-size: 13px; }
+h3.cg { margin-top: 10px; }
+.sortbar { flex-wrap: wrap; row-gap: 4px; }
+.pickbar.empty { display: none; }
+.cr-dup .cr-pick { padding: 6px 10px; }
+.cr-dup .cr-s { margin: 0; }
+.cr-dup .cr-s b { font-weight: 600; }
