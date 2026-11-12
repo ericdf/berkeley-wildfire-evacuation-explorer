@@ -298,7 +298,7 @@
     },
     "intersections.signals": {
       "category": "assumption",
-      "note": "Signalized junctions (the City's 143 and 119 OpenStreetMap signals outside Berkeley): each approach passes at most lanes x 1,900 per lane x g/C an hour (FHWA Signal Timing Manual Eq. 3-2; Time Study 4-2 to 4-4). The City's timings are not published, so g/C is assumed, low / central / high: cycle 60 / 90 / 120 s (FHWA Table 3-4) with 5 s lost per phase (Time Study). Pre-timed: the junction's highest-class street 0.40 / 0.45 / 0.55, other streets 0.31 / 0.38 / 0.37 (FHWA HPMS Field Manual App. N; Kentucky Transportation Cabinet 2011). Actuated (and every signal outside Berkeley, control unknown): the street with more cars waiting takes 75% of the usable green when both have cars waiting (Time Study 2-4), all of it otherwise (SOURCE_NOTES CD21)."
+      "note": "Signalized junctions (the City's 143 and 119 OpenStreetMap signals outside Berkeley): each approach passes at most lanes x 1,900 per lane x g/C an hour (FHWA Signal Timing Manual Eq. 3-2; Time Study 4-2 to 4-4). The City's timings are not published, so g/C is assumed, low / central / high: cycle 60 / 90 / 120 s (FHWA Table 3-4) with 5 s lost per phase (Time Study). Pre-timed: the junction's highest-class street 0.40 / 0.45 / 0.55, other streets 0.31 / 0.38 / 0.37 (FHWA HPMS Field Manual App. N; Kentucky Transportation Cabinet 2011). Actuated (and every signal outside Berkeley, control unknown): the street with more cars on its approaches takes 75% of the usable green when both streets have cars on their approaches (Time Study 2-4), all of it otherwise (SOURCE_NOTES CD21)."
     },
     "intersections.delayS": {
       "category": "assumption",
