@@ -9,11 +9,12 @@ export async function loadData(load = browserLoad) {
   ]);
   // Optional: access-constrained areas (tools/access-constraints.mjs), for the map layer and the R0 plan setting. The simulator runs without them.
   const access = await Promise.resolve().then(() => load('data/model/access-constraints.json', 'json')).catch(() => null);
-  // Optional: signal junctions (tools/signals.mjs) and main hill exit streets (tools/contraflow-streets.mjs), for the
-  // police-control, power-shutoff and contraflow settings. Every setting is off by default.
+  // Optional: signal junctions (tools/signals.mjs: the City's signals, and OpenStreetMap signals outside Berkeley) and main
+  // hill exit streets (tools/contraflow-streets.mjs). Signals set junction capacity (js/sim.js, SOURCE_NOTES CD21) and are
+  // read by the police-control and power-shutoff settings; contraflow streets by the contraflow setting.
   // Optional: household mix by place (tools/build-demand.mjs), for the default "Household mix: by place" world
   // setting and the zone figures from the ACS and licensing records. Without it runs use the Time Study's citywide mix.
-  const [signals, contraflow, demand] = await Promise.all(['data/model/signals.json', 'data/model/contraflow-streets.json', 'data/model/demand-by-zone.json']
+  const [signals, signalsOutside, contraflow, demand] = await Promise.all(['data/model/signals.json', 'data/model/signals-outside.json', 'data/model/contraflow-streets.json', 'data/model/demand-by-zone.json']
     .map(p => Promise.resolve().then(() => load(p, 'json')).catch(() => null)));
   // Optional: LANDFIRE FBFM40 fuel classes on the fire grid (tools/fetch-fuel.mjs), for the opt-in "Fuel" scenario setting.
   const [fuelMeta, fuelBuf] = await Promise.all([['data/terrain/fbfm40.json', 'json'], ['data/terrain/fbfm40.u8', 'buffer']]
@@ -34,7 +35,7 @@ export async function loadData(load = browserLoad) {
   // (tools/demand-compare.mjs), shown beside the results they qualify.
   const [calibration, demandCompare] = await Promise.all(['data/model/calibration.json', 'data/model/demand-compare.json']
     .map(p => Promise.resolve().then(() => load(p, 'json')).catch(() => null)));
-  return prepare({ net, layers, dem, Z: new Int16Array(demBuf), A, fireZones2025, access, signals, contraflow, demand, fuel40, workplaces, walk, structures, faultClosures, haywired, calibration, demandCompare });
+  return prepare({ net, layers, dem, Z: new Int16Array(demBuf), A, fireZones2025, access, signals, signalsOutside, contraflow, demand, fuel40, workplaces, walk, structures, faultClosures, haywired, calibration, demandCompare });
 }
 
 async function browserLoad(path, kind) {

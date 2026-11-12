@@ -31,8 +31,8 @@ export const PRESETS = [
     on: {
       eastWind: 'In Plan B about a sixth fewer modeled residents are not yet out when modeled embers reach their street (about 6,300 against 5,300 in the medium-severity case). If only the City\'s smaller Leave Early Zones do it, the drop is about 2%: most hill residents live outside them.',
       ref1923: 'In Plan B about 30% fewer modeled residents are not yet out when modeled embers reach their street (about 4,050 against 2,850 in the medium-severity case).',
-      panoramic: `In Plan B about a seventh fewer modeled residents are not yet out when modeled embers reach their street (about 13,600 against 11,650 in the medium-severity case). ${PANORAMIC_UNORDERED}`,
-      northHills: 'In Plan B about a fifth fewer modeled residents are not yet out when modeled embers reach their street (about 5,000 against 3,900 in the medium-severity case). If only the City\'s smaller Leave Early Zones do it, the drop is about 8%.',
+      panoramic: `In Plan B about a seventh fewer modeled residents are not yet out when modeled embers reach their street (about 13,550 against 11,600 in the medium-severity case). ${PANORAMIC_UNORDERED}`,
+      northHills: 'In Plan B about a fifth fewer modeled residents are not yet out when modeled embers reach their street (about 5,000 against 3,950 in the medium-severity case). If only the City\'s smaller Leave Early Zones do it, the drop is about 8%.',
     },
     off: {},
     headline: { label: 'Modeled residents not yet out when embers reached their street', f: exposed, dir: -1 },
@@ -45,9 +45,9 @@ export const PRESETS = [
     A: plan('A: first order 20 min after ignition', { orderDelayMin: 20 }),
     B: plan('B: first order 5 min after ignition', { orderDelayMin: 5 }),
     on: {
-      ref1923: 'About a fifth fewer modeled residents are not yet out when modeled embers reach their street (about 6,000 against 4,800 in the medium-severity case). The gain comes from people leaving ahead of the modeled fire, not from faster traffic.',
+      ref1923: 'About a fifth fewer modeled residents are not yet out when modeled embers reach their street (about 5,750 against 4,700 in the medium-severity case). The gain comes from people leaving ahead of the modeled fire, not from faster traffic.',
       eastWind: 'About 7% fewer modeled residents are not yet out when modeled embers reach their street (about 7,400 against 6,900 in the medium-severity case). The gain comes from people leaving ahead of the modeled fire, not from faster traffic.',
-      panoramic: `About 6% fewer modeled residents are not yet out when modeled embers reach their street (about 14,800 against 13,950 in the medium-severity case), a smaller gain than on the two larger fires. ${PANORAMIC_UNORDERED}`,
+      panoramic: `About 5% fewer modeled residents are not yet out when modeled embers reach their street (about 14,750 against 14,000 in the medium-severity case), a smaller gain than on the two larger fires. ${PANORAMIC_UNORDERED}`,
     },
     off: {
       northHills: 'Plan B does better in 10 of 15 runs, not all: in the 5 low-severity runs it leaves 62–75 fewer modeled residents at home when modeled embers reach their street but 86–147 more on the road on streets the embers reached, as cars drive on toward the edge of the modeled area (SOURCE_NOTES CD20).',
@@ -65,8 +65,8 @@ export const PRESETS = [
     A: plan('A: fall weekday, midday'),
     B: plan('B: fall night'),
     on: {
-      eastWind: 'On a weekday about 15,950 cars from the zones Berkeley orders evacuate instead of 13,800 (Oakland and other neighbors\' ordered zones add about 170 more under both), some households wait for a commuter to drive home, and parents pick up children. 90% of cars get out about 13 minutes later (about 105 against 92 min). Both plans are the same; only the time of day differs.',
-      northHills: 'On a weekday about 12,750 cars from the zones Berkeley orders evacuate instead of 11,350 (Kensington, El Cerrito and Albany add about 2,600–2,850 more under both), some households wait for a commuter to drive home, and parents pick up children. 90% of cars get out about 14 minutes later (about 106 against 92 min); the 2025 Time Study finds 20 minutes for this region (2:05 against 1:45). Both plans are the same; only the time of day differs.',
+      eastWind: 'On a weekday about 15,950 cars from the zones Berkeley orders evacuate instead of 13,800 (Oakland and other neighbors\' ordered zones add about 170 more under both), some households wait for a commuter to drive home, and parents pick up children. 90% of cars get out about 15 minutes later (about 116 against 101 min). Both plans are the same; only the time of day differs.',
+      northHills: 'On a weekday about 12,750 cars from the zones Berkeley orders evacuate instead of 11,350 (Kensington, El Cerrito and Albany add about 2,600–2,850 more under both), some households wait for a commuter to drive home, and parents pick up children. 90% of cars get out about 11 minutes later (about 112 against 101 min); the 2025 Time Study finds 20 minutes for this region (2:05 against 1:45). Both plans are the same; only the time of day differs.',
     },
     off: {
       ref1923: 'weekday and night differ by about 7 min here (98 against 91), while the 2025 Time Study finds about 70 min for this region; the simulator misses most of that weekday slowdown.',

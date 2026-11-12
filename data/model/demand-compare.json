@@ -1,6 +1,6 @@
 {
  "_meta": {
-  "built": "2026-11-06",
+  "built": "2026-11-12",
   "seeds": [
    1,
    2,
@@ -22,15 +22,15 @@
      "carlessHouseholdsOrdered": 993,
      "stranded": 329.43000000000046,
      "riders": 2023.9799999999557,
-     "clearP90": 100.91666666666667,
+     "clearP90": 100.66666666666667,
      "clearP100": null,
-     "clearP90All": 100.83333333333333,
-     "exposed": 6138.721990280078,
+     "clearP90All": 100.66666666666667,
+     "exposed": 6158.827560667248,
      "exposedNoVehicle": 80.58,
      "fireFront": 248.85000000000028,
      "vehiclesOnRoad": 43,
      "vehiclesNoRoute": 43,
-     "peakQueued": 2040
+     "peakQueued": 2130
     },
     {
      "households": 83017,
@@ -40,15 +40,15 @@
      "carlessHouseholdsOrdered": 934,
      "stranded": 237.00000000000028,
      "riders": 1976.5799999999579,
-     "clearP90": 99.91666666666667,
+     "clearP90": 99.5,
      "clearP100": null,
-     "clearP90All": 99.83333333333333,
-     "exposed": 5776.340500359769,
+     "clearP90All": 99.41666666666667,
+     "exposed": 5778.301550395762,
      "exposedNoVehicle": 40.29,
-     "fireFront": 177.75000000000014,
+     "fireFront": 175.38000000000017,
      "vehiclesOnRoad": 39,
      "vehiclesNoRoute": 39,
-     "peakQueued": 2025
+     "peakQueued": 2066
     },
     {
      "households": 83022,
@@ -58,15 +58,15 @@
      "carlessHouseholdsOrdered": 955,
      "stranded": 327.06000000000046,
      "riders": 1936.2899999999597,
-     "clearP90": 103.66666666666667,
+     "clearP90": 102.41666666666667,
      "clearP100": null,
-     "clearP90All": 103.58333333333333,
-     "exposed": 7449.925198364346,
+     "clearP90All": 102.33333333333333,
+     "exposed": 7402.111331515966,
      "exposedNoVehicle": 80.58,
-     "fireFront": 466.47613315162056,
+     "fireFront": 464.5200000000007,
      "vehiclesOnRoad": 51,
      "vehiclesNoRoute": 51,
-     "peakQueued": 2227
+     "peakQueued": 2175
     }
    ],
    "place": [
@@ -78,15 +78,15 @@
      "carlessHouseholdsOrdered": 2244,
      "stranded": 715.5604000000016,
      "riders": 4359.447299999928,
-     "clearP90": 101.08333333333333,
+     "clearP90": 101.41666666666667,
      "clearP100": null,
-     "clearP90All": 101.08333333333333,
-     "exposed": 6518.883151161564,
+     "clearP90All": 101.41666666666667,
+     "exposed": 6480.950151161564,
      "exposedNoVehicle": 257.6735999999992,
      "fireFront": 344.17139999999904,
-     "vehiclesOnRoad": 40,
-     "vehiclesNoRoute": 40,
-     "peakQueued": 1891
+     "vehiclesOnRoad": 39,
+     "vehiclesNoRoute": 39,
+     "peakQueued": 1928
     },
     {
      "households": 86621,
@@ -96,15 +96,15 @@
      "carlessHouseholdsOrdered": 2193,
      "stranded": 637.2031000000004,
      "riders": 4312.151799999935,
-     "clearP90": 99.08333333333333,
+     "clearP90": 99,
      "clearP100": null,
-     "clearP90All": 99,
-     "exposed": 6333.498562495023,
+     "clearP90All": 98.91666666666667,
+     "exposed": 6329.527162495023,
      "exposedNoVehicle": 181.88919999999976,
      "fireFront": 272.8456000000003,
      "vehiclesOnRoad": 39,
      "vehiclesNoRoute": 39,
-     "peakQueued": 1568
+     "peakQueued": 1651
     },
     {
      "households": 86599,
@@ -114,15 +114,15 @@
      "carlessHouseholdsOrdered": 2246,
      "stranded": 701.5941000000018,
      "riders": 4343.47739999993,
-     "clearP90": 103.41666666666667,
+     "clearP90": 103.58333333333333,
      "clearP100": null,
-     "clearP90All": 103.41666666666667,
-     "exposed": 7927.5698114079005,
+     "clearP90All": 103.58333333333333,
+     "exposed": 7841.331133842283,
      "exposedNoVehicle": 223.70159999999944,
-     "fireFront": 616.9554000000022,
+     "fireFront": 618.8448444868784,
      "vehiclesOnRoad": 58,
      "vehiclesNoRoute": 58,
-     "peakQueued": 1953
+     "peakQueued": 1895
     }
    ]
   },
@@ -131,21 +131,21 @@
    "citywide": [
     {
      "households": 83007,
-     "vehicles": 38695,
-     "orderVehicles": 25187,
+     "vehicles": 38694,
+     "orderVehicles": 25186,
      "orderedPeople": 27558.359999997636,
-     "carlessHouseholdsOrdered": 1363,
-     "stranded": 474.00000000000074,
+     "carlessHouseholdsOrdered": 1364,
+     "stranded": 476.37000000000074,
      "riders": 2756.309999999922,
-     "clearP90": 113.41666666666667,
+     "clearP90": 111.66666666666667,
      "clearP100": null,
-     "clearP90All": 115.25,
-     "exposed": 6124.47255972685,
-     "exposedNoVehicle": 173.01000000000016,
-     "fireFront": 618.1618259385673,
-     "vehiclesOnRoad": 148,
-     "vehiclesNoRoute": 146,
-     "peakQueued": 12226
+     "clearP90All": 113.08333333333333,
+     "exposed": 5778.64984425448,
+     "exposedNoVehicle": 175.38000000000017,
+     "fireFront": 620.1236430600417,
+     "vehiclesOnRoad": 146,
+     "vehiclesNoRoute": 144,
+     "peakQueued": 12165
     },
     {
      "households": 83017,
@@ -155,33 +155,33 @@
      "carlessHouseholdsOrdered": 1297,
      "stranded": 433.71000000000066,
      "riders": 2640.1799999999275,
-     "clearP90": 109.66666666666667,
+     "clearP90": 109.41666666666667,
      "clearP100": null,
-     "clearP90All": 110.58333333333333,
-     "exposed": 3747.3617532153075,
+     "clearP90All": 110.33333333333333,
+     "exposed": 3692.609835928134,
      "exposedNoVehicle": 135.0900000000001,
-     "fireFront": 388.27108338974364,
-     "vehiclesOnRoad": 70,
+     "fireFront": 390.23216677948676,
+     "vehiclesOnRoad": 72,
      "vehiclesNoRoute": 70,
-     "peakQueued": 12504
+     "peakQueued": 12139
     },
     {
      "households": 83022,
-     "vehicles": 38998,
-     "orderVehicles": 25523,
+     "vehicles": 39000,
+     "orderVehicles": 25525,
      "orderedPeople": 27591.53999999762,
-     "carlessHouseholdsOrdered": 1349,
-     "stranded": 462.1500000000007,
+     "carlessHouseholdsOrdered": 1347,
+     "stranded": 457.4100000000007,
      "riders": 2734.979999999923,
-     "clearP90": 118.33333333333333,
+     "clearP90": 117.66666666666667,
      "clearP100": null,
-     "clearP90All": 119.5,
-     "exposed": 8292.15516570774,
-     "exposedNoVehicle": 130.35000000000008,
-     "fireFront": 718.110000000001,
-     "vehiclesOnRoad": 166,
-     "vehiclesNoRoute": 166,
-     "peakQueued": 12947
+     "clearP90All": 118.75,
+     "exposed": 8097.1801609820395,
+     "exposedNoVehicle": 125.61000000000008,
+     "fireFront": 713.370000000001,
+     "vehiclesOnRoad": 167,
+     "vehiclesNoRoute": 167,
+     "peakQueued": 12425
     }
    ],
    "place": [
@@ -193,15 +193,15 @@
      "carlessHouseholdsOrdered": 5869,
      "stranded": 2139.667300000003,
      "riders": 10426.026800000423,
-     "clearP90": 103.41666666666667,
+     "clearP90": 99.91666666666667,
      "clearP100": null,
-     "clearP90All": 104.25,
-     "exposed": 6356.471533133152,
+     "clearP90All": 100.91666666666667,
+     "exposed": 5995.31588852919,
      "exposedNoVehicle": 536.4331000000014,
      "fireFront": 793.7814060811723,
      "vehiclesOnRoad": 138,
      "vehiclesNoRoute": 138,
-     "peakQueued": 10896
+     "peakQueued": 10408
     },
     {
      "households": 86621,
@@ -211,15 +211,15 @@
      "carlessHouseholdsOrdered": 5635,
      "stranded": 1953.8686999999957,
      "riders": 10088.615600000261,
-     "clearP90": 100.33333333333333,
+     "clearP90": 99.58333333333333,
      "clearP100": null,
-     "clearP90All": 101.58333333333333,
-     "exposed": 4120.019941466449,
+     "clearP90All": 100.91666666666667,
+     "exposed": 4079.4182069712415,
      "exposedNoVehicle": 519.6827000000005,
-     "fireFront": 582.3808448317354,
+     "fireFront": 585.0399448317354,
      "vehiclesOnRoad": 91,
      "vehiclesNoRoute": 91,
-     "peakQueued": 11066
+     "peakQueued": 10374
     },
     {
      "households": 86599,
@@ -229,15 +229,15 @@
      "carlessHouseholdsOrdered": 5708,
      "stranded": 2065.105299999992,
      "riders": 10134.471700000273,
-     "clearP90": 107,
+     "clearP90": 102.5,
      "clearP100": null,
-     "clearP90All": 107.75,
-     "exposed": 8215.714678815666,
+     "clearP90All": 103.58333333333333,
+     "exposed": 7800.4498066233555,
      "exposedNoVehicle": 498.60790000000003,
-     "fireFront": 902.2500396411945,
-     "vehiclesOnRoad": 169,
-     "vehiclesNoRoute": 169,
-     "peakQueued": 11424
+     "fireFront": 906.6850594617899,
+     "vehiclesOnRoad": 171,
+     "vehiclesNoRoute": 171,
+     "peakQueued": 10764
     }
    ]
   },
@@ -255,12 +255,12 @@
      "clearP90": null,
      "clearP100": null,
      "clearP90All": null,
-     "exposed": 14711.260274585457,
+     "exposed": 14733.497508209723,
      "exposedNoVehicle": 73.46999999999998,
-     "fireFront": 4304.985957267404,
-     "vehiclesOnRoad": 339,
+     "fireFront": 4295.505957267404,
+     "vehiclesOnRoad": 340,
      "vehiclesNoRoute": 314,
-     "peakQueued": 1261
+     "peakQueued": 1103
     },
     {
      "households": 83017,
@@ -273,12 +273,12 @@
      "clearP90": null,
      "clearP100": null,
      "clearP90All": null,
-     "exposed": 13917.369450169446,
+     "exposed": 13897.359916939982,
      "exposedNoVehicle": 56.87999999999998,
-     "fireFront": 3942.4531210443065,
+     "fireFront": 3949.5631210443066,
      "vehiclesOnRoad": 314,
      "vehiclesNoRoute": 306,
-     "peakQueued": 1353
+     "peakQueued": 1318
     },
     {
      "households": 83022,
@@ -291,12 +291,12 @@
      "clearP90": null,
      "clearP100": null,
      "clearP90All": 228.66666666666666,
-     "exposed": 15628.936066542152,
+     "exposed": 15579.053003488758,
      "exposedNoVehicle": 61.619999999999976,
-     "fireFront": 4280.2199999998575,
+     "fireFront": 4282.176156157625,
      "vehiclesOnRoad": 358,
      "vehiclesNoRoute": 291,
-     "peakQueued": 1359
+     "peakQueued": 1239
     }
    ],
    "place": [
@@ -311,12 +311,12 @@
      "clearP90": null,
      "clearP100": null,
      "clearP90All": null,
-     "exposed": 14971.753359036144,
+     "exposed": 14990.069261963576,
      "exposedNoVehicle": 249.36420000000015,
-     "fireFront": 4771.743710042662,
-     "vehiclesOnRoad": 227,
-     "vehiclesNoRoute": 190,
-     "peakQueued": 1081
+     "fireFront": 4766.001210042662,
+     "vehiclesOnRoad": 226,
+     "vehiclesNoRoute": 189,
+     "peakQueued": 965
     },
     {
      "households": 86621,
@@ -328,13 +328,13 @@
      "riders": 1900.7874999999729,
      "clearP90": null,
      "clearP100": null,
-     "clearP90All": 209.5,
-     "exposed": 14201.595627139292,
+     "clearP90All": 209.16666666666666,
+     "exposed": 14223.589016483911,
      "exposedNoVehicle": 257.2576000000003,
-     "fireFront": 4363.623055651507,
-     "vehiclesOnRoad": 157,
+     "fireFront": 4369.726555651507,
+     "vehiclesOnRoad": 158,
      "vehiclesNoRoute": 148,
-     "peakQueued": 1236
+     "peakQueued": 1038
     },
     {
      "households": 86599,
@@ -346,13 +346,13 @@
      "riders": 1951.171799999976,
      "clearP90": null,
      "clearP100": null,
-     "clearP90All": 222.66666666666666,
-     "exposed": 15709.747808673685,
+     "clearP90All": 222.5,
+     "exposed": 15607.705067593462,
      "exposedNoVehicle": 285.00379999999996,
      "fireFront": 4662.739087675945,
-     "vehiclesOnRoad": 204,
+     "vehiclesOnRoad": 203,
      "vehiclesNoRoute": 160,
-     "peakQueued": 1182
+     "peakQueued": 1081
     }
    ]
   },
@@ -367,15 +367,15 @@
      "carlessHouseholdsOrdered": 1045,
      "stranded": 300.9900000000004,
      "riders": 2175.659999999949,
-     "clearP90": 101.25,
+     "clearP90": 102.75,
      "clearP100": null,
-     "clearP90All": 181.41666666666666,
-     "exposed": 4451.453555807461,
+     "clearP90All": 181.16666666666666,
+     "exposed": 4501.631699011738,
      "exposedNoVehicle": 80.58,
-     "fireFront": 674.6337135914476,
-     "vehiclesOnRoad": 243,
+     "fireFront": 665.1537135914476,
+     "vehiclesOnRoad": 265,
      "vehiclesNoRoute": 55,
-     "peakQueued": 1404
+     "peakQueued": 1563
     },
     {
      "households": 83017,
@@ -385,15 +385,15 @@
      "carlessHouseholdsOrdered": 978,
      "stranded": 303.3600000000004,
      "riders": 2014.4999999999561,
-     "clearP90": 101.41666666666667,
+     "clearP90": 101.16666666666667,
      "clearP100": null,
-     "clearP90All": 177.91666666666666,
-     "exposed": 5276.753601151664,
+     "clearP90All": 177.66666666666666,
+     "exposed": 5256.650451043684,
      "exposedNoVehicle": 68.72999999999998,
-     "fireFront": 393.4200000000005,
-     "vehiclesOnRoad": 259,
+     "fireFront": 395.79000000000053,
+     "vehiclesOnRoad": 262,
      "vehiclesNoRoute": 17,
-     "peakQueued": 1295
+     "peakQueued": 1376
     },
     {
      "households": 83022,
@@ -403,15 +403,15 @@
      "carlessHouseholdsOrdered": 956,
      "stranded": 270.18000000000035,
      "riders": 1995.539999999957,
-     "clearP90": 102.58333333333333,
+     "clearP90": 103.41666666666667,
      "clearP100": null,
-     "clearP90All": 183.5,
-     "exposed": 5556.18199727416,
+     "clearP90All": 183.33333333333334,
+     "exposed": 5612.835595093598,
      "exposedNoVehicle": 71.09999999999998,
-     "fireFront": 731.916133151621,
-     "vehiclesOnRoad": 231,
-     "vehiclesNoRoute": 56,
-     "peakQueued": 1496
+     "fireFront": 727.176133151621,
+     "vehiclesOnRoad": 245,
+     "vehiclesNoRoute": 57,
+     "peakQueued": 1516
     }
    ],
    "place": [
@@ -423,51 +423,51 @@
      "carlessHouseholdsOrdered": 1270,
      "stranded": 374.4324000000002,
      "riders": 2065.940300000012,
-     "clearP90": 100.83333333333333,
+     "clearP90": 102.91666666666667,
      "clearP100": null,
-     "clearP90All": 180.33333333333334,
-     "exposed": 4477.274819926717,
+     "clearP90All": 180.25,
+     "exposed": 4512.570130425587,
      "exposedNoVehicle": 38.1015,
-     "fireFront": 599.6414000000016,
-     "vehiclesOnRoad": 261,
+     "fireFront": 597.2309000000015,
+     "vehiclesOnRoad": 293,
      "vehiclesNoRoute": 53,
-     "peakQueued": 1317
+     "peakQueued": 1460
     },
     {
      "households": 86621,
-     "vehicles": 14149,
-     "orderVehicles": 11398,
+     "vehicles": 14150,
+     "orderVehicles": 11399,
      "orderedPeople": 31703.030799998993,
-     "carlessHouseholdsOrdered": 1233,
-     "stranded": 267.12309999999934,
+     "carlessHouseholdsOrdered": 1232,
+     "stranded": 264.72369999999927,
      "riders": 2093.9736000000144,
-     "clearP90": 100.41666666666667,
+     "clearP90": 100.91666666666667,
      "clearP100": null,
-     "clearP90All": 179.41666666666666,
-     "exposed": 5133.893521602948,
-     "exposedNoVehicle": 31.344800000000003,
-     "fireFront": 383.8805132802566,
-     "vehiclesOnRoad": 308,
-     "vehiclesNoRoute": 21,
-     "peakQueued": 1211
+     "clearP90All": 179.66666666666666,
+     "exposed": 5142.130674970782,
+     "exposedNoVehicle": 28.9454,
+     "fireFront": 375.9868000000003,
+     "vehiclesOnRoad": 319,
+     "vehiclesNoRoute": 22,
+     "peakQueued": 1264
     },
     {
      "households": 86599,
-     "vehicles": 14367,
-     "orderVehicles": 11344,
+     "vehicles": 14368,
+     "orderVehicles": 11345,
      "orderedPeople": 31755.418399999016,
-     "carlessHouseholdsOrdered": 1249,
-     "stranded": 304.96549999999945,
+     "carlessHouseholdsOrdered": 1248,
+     "stranded": 302.4550999999994,
      "riders": 2068.562100000014,
-     "clearP90": 102.83333333333333,
+     "clearP90": 102.75,
      "clearP100": null,
-     "clearP90All": 184.66666666666666,
-     "exposed": 5646.6475097239045,
-     "exposedNoVehicle": 22.6957,
-     "fireFront": 629.3179115037398,
-     "vehiclesOnRoad": 232,
-     "vehiclesNoRoute": 49,
-     "peakQueued": 1410
+     "clearP90All": 184.83333333333334,
+     "exposed": 5628.162512553717,
+     "exposedNoVehicle": 20.185299999999998,
+     "fireFront": 634.2186334606307,
+     "vehiclesOnRoad": 254,
+     "vehiclesNoRoute": 50,
+     "peakQueued": 1374
     }
    ]
   }
@@ -489,14 +489,14 @@
      "stranded": 452.6700000000007,
      "riders": 2742.089999999923,
      "clearP90": 106.16666666666667,
-     "clearP100": 205.5,
+     "clearP100": 205.66666666666666,
      "clearP90All": 106.16666666666667,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 0,
      "vehiclesNoRoute": 0,
-     "peakQueued": 12059
+     "peakQueued": 12137
     },
     {
      "households": 83017,
@@ -506,15 +506,15 @@
      "carlessHouseholdsOrdered": 1280,
      "stranded": 428.97000000000065,
      "riders": 2604.629999999929,
-     "clearP90": 106.91666666666667,
-     "clearP100": 201.33333333333334,
-     "clearP90All": 106.91666666666667,
+     "clearP90": 106.08333333333333,
+     "clearP100": 201.25,
+     "clearP90All": 106.08333333333333,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 1,
      "vehiclesNoRoute": 1,
-     "peakQueued": 12369
+     "peakQueued": 12099
     },
     {
      "households": 83022,
@@ -524,15 +524,15 @@
      "carlessHouseholdsOrdered": 1325,
      "stranded": 438.45000000000067,
      "riders": 2701.7999999999247,
-     "clearP90": 109.08333333333333,
-     "clearP100": 209.33333333333334,
-     "clearP90All": 109.08333333333333,
+     "clearP90": 108.58333333333333,
+     "clearP100": 209.5,
+     "clearP90All": 108.58333333333333,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 0,
      "vehiclesNoRoute": 0,
-     "peakQueued": 12616
+     "peakQueued": 12504
     }
    ],
    "place": [
@@ -544,15 +544,15 @@
      "carlessHouseholdsOrdered": 5861,
      "stranded": 2131.764200000003,
      "riders": 10412.916800000427,
-     "clearP90": 100.08333333333333,
-     "clearP100": 208.33333333333334,
-     "clearP90All": 100.08333333333333,
+     "clearP90": 98.83333333333333,
+     "clearP100": 208.25,
+     "clearP90All": 98.83333333333333,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 1,
      "vehiclesNoRoute": 1,
-     "peakQueued": 11019
+     "peakQueued": 10425
     },
     {
      "households": 86621,
@@ -562,15 +562,15 @@
      "carlessHouseholdsOrdered": 5628,
      "stranded": 1946.1103999999957,
      "riders": 10078.127600000264,
-     "clearP90": 99.75,
-     "clearP100": 201,
-     "clearP90All": 99.75,
+     "clearP90": 98.58333333333333,
+     "clearP100": 201.16666666666666,
+     "clearP90All": 98.58333333333333,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 0,
      "vehiclesNoRoute": 0,
-     "peakQueued": 10818
+     "peakQueued": 10271
     },
     {
      "households": 86599,
@@ -580,15 +580,15 @@
      "carlessHouseholdsOrdered": 5691,
      "stranded": 2047.164599999994,
      "riders": 10108.251700000279,
-     "clearP90": 100.91666666666667,
-     "clearP100": 210.41666666666666,
-     "clearP90All": 100.91666666666667,
+     "clearP90": 99.83333333333333,
+     "clearP100": 210.08333333333334,
+     "clearP90All": 99.83333333333333,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 2,
      "vehiclesNoRoute": 2,
-     "peakQueued": 11046
+     "peakQueued": 10610
     }
    ]
   },
@@ -607,15 +607,15 @@
      "carlessHouseholdsOrdered": 1381,
      "stranded": 450.3000000000007,
      "riders": 2822.669999999919,
-     "clearP90": 92.16666666666667,
-     "clearP100": 198.83333333333334,
-     "clearP90All": 92.16666666666667,
+     "clearP90": 91.58333333333333,
+     "clearP100": 198.91666666666666,
+     "clearP90All": 91.58333333333333,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 0,
      "vehiclesNoRoute": 0,
-     "peakQueued": 3946
+     "peakQueued": 4029
     },
     {
      "households": 83017,
@@ -625,15 +625,15 @@
      "carlessHouseholdsOrdered": 1315,
      "stranded": 431.34000000000066,
      "riders": 2685.2099999999255,
-     "clearP90": 92.08333333333333,
-     "clearP100": 183,
-     "clearP90All": 92.08333333333333,
+     "clearP90": 92.25,
+     "clearP100": 183.08333333333334,
+     "clearP90All": 92.25,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 1,
      "vehiclesNoRoute": 1,
-     "peakQueued": 4101
+     "peakQueued": 3919
     },
     {
      "households": 83022,
@@ -643,15 +643,15 @@
      "carlessHouseholdsOrdered": 1307,
      "stranded": 436.08000000000067,
      "riders": 2661.5099999999265,
-     "clearP90": 91.41666666666667,
-     "clearP100": 180.5,
-     "clearP90All": 91.41666666666667,
+     "clearP90": 91.5,
+     "clearP100": 181.91666666666666,
+     "clearP90All": 91.5,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 0,
      "vehiclesNoRoute": 0,
-     "peakQueued": 4282
+     "peakQueued": 4228
     }
    ],
    "place": [
@@ -663,15 +663,15 @@
      "carlessHouseholdsOrdered": 5857,
      "stranded": 2054.150499999996,
      "riders": 10472.828400000455,
-     "clearP90": 91.33333333333333,
-     "clearP100": 178,
-     "clearP90All": 91.33333333333333,
+     "clearP90": 91,
+     "clearP100": 177.75,
+     "clearP90All": 91,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 0,
      "vehiclesNoRoute": 0,
-     "peakQueued": 2413
+     "peakQueued": 2626
     },
     {
      "households": 86621,
@@ -682,14 +682,14 @@
      "stranded": 1936.2784999999944,
      "riders": 10233.056400000316,
      "clearP90": 90.75,
-     "clearP100": 186.16666666666666,
+     "clearP100": 186.08333333333334,
      "clearP90All": 90.75,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 1,
      "vehiclesNoRoute": 1,
-     "peakQueued": 2338
+     "peakQueued": 2354
     },
     {
      "households": 86599,
@@ -699,15 +699,15 @@
      "carlessHouseholdsOrdered": 5719,
      "stranded": 2032.7589999999957,
      "riders": 10158.04660000031,
-     "clearP90": 91.08333333333333,
+     "clearP90": 91,
      "clearP100": 182.25,
-     "clearP90All": 91.08333333333333,
+     "clearP90All": 91,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 0,
      "vehiclesNoRoute": 0,
-     "peakQueued": 2577
+     "peakQueued": 2448
     }
    ]
   },
@@ -726,15 +726,15 @@
      "carlessHouseholdsOrdered": 985,
      "stranded": 369.72000000000054,
      "riders": 1964.7299999999584,
-     "clearP90": 111.75,
+     "clearP90": 111.08333333333333,
      "clearP100": 210.83333333333334,
-     "clearP90All": 111.75,
+     "clearP90All": 111.08333333333333,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 1,
      "vehiclesNoRoute": 1,
-     "peakQueued": 2581
+     "peakQueued": 2522
     },
     {
      "households": 83017,
@@ -744,15 +744,15 @@
      "carlessHouseholdsOrdered": 919,
      "stranded": 258.3300000000003,
      "riders": 1919.6999999999605,
-     "clearP90": 111.91666666666667,
-     "clearP100": 211.25,
-     "clearP90All": 111.91666666666667,
+     "clearP90": 110.91666666666667,
+     "clearP100": 211.33333333333334,
+     "clearP90All": 110.91666666666667,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 0,
      "vehiclesNoRoute": 0,
-     "peakQueued": 2772
+     "peakQueued": 2692
     },
     {
      "households": 83022,
@@ -762,15 +762,15 @@
      "carlessHouseholdsOrdered": 936,
      "stranded": 322.32000000000045,
      "riders": 1895.9999999999616,
-     "clearP90": 116.5,
-     "clearP100": 221.33333333333334,
-     "clearP90All": 116.5,
+     "clearP90": 116.91666666666667,
+     "clearP100": 221.41666666666666,
+     "clearP90All": 116.91666666666667,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 0,
      "vehiclesNoRoute": 0,
-     "peakQueued": 2724
+     "peakQueued": 2725
     }
    ],
    "place": [
@@ -782,15 +782,15 @@
      "carlessHouseholdsOrdered": 2236,
      "stranded": 654.3856000000014,
      "riders": 4399.72249999992,
-     "clearP90": 110.83333333333333,
-     "clearP100": 211.75,
-     "clearP90All": 110.83333333333333,
+     "clearP90": 110.66666666666667,
+     "clearP100": 211.83333333333334,
+     "clearP90All": 110.66666666666667,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 0,
      "vehiclesNoRoute": 0,
-     "peakQueued": 2261
+     "peakQueued": 2290
     },
     {
      "households": 86621,
@@ -800,15 +800,15 @@
      "carlessHouseholdsOrdered": 2187,
      "stranded": 653.3759000000014,
      "riders": 4280.49899999994,
-     "clearP90": 111.58333333333333,
+     "clearP90": 111.33333333333333,
      "clearP100": 215.5,
-     "clearP90All": 111.58333333333333,
+     "clearP90All": 111.33333333333333,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 0,
      "vehiclesNoRoute": 0,
-     "peakQueued": 2439
+     "peakQueued": 2380
     },
     {
      "households": 86599,
@@ -818,15 +818,15 @@
      "carlessHouseholdsOrdered": 2234,
      "stranded": 633.0121000000006,
      "riders": 4380.84739999991,
-     "clearP90": 116,
-     "clearP100": 210.58333333333334,
-     "clearP90All": 116,
+     "clearP90": 115.41666666666667,
+     "clearP100": 210.66666666666666,
+     "clearP90All": 115.41666666666667,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 0,
      "vehiclesNoRoute": 0,
-     "peakQueued": 2622
+     "peakQueued": 2547
     }
    ]
   },
@@ -845,15 +845,15 @@
      "carlessHouseholdsOrdered": 985,
      "stranded": 324.69000000000045,
      "riders": 2009.7599999999563,
-     "clearP90": 99.33333333333333,
-     "clearP100": 183.91666666666666,
-     "clearP90All": 99.33333333333333,
+     "clearP90": 99.16666666666667,
+     "clearP100": 183.83333333333334,
+     "clearP90All": 99.16666666666667,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 1,
      "vehiclesNoRoute": 1,
-     "peakQueued": 1853
+     "peakQueued": 1909
     },
     {
      "households": 83017,
@@ -863,15 +863,15 @@
      "carlessHouseholdsOrdered": 919,
      "stranded": 237.00000000000028,
      "riders": 1941.0299999999595,
-     "clearP90": 97.75,
-     "clearP100": 186.16666666666666,
-     "clearP90All": 97.75,
+     "clearP90": 97.33333333333333,
+     "clearP100": 186.08333333333334,
+     "clearP90All": 97.33333333333333,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 0,
      "vehiclesNoRoute": 0,
-     "peakQueued": 1841
+     "peakQueued": 1807
     },
     {
      "households": 83022,
@@ -881,15 +881,15 @@
      "carlessHouseholdsOrdered": 936,
      "stranded": 315.21000000000043,
      "riders": 1903.1099999999612,
-     "clearP90": 100.91666666666667,
-     "clearP100": 174.75,
-     "clearP90All": 100.91666666666667,
+     "clearP90": 100.25,
+     "clearP100": 174.83333333333334,
+     "clearP90All": 100.25,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 0,
      "vehiclesNoRoute": 0,
-     "peakQueued": 1973
+     "peakQueued": 1957
     }
    ],
    "place": [
@@ -901,15 +901,15 @@
      "carlessHouseholdsOrdered": 2236,
      "stranded": 707.7708000000016,
      "riders": 4346.3372999999265,
-     "clearP90": 98.91666666666667,
+     "clearP90": 99,
      "clearP100": 177.33333333333334,
-     "clearP90All": 98.91666666666667,
+     "clearP90All": 99,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 0,
      "vehiclesNoRoute": 0,
-     "peakQueued": 1607
+     "peakQueued": 1780
     },
     {
      "households": 86621,
@@ -919,15 +919,15 @@
      "carlessHouseholdsOrdered": 2187,
      "stranded": 632.2111000000004,
      "riders": 4301.663799999934,
-     "clearP90": 97.33333333333333,
+     "clearP90": 97.66666666666667,
      "clearP100": 185.58333333333334,
-     "clearP90All": 97.33333333333333,
+     "clearP90All": 97.66666666666667,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 0,
      "vehiclesNoRoute": 0,
-     "peakQueued": 1479
+     "peakQueued": 1491
     },
     {
      "households": 86599,
@@ -937,15 +937,15 @@
      "carlessHouseholdsOrdered": 2234,
      "stranded": 696.6021000000019,
      "riders": 4317.257399999927,
-     "clearP90": 100.75,
-     "clearP100": 182.91666666666666,
-     "clearP90All": 100.75,
+     "clearP90": 100.66666666666667,
+     "clearP100": 182.75,
+     "clearP90All": 100.66666666666667,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 0,
      "vehiclesNoRoute": 0,
-     "peakQueued": 1619
+     "peakQueued": 1600
     }
    ]
   },
@@ -964,15 +964,15 @@
      "carlessHouseholdsOrdered": 224,
      "stranded": 61.619999999999976,
      "riders": 469.26000000000073,
-     "clearP90": 133.58333333333334,
+     "clearP90": 130.75,
      "clearP100": 183.25,
-     "clearP90All": 133.58333333333334,
+     "clearP90All": 130.75,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 0,
      "vehiclesNoRoute": 0,
-     "peakQueued": 1264
+     "peakQueued": 1209
     },
     {
      "households": 83017,
@@ -982,15 +982,15 @@
      "carlessHouseholdsOrdered": 227,
      "stranded": 66.35999999999997,
      "riders": 471.63000000000073,
-     "clearP90": 102.16666666666667,
-     "clearP100": 196.83333333333334,
-     "clearP90All": 102.16666666666667,
+     "clearP90": 102.58333333333333,
+     "clearP100": 197,
+     "clearP90All": 102.58333333333333,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 2,
      "vehiclesNoRoute": 2,
-     "peakQueued": 1324
+     "peakQueued": 1322
     },
     {
      "households": 83022,
@@ -1000,15 +1000,15 @@
      "carlessHouseholdsOrdered": 235,
      "stranded": 71.09999999999998,
      "riders": 485.85000000000076,
-     "clearP90": 107.25,
-     "clearP100": 206.16666666666666,
-     "clearP90All": 107.25,
+     "clearP90": 107.5,
+     "clearP100": 206.25,
+     "clearP90All": 107.5,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 0,
      "vehiclesNoRoute": 0,
-     "peakQueued": 1368
+     "peakQueued": 1223
     }
    ],
    "place": [
@@ -1021,14 +1021,14 @@
      "stranded": 268.9875000000001,
      "riders": 1842.7159999999722,
      "clearP90": 101.66666666666667,
-     "clearP100": 203.08333333333334,
+     "clearP100": 203,
      "clearP90All": 101.66666666666667,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 0,
      "vehiclesNoRoute": 0,
-     "peakQueued": 993
+     "peakQueued": 1020
     },
     {
      "households": 86621,
@@ -1038,15 +1038,15 @@
      "carlessHouseholdsOrdered": 792,
      "stranded": 280.07430000000016,
      "riders": 1800.467699999973,
-     "clearP90": 101.25,
+     "clearP90": 101.16666666666667,
      "clearP100": 198.33333333333334,
-     "clearP90All": 101.25,
+     "clearP90All": 101.16666666666667,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 2,
      "vehiclesNoRoute": 2,
-     "peakQueued": 1219
+     "peakQueued": 1169
     },
     {
      "households": 86599,
@@ -1056,15 +1056,15 @@
      "carlessHouseholdsOrdered": 816,
      "stranded": 329.1783999999998,
      "riders": 1801.268899999974,
-     "clearP90": 103.83333333333333,
-     "clearP100": 188.5,
-     "clearP90All": 103.83333333333333,
+     "clearP90": 103.75,
+     "clearP100": 188.83333333333334,
+     "clearP90All": 103.75,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 0,
      "vehiclesNoRoute": 0,
-     "peakQueued": 1145
+     "peakQueued": 1129
     }
    ]
   },
@@ -1083,15 +1083,15 @@
      "carlessHouseholdsOrdered": 210,
      "stranded": 82.95,
      "riders": 414.7500000000006,
-     "clearP90": 92.41666666666667,
+     "clearP90": 92.25,
      "clearP100": 135.33333333333334,
-     "clearP90All": 92.41666666666667,
+     "clearP90All": 92.25,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 0,
      "vehiclesNoRoute": 0,
-     "peakQueued": 339
+     "peakQueued": 340
     },
     {
      "households": 83017,
@@ -1101,15 +1101,15 @@
      "carlessHouseholdsOrdered": 221,
      "stranded": 75.83999999999999,
      "riders": 447.9300000000007,
-     "clearP90": 93.58333333333333,
-     "clearP100": 157.75,
-     "clearP90All": 93.58333333333333,
+     "clearP90": 94.25,
+     "clearP100": 158,
+     "clearP90All": 94.25,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 1,
      "vehiclesNoRoute": 1,
-     "peakQueued": 354
+     "peakQueued": 327
     },
     {
      "households": 83022,
@@ -1119,15 +1119,15 @@
      "carlessHouseholdsOrdered": 239,
      "stranded": 68.72999999999998,
      "riders": 497.7000000000008,
-     "clearP90": 93.41666666666667,
-     "clearP100": 137.5,
-     "clearP90All": 93.41666666666667,
+     "clearP90": 93.66666666666667,
+     "clearP100": 137.41666666666666,
+     "clearP90All": 93.66666666666667,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 0,
      "vehiclesNoRoute": 0,
-     "peakQueued": 341
+     "peakQueued": 351
     }
    ],
    "place": [
@@ -1139,15 +1139,15 @@
      "carlessHouseholdsOrdered": 796,
      "stranded": 258.21000000000015,
      "riders": 1842.8142999999718,
-     "clearP90": 92.33333333333333,
-     "clearP100": 133.75,
-     "clearP90All": 92.33333333333333,
+     "clearP90": 92.16666666666667,
+     "clearP100": 133.66666666666666,
+     "clearP90All": 92.16666666666667,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 0,
      "vehiclesNoRoute": 0,
-     "peakQueued": 193
+     "peakQueued": 203
     },
     {
      "households": 86621,
@@ -1157,15 +1157,15 @@
      "carlessHouseholdsOrdered": 784,
      "stranded": 252.30590000000012,
      "riders": 1815.9307999999737,
-     "clearP90": 93.58333333333333,
-     "clearP100": 162.5,
-     "clearP90All": 93.58333333333333,
+     "clearP90": 93.66666666666667,
+     "clearP100": 162.41666666666666,
+     "clearP90All": 93.66666666666667,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 0,
      "vehiclesNoRoute": 0,
-     "peakQueued": 178
+     "peakQueued": 167
     },
     {
      "households": 86599,
@@ -1175,15 +1175,15 @@
      "carlessHouseholdsOrdered": 856,
      "stranded": 340.4139999999995,
      "riders": 1883.6439999999723,
-     "clearP90": 97.83333333333333,
+     "clearP90": 97.5,
      "clearP100": 140.41666666666666,
-     "clearP90All": 97.83333333333333,
+     "clearP90All": 97.5,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 2,
      "vehiclesNoRoute": 2,
-     "peakQueued": 186
+     "peakQueued": 170
     }
    ]
   },
@@ -1203,14 +1203,14 @@
      "stranded": 244.1100000000003,
      "riders": 1455.1799999999819,
      "clearP90": 112.08333333333333,
-     "clearP100": 209,
+     "clearP100": 209.08333333333334,
      "clearP90All": 112.08333333333333,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 0,
      "vehiclesNoRoute": 0,
-     "peakQueued": 1712
+     "peakQueued": 1777
     },
     {
      "households": 83017,
@@ -1220,15 +1220,15 @@
      "carlessHouseholdsOrdered": 675,
      "stranded": 175.38000000000017,
      "riders": 1424.3699999999833,
-     "clearP90": 113.58333333333333,
-     "clearP100": 216.58333333333334,
-     "clearP90All": 113.58333333333333,
+     "clearP90": 113.5,
+     "clearP100": 217,
+     "clearP90All": 113.5,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 1,
      "vehiclesNoRoute": 1,
-     "peakQueued": 1955
+     "peakQueued": 1888
     },
     {
      "households": 83022,
@@ -1238,15 +1238,15 @@
      "carlessHouseholdsOrdered": 687,
      "stranded": 210.93000000000023,
      "riders": 1417.2599999999836,
-     "clearP90": 119.33333333333333,
-     "clearP100": 210.16666666666666,
-     "clearP90All": 119.33333333333333,
+     "clearP90": 119.08333333333333,
+     "clearP100": 210.25,
+     "clearP90All": 119.08333333333333,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 0,
      "vehiclesNoRoute": 0,
-     "peakQueued": 2147
+     "peakQueued": 2124
     }
    ],
    "place": [
@@ -1258,15 +1258,15 @@
      "carlessHouseholdsOrdered": 1177,
      "stranded": 290.5760999999996,
      "riders": 1916.443000000012,
-     "clearP90": 112.5,
-     "clearP100": 206,
-     "clearP90All": 112.5,
+     "clearP90": 112.33333333333333,
+     "clearP100": 206.08333333333334,
+     "clearP90All": 112.33333333333333,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 0,
      "vehiclesNoRoute": 0,
-     "peakQueued": 1811
+     "peakQueued": 1865
     },
     {
      "households": 86621,
@@ -1276,15 +1276,15 @@
      "carlessHouseholdsOrdered": 1137,
      "stranded": 265.6144999999994,
      "riders": 1853.4896000000122,
-     "clearP90": 112.75,
-     "clearP100": 215.75,
-     "clearP90All": 112.75,
+     "clearP90": 112.58333333333333,
+     "clearP100": 215.66666666666666,
+     "clearP90All": 112.58333333333333,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 1,
      "vehiclesNoRoute": 1,
-     "peakQueued": 1982
+     "peakQueued": 1923
     },
     {
      "households": 86599,
@@ -1294,15 +1294,15 @@
      "carlessHouseholdsOrdered": 1159,
      "stranded": 276.0869999999993,
      "riders": 1868.533900000013,
-     "clearP90": 119,
-     "clearP100": 213.16666666666666,
-     "clearP90All": 119,
+     "clearP90": 119.5,
+     "clearP100": 213.08333333333334,
+     "clearP90All": 119.5,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 2,
      "vehiclesNoRoute": 2,
-     "peakQueued": 2003
+     "peakQueued": 2036
     }
    ]
   },
@@ -1321,15 +1321,15 @@
      "carlessHouseholdsOrdered": 717,
      "stranded": 229.89000000000027,
      "riders": 1469.3999999999812,
-     "clearP90": 100.41666666666667,
-     "clearP100": 184.16666666666666,
-     "clearP90All": 100.41666666666667,
+     "clearP90": 101,
+     "clearP100": 184.08333333333334,
+     "clearP90All": 101,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 1,
      "vehiclesNoRoute": 1,
-     "peakQueued": 1565
+     "peakQueued": 1682
     },
     {
      "households": 83017,
@@ -1339,15 +1339,15 @@
      "carlessHouseholdsOrdered": 675,
      "stranded": 199.0800000000002,
      "riders": 1400.6699999999844,
-     "clearP90": 99.83333333333333,
-     "clearP100": 195.41666666666666,
-     "clearP90All": 99.83333333333333,
+     "clearP90": 99.25,
+     "clearP100": 195.58333333333334,
+     "clearP90All": 99.25,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 1,
      "vehiclesNoRoute": 1,
-     "peakQueued": 1552
+     "peakQueued": 1487
     },
     {
      "households": 83022,
@@ -1357,15 +1357,15 @@
      "carlessHouseholdsOrdered": 687,
      "stranded": 196.7100000000002,
      "riders": 1431.479999999983,
-     "clearP90": 103,
-     "clearP100": 184.83333333333334,
-     "clearP90All": 103,
+     "clearP90": 103.5,
+     "clearP100": 184.66666666666666,
+     "clearP90All": 103.5,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 0,
      "vehiclesNoRoute": 0,
-     "peakQueued": 1630
+     "peakQueued": 1695
     }
    ],
    "place": [
@@ -1377,15 +1377,15 @@
      "carlessHouseholdsOrdered": 1177,
      "stranded": 334.3313,
      "riders": 1872.6878000000122,
-     "clearP90": 101.25,
-     "clearP100": 183,
-     "clearP90All": 101.25,
+     "clearP90": 101.83333333333333,
+     "clearP100": 183.08333333333334,
+     "clearP90All": 101.83333333333333,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 1,
      "vehiclesNoRoute": 1,
-     "peakQueued": 1531
+     "peakQueued": 1622
     },
     {
      "households": 86621,
@@ -1395,15 +1395,15 @@
      "carlessHouseholdsOrdered": 1137,
      "stranded": 244.60569999999936,
      "riders": 1874.498400000012,
-     "clearP90": 98.83333333333333,
+     "clearP90": 99.08333333333333,
      "clearP100": 187.5,
-     "clearP90All": 98.83333333333333,
+     "clearP90All": 99.08333333333333,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 0,
      "vehiclesNoRoute": 0,
-     "peakQueued": 1408
+     "peakQueued": 1301
     },
     {
      "households": 86599,
@@ -1413,15 +1413,15 @@
      "carlessHouseholdsOrdered": 1159,
      "stranded": 284.9940999999994,
      "riders": 1859.6268000000127,
-     "clearP90": 101.83333333333333,
-     "clearP100": 193.66666666666666,
-     "clearP90All": 101.83333333333333,
+     "clearP90": 102.66666666666667,
+     "clearP100": 193.58333333333334,
+     "clearP90All": 102.66666666666667,
      "exposed": 0,
      "exposedNoVehicle": 0,
      "fireFront": 0,
      "vehiclesOnRoad": 0,
      "vehiclesNoRoute": 0,
-     "peakQueued": 1595
+     "peakQueued": 1626
     }
    ]
   }

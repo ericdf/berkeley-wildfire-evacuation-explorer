@@ -233,7 +233,7 @@ export class Evacuation {
         const el = eff < 0 || eff >= 2 ? lanes : 1;
         const cap = el * e.capPerLaneVph / 3600 * squeeze * (1 - (arterial ? tod.background : 0)) * this.visCap;
         const id = this.links.length;
-        const L = { id, e: e.id, dir: d, from: d ? e.b : e.a, to: d ? e.a : e.b, cap, storage: Math.max(2, Math.floor(e.len * el / spacing)),
+        const L = { id, e: e.id, dir: d, from: d ? e.b : e.a, to: d ? e.a : e.b, cap, lanes: el, ab: Infinity, storage: Math.max(2, Math.floor(e.len * el / spacing)),
           ff: Math.max(2, e.len / (e.speedMps * this.visSpeed)), len: e.len, q: [], budget: 1, share };
         // External through traffic on the freeway for the first hours after the order (Time Study Table 3-12, E35)
         const thr = A.nonResident.through[e.name];
@@ -253,6 +253,7 @@ export class Evacuation {
     // Traffic circles (OSM junction=roundabout): Time Study capacity about 900 veh/h per lane (E16)
     for (const n of net.meta.circleNodes || []) this.nodeCap[n] = Math.min(this.nodeCap[n], A.intersections.circleVph / 3600);
     if (this.visCap !== 1) for (let n = 0; n < nN; n++) this.nodeCap[n] *= this.visCap; // poor visibility (Infinity stays Infinity)
+    this.setupSignals(world, rank, deg, tod);
     this.nodeBudget = new Float64Array(nN).fill(1);
     // Control delay at junctions with light traffic (signals, stop signs): added to the travel
     // time of every link entering a junction (assumptions intersections.delayS).
@@ -599,6 +600,7 @@ export class Evacuation {
     }
     const nb = this.nodeBudget, nc = this.nodeCap;
     for (let n = 0; n < nb.length; n++) nb[n] = nc[n] === Infinity ? Infinity : Math.min(nb[n] + nc[n] * dt, 1 + nc[n] * dt); // carry the fraction: capacities under one car per step were being rounded down
+    this.signalBudgets(dt);
     // departures
     while (this.nextDepart < v.n && v.depart[this.nextDepart] <= t) {
       const i = this.nextDepart++, h = v.hh[i];
@@ -633,17 +635,17 @@ export class Evacuation {
         if (k === 2) { // inbound commuter
           const path = this.paths.get(i), nl = path?.[v.pidx[i]];
           if (L.to === v.dest[i] || L.e === hh.edge[v.hh[i]] || nl == null) { L.q.shift(); L.lastOut = t; B.budget--; if (L.share) L.share.used[L.dir]++; this.commuterHome(i, true); continue; } // reached their street
-          if (nb[L.to] < 1) break;
+          if (nb[L.to] < 1 || L.ab < 1) break;
           if (this.linkCost[nl] === Infinity) { if (links[nl].closed && !links[nl].fault && t < this.tFire[links[nl].e]) this.commutersTurnedBackCf = (this.commutersTurnedBackCf || 0) + 1; L.q.shift(); L.lastOut = t; B.budget--; this.commuterHome(i, false); continue; } // fire ahead, or a contraflow street: turned back
           const N = links[nl]; if (N.q.length >= N.storage && !this.relieve(i, L, N)) break;
-          L.q.shift(); L.lastOut = t; B.budget--; nb[L.to]--; if (L.share) L.share.used[L.dir]++;
+          L.q.shift(); L.lastOut = t; B.budget--; nb[L.to]--; L.ab--; if (L.share) L.share.used[L.dir]++;
           N.q.push(i); v.link[i] = nl; v.enter[i] = t; v.pidx[i]++; this.active.add(nl);
           continue;
         }
         if (v.exit[i] === Infinity && this.nodeZone[L.to] >= 0 && !this.nodeOrdered[L.to]) { v.exit[i] = t; v.exitNode[i] = L.to; } // counted out only at a node inside a zone
         if (k === 0 && !v.out[i] && this.out0[L.to]) this.markOut(i); // out of the order and warning area; the car drives on
         if (this.safe[k][L.to]) { L.q.shift(); L.lastOut = t; B.budget--; if (L.share) L.share.used[L.dir]++; v.arrNode[i] = L.to; if (this.nodeZone[L.to] >= 0) v.zarr[i] = t; this.arrive(i); continue; }
-        if (nb[L.to] < 1) break;
+        if (nb[L.to] < 1 || L.ab < 1) break;
         const tr = this.guidance?.tree(i, k, L.e); // null: Today's tree
         let opts = tr ? tr.at(L.to, L.from) : this.next[k][L.to]; if (!opts) break;
         // No U-turns back down the street just driven, unless it is a dead end: take the best
@@ -664,7 +666,7 @@ export class Evacuation {
           const N = links[nl];
           if (N.to === L.from && opts.some(o => links[o].to !== L.from)) continue; // no U-turns unless it is the only way
           if (N.q.length >= N.storage && !this.relieve(i, L, N)) continue;
-          L.q.shift(); L.lastOut = t; B.budget--; nb[L.to]--; if (L.share) L.share.used[L.dir]++;
+          L.q.shift(); L.lastOut = t; B.budget--; nb[L.to]--; L.ab--; if (L.share) L.share.used[L.dir]++;
           N.q.push(i); v.link[i] = nl; v.enter[i] = t; this.active.add(nl);
           moved = true; break;
         }
@@ -675,6 +677,68 @@ export class Evacuation {
     if (Math.round(t) % 30 === 0) this.checkExposure();
     if (Math.round(t) % 60 === 0) { this.logOrders(); this.record(); }
     if (Math.round(t) % 300 === 0) this.computeResponder(false);
+  }
+
+  // Signalized junctions (SOURCE_NOTES CD21; assumptions intersections.signals). Each approach (a link into the
+  // junction) passes at most lanes × saturation flow × g/C, served with its own budget (L.ab) in place of the
+  // junction's road-class capacity, which becomes unlimited there. world.signalGreen picks the low, central
+  // (default) or high g/C. Approaches are grouped by street name: group 0 is the junction's highest-class street
+  // (the major street), group 1 every other street; where two streets of that class meet, the first named.
+  // Pre-timed (City layer): fixed g/C, major and minor, or their mean for every approach where the two streets
+  // are of one class. Actuated (City layer; every OpenStreetMap signal outside Berkeley, control unknown): the
+  // group with more cars on its approaches takes actuatedMainShare of the usable green while both have cars,
+  // all of it otherwise. Traffic circles keep circleVph. A dark signal (js/operations.js) turns its approaches
+  // off (L.ab Infinity) and runs as an all-way stop; an officer runs a signal as actuated, with the uplift.
+  // Draws no random number, so Plan A and Plan B see the same signals.
+  setupSignals(world, rank, deg, tod) {
+    const { data, links, inL } = this, A = data.A, SG = A.intersections.signals, edges = data.net.edges;
+    this.signals = []; this.signalAt = new Map();
+    if (!SG) return;
+    const level = SG.levels[world.signalGreen] ? world.signalGreen : 'central', G = SG.levels[level];
+    const usable = 1 - SG.phases * SG.lostSPerPhase / G.cycleS;
+    this.signalGreen = { level, cycleS: G.cycleS, usable, majorGC: G.majorGC, minorGC: G.minorGC };
+    const circles = new Set(data.net.meta.circleNodes || []);
+    const list = [...(data.signals?.junctions || []).filter(j => j.signal).map(j => ({ node: j.node, control: j.control === 'pretimed' ? 'pretimed' : 'actuated', src: 'city' })),
+      ...(data.signalsOutside?.junctions || []).map(j => ({ node: j.node, control: 'actuated', src: 'osm' }))];
+    for (const j of list) {
+      const n = j.node;
+      if (this.signalAt.has(n) || !(deg[n] >= 3) || rank[n] < 0 || circles.has(n) || !inL[n]?.length) continue;
+      const app = inL[n].map(l => links[l]);
+      const top = Math.max(...app.map(L => CLASS_RANK[edges[L.e].cls] ?? 0));
+      const topNames = [...new Set(app.filter(L => (CLASS_RANK[edges[L.e].cls] ?? 0) === top).map(L => edges[L.e].name || ''))];
+      const major = topNames.sort()[0], tie = topNames.length > 1;
+      const groups = [[], []];
+      for (const L of app) groups[(edges[L.e].name || '') === major ? 0 : 1].push(L.id);
+      // per-approach rate per unit g/C (vehicles per second): lanes × saturation flow, less the background
+      // traffic share on collector and arterial junctions, as their road-class capacity had (tod.background)
+      const bg = rank[n] === 1 || rank[n] === 2 ? 1 - tod.background : 1;
+      for (const L of app) { L.sigK = L.lanes * SG.satFlowPerLaneVph / 3600 * bg * this.visCap; L.ab = 1; L.sigNode = n; }
+      const gC = !groups[1].length ? [usable, usable] : tie ? Array(2).fill((G.majorGC + G.minorGC) / 2) : [G.majorGC, G.minorGC];
+      const s = { node: n, control: j.control, src: j.src, groups, gC, dark: false, uplift: 1, police: false, nodeCapBefore: this.nodeCap[n] };
+      this.signals.push(s); this.signalAt.set(n, s);
+      this.nodeCap[n] = Infinity; // the approaches carry the limit
+    }
+  }
+
+  // Refill each signal approach's budget for this step.
+  signalBudgets(dt) {
+    const { links, signalGreen: SGr } = this; if (!SGr) return;
+    const main = this.data.A.intersections.signals.actuatedMainShare;
+    for (const s of this.signals) {
+      if (s.dark) continue;
+      let g0 = s.gC[0], g1 = s.gC[1];
+      if (s.control === 'actuated' || s.police) {
+        if (!s.groups[1].length) g0 = SGr.usable;
+        else {
+          let q0 = 0, q1 = 0; for (const l of s.groups[0]) q0 += links[l].q.length; for (const l of s.groups[1]) q1 += links[l].q.length;
+          if (q0 && q1) { g0 = SGr.usable * (q0 >= q1 ? main : 1 - main); g1 = SGr.usable - g0; } else { g0 = g1 = SGr.usable; }
+        }
+      }
+      for (let k = 0; k < 2; k++) {
+        const g = (k ? g1 : g0) * s.uplift;
+        for (const l of s.groups[k]) { const L = links[l], r = L.sigK * g; L.ab = Math.min(L.ab + r * dt, 1 + r * dt); }
+      }
+    }
   }
 
   enter(i) {
@@ -919,6 +983,7 @@ export class Evacuation {
       if (W.on) this.log(`Home-to-street access time (scenario setting): ${W.delayed.toLocaleString()} of ${W.households.toLocaleString()} departing households leave later by their street's terrain walking time, on average ${(W.delaySum / Math.max(1, W.households)).toFixed(0)} s (tools/walk-access.mjs).`, 'plan');
       else if (W.stale) this.log('Home-to-street access time is set to "from terrain", but data/model/walk-access.json is missing or was built on another network; no access time is applied. Rerun node tools/walk-access.mjs.', 'warn'); }
     if (this.nrPlacement === 'workplace') this.log(`Non-resident placement by workplace (scenario setting): employees park within ${this.data.workplaces.params.walkM} m of LODES workplaces, ${Math.round(100 * this.ucParkingShare)}% of UC employee and commuting-student cars in UC parking, Lab employees in the Lab's lots; the Time Study's totals by area are unchanged.`, 'plan');
+    if (this.signalGreen && this.signalGreen.level !== 'central') this.log(`Signal green share ${this.signalGreen.level}: a ${this.signalGreen.cycleS} s cycle; pre-timed signals give the street of the highest road class ${this.signalGreen.majorGC.toFixed(2)} of the cycle and other streets ${this.signalGreen.minorGC.toFixed(2)} (assumption, SOURCE_NOTES CD21).`, 'plan');
     if (this.visibility.option === 'poor') this.log(`Poor visibility (fog or smoke): free-flow speed on every street is ${+(100 * (1 - this.visSpeed)).toFixed(1)}% lower${this.visCap < 1 ? ` and every lane and junction carries ${Math.round(100 * (1 - this.visCap))}% fewer vehicles per hour` : '; capacity is not cut'} (FHWA, SOURCE_NOTES VZ1–VZ7). The fire is not slowed.`, 'plan');
     if (this.quake.option !== 'none') this.log(this.quake.missing ? 'Hayward Fault earthquake: data/model/fault-closures.json did not load, so no street is closed; signals are still dark citywide.'
       : `Hayward Fault earthquake (${this.quake.option === 'trace' ? 'lower bound: segments crossing the mapped fault trace' : 'upper bound: segments touching the Earthquake Fault Zone'}): ${this.quake.segments.toLocaleString()} street segments are closed to through traffic and engines, and every City signal is dark.${this.scenario.kind === 'earthquake' ? '' : ' The fire is still the wildfire scenario\'s: an earthquake fire would start in buildings, several at once, on any wind (the earthquake scenarios).'}`, 'plan');
@@ -1074,6 +1139,7 @@ export class Evacuation {
         for (const [c, n] of st.housingUnits) { if (f.arrival[c] * 60 <= t) S.housingUnitsFireFront += n; if (f.ember[c] * 60 <= t) S.housingUnitsEmbers += n; }
       } }
     if (this.visibility.option === 'poor') S.visibility = 'poor'; // absent when clear, so clear-day summaries are as before
+    if (this.signalGreen && this.signalGreen.level !== 'central') S.signalGreen = this.signalGreen.level; // absent at the default
     S.zonesOrdered = this.orderT.filter(T => T <= t).length;
     S.zonesWarned = this.warnT.filter(T => T <= t).length;
     S.t = t / 60;

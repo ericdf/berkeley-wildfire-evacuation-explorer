@@ -79,7 +79,18 @@
       "freeway": 0
     },
     "scale": 1,
-    "circleVph": 900
+    "circleVph": 900,
+    "signals": {
+      "satFlowPerLaneVph": 1900,
+      "lostSPerPhase": 5,
+      "phases": 2,
+      "actuatedMainShare": 0.75,
+      "levels": {
+        "low": { "cycleS": 60, "majorGC": 0.40, "minorGC": 0.31 },
+        "central": { "cycleS": 90, "majorGC": 0.45, "minorGC": 0.38 },
+        "high": { "cycleS": 120, "majorGC": 0.55, "minorGC": 0.37 }
+      }
+    }
   },
   "demand": {
     "personsPerHousehold": 2.37,
@@ -235,7 +246,7 @@
     },
     "intersections": {
       "category": "model rule",
-      "note": "Total vehicles per hour a node can pass, by the highest road class meeting there. Illustrative. The 2025 study names intersections as the main constraint."
+      "note": "Total vehicles per hour an unsignalized junction can pass, by the highest road class meeting there. Illustrative. Signalized junctions use intersections.signals instead (SOURCE_NOTES CD21); the 2025 study names intersections as the main constraint."
     },
     "demand.personsPerHousehold": {
       "category": "sourced",
@@ -284,6 +295,10 @@
     "nonResident": {
       "category": "sourced",
       "note": "Vehicle counts from the 2025 Evacuation Time Study: employees by area (Table 3-5), college students (Tables 3-8, 3-9), visitors including 549 at Tilden lots (§3.5), I-80 through traffic over 2 h after the order (Table 3-12); scaled by the scenario's percent present (Table 6-5) (SOURCE_NOTES E32-E36). Placement is a model rule: the study's areas are approximated from City neighborhoods (West Berkeley = 4th St., Gilman, NW/SW Berkeley, Marina), fire zones (hills north/south of campus), LBNL employees on streets in the Lab's zones (LBL-*), 400 m around Berkeley City College, streets within 1 km of the campus center, outside the campus and outside Fire Zones 2-3, for commuting students; visitors on streets outside Fire Zones 2-3, 400 m around two Tilden entrances (approximate points), weighted by street length. The I-80 and CA-24 westbound (the study's \"SB\") parts of the study's through traffic are on our network; I-580 and I-880 lie outside the model area except where I-580 shares the I-80 freeway."
+    },
+    "intersections.signals": {
+      "category": "assumption",
+      "note": "Signalized junctions (the City's 143 and 119 OpenStreetMap signals outside Berkeley): each approach passes at most lanes x 1,900 per lane x g/C an hour (FHWA Signal Timing Manual Eq. 3-2; Time Study 4-2 to 4-4). The City's timings are not published, so g/C is assumed, low / central / high: cycle 60 / 90 / 120 s (FHWA Table 3-4) with 5 s lost per phase (Time Study). Pre-timed: the junction's highest-class street 0.40 / 0.45 / 0.55, other streets 0.31 / 0.38 / 0.37 (FHWA HPMS Field Manual App. N; Kentucky Transportation Cabinet 2011). Actuated (and every signal outside Berkeley, control unknown): the street with more cars on its approaches takes 75% of the usable green when both streets have cars on their approaches (Time Study 2-4), all of it otherwise (SOURCE_NOTES CD21)."
     },
     "intersections.delayS": {
       "category": "assumption",

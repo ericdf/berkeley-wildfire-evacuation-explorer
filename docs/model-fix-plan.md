@@ -1,6 +1,6 @@
 # Evacuation-time model fix: plan and release gate
 
-Status: proposed, 2026-11-06. Owner: Eric. Each step runs in its own session and its own PR. Nothing here authorizes a merge or a publish; those need Eric's approval naming the PR.
+Status: proposed, 2026-11-06; steps 1–3 built (step 3 in PR #84, 2026-11-12, not merged). Owner: Eric. Each step runs in its own session and its own PR. Nothing here authorizes a merge or a publish; those need Eric's approval naming the PR.
 
 ## Why this exists
 
@@ -47,6 +47,7 @@ Decided by Eric, 2026-11-06 (recommendations accepted):
 
 - Add a capacity limit at signalized intersections, from a sourced rule (cite the source in SOURCE_NOTES before coding).
 - Exit: G1 and G2 re-reported. Check the network does not lock up (CD6 showed a lock-up when the first two were combined).
+- Status, 2026-11-12 (PR #84, branch `claude/model-fix-step3`; SOURCE_NOTES CD21–CD26): built. Each approach to the City's 143 signal junctions and 119 OpenStreetMap signal junctions outside Berkeley passes at most lanes × 1,900/h × g/C, with g/C an assumption (low / central / high; FHWA Signal Timing Manual, HPMS Field Manual, Time Study 75% main-street green at actuated signals). No lock-up (CD23). Every 90% time moved by at most 1.1 min at every level; G1 and G2 pass and fail exactly as after step 2 (CD24), because the sourced green shares give most signal junctions more capacity than the old rule by road class (CD22). The model's queues sit at the I-80 ramps, Tunnel Rd and Kensington, not at the study's Cedar St / MLK Jr Wy (CD25), which points at destinations and route choice. Step 4's "return to the step that caused the miss" therefore has no step to return to among 1–3; the next candidates are the Time Study's capacity drop and downstream-signal reduction (E17, CD7 (4)) and evacuee destinations; Eric decides.
 
 ### Step 4: recalibrate and check the gate
 
