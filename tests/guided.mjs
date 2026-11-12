@@ -7,6 +7,7 @@
 import fs from 'node:fs';
 import { makeGuided, CARDS, median, sortItems, costLine } from '../js/guided-data.js';
 import { PRESETS } from '../js/presets.js';
+import { plainLabel } from '../js/guided.js';
 
 const R = new URL('..', import.meta.url).pathname;
 const M = JSON.parse(fs.readFileSync(R + 'data/model/mitigations.json'));
@@ -59,6 +60,11 @@ check(costLine(byCost[0].lever.cost) === 'Little capital cost' && byCost.every((
 // One rule (GV10): a difference of 10 on about 9,900 (the Dwight Way road on engine reach) counts in a live tally too.
 const live = G.tallyBySev([{ sev: 'central', a: 9926, b: 9916 }, { sev: 'central', a: 9926, b: 9926 + 1e-9 }]);
 check(live.better === 1 && live.worse === 0, 'one noise rule: a 0.1% difference counts; floating-point rounding does not');
+
+// Plain labels (GV12): a sensitive street's direction comes from its own runs by severity, or the label stays neutral.
+const reach = lv => plainLabel({ label: 'sensitive', levels: lv }, 'reach').text;
+check(reach({ low: [0, 5], central: [5, 5], high: [0, 5] }) === 'Depends on fire strength', 'reached at medium only: neutral wording (McMillian Rd, east wind)');
+check(reach({ low: [0, 5], central: [2, 5], high: [5, 5] }) === 'Reached mostly when the fire is stronger' && reach({ low: [5, 5], central: [3, 5], high: [0, 5] }) === 'Reached mostly when the fire is weaker', 'rising or falling with severity: directional wording');
 
 console.log(fail ? `\n${fail} check(s) failed` : '\nall checks passed');
 process.exit(fail ? 1 : 0);

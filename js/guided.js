@@ -28,8 +28,17 @@ export function plainLabel(L, ctx) {
       : ctx === 'result' ? 'In nearly every run' : 'Reached in nearly every run';
     return { text, cls: 'r-consistent' };
   }
-  if (label === 'sensitive') return { text: L.parking ? 'Depends on the night parking rule' : ctx === 'result' ? 'Depends on fire strength' : 'Reached mostly when the fire is stronger', cls: 'r-sensitive' };
+  if (label === 'sensitive') return { text: L.parking ? 'Depends on the night parking rule' : ctx === 'result' ? 'Depends on fire strength' : reachDirection(L.levels), cls: 'r-sensitive' };
   return { text: ctx === 'result' ? 'Varies from run to run' : 'Reached in some runs, by chance', cls: 'r-mixed' };
+}
+// A sensitive street's wording from its own runs by severity (robust.js presence tests the gap, not a direction):
+// "stronger" or "weaker" only when reach rises or falls with severity from low through medium to high (Codex, PR #83).
+function reachDirection(levels) {
+  const sh = ['low', 'central', 'high'].map(k => levels?.[k]?.[1] ? levels[k][0] / levels[k][1] : null);
+  if (sh.some(x => x == null)) return 'Depends on fire strength';
+  if (sh[0] <= sh[1] && sh[1] <= sh[2] && sh[2] > sh[0]) return 'Reached mostly when the fire is stronger';
+  if (sh[0] >= sh[1] && sh[1] >= sh[2] && sh[0] > sh[2]) return 'Reached mostly when the fire is weaker';
+  return 'Depends on fire strength';
 }
 const MEANS = {
   consistent: 'The same in every or nearly every tested run: at least 90% of them (14 of 15).',
@@ -154,8 +163,8 @@ export function guidedUI(ctx) {
     if (!done()) return fireKey + sw('#7f1d1d', 'Cars backed up (over the last few minutes)');
     const runs = mit() ? mit().meta.severities.length * mit().meta.seeds.length : 15;
     // Plain words for the robustness classes (GV12); the precise rule is in the street card and Explain this pop-ups.
-    if (g.chip === 'fire') { const P = ctx.PALETTE.spread; return `<b>Embers reached the street, in ${runs} runs</b>${sw(P[4], 'Reached in nearly every run')}${sw(P[3], 'Reached mostly when the fire is stronger')}${sw(P[2], 'Reached in some runs, by chance')}${sw(P[1], 'Not reached in any run, or nearly none')}${fireKey}`; }
-    if (g.chip === 'ways') { const P = ctx.PALETTE.access; return `<b>Streets with one way out: did the fire front reach it? In ${runs} runs</b>${g.applied.length ? '<div class="small muted">Today\'s street network, without your changes.</div>' : ''}${sw(P[4], 'Reached in nearly every run')}${sw(P[3], 'Reached mostly when the fire is stronger')}${sw(P[2], 'Reached in some runs, by chance')}${sw(P[1], 'Not reached in any run, or nearly none')}${sw('#c8c8c8', 'More than one way out')}`; }
+    if (g.chip === 'fire') { const P = ctx.PALETTE.spread; return `<b>Embers reached the street, in ${runs} runs</b>${sw(P[4], 'Reached in nearly every run')}${sw(P[3], 'Depends on fire strength')}${sw(P[2], 'Reached in some runs, by chance')}${sw(P[1], 'Not reached in any run, or nearly none')}${fireKey}`; }
+    if (g.chip === 'ways') { const P = ctx.PALETTE.access; return `<b>Streets with one way out: did the fire front reach it? In ${runs} runs</b>${g.applied.length ? '<div class="small muted">Today\'s street network, without your changes.</div>' : ''}${sw(P[4], 'Reached in nearly every run')}${sw(P[3], 'Depends on fire strength')}${sw(P[2], 'Reached in some runs, by chance')}${sw(P[1], 'Not reached in any run, or nearly none')}${sw('#c8c8c8', 'More than one way out')}`; }
     const m = data.A.access.engineServiceMin;
     return `<b>Engine drive time from the nearest station</b>${sw('#2f8a4a', `Within ${m} min`)}${sw('#e0a21e', `${m}–8 min`)}${sw('#c0262d', 'Over 8 min')}${sw('#7f1d1d', 'No engine route')}<div class="small muted">At ignition, with this run's parked cars.</div>`;
   }
