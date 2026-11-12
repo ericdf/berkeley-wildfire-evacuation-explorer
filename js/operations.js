@@ -20,11 +20,13 @@
 //
 // Police control (plan setting, assumption): an officer-controlled junction passes
 // (1 + police.capacityUplift) times its model capacity and serves approaches heading toward safety
-// before the others. A dark signal under a power shutoff that an officer takes over runs at that
-// capacity too.
+// before the others. At a signal (js/sim.js setupSignals, SOURCE_NOTES CD21) the officer runs it as an
+// actuated signal, green where cars wait, with the uplift on each approach's limit. A dark signal under a
+// power shutoff that an officer takes over gets the same.
 //
-// Power shutoff (scenario setting): signals in the shutoff area go dark from the start and run as
-// all-way stops (powerShutoff.allWayStopVph). Grid-powered contraflow signs fail.
+// Power shutoff (scenario setting): City signals in the shutoff area go dark from the start and run as
+// all-way stops (powerShutoff.allWayStopVph): their approach limits are off and the junction passes at most
+// that many vehicles an hour. OpenStreetMap signals outside Berkeley stay on. Grid-powered contraflow signs fail.
 
 export const CONTRAFLOW_SETS = { none: 'none', main: 'main hill exit streets', custom: 'streets I choose' };
 export const POLICE_TARGETS = { none: 'none', pretimed: 'the City\'s 44 pre-timed signals', pretimedAppF: 'pre-timed signals and the Time Study\'s Appendix F congestion points', all: 'every signal and the Appendix F points' };
@@ -70,7 +72,8 @@ export function setupOperations(sim) {
     for (const j of J) if (j.signal && (world.powerShutoff === 'all' || j.hills) && sim.nodeCap[j.node] !== undefined) dark.add(j.node);
     const cap = O.powerShutoff.allWayStopVph / 3600 * (sim.visCap ?? 1); // poor visibility (world.visibility) cuts it too
     ops.baseCap = new Map();
-    for (const n of dark) { ops.baseCap.set(n, sim.nodeCap[n]); sim.nodeCap[n] = Math.min(sim.nodeCap[n], cap); }
+    // A dark signal's approaches lose their green-share limits (js/sim.js setupSignals) and the junction runs as an all-way stop.
+    for (const n of dark) { ops.baseCap.set(n, sim.nodeCap[n]); sim.nodeCap[n] = Math.min(sim.nodeCap[n], cap); setDark(sim, n, true); }
     ops.shutoff = { option: world.powerShutoff, dark: dark.size };
     ops.log.push([0, `Red Flag power shutoff: ${dark.size} traffic signals ${world.powerShutoff === 'all' ? 'across the city' : 'in and next to the hills'} are dark and run as all-way stops (about ${O.powerShutoff.allWayStopVph} vehicles per hour through each junction).`, 'plan']);
   }
@@ -185,7 +188,9 @@ export function stepOperations(sim) {
         if (t >= sim.tFire[id]) continue;
         // The reversed lanes carry reversedLaneFactor of a normal lane (Wolshon 2008, freeway data); storage is the whole street.
         const s = cf.status.get(id), L = sim.links[s.out], I = sim.links[s.inn], out = sim.data.net.edges[id].lanes[s.dir];
-        L.cap *= (out + (s.lanes - out) * sim.data.A.operations.contraflow.reversedLaneFactor) / out; L.storage = Math.floor(L.storage * s.lanes / out);
+        const f = (out + (s.lanes - out) * sim.data.A.operations.contraflow.reversedLaneFactor) / out;
+        L.cap *= f; L.storage = Math.floor(L.storage * s.lanes / out);
+        if (L.sigK) L.sigK *= f; // at a signal ahead, the reversed lane joins the approach (same reduction)
         I.closed = true; cf.blocked[id] = I.dir; n++;
       }
       c.state = 'running'; cf.active++; cf.segments += n; cf.entries += c.entries.length;
@@ -193,7 +198,12 @@ export function stepOperations(sim) {
     } else if (ev.kind === 'police') {
       const P = sim.data.A.operations.police; ops.prio = new Uint8Array(sim.data.net.nodes.length);
       ops.police.controlled = ev.nodes.length; // junctions count as controlled once officers arrive
-      for (const n of ev.nodes) { const base = ops.baseCap?.get(n) ?? sim.nodeCap[n]; sim.nodeCap[n] = base === Infinity ? Infinity : base * (1 + P.capacityUplift); ops.prio[n] = 1; } // unlimited model capacity stays unlimited (a dark signal there gets it back); priority still applies
+      for (const n of ev.nodes) {
+        const base = ops.baseCap?.get(n) ?? sim.nodeCap[n]; sim.nodeCap[n] = base === Infinity ? Infinity : base * (1 + P.capacityUplift); ops.prio[n] = 1; // unlimited model capacity stays unlimited (a dark signal there gets it back); priority still applies
+        // At a signal the officer replaces the signal: green goes where cars wait, as at an actuated signal (Time Study §4.3:
+        // staffed control is modeled as actuated timing), with the uplift on each approach. A dark signal gets this back too.
+        const sg = sim.signalAt?.get(n); if (sg) { setDark(sim, n, false); sg.police = true; sg.uplift = 1 + P.capacityUplift; }
+      }
       markPriority(sim);
       sim.log(`Officers take over ${ev.nodes.length} junctions: each passes ${Math.round(P.capacityUplift * 100)}% more vehicles than its model capacity and lets traffic heading out go first.`, 'plan', ev.nodes[0]);
     }
@@ -203,6 +213,13 @@ export function stepOperations(sim) {
     sim.log(`Contraflow starts on ${segs} street segment${segs > 1 ? 's' : ''} (${names.slice(0, 6).join(', ')}${names.length > 6 ? ` and ${names.length - 6} more` : ''}): both lanes carry traffic out; drivers heading in turn back or find another way, and the model sends no engine up these segments.`, 'plan', sim.data.net.edges[started[0][0].ids[0]].a);
   }
   if (changed) sim.route(); // closed directions and priorities take effect at once; route() draws no random numbers
+}
+
+// Turn a signal's approach limits off (dark: all-way stop at the junction's node capacity) or back on.
+function setDark(sim, n, dark) {
+  const sg = sim.signalAt?.get(n); if (!sg || sg.dark === dark) return;
+  sg.dark = dark;
+  for (const l of sg.groups.flat()) sim.links[l].ab = dark ? Infinity : 1;
 }
 
 // Approaches to officer-controlled junctions that head toward safety (current routes) go first.

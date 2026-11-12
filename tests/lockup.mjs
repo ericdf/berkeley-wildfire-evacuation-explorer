@@ -4,6 +4,7 @@
 // waited over 15 min), whether every order-zone car is counted out by the end, and the 90%/100%
 // ETE, at the assumed relief wait and at a multiple of it.
 //   node tests/lockup.mjs [scenario=ref1923] [case=S4] [seeds=3] [relief multiple=1]
+//   SIGNALS=low or high: signal green share (central by default; SOURCE_NOTES CD21)
 import fs from 'node:fs';
 import { loadData } from '../js/data.js';
 import { buildFireGrid } from '../js/fire.js';
@@ -19,7 +20,7 @@ const sc = makeScenarios(data).find(s => s.id === id);
 const E = data.net.edges;
 console.log(`${sc.name}, ${tk}, gridlock relief after ${data.A.capacity.gridlockReliefS} s`);
 for (let seed = 1; seed <= +nSeeds; seed++) {
-  const sim = new Evacuation(data, grid, noFire, { ...sc, durationMin: 360 }, 'central', { ...DEFAULT_PLAN, alertKm: 0, orderDelayMin: 0 }, seed, TIME_OF_DAY[tk], { householdMix: 'citywide' });
+  const sim = new Evacuation(data, grid, noFire, { ...sc, durationMin: 360 }, 'central', { ...DEFAULT_PLAN, alertKm: 0, orderDelayMin: 0 }, seed, TIME_OF_DAY[tk], { householdMix: 'citywide', ...(process.env.SIGNALS ? { signalGreen: process.env.SIGNALS } : {}) });
   const reliefs = [], relieve = sim.relieve.bind(sim);
   sim.relieve = (i, L, N) => { const r = relieve(i, L, N); if (r) reliefs.push({ t: sim.t, name: E[L.e].name || '(unnamed)', node: L.to, cls: sim.v.cls[i] }); return r; };
   const v = sim.v, rows = [], stuckSeen = new Map();

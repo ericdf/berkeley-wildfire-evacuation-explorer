@@ -7,6 +7,7 @@
 //   MIX=place node tests/calibration.mjs   (household mix by place; the default here is the Time Study's citywide mix,
 //     because the study's runs used it; SOURCE_NOTES DM18)
 //   CASES=S1,S4 REGIONS=ref1923,eastWind node tests/calibration.mjs   (only these cases and scenarios)
+//   SIGNALS=low node tests/calibration.mjs   (signal green share low or high; central is the default; SOURCE_NOTES CD21)
 // Run with no overrides, it also writes data/model/calibration.json, which the page reads to show the simulator's
 // fire-off time beside the study's (js/main.js studyRow).
 import fs from 'node:fs';
@@ -24,11 +25,12 @@ console.log(`intersection capacity scale ${data.A.intersections.scale}`);
 const world = { growth: process.env.GROWTH || 'none', householdMix: process.env.MIX || 'citywide' };
 console.log(`household mix ${world.householdMix}`);
 if (world.growth !== 'none') console.log(`future growth ${world.growth}`);
+if (process.env.SIGNALS) { world.signalGreen = process.env.SIGNALS; console.log(`signal green share ${world.signalGreen}`); }
 if (process.env.PLACEMENT) { world.nrPlacement = process.env.PLACEMENT; console.log(`non-resident placement ${world.nrPlacement}`); }
 const CASES = process.env.CASES ? process.env.CASES.split(',') : null, REGIONS = process.env.REGIONS ? process.env.REGIONS.split(',') : null;
 const hm = m => { if (m == null) return '  —  '; const r = Math.round(m); return `${Math.floor(r / 60)}:${String(r % 60).padStart(2, '0')}`; };
 const plan = { ...DEFAULT_PLAN, alertKm: 0, orderDelayMin: 0 };
-const defaults = !process.argv[3] && world.growth === 'none' && !process.env.PLACEMENT && !CASES && !REGIONS && world.householdMix === 'citywide';
+const defaults = !process.argv[3] && !process.env.SIGNALS && world.growth === 'none' && !process.env.PLACEMENT && !CASES && !REGIONS && world.householdMix === 'citywide';
 const out = { _meta: { built: new Date().toISOString().slice(0, 10), tool: 'tests/calibration.mjs', seeds, householdMix: world.householdMix, note: 'Fire off, the Time Study\'s order and warning zones, today\'s plan with the first order at ignition; minutes after the order, median of the seeds with min and max. Compared with ETE_TARGETS in js/scenarios.js (2025 Evacuation Time Study, Table 7-1).' }, regions: {} };
 for (const sc of makeScenarios(data).filter(s => ETE_TARGETS[s.id] && (!REGIONS || REGIONS.includes(s.id)))) {
   const T = ETE_TARGETS[sc.id];
