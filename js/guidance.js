@@ -55,7 +55,7 @@ class Tree {
 }
 function options(sim, tree, n) {
   const { links, outL } = sim, cost = tree.cost, dist = tree.dist;
-  if (dist[n] === 0 || !outL[n].length) return null;
+  if (sim.safe[0][n] || !outL[n].length) return null; // an exit (safe for both classes)
   const opts = outL[n].filter(l => cost[l] < Infinity && dist[links[l].to] < Infinity).map(l => [l, cost[l] + dist[links[l].to]]).sort((a, b) => a[1] - b[1]);
   return opts.length ? opts.filter(([, c], i) => i === 0 || c < opts[0][1] * 1.5 + 60).slice(0, 3).map(o => o[0]) : null;
 }
@@ -168,16 +168,17 @@ class Guidance {
   safest(n, k) {
     const { links, outL } = this.sim, safe = this.sim.safe[k], F = this.F, g = ++F.g, heap = new MinHeap();
     F.gen[n] = g; F.c[n] = 0; F.tm[n] = 0; F.r[n] = 0; F.first[n] = -1; heap.push(0, n);
+    const start = this.sim.exitStart; let best = null, bc = Infinity; // an exit off the major roads costs its start (SOURCE_NOTES CD27)
     while (heap.size) {
-      const [c, u] = heap.pop(); if (c > F.c[u]) continue;
-      if (safe[u] && u !== n) return { first: F.first[u], T: F.tm[u], R: F.r[u] };
+      const [c, u] = heap.pop(); if (c > F.c[u]) continue; if (c >= bc) break;
+      if (safe[u] && u !== n) { const tc = c + start[u]; if (tc < bc) { bc = tc; best = { first: F.first[u], T: F.tm[u], R: F.r[u] }; } continue; }
       for (const l of outL[u]) {
         if (this.time[l] === Infinity) continue;
         const r = this.riskAt(l, F.tm[u]), nc = c + this.time[l] + this.W * r, w = links[l].to;
         if (F.gen[w] !== g || nc < F.c[w]) { F.gen[w] = g; F.c[w] = nc; F.tm[w] = F.tm[u] + this.time[l]; F.r[w] = F.r[u] + r; F.first[w] = u === n ? l : F.first[u]; heap.push(nc, w); }
       }
     }
-    return null;
+    return best;
   }
 
   // Constrained guidance at junction n. The driver's own route is the one they would take without
@@ -220,7 +221,7 @@ class Guidance {
   build(tree, k) {
     const sim = this.sim, { links, inL } = sim, cost = tree.cost, safe = sim.safe[k], nN = tree.dist.length;
     const dist = tree.dist.fill(Infinity), via = tree.via.fill(-1), heap = new MinHeap();
-    for (let n = 0; n < nN; n++) if (safe[n]) { dist[n] = 0; heap.push(0, n); }
+    for (let n = 0; n < nN; n++) if (safe[n]) { dist[n] = sim.exitStart[n]; heap.push(dist[n], n); } // major-road exits first (SOURCE_NOTES CD27)
     while (heap.size) {
       const [d, n] = heap.pop(); if (d > dist[n]) continue;
       for (const lid of inL[n]) { const L = links[lid]; const nd = d + cost[lid]; if (nd < dist[L.from]) { dist[L.from] = nd; via[L.from] = lid; heap.push(nd, L.from); } }

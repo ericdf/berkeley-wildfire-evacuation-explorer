@@ -38,6 +38,8 @@ export function sampleCurve(curve, u) {
   return curve[curve.length - 1][0];
 }
 
+// Start cost of a model exit that is not on a major road (SOURCE_NOTES CD27): longer than any trip, so it is a last resort.
+export const MINOR_EXIT_S = 1e6;
 const CLASS_RANK = { Local: 0, 'Major Collector': 1, 'Principal Arterial': 2, Ramp: 3, Interstate: 3 };
 const INTERSECTION_KEY = ['localVph', 'collectorVph', 'arterialVph', 'freewayVph'];
 
@@ -281,6 +283,19 @@ export class Evacuation {
       this.out0[n] = ((z >= 0 && !told) || exits.has(n)) && !embers ? 1 : 0;
       this.safe[0][n] = this.safe[1][n] = exits.has(n) && !embers ? 1 : 0;
     }
+    // Destinations (SOURCE_NOTES CD27, model rule from the Time Study's DTRAD: candidate destinations "access major
+    // highways"): an exit where an Interstate, a ramp or a Principal Arterial leaves the modeled area starts the route
+    // trees at 0; any other exit starts at MINOR_EXIT_S, longer than any trip, so drivers head for it only where no
+    // major-road exit can be reached. Every exit still lets a car leave the model.
+    // A minor exit is a place to leave only while no major-road exit can be reached from it (route() sets safe[k] each
+    // pass; exitSafe holds every exit not under embers).
+    const MAJOR = new Set(['Interstate', 'Ramp', 'Principal Arterial']);
+    this.exitStart = new Float64Array(nN).fill(Infinity); this.majorExits = 0;
+    for (const n of exits) {
+      const major = (data.nodeEdges[n] || []).some(eid => { const e = net.edges[eid]; return e.mode === 'vehicle' && !e.disconnected && MAJOR.has(e.cls); });
+      this.exitStart[n] = major ? 0 : MINOR_EXIT_S; if (major) this.majorExits++;
+    }
+    this.exitSafe = Uint8Array.from(this.safe[0]);
 
     // ---- households ----
     this.buildHouseholds();
@@ -555,11 +570,14 @@ export class Evacuation {
     }
     for (const k of [0, 1]) {
       const dist = this.dist[k].fill(Infinity), heap = new MinHeap(), safe = this.safe[k], next = this.next[k];
-      for (let n = 0; n < nN; n++) if (safe[n]) { dist[n] = 0; heap.push(0, n); }
-      while (heap.size) {
-        const [d, n] = heap.pop(); if (d > dist[n]) continue;
-        for (const lid of inL[n]) { const L = links[lid]; const nd = d + cost[lid]; if (nd < dist[L.from]) { dist[L.from] = nd; heap.push(nd, L.from); } }
-      }
+      // Destinations (CD27): the major-road exits first; then, only for what cannot reach one, the other exits at
+      // MINOR_EXIT_S. A minor exit from which a major-road exit can be reached is not a place to leave this pass.
+      const ES = this.exitSafe, start = this.exitStart;
+      const grow = () => { while (heap.size) { const [d, n] = heap.pop(); if (d > dist[n]) continue; for (const lid of inL[n]) { const L = links[lid]; const nd = d + cost[lid]; if (nd < dist[L.from]) { dist[L.from] = nd; heap.push(nd, L.from); } } } };
+      for (let n = 0; n < nN; n++) { safe[n] = 0; if (ES[n] && start[n] === 0) { safe[n] = 1; dist[n] = 0; heap.push(0, n); } }
+      grow();
+      for (let n = 0; n < nN; n++) if (ES[n] && start[n] > 0 && dist[n] === Infinity) { safe[n] = 1; dist[n] = start[n]; heap.push(dist[n], n); }
+      grow();
       for (let n = 0; n < nN; n++) {
         if (safe[n] || !outL[n].length) { next[n] = null; continue; }
         const opts = outL[n].filter(l => cost[l] < Infinity && dist[links[l].to] < Infinity).map(l => [l, cost[l] + dist[links[l].to]]).sort((a, b) => a[1] - b[1]);
