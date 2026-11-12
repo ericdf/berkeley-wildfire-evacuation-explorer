@@ -9,11 +9,32 @@
 import { CARDS, GROUPS, cardById, makeGuided, sortItems, costLine, streetsOf, round10, SEVS, median } from './guided-data.js';
 import { presence, direction, assumption, levelText, SEV_WORD } from './robust.js';
 
-const WORD = { consistent: 'Consistent', mixed: 'Mixed', sensitive: 'Sensitive' };
+// Plain words for the three robustness labels (Eric, 2026-11-12, MASTER session; SOURCE_NOTES GV12). The rules are
+// js/robust.js's (SA4, SA6): consistent = at least 90% of the runs; sensitive = shares differ by 0.6 or more between
+// fire severities, or an alternative assumption moves the value by 25% or more; mixed = the rest. The precise
+// definition stays in each Explain this pop-up (MEANS).
+// ctx: 'result' (a count across runs), 'reach' (did embers or the front reach a street), 'way' (did the front reach a
+// way out), 'change' (a change against today's plan, pass by pass). L: the label object (presence or direction).
+export function plainLabel(L, ctx) {
+  const label = L?.label; if (!label) return null;
+  if (ctx === 'networkChange') return L.dir === 'better' ? { text: 'Better in every run', cls: 'r-consistent' } : { text: 'No change in any run', cls: 'r-same' }; // the street network is the same in every run
+  if (ctx === 'change') {
+    if (label === 'consistent') return { text: L.dir === 'better' ? 'Better in nearly every run' : L.dir === 'worse' ? 'Worse in nearly every run' : 'No difference in nearly every run', cls: L.dir === 'worse' ? 'r-worse' : L.dir === 'better' ? 'r-consistent' : 'r-same' };
+    return { text: label === 'sensitive' ? 'Depends on fire strength' : 'Varies from run to run', cls: `r-${label}` };
+  }
+  if (label === 'consistent') {
+    const text = ctx === 'network' ? 'Same in every run'
+      : L.present === false ? (ctx === 'result' ? 'None in nearly every run' : 'Not reached in nearly any run')
+      : ctx === 'result' ? 'In nearly every run' : 'Reached in nearly every run';
+    return { text, cls: 'r-consistent' };
+  }
+  if (label === 'sensitive') return { text: L.parking ? 'Depends on the night parking rule' : ctx === 'result' ? 'Depends on fire strength' : 'Reached mostly when the fire is stronger', cls: 'r-sensitive' };
+  return { text: ctx === 'result' ? 'Varies from run to run' : 'Reached in some runs, by chance', cls: 'r-mixed' };
+}
 const MEANS = {
-  consistent: 'Consistent: the same in every or nearly every tested run (at least 90% of them).',
-  mixed: 'Mixed: present in some runs and not others, or changing direction, without a clear pattern by fire severity.',
-  sensitive: 'Sensitive: it depends mainly on an uncertain setting, such as how fast the fire spreads (low, medium or high severity) or the night parking rule.',
+  consistent: 'The same in every or nearly every tested run: at least 90% of them (14 of 15).',
+  mixed: 'Present in some runs and not others, or changing direction, without a pattern by fire strength: at least 2 of 15 runs differ, and the share of runs differs by less than 0.6 between low, medium and high severity.',
+  sensitive: 'It depends mainly on an uncertain setting: the share of runs differs by 0.6 or more between low, medium and high fire severity, or the low- and high-severity values (or the two night parking rules) differ by 25% or more.',
 };
 const SCOPE = { this: 'this fire', any: 'any fire' };
 
@@ -29,7 +50,7 @@ export function guidedUI(ctx) {
   const started = () => state.sim && (state.sim.t > 0 || state.playing);
   const n = x => x == null ? '—' : fmt(round10(x));
   const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
-  const chipHTML = label => label ? `<span class="robust r-${label}">${WORD[label]}</span>` : '';
+  const chipHTML = (L, c) => { const p = plainLabel(L, c); return p ? `<span class="robust ${p.cls}">${p.text}</span>` : ''; };
   const runSet = () => { const M = mit(); return `${M?.meta.severities.length * M?.meta.seeds.length || 15} runs of ${esc(fireTitle())}: today's plan on a fall night, low, medium and high fire severity × random seeds ${M ? `${M.meta.seeds[0]}–${M.meta.seeds.at(-1)}` : '1–5'}`; };
 
   // ---------- header menu and fire line ----------
@@ -76,6 +97,13 @@ export function guidedUI(ctx) {
     $('clock').hidden = !s || d;
     const tag = g.applied.length ? `With ${g.applied.length === 1 ? esc(leverById(g.applied[0])?.title || '') : `${g.applied.length} changes`}` : '';
     $('g-tag').hidden = !tag; $('g-tag').innerHTML = tag;
+    // One line on the map saying what the colors show, visible without opening the key (Eric, 2026-11-12).
+    const runs = mit() ? mit().meta.severities.length * mit().meta.seeds.length : 15;
+    const cap = !s ? '' : !d ? 'Red: cars backed up'
+      : g.chip === 'fire' ? `Streets embers reached across ${runs} runs of this fire`
+      : g.chip === 'ways' ? `Ways out the fire front reached across ${runs} runs of this fire`
+      : 'Engine drive time from the nearest station, this run';
+    $('g-caption').hidden = !cap; $('g-caption').textContent = cap;
     if (!d) $('g-sheet').hidden = true;
     mapLayers();
   }
@@ -98,7 +126,8 @@ export function guidedUI(ctx) {
     Object.assign(map.layers, BASE);
     map.edgeClass = null; map.edgePalette = null; map.streetMode = 'class';
     if (!done()) { // during the run: fire and traffic only, streets gray (PR #79)
-      Object.assign(map.layers, { fire: true, vehicles: true, queues: true });
+      // Moving-car dots are left out and queues are smoothed, thin and one dark red (GV11), so traffic does not compete with the fire.
+      Object.assign(map.layers, { fire: true, queues: true });
       map.streetMode = 'robust'; map.edgeClass = {}; map.edgePalette = ['#a9a9a9'];
     } else if (g.chip === 'fire') {
       map.layers.fire = true; const C = spread() && ctx.edgeClasses(state.fire, 'ember');
@@ -122,10 +151,11 @@ export function guidedUI(ctx) {
   function legendHTML() {
     const sw = (c, t) => `<div><span class="sw" style="background:${c}"></span>${t}</div>`;
     const fireKey = '<div><span class="dot" style="background:#ff7a00"></span>Fire front (last 15 min)</div><div><span class="dot" style="background:#5a1e19"></span>Burned</div><div><span class="dot" style="background:#ffb020;opacity:.6"></span>Embers</div>';
-    if (!done()) return fireKey + '<div><span class="dot" style="background:#1d4ed8"></span>Car leaving</div>' + sw('rgba(200,20,40,.8)', 'Queue');
+    if (!done()) return fireKey + sw('#7f1d1d', 'Cars backed up (over the last few minutes)');
     const runs = mit() ? mit().meta.severities.length * mit().meta.seeds.length : 15;
-    if (g.chip === 'fire') { const P = ctx.PALETTE.spread; return `<b>Embers reached the street, in ${runs} runs</b>${sw(P[4], 'Nearly every run')}${sw(P[3], 'Depends on fire severity')}${sw(P[2], 'Some runs')}${sw(P[1], 'No run')}${fireKey}`; }
-    if (g.chip === 'ways') { const P = ctx.PALETTE.access; return `<b>Streets with one way out: fire reached it, in ${runs} runs</b>${g.applied.length ? '<div class="small muted">Today\'s street network, without your changes.</div>' : ''}${sw(P[4], 'Nearly every run')}${sw(P[3], 'Depends on fire severity')}${sw(P[2], 'Some runs')}${sw(P[1], 'No run')}${sw('#c8c8c8', 'More than one way out')}`; }
+    // Plain words for the robustness classes (GV12); the precise rule is in the street card and Explain this pop-ups.
+    if (g.chip === 'fire') { const P = ctx.PALETTE.spread; return `<b>Embers reached the street, in ${runs} runs</b>${sw(P[4], 'Reached in nearly every run')}${sw(P[3], 'Reached mostly when the fire is stronger')}${sw(P[2], 'Reached in some runs, by chance')}${sw(P[1], 'Not reached in any run, or nearly none')}${fireKey}`; }
+    if (g.chip === 'ways') { const P = ctx.PALETTE.access; return `<b>Streets with one way out: did the fire front reach it? In ${runs} runs</b>${g.applied.length ? '<div class="small muted">Today\'s street network, without your changes.</div>' : ''}${sw(P[4], 'Reached in nearly every run')}${sw(P[3], 'Reached mostly when the fire is stronger')}${sw(P[2], 'Reached in some runs, by chance')}${sw(P[1], 'Not reached in any run, or nearly none')}${sw('#c8c8c8', 'More than one way out')}`; }
     const m = data.A.access.engineServiceMin;
     return `<b>Engine drive time from the nearest station</b>${sw('#2f8a4a', `Within ${m} min`)}${sw('#e0a21e', `${m}–8 min`)}${sw('#c0262d', 'Over 8 min')}${sw('#7f1d1d', 'No engine route')}<div class="small muted">At ignition, with this run's parked cars.</div>`;
   }
@@ -140,7 +170,7 @@ export function guidedUI(ctx) {
     const lines = [], src = []; // src: where each figure on the card comes from (folded under the card)
     const SA = spread();
     if (g.chip === 'fire' && SA && sel.id < SA.meta.edges) {
-      for (const [m, w] of [['ember', 'Embers'], ['front', 'The fire front']]) { const p = presence(ctx.edgeClasses(state.fire, m).levels(sel.id)); lines.push(`${w} reached it in ${p.k} of ${p.n} runs (${levelText(p.levels)}). ${chipHTML(p.label)}`); }
+      for (const [m, w] of [['ember', 'Embers'], ['front', 'The fire front']]) { const p = presence(ctx.edgeClasses(state.fire, m).levels(sel.id)); lines.push(`${w} reached it in ${p.k} of ${p.n} runs (${levelText(p.levels)}). ${chipHTML(p, 'reach')}`); }
       src.push(['Runs reached', 'model rule', 'The illustrative fire model run on this fire\'s ignition and wind; a street counts when embers or the front reach the 30 m cell at its middle (data/model/spread-access.json). The fire does not depend on the plan.']);
     } else if (g.chip === 'ways') {
       // Single ways out are today's street network (data/model/access-constraints.json); a new road you applied is not in it.
@@ -152,7 +182,7 @@ export function guidedUI(ctx) {
         lines.push(`Only one way out, through ${esc(area.chokeStreets.join(' / '))}. About ${fmt(round10(st.residents))} modeled residents live behind it.`);
         // A known placement artifact (SOURCE_NOTES AC4): the count likely belongs to homes reached another way.
         if (area.allocationWarning) lines.push(`<span class="cr-w">Population placement artifact: ${esc(area.allocationWarning)}. These residents most likely live on streets reached another way (docs/access-constraints.md, Data problems 2).</span>`);
-        lines.push(`The fire front reached that way out in ${p.k} of ${p.n} runs. ${chipHTML(p.label)}`);
+        lines.push(`The fire front reached that way out in ${p.k} of ${p.n} runs. ${chipHTML(p, 'reach')}`);
       } else lines.push('More than one way out: no single closure cuts it off.');
     } else if (g.chip === 'engine' && state.sim?.engineReach0) {
       const t = state.sim.engineReach0[sel.id];
@@ -189,7 +219,7 @@ export function guidedUI(ctx) {
   const head = (title, sub) => `<div class="gv-head"><h2>${title}</h2><p>${sub}</p></div>`;
   function resultsHTML() {
     if (!mit() || !spread()) return `${head('Results', esc(fireTitle()))}<p>The run-set tables did not load.</p>${footHTML('results')}`;
-    const cards = CARDS.map(c => { const f = baseFigure(c); return `<div class="rc"><div class="rc-n">${n(f.value)}</div><div class="rc-l">${c.line}</div><div class="rc-f">${chipHTML(f.label.label)}<button class="linkish" data-explain="${c.id}">Explain this</button></div></div>`; }).join('');
+    const cards = CARDS.map(c => { const f = baseFigure(c); return `<div class="rc"><div class="rc-n">${n(f.value)}</div><div class="rc-l">${c.line}</div><div class="rc-f">${chipHTML(f.label, c.id === 'oneWay' ? 'network' : 'result')}<button class="linkish" data-explain="${c.id}">Explain this</button></div></div>`; }).join('');
     return `${head(`Results: ${esc(fireTitle())}`, `Today's plan, median of ${mit().meta.severities.length * mit().meta.seeds.length} runs`)}${cards}${footHTML('results')}`;
   }
   function footHTML(kind) {
@@ -217,7 +247,7 @@ export function guidedUI(ctx) {
     ctx.modal(`<div class="gx"><h2>${n(f.value)} ${c.line}</h2>
       <h3>What it counts</h3><p>${c.counts}</p>
       <h3>The runs behind it</h3><p>${runs}</p>
-      <h3>${chipHTML(L.label)}</h3><p>${label}</p>
+      <h3>${chipHTML(L, c.id === 'oneWay' ? 'network' : 'result')}</h3><p>${label}</p>
       <h3>Where it comes from</h3><p>${cat}</p>
       <h3>Limits</h3><p>${c.limits}</p>
       ${w != null ? `<h3>The run you watched</h3><p>${n(w)} (medium severity, seed 1)${g.applied.length ? ', with your changes' : ''}.</p>` : ''}</div>`, 'gx');
@@ -235,7 +265,7 @@ export function guidedUI(ctx) {
       const clash = !on && picked.map(p => ({ p, why: ctx.conflict(p, l) })).find(x => x.why);
       const full = !on && g.picked.length >= 3;
       const fr = model().freed([l.id]);
-      const gain = it.gain != null ? `<span class="cr-g">${it.gain >= 0.5 ? fmt(round10(it.gain)) : 'Under 1'} ${GAIN[it.card.key]} · ${SCOPE[it.anyFire ? 'any' : 'this']}</span> ${chipHTML(it.d.label)}`
+      const gain = it.gain != null ? `<span class="cr-g">${it.gain >= 0.5 ? fmt(round10(it.gain)) : 'Under 1'} ${GAIN[it.card.key]} · ${SCOPE[it.anyFire ? 'any' : 'this']}</span> ${chipHTML(it.d, 'change')}`
         : it.withheld ? `<span class="cr-g">Not offered on this fire: ${esc(it.withheld.split(':')[0])}.</span>`
         : `<span class="cr-g">${it.worse?.length ? `Worse: ${it.worse.map(w => `${esc(w.card.line)} in ${w.worse} of ${w.n} runs`).join('; ')}.` : 'No result improved in most runs.'}</span>`;
       // A change withheld on this fire under P19 cannot be picked here (GV6). The cost sits beside the pick button,
@@ -287,7 +317,7 @@ export function guidedUI(ctx) {
       <h3>Where it comes from</h3><p>${badge('synthetic')} Synthetic households placed from zone population counts, on an illustrative ${badge('model rule')} fire. Stored table: data/model/mitigations.json, built ${esc(M.meta.built)}.</p>
       <h3>Groups</h3><p>${badge('model rule')} A change joins a group when it does better on that result in every run, or in at least three of four runs and never worse. A change can sit in more than one group. A change whose ready-made question is withheld on this fire is listed under "No consistent benefit" and cannot be picked here.</p>
       <h3>This fire or any fire</h3><p>Engine reach is measured at ignition, so its gain is the same on every fire. People and cars depend on the fire.</p>
-      <h3>Labels</h3><p>${MEANS.consistent} ${MEANS.mixed} ${MEANS.sensitive} Any difference counts, as in the stored table.</p>
+      <h3>Labels</h3><p><b>Better in nearly every run</b>: ${MEANS.consistent} <b>Depends on fire strength</b>: ${MEANS.sensitive} <b>Varies from run to run</b>: ${MEANS.mixed} Any difference counts, as in the stored table.</p>
       <h3>Costs</h3><p>Tap a cost for its source and category.</p></div>`, 'gx');
   }
 
@@ -328,7 +358,7 @@ export function guidedUI(ctx) {
       const cls = !r ? '' : same ? 'same' : r.gain > 0 ? 'good' : 'worse';
       return `<div class="rc cmp"><div class="rc-l">${cap(c.line)}</div>
         <div class="cmpgrid"><div><small>Today's plan</small><b>${v(r?.a)}</b></div><div><small>With changes</small><b>${v(r?.b)}</b></div><div><small>Difference</small><b class="${cls}">${diff}</b></div></div>
-        <div class="rc-f">${r ? chipHTML(r.d.label) : ''}<button class="linkish" data-explain-cmp="${c.id}"${r ? '' : ' disabled'}>Explain this</button></div></div>`;
+        <div class="rc-f">${r ? chipHTML(r.d, r.network ? 'networkChange' : 'change') : ''}<button class="linkish" data-explain-cmp="${c.id}"${r ? '' : ' disabled'}>Explain this</button></div></div>`;
     }).join('');
     const title = ls.length === 1 ? `With ${esc(ls[0].title.charAt(0).toLowerCase() + ls[0].title.slice(1))}` : `With ${ls.length} changes`;
     const sub = `${ls.length > 1 ? `${ls.map(l => esc(l.title)).join('; ')}. ` : ''}${esc(fireTitle())} · ${runs} paired runs: same fire, households and parked cars with and without`;
@@ -343,7 +373,7 @@ export function guidedUI(ctx) {
       <h3>What it counts</h3><p>${c.counts}</p>
       <h3>The runs behind it</h3><p>${passes}</p>
       <h3>Where it comes from</h3><p>${provenance(c)}${r.network && r.gain ? ` Second ways out from new roads ${badge('derived')}: data/model/egress-candidates.json.` : ''}</p>
-      <h3>${chipHTML(r.d.label)}</h3><p>${MEANS[r.d.label] || ''} ${r.network ? '' : 'Any difference counts as better or worse; the label says whether it holds across the runs.'}</p>
+      <h3>${chipHTML(r.d, r.network ? 'networkChange' : 'change')}</h3><p>${MEANS[r.d.label] || ''} ${r.network ? '' : 'Any difference counts as better or worse; the label says whether it holds across the runs.'}</p>
       <h3>Limits</h3><p>${c.limits}</p>
       ${w != null ? `<h3>The run you watched</h3><p>${n(w)} with your changes (medium severity, seed 1).</p>` : ''}</div>`, 'gx');
   }
@@ -377,8 +407,8 @@ export function guidedUI(ctx) {
   function rerender() { const y = $('g-panel').scrollTop; show(g.screen); $('g-panel').scrollTop = y; }
 
   return {
-    enter() { G = null; map.barriers = false; frame(); setup(); show(g.screen === 'map' ? 'map' : g.screen); },
-    leave() { map.barriers = true; map.marks = []; },
+    enter() { G = null; map.barriers = false; map.queueSmooth = true; frame(); setup(); show(g.screen === 'map' ? 'map' : g.screen); },
+    leave() { map.barriers = true; map.queueSmooth = false; map.marks = []; },
     refresh, legendHTML, sheet, pickFire,
     onRunEnd() { g.chip = 'fire'; refresh(); },
     onRunStart() { $('g-sheet').hidden = true; refresh(); },

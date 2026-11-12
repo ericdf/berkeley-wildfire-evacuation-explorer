@@ -374,3 +374,9 @@ h3.cg { margin-top: 10px; }
 .cr-dup .cr-pick { padding: 6px 10px; }
 .cr-dup .cr-s { margin: 0; }
 .cr-dup .cr-s b { font-weight: 600; }
+/* Plain-language labels (GV12): worse in nearly every run gets a warning color; no difference is neutral. */
+.r-worse { color: #7c2d12; background: #ffedd5; border-color: #fdba74; }
+.r-same { color: #4b5563; background: #f3f4f6; border-color: #d1d5db; }
+/* Guided map caption: what the colors show, without opening the key (GV11, GV12). */
+#g-caption { position: absolute; left: 50%; transform: translateX(-50%); bottom: 96px; z-index: 3; background: rgba(255,255,255,.92); color: #3b2a1c; font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.15); max-width: calc(100% - 24px); text-align: center; pointer-events: none; }
+#g-caption[hidden] { display: none; }

@@ -2,6 +2,7 @@
 import { makeTerrainCanvas, makeContours } from './terrain.js';
 import { CELL } from './fire.js';
 import { pickEdge } from './data.js';
+import { QueueSmoother } from './queue-display.js';
 import { inPoly, bbox, inBB } from './fire.js';
 
 export const STREET_MODES = {
@@ -466,6 +467,7 @@ export class MapView {
     this.ctx.drawImage(this.fireImg, this.sx(0), this.sy(f.H * CELL), f.W * CELL * this.scale, f.H * CELL * this.scale);
   }
   drawQueues() {
+    if (this.queueSmooth) return this.drawQueuesSmoothed();
     const { ctx, sim } = this, t = sim.t;
     ctx.lineCap = 'round';
     for (const lid of sim.active) {
@@ -474,6 +476,17 @@ export class MapView {
       if (w < 3) continue;
       const frac = Math.min(1, w / L.storage);
       ctx.strokeStyle = `rgba(200,20,40,${0.35 + 0.5 * frac})`; ctx.lineWidth = 3 + 6 * frac;
+      ctx.beginPath(); this.path(this.data.net.edges[L.e].geom); ctx.stroke();
+    }
+  }
+  // Guided view (js/guided.js sets queueSmooth): queues smoothed over model time (js/queue-display.js), thin, one dark red.
+  drawQueuesSmoothed() {
+    const { ctx, sim } = this;
+    const { s, on } = (this.qSmoother ??= new QueueSmoother()).update(sim);
+    ctx.lineCap = 'round';
+    for (const lid of on) {
+      const L = sim.links[lid], frac = Math.min(1, s.get(lid) / L.storage);
+      ctx.strokeStyle = `rgba(127,29,29,${0.6 + 0.35 * frac})`; ctx.lineWidth = 1.5 + 2.5 * frac;
       ctx.beginPath(); this.path(this.data.net.edges[L.e].geom); ctx.stroke();
     }
   }

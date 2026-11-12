@@ -61,10 +61,13 @@ for (const [di, name] of DEVICES.entries()) {
   await p.click('#g-run');
   await p.waitForTimeout(2500);
   check(await visible('#clock'), `${name}: clock over the map while running`);
+  check(await visible('#g-caption') && (await p.locator('#g-caption').innerText()) === 'Red: cars backed up', `${name}: caption "Red: cars backed up" while running`);
+  await noScroll('while running');
   await shot('02-running');
   await waitRunEnd();
   check(await visible('#g-chips') && await visible('#g-explore') && await visible('#g-again') && !(await visible('#g-run')), `${name}: after the run, chips, Explore results and Run again`);
   await noScroll('after a run'); await shot('03-after-run-fire');
+  check(/Streets embers reached across 15 runs of this fire/.test(await p.locator('#g-caption').innerText()), `${name}: caption after the run names the 15 runs`);
   await p.click('[data-chip="ways"]'); await p.waitForTimeout(300); await shot('04-chip-ways');
   await p.click('[data-chip="engine"]'); await p.waitForTimeout(300); await shot('05-chip-engine');
   await p.click('[data-chip="fire"]'); await p.waitForTimeout(300);
@@ -90,7 +93,10 @@ for (const [di, name] of DEVICES.entries()) {
   const order = await p.locator('.rc .rc-l').allTextContents();
   check(/embers/.test(order[0]) && /fire front/.test(order[1]) && /engine/.test(order[2]) && /one way out/.test(order[3]) && /no open route/.test(order[4]), `${name}: results in the agreed order`);
   await noScroll('on results'); const hr = await panelHeight('Results view');
-  await shot('07-results'); await shot('07-results-full', { fullPage: false, clip: undefined });
+  await shot('07-results');
+  // Plain-language labels (GV12): none of the old three words in Guided view's results.
+  const chips = await p.locator('#g-panel .robust').allTextContents();
+  check(chips.length === 5 && chips.every(t => /nearly every run|Depends on|Varies from run to run|Same in every run|None in nearly/.test(t)) && !chips.some(t => /^(Consistent|Sensitive|Mixed)$/.test(t)), `${name}: plain labels on results (${chips.join(' | ')})`);
   await p.locator('[data-explain="ember"]').click();
   check(await p.locator('#modal[open] .gx').isVisible(), `${name}: Explain this opens a pop-up`);
   const ex = await p.locator('#modal .gx').innerText();
