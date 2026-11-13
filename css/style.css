@@ -380,3 +380,12 @@ h3.cg { margin-top: 10px; }
 /* Guided map caption: what the colors show, without opening the key (GV11, GV12). */
 #g-caption { position: absolute; left: 50%; transform: translateX(-50%); bottom: 96px; z-index: 3; background: rgba(255,255,255,.92); color: #3b2a1c; font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.15); max-width: calc(100% - 24px); text-align: center; pointer-events: none; }
 #g-caption[hidden] { display: none; }
+/* The four parts of a "people not yet out" result (GV13). */
+.sp { margin: 2px 0 8px; }
+.sp-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: #eee; }
+.sp-bar i { display: block; height: 100%; }
+.sp-key { display: grid; grid-template-columns: 1fr 1fr; gap: 1px 10px; margin-top: 4px; font-size: 12.5px; color: #333; }
+.sp-key span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-key i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 4px; vertical-align: 0; }
+.sp-car { background: #7c2d12; } .sp-noCar { background: #dc6b2f; } .sp-notOrdered { background: #d4a017; } .sp-road { background: #64748b; }
+.sp-list { padding-left: 18px; margin: 4px 0; font-size: 14px; } .sp-list li { margin: 4px 0; }

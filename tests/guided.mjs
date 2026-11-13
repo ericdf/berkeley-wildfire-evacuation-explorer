@@ -66,5 +66,16 @@ const reach = lv => plainLabel({ label: 'sensitive', levels: lv }, 'reach').text
 check(reach({ low: [0, 5], central: [5, 5], high: [0, 5] }) === 'Depends on fire strength', 'reached at medium only: neutral wording (McMillian Rd, east wind)');
 check(reach({ low: [0, 5], central: [2, 5], high: [5, 5] }) === 'Reached mostly when the fire is stronger' && reach({ low: [5, 5], central: [3, 5], high: [0, 5] }) === 'Reached mostly when the fire is weaker', 'rising or falling with severity: directional wording');
 
+// The four-way split (GV13): in every run, each result's parts add up to the mitigation table's total for that run.
+let worstSplit = 0, splitRuns = 0;
+for (const r of SA.runs) {
+  const m = M.runs.find(x => x.lever === 'baseline' && x.fire === r.fire && x.sev === r.sev && x.seed === r.seed)?.m; if (!m || !r.split) continue;
+  worstSplit = Math.max(worstSplit, Math.abs(r.split.ember.reduce((a, b) => a + b, 0) - m.ember), Math.abs(r.split.front.reduce((a, b) => a + b, 0) - m.frontPeople));
+  splitRuns++;
+}
+check(splitRuns === SA.runs.length && worstSplit <= 0.25, `split sums to the total in all ${splitRuns} runs (largest gap ${worstSplit.toFixed(2)} people, from rounding each part to 0.1)`);
+const sp = G.splitFigure('ref1923', 'ember');
+check(sp?.parts.length === 4 && sp.n === 15, `1923 fire, embers: ${sp.parts.map(p => `${p.short} ${Math.round(p.median)}`).join(', ')}`);
+
 console.log(fail ? `\n${fail} check(s) failed` : '\nall checks passed');
 process.exit(fail ? 1 : 0);
