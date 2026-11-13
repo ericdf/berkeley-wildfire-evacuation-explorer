@@ -11,11 +11,11 @@ export const SEVS = ['low', 'central', 'high'];
 // The five results, most important first (Eric, 2026-11-10). key: the measure in mitigations.json runs and in a live
 // comparison (js/mitigate.js MEASURES: ember, front, engine, cutOff); oneWay is a property of the street network.
 export const CARDS = [
-  { id: 'ember', key: 'ember', live: 'ember', unit: 'people', group: 'people', cat: 'synthetic',
+  { id: 'ember', key: 'ember', split: 'ember', live: 'ember', unit: 'people', group: 'people', cat: 'synthetic',
     line: 'people not yet out when embers reached their street',
     counts: 'Synthetic residents still at home when modeled embers first reached their street, or on the road in a car on a street under embers after leaving. Each person is counted once.',
     limits: 'It counts people at that moment, not injuries or deaths: many would shelter or come through unharmed. Departure times come from the 2025 Evacuation Time Study survey; the traffic model clears roads faster than that study, so this count is likely low.' },
-  { id: 'front', key: 'frontPeople', live: 'front', unit: 'people', group: 'people', cat: 'synthetic',
+  { id: 'front', key: 'frontPeople', split: 'front', live: 'front', unit: 'people', group: 'people', cat: 'synthetic',
     line: 'people not yet out when the fire front reached their street',
     counts: 'Synthetic residents still at home when the modeled fire front itself reached their street, or on the road in a car on a burning street. Each person is counted once.',
     limits: 'A harsher test than embers; still a count of people at that moment, not injuries or deaths. The traffic model clears roads faster than the 2025 Evacuation Time Study, so this count is likely low.' },
@@ -33,6 +33,16 @@ export const CARDS = [
     limits: 'A model state, not a count of people trapped. Parking rules barely change it; leaving earlier does.' },
 ];
 export const cardById = id => CARDS.find(c => c.id === id);
+
+// The two "people not yet out" results split four ways (Eric, 2026-11-12, MASTER session; SOURCE_NOTES GV13), in the
+// order of spread-access.json runs[].split (tools/spread-access.mjs; js/sim.js summary). Each run's parts sum to that
+// run's total in mitigations.json (tests/guided.mjs).
+export const SPLIT_PARTS = [
+  { id: 'car', short: 'home, car or ride', label: 'At home, with a car or a ride', def: 'At home in a zone ordered to leave (or, before any order, warned, in a household leaving on the warning), with a car or a ride with a neighbor, not yet left.' },
+  { id: 'noCar', short: 'home, no car or ride', label: 'At home, no car and no ride', def: 'At home in a zone ordered to leave (or warned, in a household leaving on the warning), in a household with no car that found no neighbor to ride with (the 2025 Evacuation Time Study: 86.9% of carless households find a ride).' },
+  { id: 'notOrdered', short: 'home, no order', label: 'At home, in zones never ordered to leave', def: 'At home in a zone the scenario never ordered to leave during the run: zones under no order or warning, and zones under a warning only, where the households that did not leave on the warning stay home.' },
+  { id: 'road', short: 'on the road', label: 'On the road', def: 'In a car on a street when embers (or the front) reached it, after leaving home; includes people riding with a neighbor and the modeled commuters, visitors and other non-residents.' },
+];
 
 // Change groups, in the order of the result cards they improve (Eric, 2026-11-10).
 export const GROUPS = [
@@ -153,7 +163,17 @@ export function makeGuided(M, SA, presets = []) {
     return out;
   }
 
-  return { levers, leverById, runsOf, baseFigure, oneWay, freed, tableCompare, tallyBySev, groups, anyFire, withheld, seeds: M?.meta?.seeds || [], severities: M?.meta?.severities || SEVS };
+  // A result's four parts on a fire: each part's median over the 15 runs (medians of parts need not add to the median
+  // of the total), by severity, from spread-access.json.
+  function splitFigure(fire, which) {
+    const rs = (SA?.runs || []).filter(r => r.fire === fire && r.split?.[which]);
+    if (!rs.length) return null;
+    const wi = which === 'ember' ? 0 : 1;
+    return { n: rs.length, warned: median(rs.map(r => r.splitWarned?.[wi] ?? null)), parts: SPLIT_PARTS.map((p, i) => ({ ...p, median: median(rs.map(r => r.split[which][i])),
+      bySev: Object.fromEntries(SEVS.map(s => [s, median(rs.filter(r => r.sev === s).map(r => r.split[which][i]))])) })) };
+  }
+
+  return { splitFigure, levers, leverById, runsOf, baseFigure, oneWay, freed, tableCompare, tallyBySev, groups, anyFire, withheld, seeds: M?.meta?.seeds || [], severities: M?.meta?.severities || SEVS };
 }
 
 // Cost line and sort key (lever.cost; js/mitigate.js costText): a screening range, little capital cost, or not priced.
