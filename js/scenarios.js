@@ -178,8 +178,9 @@ export function makeScenarios(data) {
         'Ignition point, wind and time of day are illustrative model choices: a fall night, when Diablo winds are strongest, as in the east-wind fire'],
     },
     {
-      // Added 2026-11-13 (SOURCE_NOTES FF20–FF23): the onshore wind, from the Bay, the direction Berkeley Fire's chief
-      // told a resident to worry about (FF23, relayed). The only fire whose wind blows uphill.
+      // Added 2026-11-13 (SOURCE_NOTES FF20–FF25): the onshore wind, from the Bay, the only fire whose wind blows
+      // uphill. Prompted by Berkeley Fire's chief's concern about fire reaching homes from the west (FF22, relayed),
+      // which as clarified is an east-wind fire flanking through the terrain, not a west wind; FF26 checks that.
       id: 'westWind', name: 'West wind: fire low in Claremont Canyon',
       kind: 'illustrative', onshore: true,
       blurb: 'Fire starts beside Claremont Ave low in Claremont Canyon, below the homes, on an afternoon with a strong onshore wind from the west-south-west. The wind and the slope both push it up the canyon toward the homes on its rims and the ridge, and it starts below the roads those homes use to drive down. The City\'s South Berkeley Hills region is ordered.',
