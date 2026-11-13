@@ -35,6 +35,7 @@ export const PRESETS = [
       ref1923: 'In Plan B about 30% fewer modeled residents are not yet out when modeled embers reach their street (about 4,050 against 2,850 in the medium-severity case).',
       panoramic: `In Plan B about a seventh fewer modeled residents are not yet out when modeled embers reach their street (about 13,550 against 11,600 in the medium-severity case). ${PANORAMIC_UNORDERED}`,
       northHills: 'In Plan B about a fifth fewer modeled residents are not yet out when modeled embers reach their street (about 5,000 against 3,950 in the medium-severity case). If only the City\'s smaller Leave Early Zones do it, the drop is about 8%.',
+      quake: 'In Plan B about a fifth fewer modeled residents are not yet out when modeled embers reach their street (about 19,800 against 15,450 in the medium-severity case): the earthquake\'s fires start across the city, so half of hill households leaving beforehand helps less here than on the wildfires. If only the City\'s smaller Leave Early Zones do it, the drop is about 9%.',
       westWind: 'In Plan B about half as many modeled residents are not yet out when modeled embers reach their street (about 156 against 73 in the medium-severity case). If only the City\'s smaller Leave Early Zones do it, almost nothing changes: none of them is near Claremont Canyon.',
     },
     off: {},
@@ -50,6 +51,7 @@ export const PRESETS = [
     on: {
       ref1923: 'About a fifth fewer modeled residents are not yet out when modeled embers reach their street (about 5,750 against 4,700 in the medium-severity case). The gain comes from people leaving ahead of the modeled fire, not from faster traffic.',
       eastWind: 'About 7% fewer modeled residents are not yet out when modeled embers reach their street (about 7,400 against 6,900 in the medium-severity case). The gain comes from people leaving ahead of the modeled fire, not from faster traffic.',
+      quake: 'About 9% fewer modeled residents are not yet out when modeled embers reach their street (about 42,350 against 38,400 in the medium-severity case, on a weekday). Each zone is ordered once a fire comes within 300 m of it, so deciding faster brings every one of those orders forward.',
       panoramic: `About 5% fewer modeled residents are not yet out when modeled embers reach their street (about 14,750 against 14,000 in the medium-severity case), a smaller gain than on the two larger fires. ${PANORAMIC_UNORDERED}`,
     },
     off: {
@@ -76,6 +78,7 @@ export const PRESETS = [
     off: {
       ref1923: 'weekday and night differ by about 7 min here (98 against 91), while the 2025 Time Study finds about 70 min for this region; the simulator misses most of that weekday slowdown.',
       panoramic: 'in 10 of 15 runs not all ordered cars get out within the 4 hours simulated, so there is no 90% time to compare.',
+      quake: 'weekday and night differ in only 8 of 15 runs, and in at least one medium-severity run 90% of ordered cars are not out within the 6 hours simulated, so there is no median to compare.',
     },
     headline: { label: 'Minutes until 90% of cars are out', f: S => S.clearP90, dir: -1 },
   },
@@ -89,13 +92,14 @@ export const PRESETS = [
     otherNote: 'In this simulator engines only drive; they do not fight the fire or protect homes, so better engine access has no effect on the fire. Parking still changes traffic on hill streets a little, but in the runs tested it made no consistent difference to who was still there. Engine travel time to the fire edge, at ignition and at the end of the run, was the same or shorter under Plan B in every run tested (four fires, three severities, five seeds), and shorter in some.',
     // Headline and numbers: SOURCE_NOTES ER2, rerun under the night parking rule in NP6 (central medians). Reach at ignition
     // depends on the seed's parked cars, not the fire, so it is the same on every fire; the end-of-run share (traffic and fire) differs.
-    on: Object.fromEntries([['eastWind', '50%', '80%', 4], ['ref1923', '46%', '71%', 6], ['panoramic', '50%', '82%', 4], ['northHills', '55%', '76%', 4], ['westWind', '64%', '96%', 4]].map(([id, la, lb, hours]) => [id,
+    on: { ...Object.fromEntries([['eastWind', '50%', '80%', 4], ['ref1923', '46%', '71%', 6], ['panoramic', '50%', '82%', 4], ['northHills', '55%', '76%', 4], ['westWind', '64%', '96%', 4]].map(([id, la, lb, hours]) => [id,
       'Count the modeled hill residents for whom the modeled road network gives no engine route from a station within the City\'s 5-minute standard, before traffic and fire: about 9,900 of Berkeley\'s 27,900 Fire Zones 2–3 residents with today\'s parking, about 1,050 with parking on one side (central case; fewer in every run). '
       + 'At night residents park both sides of most hill streets 17–24 ft wide, leaving one car\'s width: modeled cars get through by taking turns, a modeled engine does not. That rule rests on one night\'s count, at about 1 a.m., of 11 narrow blocks. '
       + 'With parking on one side, most of those left are on Panoramic Hill: its lowest block of Panoramic Way is 17 ft wide, and in 4 of the 5 test seeds a car parked there leaves less than an engine\'s width, leaving about 990 modeled residents with no engine route. '
       + `By the end of the ${hours}-hour run, with evacuation traffic and burned streets, an engine can reach ${la} of hill residents within 5 minutes under Plan A and ${lb} under Plan B. `
       + 'Color streets by "Engine drive time" (Expert view, Map) to see where. One-side parking also cuts street segments too narrow for an engine from about 1,100 to 143. '
       + 'Modeled residents not yet out when embers reach their street show no consistent change: engines do not fight the fire in this simulator, and on a two-way street removing parking opens the oncoming lane, not a second lane out.'])),
+      quake: 'Count the modeled hill residents for whom the modeled road network gives no engine route from a station within the City\'s 5-minute standard, before traffic and fire: about 11,900 of Berkeley\'s 27,900 Fire Zones 2–3 residents with today\'s parking, about 1,700 with parking on one side (central case; fewer in every run). Both are higher than on the wildfires (about 9,900 and 1,050) because the earthquake closes the streets that cross the Hayward Fault to engines. By the end of the 6-hour run an engine can reach 45% of hill residents within 5 minutes under Plan A and 65% under Plan B.' },
     off: {},
     headline: { label: 'Hill residents with no engine route meeting the 5-minute standard', f: S => S.engineReachBeyond5People, dir: -1 },
   },
