@@ -94,6 +94,9 @@ for (const [di, name] of DEVICES.entries()) {
   check(/embers/.test(order[0]) && /fire front/.test(order[1]) && /engine/.test(order[2]) && /one way out/.test(order[3]) && /no open route/.test(order[4]), `${name}: results in the agreed order`);
   await noScroll('on results'); const hr = await panelHeight('Results view');
   await shot('07-results');
+  // The four-way split under the two people cards (GV13).
+  const splits = await p.locator('#g-panel .rc .sp').count(), keys = await p.locator('#g-panel .rc:nth-of-type(1) .sp-key span, #g-panel .rc .sp-key span').count();
+  check(splits === 2 && keys === 8, `${name}: the two people cards each split four ways (${splits} splits, ${keys} parts)`);
   // Plain-language labels (GV12): none of the old three words in Guided view's results.
   const chips = await p.locator('#g-panel .robust').allTextContents();
   check(chips.length === 5 && chips.every(t => /nearly every run|Depends on|Varies from run to run|Same in every run|None in nearly/.test(t)) && !chips.some(t => /^(Consistent|Sensitive|Mixed)$/.test(t)), `${name}: plain labels on results (${chips.join(' | ')})`);

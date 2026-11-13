@@ -1,6 +1,8 @@
 # Evacuation-time model fix: plan and release gate
 
-Status: proposed, 2026-11-06; steps 1–3 built (step 3 in PR #84, 2026-11-12, not merged). Owner: Eric. Each step runs in its own session and its own PR. Nothing here authorizes a merge or a publish; those need Eric's approval naming the PR.
+Status: **closed 2026-11-13** (Eric: "We are not getting more data."; SOURCE_NOTES CD29). Proposed 2026-11-06; steps 1–3 merged (PRs #76, #80, #84); steps 4 and 5 not pursued. The release gate below is superseded by the spread-and-access reframe (SOURCE_NOTES SA1–SA12): Guided view shows no evacuation times, and Expert view's Assumptions & limits, Model performance, keeps the comparison with the study. A destination rule tried after step 3 was not adopted (CD27, CD28; branch `claude/model-fix-destinations`, 8b79ebc). Owner: Eric.
+
+**Where it ended** (after step 3, central green share; CD24): G1 (±10%) passes R05 S6, R09 S4, R09 S6, R04 S4 and R04 S6 and fails R02 S4 (106 min against 175), R02 S6 (92 against 105) and R05 S4 (111 against 140); G2 fails in all four regions. Closing the gap would need the study's DTRAD destinations and routes, its treatment of the I-80 approach junctions and the City's signal timings, none of them public (CD29).
 
 ## Why this exists
 
@@ -14,7 +16,7 @@ The diagnostic (SOURCE_NOTES CD1–CD7, `data/model/ete-diagnostic.json`, PR #72
 
 Simulated road time is a median of about 4 minutes; the study's road time is 40–80 minutes (E23). The numbers above come from the worker's diagnostic and must be re-checked in step 1, not taken on trust.
 
-## Release gate
+## Release gate (superseded 2026-11-13)
 
 No evacuation-time number from the simulator appears in a release (any publish of `pages`, or any text a reader could take as a result) until all of these hold:
 
@@ -49,12 +51,12 @@ Decided by Eric, 2026-11-06 (recommendations accepted):
 - Exit: G1 and G2 re-reported. Check the network does not lock up (CD6 showed a lock-up when the first two were combined).
 - Status, 2026-11-12 (PR #84, branch `claude/model-fix-step3`; SOURCE_NOTES CD21–CD26): built. Each approach to the City's 143 signal junctions and 119 OpenStreetMap signal junctions outside Berkeley passes at most lanes × 1,900/h × g/C, with g/C an assumption (low / central / high; FHWA Signal Timing Manual, HPMS Field Manual, Time Study 75% main-street green at actuated signals). No lock-up (CD23). Every 90% time moved by at most 1.1 min at every level; G1 and G2 pass and fail exactly as after step 2 (CD24), because the sourced green shares give most signal junctions more capacity than the old rule by road class (CD22). The model's queues sit at the I-80 ramps, Tunnel Rd and Kensington, not at the study's Cedar St / MLK Jr Wy (CD25), which points at destinations and route choice. Step 4's "return to the step that caused the miss" therefore has no step to return to among 1–3; the next candidates are the Time Study's capacity drop and downstream-signal reduction (E17, CD7 (4)) and evacuee destinations; Eric decides.
 
-### Step 4: recalibrate and check the gate
+### Step 4: recalibrate and check the gate (not pursued; track closed 2026-11-13)
 
 - Run all calibration cases. Report G1–G4 pass/fail, with the table.
 - If G1 or G2 fail, return to the step that caused the miss. Do not widen tolerances to pass.
 
-### Step 5: rebuild the tables
+### Step 5: rebuild the tables (not pursued; tables were rebuilt after each of steps 1–3 instead)
 
 - Rebuild the tables listed in G5 on the fixed model. Report the changed numbers and check each against G1–G2.
 - Exit: G5 satisfied. Release decision goes to Eric (G6).
@@ -66,7 +68,7 @@ Decided by Eric, 2026-11-06 (recommendations accepted):
 - No parameter tuned to hit a calibration target. Any change to a parameter needs a sourced reason written first.
 - Stop and report if a step needs a decision Eric has not made.
 
-## Open decisions for Eric
+## Open decisions for Eric (as of 2026-11-06; 1 is moot since the track closed, 2 was settled by the spread-and-access reframe, 3 was approved)
 
 1. Confirm the tolerances in G1 (±10%) and G2 (±25%), or set different ones.
 2. Choose the display interim while the model is fixed: keep it as it is (site unreleased), or withhold evacuation times on the public site.

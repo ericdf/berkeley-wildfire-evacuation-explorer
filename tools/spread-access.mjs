@@ -94,7 +94,15 @@ function runOne(E, j) {
   const run = { fire: j.fire, sev: j.sev, seed: j.seed, emberResidents: Math.round(emberRes), frontResidents: Math.round(frontRes),
     cutOff: S.vehiclesNoRoute, engineBeyond5: Math.round(S.engineReachBeyond5People), engineNoRoute: Math.round(S.engineReachUnreachablePeople),
     engineHill: Math.round(S.engineReachHillPeople), engineLiveMeanShare: S.engineReach5ShareLiveMean == null ? null : Math.round(S.engineReach5ShareLiveMean * 1000) / 1000,
-    clearP90ModelMin: S.clearP90 };
+    clearP90ModelMin: S.clearP90,
+    // The two "people not yet out" results split four ways (Guided view, SOURCE_NOTES GV13); each set sums to the
+    // mitigation table's ember and frontPeople measures for the same run. Persons, rounded to 0.1.
+    split: Object.fromEntries(Object.entries({
+      ember: [S.exposedHome, S.exposedNoVehicle, S.notOrderedExposed, S.exposedRoad],
+      front: [S.fireFrontHome - S.fireFrontNoVehicle - S.fireFrontNotOrdered, S.fireFrontNoVehicle, S.fireFrontNotOrdered, S.fireFrontRoad],
+    }).map(([k, v]) => [k, v.map(x => Math.round(x * 10) / 10)])),
+    // Of the "never ordered" part, those whose zone was under a warning only (ember, front).
+    splitWarned: [S.notOrderedWarnedExposed, S.fireFrontNotOrderedWarned].map(x => Math.round(x * 10) / 10) };
   return { j, run, ember: Buffer.from(ember).toString('base64'), front: Buffer.from(front).toString('base64'), pe: Array.from(pe, x => Math.round(x * 100) / 100), areas, levers };
 }
 
