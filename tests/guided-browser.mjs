@@ -89,9 +89,9 @@ for (const [di, name] of DEVICES.entries()) {
 
   // Results
   await p.click('#g-explore');
-  check(await visible('#g-panel') && (await p.locator('.rc').count()) === 5, `${name}: results view with 5 cards`);
+  check(await visible('#g-panel') && (await p.locator('.rc').count()) === 6, `${name}: results view with 6 cards`);
   const order = await p.locator('.rc .rc-l').allTextContents();
-  check(/embers/.test(order[0]) && /fire front/.test(order[1]) && /engine/.test(order[2]) && /one way out/.test(order[3]) && /no open route/.test(order[4]), `${name}: results in the agreed order`);
+  check(/embers/.test(order[0]) && /fire front/.test(order[1]) && /engine/.test(order[2]) && /one way out/.test(order[3]) && /no open route/.test(order[4]) && /buildings lost/.test(order[5]), `${name}: results in the agreed order`);
   await noScroll('on results'); const hr = await panelHeight('Results view');
   await shot('07-results');
   // The four-way split under the two people cards (GV13).
@@ -99,7 +99,7 @@ for (const [di, name] of DEVICES.entries()) {
   check(splits === 2 && keys === 8, `${name}: the two people cards each split four ways (${splits} splits, ${keys} parts)`);
   // Plain-language labels (GV12): none of the old three words in Guided view's results.
   const chips = await p.locator('#g-panel .robust').allTextContents();
-  check(chips.length === 5 && chips.every(t => /nearly every run|Depends on|Varies from run to run|Same in every run|None in nearly/.test(t)) && !chips.some(t => /^(Consistent|Sensitive|Mixed)$/.test(t)), `${name}: plain labels on results (${chips.join(' | ')})`);
+  check(chips.length === 6 && chips.every(t => /nearly every run|Depends on|Varies from run to run|Same in every run|None in nearly/.test(t)) && !chips.some(t => /^(Consistent|Sensitive|Mixed)$/.test(t)), `${name}: plain labels on results (${chips.join(' | ')})`);
   await p.locator('[data-explain="ember"]').click();
   check(await p.locator('#modal[open] .gx').isVisible(), `${name}: Explain this opens a pop-up`);
   const ex = await p.locator('#modal .gx').innerText();
@@ -142,7 +142,7 @@ for (const [di, name] of DEVICES.entries()) {
   await p.click('#g-explore');
   const cmp1 = await p.locator('.rc.cmp').count();
   const diff = await p.locator('.rc.cmp').nth(2).locator('.cmpgrid b').nth(2).innerText();
-  check(cmp1 === 5 && /^−/.test(diff), `${name}: one-change comparison from the table, engine row ${diff}`);
+  check(cmp1 === 6 && /^−/.test(diff), `${name}: one-change comparison from the table, engine row ${diff}`);
   // Difference colors: improvement green, worse amber, no change gray.
   const cls = await p.locator('.rc.cmp .cmpgrid div:nth-child(3) b').evaluateAll(bs => bs.map(b => [b.textContent, b.className]));
   check(cls.every(([t, c]) => t === 'No change' ? c === 'same' : t.startsWith('−') ? c === 'good' : t.startsWith('+') ? c === 'worse' : true), `${name}: difference colors (${cls.map(([t, c]) => `${t}:${c}`).join(' ')})`);
@@ -203,18 +203,25 @@ for (const [di, name] of DEVICES.entries()) {
   // The west-wind fire (SOURCE_NOTES FF24): runs, shows five result cards and its changes; decide faster is withheld (P19).
   await p.selectOption('#g-fire', 'westWind'); await p.waitForTimeout(300);
   await p.click('#g-run'); await waitRunEnd(); await p.click('#g-explore');
-  check((await p.locator('.rc').count()) === 5 && /West wind, Claremont Canyon/.test(await p.locator('#g-panel').innerText()), `${name}: west-wind fire results, 5 cards`);
+  check((await p.locator('.rc').count()) === 6 && /West wind, Claremont Canyon/.test(await p.locator('#g-panel').innerText()), `${name}: west-wind fire results, 6 cards`);
   await noScroll('on west-wind results'); await shot('20-west-results');
   await p.click('[data-go="changes"] >> nth=0');
   await p.locator('details.cg-none summary').click();
   check(await p.locator('[data-pick="orderSooner"]').first().isDisabled(), `${name}: decide faster cannot be picked on the west-wind fire`);
   await shot('21-west-changes');
   await p.click('[data-go="map"] >> nth=0');
+  // Home hardening and Zone 0 (SOURCE_NOTES PH32): listed under "Fewer buildings lost" (the blocks-against-scattered
+  // comparison is checked on the table in tests/guided.mjs).
+  await p.selectOption('#g-fire', 'eastWind'); await p.waitForTimeout(300);
+  await p.click('#g-run'); await waitRunEnd(); await p.click('#g-explore'); await p.click('[data-go="changes"] >> nth=0');
+  check(await p.locator('h3.cg', { hasText: 'Fewer buildings lost' }).isVisible() && /Harden homes|Zone 0 around homes/.test(await p.locator('#g-panel').innerText()), `${name}: hardening and Zone 0 listed under fewer buildings lost`);
+  await shot('23-homes-group');
+  await p.click('[data-go="map"] >> nth=0');
   // The earthquake fire (SOURCE_NOTES FF27): runs; single ways out shows "Not computed" (the fault closes streets).
   await p.selectOption('#g-fire', 'quake'); await p.waitForTimeout(300);
   await p.click('#g-run'); await waitRunEnd(); await p.click('#g-explore');
   const qn = await p.locator('.rc .rc-n').allTextContents();
-  check(qn.length === 5 && qn[3] === 'Not computed' && qn.filter(t => t === 'Not computed').length === 1, `${name}: earthquake results, single ways out not computed (${qn.join(' | ')})`);
+  check(qn.length === 6 && qn[3] === 'Not computed' && qn.filter(t => t === 'Not computed').length === 1, `${name}: earthquake results, single ways out not computed (${qn.join(' | ')})`);
   await p.locator('[data-explain="oneWay"]').click();
   check(/Hayward Fault/.test(await p.locator('#modal .gx').innerText()), `${name}: earthquake, Explain this says why single ways out is not computed`);
   await shot('22-quake-results');

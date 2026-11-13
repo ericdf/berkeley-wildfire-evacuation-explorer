@@ -45,6 +45,19 @@ if (M.meta.fires.includes('quake')) {
   check(sameAsEast, 'earthquake: engine reach differs from the wildfires (fault closures), so it is excluded from the any-fire test');
   check(SA.parkingByFire?.quake?.length === SA.meta.seeds.length, 'earthquake: its own engine reach under the alternative night parking rule (spread-access.json parkingByFire, Codex review of PR #87)');
 }
+// Home hardening and Zone 0 (SOURCE_NOTES PH32): in "Fewer buildings lost" on every fire where the front reaches the hill
+// fire zones, and half the homes by whole blocks gains more than half the homes scattered (the same number of homes).
+if (M.levers.some(l => l.id === 'hardenHalfBlocks' && l.ran)) {
+  for (const f of M.meta.fires) {
+    const it = id => G.groups(f).find(g => g.id === 'homes').items.find(i => i.lever.id === id);
+    const base = G.baseFigure(f, 'homes').value;
+    if (!(base > 0)) { check(!it('hardenAll'), `${f}: no buildings lost, so no hardening gain`); continue; }
+    for (const k of ['harden', 'zone0']) check(it(`${k}HalfBlocks`) && it(`${k}HalfScattered`) && it(`${k}HalfBlocks`).gain > it(`${k}HalfScattered`).gain && it(`${k}All`).gain >= it(`${k}HalfBlocks`).gain,
+      `${f} ${k}: whole blocks ${Math.round(it(`${k}HalfBlocks`)?.gain)} > scattered ${Math.round(it(`${k}HalfScattered`)?.gain)}, every home ${Math.round(it(`${k}All`)?.gain)}`);
+    // loss only: the people and car measures do not move
+    for (const id of ['hardenAll', 'zone0All']) for (const key of ['ember', 'frontPeople', 'cutOff', 'engine']) { const c = G.tableCompare(f, id, key); check(c.d.better === 0 && c.d.worse === 0, `${f} ${id}: ${key} unchanged in every run`); }
+  }
+}
 // The new fires of 2026-11-13 (SOURCE_NOTES FF24, FF27): decide faster withheld on the west-wind fire (P19).
 if (M.meta.fires.includes('westWind')) check(!!G.groups('westWind').find(g => g.id === 'none').items.find(i => i.lever.id === 'orderSooner')?.withheld, 'west wind: decide faster withheld (P19)');
 

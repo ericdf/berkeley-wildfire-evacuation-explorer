@@ -1,6 +1,6 @@
 # Structure ignition and house-to-house spread (Phase 3, step 3e): design note
 
-Status: design note, 2026-11-04. Option A is built without hardening or Zone 0 settings (Eric, 2026-11-04; SOURCE_NOTES PH23); the option B scratch test is reported in PH22 and not adopted; hardening and Zone 0 wait. Step 3e is in scope (Eric, 2026-11-03, SOURCE_NOTES PH9);
+Status: design note, 2026-11-04. Option A is built (Eric, 2026-11-04; SOURCE_NOTES PH23); the option B scratch test is reported in PH22 and not adopted. Hardening and Zone 0 were built as Changes on 2026-11-13 (section 8; SOURCE_NOTES PH29–PH33). Step 3e is in scope (Eric, 2026-11-03, SOURCE_NOTES PH9);
 the size of any hardening or Zone 0 effect is a labeled assumption range. Sources are logged in `SOURCE_NOTES.md` as
 PH16–PH21. The simulator is an educational comparison tool, not a prediction and not an official evacuation plan; the
 same holds for everything proposed here.
@@ -133,3 +133,23 @@ not adopted. The fix the record points to is a head rate that falls after the fi
 - (a) Build option A, losses as an assumption range beside exposure?
 - (b) Add hardening and Zone 0 as plan settings acting on losses only (new interventions)?
 - (c) Run the option B scratch test, knowing that adopting B would reopen calibration?
+
+## 8. Hardening and Zone 0 as Changes (built 2026-11-13; Eric approved building them through the MASTER session, 2026-11-13)
+
+Prompted by a friend's relay of Berkeley Fire's chief (SOURCE_NOTES FN2): in dense blocks fire spreads from house to
+house, "it doesn't do me much good if I have a Zone 0 and my neighbor doesn't", and hardening helps.
+
+- **Loss only, as decided in 7(b).** The fire stays fixed; hardening and Zone 0 cut the loss probability of structures
+  the front reaches (`js/structures.js`). They do not change the fire, embers, orders or traffic, and the results say so.
+- **By gap band.** Under 25 ft the cut depends on whether the close neighbors take part: "alone" (NIST TN 2205's
+  "limited or no effect"; Zamanialaei et al.'s "makes little difference") or "neighbors too" (their community-wide
+  scenarios). At 25 ft or more each home's own action counts (NIST's "sweet spot"). Ranges low / central / high, all
+  assumptions, in `data/assumptions.json` `structures.mitigation` (SOURCE_NOTES PH32).
+- **Participation.** Half the homes scattered, half the homes by whole blocks (the same number of homes), or every home.
+  The blocks option gains more than the scattered one because each taking-part home's neighbors take part too.
+- **Shown.** A sixth Guided result, "buildings lost in the hill fire zones" (the midpoint loss probability and the central
+  cut), and a "Fewer buildings lost" group of Changes. Hardening is priced from Headwaters Economics (2024); Zone 0 is not
+  priced (PH31).
+- **Still not modeled.** Ember ignition of the first house, which hardening and Zone 0 most prevent; option B (the fire
+  responding to structures). The result therefore understates hardening where it stops a fire from entering a block.
+
