@@ -250,6 +250,7 @@ export function guidedUI(ctx) {
   // Where a result's figure comes from: its provenance categories (shared by the result and comparison pop-ups).
   function provenance(c) {
     return c.id === 'oneWay' ? `${badge('derived')} Network analysis of County and OpenStreetMap streets (tools/access-constraints.mjs); residents ${badge('synthetic')}, placed from zone population counts.`
+      : c.id === 'homes' ? `${badge('sourced')} City building footprints in Fire Zones 2–3, by their measured gap to the nearest one (data/model/structures.json); reached by the illustrative ${badge('model rule')} fire; loss probabilities and the effects of hardening and Zone 0 ${badge('assumption')} (data/assumptions.json structures; SOURCE_NOTES PH23, PH32).`
       : c.id === 'cutOff' ? `${badge('synthetic')} Cars of synthetic households, placed from zone population counts and driven by the traffic model; the fire is an illustrative ${badge('model rule')} run on the scenario's ignition and wind.`
       : `${badge('synthetic')} Synthetic households placed from zone population counts; the fire is an illustrative ${badge('model rule')} run on the scenario's ignition and wind.`;
   }
@@ -280,7 +281,7 @@ export function guidedUI(ctx) {
   }
 
   // ---------- changes ----------
-  const GAIN = { ember: 'fewer when embers arrived', frontPeople: 'fewer when the front arrived', engine: 'more within reach', cutOff: 'fewer cars' };
+  const GAIN = { ember: 'fewer when embers arrived', frontPeople: 'fewer when the front arrived', engine: 'more within reach', cutOff: 'fewer cars', homes: 'fewer buildings lost' };
   function changesHTML() {
     if (!mit()) return `${head('Changes that could help', '')}<p>The change table did not load.</p>${footHTML('changes')}`;
     const groups = model().groups(state.fire).filter(x => x.items.length);

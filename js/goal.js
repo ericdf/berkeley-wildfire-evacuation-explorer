@@ -118,7 +118,7 @@ export function goalHTML(ctx) {
     ${ctx.paceHTML()}
     ${ok ? '' : '<p class="small bad">This fire has no stored combinations yet.</p>'}
     ${G.meta.fireModel === FIRE_MODEL ? '' : `<p class="note">These answers were worked out on the fire model as it stood before ${esc(FIRE_MODEL)}. Since then the "Like 1991" pace slows after its first hour, as the 1991 fire did, and the fire's fuel follows the City's 2025 fire zones. Answers may change, most at the 1991 pace; a rerun is under way. Opening an answer in Change the plan runs it again on the current model.</p>`}
-    <div class="goals">${Object.entries(MEASURES).map(([m, d]) => { const b = B[m], can = c => b >= c / 100 - 1e-9;
+    <div class="goals">${Object.entries(MEASURES).filter(([, d]) => !d.notGoal).map(([m, d]) => { const b = B[m], can = c => b >= c / 100 - 1e-9;
       return `<div class="goal-row" title="${esc(d.tip)}"><label class="small">${esc(d.label)} <span class="tip">ⓘ</span></label>
       <select data-goal="${m}"><option value="">not a goal</option>${CUTS.map(c => `<option value="${c}"${T[m] === c ? ' selected' : ''}${b == null || can(c) ? '' : ' class="unreached"'}>cut ≥ ${c}%${b == null || can(c) ? '' : ' (none did)'}</option>`).join('')}</select>${b == null ? '' : `<span class="muted reach"> ${RB.never[m] ? `Today's plan never gets there within the run at this pace${b >= 1 ? '; some plans do in every pass (counted as a full cut)' : '; no plan does in every pass'}` : `Best cut in every pass: ${b > 0 ? `${Math.floor(b * 100)}%` : 'none'}`}</span>`}</div>`; }).join('')}</div>
     <p class="small muted">"Best cut in every pass" is the most any stored combination cut that harm in its worst pass at this pace on this fire; cuts no plan reached are marked "none did".</p>
