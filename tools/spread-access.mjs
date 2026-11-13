@@ -100,7 +100,9 @@ function runOne(E, j) {
     split: Object.fromEntries(Object.entries({
       ember: [S.exposedHome, S.exposedNoVehicle, S.notOrderedExposed, S.exposedRoad],
       front: [S.fireFrontHome - S.fireFrontNoVehicle - S.fireFrontNotOrdered, S.fireFrontNoVehicle, S.fireFrontNotOrdered, S.fireFrontRoad],
-    }).map(([k, v]) => [k, v.map(x => Math.round(x * 10) / 10)])) };
+    }).map(([k, v]) => [k, v.map(x => Math.round(x * 10) / 10)])),
+    // Of the "never ordered" part, those whose zone was under a warning only (ember, front).
+    splitWarned: [S.notOrderedWarnedExposed, S.fireFrontNotOrderedWarned].map(x => Math.round(x * 10) / 10) };
   return { j, run, ember: Buffer.from(ember).toString('base64'), front: Buffer.from(front).toString('base64'), pe: Array.from(pe, x => Math.round(x * 100) / 100), areas, levers };
 }
 

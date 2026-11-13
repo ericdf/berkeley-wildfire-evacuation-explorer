@@ -1028,7 +1028,7 @@ export class Evacuation {
   summary() {
     const { hh, v, t, data } = this, pphAll = data.A.demand.personsPerHousehold, pph = pphAll;
     const S = { quake: this.quake.option, quakeSegments: this.quake.segments, orderedPeople: 0, warnedLeaving: 0, shadowLeaving: 0, leftEarly: 0, reachedSafety: 0, onRoad: 0, notLeft: 0, noVehicle: 0, riders: 0,
-      notOrderedExposed: 0, otherCityOrderedPeople: 0, exposedHome: 0, exposedRoad: 0, exposedNoVehicle: 0, fireFrontHome: 0, fireFrontRoad: 0, fireFrontNoVehicle: 0, fireFrontNotOrdered: 0, waitingToEnter: this.waiting.length };
+      notOrderedExposed: 0, otherCityOrderedPeople: 0, exposedHome: 0, exposedRoad: 0, exposedNoVehicle: 0, fireFrontHome: 0, fireFrontRoad: 0, fireFrontNoVehicle: 0, fireFrontNotOrdered: 0, notOrderedWarnedExposed: 0, fireFrontNotOrderedWarned: 0, waitingToEnter: this.waiting.length };
     // People still there when embers (or the fire front) arrived: each person counted once, where they
     // were when embers first reached them (SOURCE_NOTES FO7). A household still at home then counts at
     // home (ordered, no order, or no car); otherwise it counts on the road if any car of its trip (its
@@ -1053,12 +1053,14 @@ export class Evacuation {
       const e = hh.ride[h] >= 0 ? hh.ride[h] : h; // riders share their neighbor's trip
       const te = this.tEmber[hh.edge[h]];
       const exposedAtHome = te <= t && hh.leftHome[e] > te && !hh.early[h];
-      if (exposedAtHome) { const w = where[h] = !told ? 4 : !hh.veh[h] && hh.ride[h] < 0 ? 3 : 1; if (w === 4) S.notOrderedExposed += pph; else if (w === 3) S.exposedNoVehicle += pph; else S.exposedHome += pph; }
+      if (exposedAtHome) { const w = where[h] = !told ? 4 : !hh.veh[h] && hh.ride[h] < 0 ? 3 : 1; if (w === 4) { S.notOrderedExposed += pph; if (this.warnT[z] <= t) S.notOrderedWarnedExposed += pph; } else if (w === 3) S.exposedNoVehicle += pph; else S.exposedHome += pph; }
       else if (!hh.early[h] && (roadEmb[h] || roadEmb[e])) { where[h] = 2; S.exposedRoad += pph; }
       // harsher measure: still home when the fire front itself reached the street
       const tf = this.tFire[hh.edge[h]];
-      // fireFrontNoVehicle and fireFrontNotOrdered split fireFrontHome as the ember count is split (reporting only; Guided view, SOURCE_NOTES GV13)
-      if (tf <= t && hh.leftHome[e] > tf && !hh.early[h]) { whereFire[h] = 1; S.fireFrontHome += pph; if (!told) S.fireFrontNotOrdered += pph; else if (!hh.veh[h] && hh.ride[h] < 0) S.fireFrontNoVehicle += pph; }
+      // fireFrontNoVehicle and fireFrontNotOrdered split fireFrontHome as the ember count is split (reporting only; Guided view, SOURCE_NOTES GV13).
+      // Not told = the household's zone was never ordered during the run (an ordered zone's households are kind 1 or 2); the
+      // *Warned fields count those whose zone was under a warning only, where households that did not leave stay kind 0.
+      if (tf <= t && hh.leftHome[e] > tf && !hh.early[h]) { whereFire[h] = 1; S.fireFrontHome += pph; if (!told) { S.fireFrontNotOrdered += pph; if (this.warnT[z] <= t) S.fireFrontNotOrderedWarned += pph; } else if (!hh.veh[h] && hh.ride[h] < 0) S.fireFrontNoVehicle += pph; }
       else if (!hh.early[h] && (roadFire[h] || roadFire[e])) { whereFire[h] = 2; S.fireFrontRoad += pph; }
       if (k === 3 && hh.leftHome[h] <= t) S.shadowLeaving += pph;
       if (!told) continue;

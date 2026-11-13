@@ -38,9 +38,9 @@ export const cardById = id => CARDS.find(c => c.id === id);
 // order of spread-access.json runs[].split (tools/spread-access.mjs; js/sim.js summary). Each run's parts sum to that
 // run's total in mitigations.json (tests/guided.mjs).
 export const SPLIT_PARTS = [
-  { id: 'car', short: 'home, car or ride', label: 'At home, with a car or a ride', def: 'At home in a zone ordered or warned, in a household with a car or a ride with a neighbor, not yet left.' },
-  { id: 'noCar', short: 'home, no car or ride', label: 'At home, no car and no ride', def: 'At home in a zone ordered or warned, in a household with no car that found no neighbor to ride with (the 2025 Evacuation Time Study: 86.9% of carless households find a ride).' },
-  { id: 'notOrdered', short: 'home, no order', label: 'At home, in zones never ordered to leave', def: 'At home in a zone outside every zone the scenario ordered or warned during the run. Some of them leave anyway, as shadow evacuees.' },
+  { id: 'car', short: 'home, car or ride', label: 'At home, with a car or a ride', def: 'At home in a zone ordered to leave (or, before any order, warned, in a household leaving on the warning), with a car or a ride with a neighbor, not yet left.' },
+  { id: 'noCar', short: 'home, no car or ride', label: 'At home, no car and no ride', def: 'At home in a zone ordered to leave (or warned, in a household leaving on the warning), in a household with no car that found no neighbor to ride with (the 2025 Evacuation Time Study: 86.9% of carless households find a ride).' },
+  { id: 'notOrdered', short: 'home, no order', label: 'At home, in zones never ordered to leave', def: 'At home in a zone the scenario never ordered to leave during the run: zones under no order or warning, and zones under a warning only, where the households that did not leave on the warning stay home.' },
   { id: 'road', short: 'on the road', label: 'On the road', def: 'In a car on a street when embers (or the front) reached it, after leaving home; includes people riding with a neighbor and the modeled commuters, visitors and other non-residents.' },
 ];
 
@@ -168,7 +168,8 @@ export function makeGuided(M, SA, presets = []) {
   function splitFigure(fire, which) {
     const rs = (SA?.runs || []).filter(r => r.fire === fire && r.split?.[which]);
     if (!rs.length) return null;
-    return { n: rs.length, parts: SPLIT_PARTS.map((p, i) => ({ ...p, median: median(rs.map(r => r.split[which][i])),
+    const wi = which === 'ember' ? 0 : 1;
+    return { n: rs.length, warned: median(rs.map(r => r.splitWarned?.[wi] ?? null)), parts: SPLIT_PARTS.map((p, i) => ({ ...p, median: median(rs.map(r => r.split[which][i])),
       bySev: Object.fromEntries(SEVS.map(s => [s, median(rs.filter(r => r.sev === s).map(r => r.split[which][i]))])) })) };
   }
 
