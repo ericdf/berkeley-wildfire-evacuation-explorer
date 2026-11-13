@@ -6,7 +6,7 @@
 //   Compare  after a run with changes: today's plan | with changes for each card. One change reads the stored
 //            table; two or three run 15 paired passes live (workers), today's plan cached per pass.
 // Figures come from data/model/mitigations.json and spread-access.json through js/guided-data.js.
-import { CARDS, GROUPS, cardById, makeGuided, sortItems, costLine, streetsOf, round10, SEVS, median } from './guided-data.js';
+import { CARDS, GROUPS, cardById, makeGuided, sortItems, costLine, streetsOf, round10, SEVS, median, NETWORK_FIRES } from './guided-data.js';
 import { presence, direction, assumption, levelText, SEV_WORD } from './robust.js';
 
 // Plain words for the three robustness labels (Eric, 2026-11-12, MASTER session; SOURCE_NOTES GV12). The rules are
@@ -217,7 +217,7 @@ export function guidedUI(ctx) {
 
   // ---------- results ----------
   function baseFigure(card) {
-    if (card.id === 'oneWay') { const o = model().oneWay(data.access); return { value: o.value, areas: o.areas, label: { label: 'consistent' } }; }
+    if (card.id === 'oneWay') { const o = model().oneWay(data.access, state.fire); return { value: o.value, areas: o.areas, na: o.na, label: o.na ? null : { label: 'consistent' } }; }
     const f = model().baseFigure(state.fire, card.key);
     if (card.id === 'engine') { // the night parking rule is the second assumption with an alternative in the repository (SA5)
       const P = spread()?.parking || [], alt = median(P.map(p => p.pre20261105.engineBeyond5)), cur = median(P.map(p => p.count2026.engineBeyond5));
@@ -228,7 +228,7 @@ export function guidedUI(ctx) {
   const head = (title, sub) => `<div class="gv-head"><h2>${title}</h2><p>${sub}</p></div>`;
   function resultsHTML() {
     if (!mit() || !spread()) return `${head('Results', esc(fireTitle()))}<p>The run-set tables did not load.</p>${footHTML('results')}`;
-    const cards = CARDS.map(c => { const f = baseFigure(c); return `<div class="rc"><div class="rc-n">${n(f.value)}</div><div class="rc-l">${c.line}</div><div class="rc-f">${chipHTML(f.label, c.id === 'oneWay' ? 'network' : 'result')}<button class="linkish" data-explain="${c.id}">Explain this</button></div></div>`; }).join('');
+    const cards = CARDS.map(c => { const f = baseFigure(c); return `<div class="rc"><div class="rc-n">${f.na ? 'Not computed' : n(f.value)}</div><div class="rc-l">${c.line}</div><div class="rc-f">${chipHTML(f.label, c.id === 'oneWay' ? 'network' : 'result')}<button class="linkish" data-explain="${c.id}">Explain this</button></div></div>`; }).join('');
     return `${head(`Results: ${esc(fireTitle())}`, `Today's plan, median of ${mit().meta.severities.length * mit().meta.seeds.length} runs`)}${cards}${footHTML('results')}`;
   }
   function footHTML(kind) {
@@ -249,8 +249,9 @@ export function guidedUI(ctx) {
     const c = cardById(id), f = baseFigure(c), L = f.label, w = watched(c);
     const sev = f.bySev ? `Median by fire severity: ${SEVS.map(s => `${SEV_WORD[s]} ${n(f.bySev[s].median)}`).join(', ')}; range ${n(f.min)}–${n(f.max)}.` : '';
     const label = MEANS[L.label] + (L.bySeverity ? ' Here the low- and high-severity medians differ by more than 25%.' : '') + (L.parking ? ` Under the night parking rule used before the 2026-11-05 count: ${n(f.alt)}.` : '');
+    if (f.na) return ctx.modal(`<div class="gx"><h2>Not computed for this fire: ${c.line}</h2><p>${esc(f.na)} The figure for today's streets is ${n(model().oneWay(data.access).value)} ${badge('derived')}.</p><h3>What it counts</h3><p>${c.counts}</p></div>`, 'gx');
     const runs = c.id === 'oneWay' ? `The street network is the same in every run, so this does not change from run to run. ${fmt(f.areas)} hill areas. The Ways out map chip shows which of these ways out the fire reached in the runs of this fire.`
-      : c.id === 'engine' ? `${runSet()}. Engine reach is measured at ignition, so it depends on the night's parked cars (one draw per seed) and not on the fire. ${sev}`
+      : c.id === 'engine' ? `${runSet()}. Engine reach is measured at ignition, so it depends on the night's parked cars (one draw per seed)${NETWORK_FIRES[state.fire] ? ' and on the streets the earthquake closes at the fault' : ''} and not on the fire. ${sev}`
       : `${runSet()}. ${sev}`;
     const cat = provenance(c);
     ctx.modal(`<div class="gx"><h2>${n(f.value)} ${c.line}</h2>
@@ -258,7 +259,7 @@ export function guidedUI(ctx) {
       <h3>The runs behind it</h3><p>${runs}</p>
       <h3>${chipHTML(L, c.id === 'oneWay' ? 'network' : 'result')}</h3><p>${label}</p>
       <h3>Where it comes from</h3><p>${cat}</p>
-      <h3>Limits</h3><p>${c.limits}</p>
+      <h3>Limits</h3><p>${c.id === 'engine' && NETWORK_FIRES[state.fire] ? c.limits.replace(' The same on every fire.', ' Here it differs from the other fires: the earthquake closes the streets that cross the fault to engines.') : c.limits}</p>
       ${w != null ? `<h3>The run you watched</h3><p>${n(w)} (medium severity, seed 1)${g.applied.length ? ', with your changes' : ''}.</p>` : ''}</div>`, 'gx');
   }
 
@@ -325,7 +326,7 @@ export function guidedUI(ctx) {
       <h3>What a gain is</h3><p>Each change was run against today's plan on ${runs} paired runs of ${esc(fireTitle())} (low, medium and high fire severity × random seeds ${M.meta.seeds[0]}–${M.meta.seeds.at(-1)}, a fall night): the same fire, households and parked cars with and without the change. The gain is the median of the ${runs} differences.</p>
       <h3>Where it comes from</h3><p>${badge('synthetic')} Synthetic households placed from zone population counts, on an illustrative ${badge('model rule')} fire. Stored table: data/model/mitigations.json, built ${esc(M.meta.built)}.</p>
       <h3>Groups</h3><p>${badge('model rule')} A change joins a group when it does better on that result in every run, or in at least three of four runs and never worse. A change can sit in more than one group. A change whose ready-made question is withheld on this fire is listed under "No consistent benefit" and cannot be picked here.</p>
-      <h3>This fire or any fire</h3><p>Engine reach is measured at ignition, so its gain is the same on every fire. People and cars depend on the fire.</p>
+      <h3>This fire or any fire</h3><p>Engine reach is measured at ignition, so its gain is the same on every fire except the earthquake, which closes streets at the fault. People and cars depend on the fire.</p>
       <h3>Labels</h3><p><b>Better in nearly every run</b>: ${MEANS.consistent} <b>Depends on fire strength</b>: ${MEANS.sensitive} <b>Varies from run to run</b>: ${MEANS.mixed} Any difference counts, as in the stored table.</p>
       <h3>Costs</h3><p>Tap a cost for its source and category.</p></div>`, 'gx');
   }
@@ -358,7 +359,7 @@ export function guidedUI(ctx) {
   function compareHTML() {
     const ls = g.applied.map(leverById).filter(Boolean), L = g.live, runs = mit().meta.severities.length * mit().meta.seeds.length;
     const prog = ls.length > 1 && !L?.done ? `<div class="gprog"><div>Running ${runs} paired runs: ${L?.passes || 0} of ${runs} done</div><div class="track"><div style="width:${Math.round(100 * (L?.passes || 0) / runs)}%"></div></div></div>` : '';
-    const cards = CARDS.map(c => {
+    const cards = CARDS.filter(c => !(c.id === 'oneWay' && NETWORK_FIRES[state.fire])).map(c => { // single ways out: not computed on the earthquake's network
       const r = compareRow(c);
       const v = x => r ? n(x) : '…';
       // Difference: improvement green, worse amber, no change gray (Eric, 2026-11-10).

@@ -36,7 +36,7 @@ for (const sc of scen) {
 }
 
 // 2. the default member reproduces today's runs
-for (const F of FIRES) {
+for (const F of FIRES.filter(F => scen.some(s => s.id === F.id))) { // earthquake fires have no family
   const sc = scen.find(s => s.id === F.id), d = defaultMember(sc, data);
   if (memberScenario(sc, d, data) !== sc || memberScenario(sc, undefined, data) !== sc) fail(`${sc.id}: memberScenario(default) is not the scenario itself`);
   const seed = 2, sev = 'central';
@@ -61,7 +61,7 @@ if (keys.size !== n) fail(`keys collide: ${n - keys.size}`); else console.log(`o
 
 // 4. pass counts
 const want = { ref1923: 18, northHills: 36, eastWind: 24, panoramic: 24, westWind: 15 }; // 0° added 2026-11-04 except on ref1923 (SOURCE_NOTES WC9); the west-wind fire has no family (FF24)
-for (const F of FIRES) {
+for (const F of FIRES.filter(F => scen.some(s => s.id === F.id))) { // earthquake fires have no family
   const sc = scen.find(s => s.id === F.id);
   const on = comparisonCases(sc, data, { families: true, severities: M.meta.severities }), off = comparisonCases(sc, data, { families: false, severities: M.meta.severities, seeds: M.meta.seeds });
   if (on.length !== want[sc.id] || off.length !== 15 || new Set(on.map(c => c.key)).size !== on.length) fail(`${sc.id}: ${on.length} passes with families on (want ${want[sc.id]}), ${off.length} off (want 15)`);
@@ -70,7 +70,7 @@ for (const F of FIRES) {
 
 // 5. households depend on the seed, not the member or the plan
 const LE = PRESETS.find(P => P.id === 'leaveEarly');
-for (const F of FIRES) {
+for (const F of FIRES.filter(F => scen.some(s => s.id === F.id))) { // earthquake fires have no family
   const sc = scen.find(s => s.id === F.id), fam = familyOf(sc, data), d = fam.find(m => m.isDefault), o = fam.find(m => !m.isDefault) || d;
   const build = (m, plan) => { const s = memberScenario(sc, m.id, data); return new Evacuation(data, grid, runFire(grid, s, SEVERITY.central, 1), s, 'central', plan, 1, TIME_OF_DAY.S6); };
   const a = build(d, DEFAULT_PLAN), b = build(o, DEFAULT_PLAN), c = build(o, LE.B);

@@ -16,6 +16,7 @@ export const FIRES = [
   { id: 'ref1923', title: '1923 fire, repeated today', line: 'Starts at the north hills\' eastern edge. Ordered out: ridge to Sacramento St, Marin Ave to campus (about 27,000 people).' },
   { id: 'panoramic', title: 'Panoramic Hill', line: 'Starts above Panoramic Hill. Ordered out: Panoramic Hill and Claremont Canyon streets in Berkeley and Oakland (about 2,200 people).' },
   { id: 'northHills', title: 'North hills, from Tilden', line: 'Starts in Tilden east of Grizzly Peak Blvd at Spruce St. Ordered out: the north hills, from the Albany and Kensington line to Hearst Ave (about 22,600 people).' },
+  { id: 'quake', title: 'Earthquake: fires start in buildings', line: 'A magnitude 7 Hayward Fault earthquake starts about 20 fires in buildings across Berkeley, in the flats and the hills, on a spring afternoon breeze off the Bay. Streets at the fault close and signals go dark. Ordered out: each zone once a fire comes within 300 m of it.' },
   { id: 'westWind', title: 'West wind, Claremont Canyon', line: 'Starts low in Claremont Canyon beside Claremont Ave, in a strong onshore wind that drives it uphill. Ordered out: Panoramic Hill, Claremont and the Southside east of College Ave (about 8,500 people).' },
 ];
 

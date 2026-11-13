@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Spread-and-access run set for the Guided view's four questions (product brief docs/product-brief-spread-access.md;
-// method SOURCE_NOTES SA1–SA12). Today's plan (DEFAULT_PLAN) on the Guided-view fires (five since 2026-11-13, when westWind was added), the fall-night case
+// method SOURCE_NOTES SA1–SA12). Today's plan (DEFAULT_PLAN) on the Guided-view fires (six since 2026-11-13, when quake and westWind were added), the fall-night case
 // (Time Study S6), low/central/high severity × seeds 1–5: the same 15 runs per fire as the mitigation table
 // (tools/mitigations.mjs baseline) and Change the plan's comparisons. Writes data/model/spread-access.json:
 //
@@ -32,7 +32,7 @@ import { Worker, isMainThread, parentPort, workerData } from 'node:worker_thread
 const R = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SELF = fileURLToPath(import.meta.url);
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
-const FIRES = ['eastWind', 'ref1923', 'panoramic', 'northHills', 'westWind']; // westWind added 2026-11-13 (SOURCE_NOTES FF24)
+const FIRES = ['eastWind', 'ref1923', 'panoramic', 'northHills', 'quake', 'westWind']; // quake and westWind added 2026-11-13 (SOURCE_NOTES FF24, FF27)
 const SEVS = ['low', 'central', 'high'];
 const TOD = 'S6';
 const WORLD = { growth: 'none', powerShutoff: 'none' }; // the Guided view's world (js/main.js world())
