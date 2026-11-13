@@ -16,6 +16,7 @@ export const FIRES = [
   { id: 'ref1923', title: '1923 fire, repeated today', line: 'Starts at the north hills\' eastern edge. Ordered out: ridge to Sacramento St, Marin Ave to campus (about 27,000 people).' },
   { id: 'panoramic', title: 'Panoramic Hill', line: 'Starts above Panoramic Hill. Ordered out: Panoramic Hill and Claremont Canyon streets in Berkeley and Oakland (about 2,200 people).' },
   { id: 'northHills', title: 'North hills, from Tilden', line: 'Starts in Tilden east of Grizzly Peak Blvd at Spruce St. Ordered out: the north hills, from the Albany and Kensington line to Hearst Ave (about 22,600 people).' },
+  { id: 'westWind', title: 'West wind, Claremont Canyon', line: 'Starts low in Claremont Canyon beside Claremont Ave, in a strong onshore wind that drives it uphill. Ordered out: Panoramic Hill, Claremont and the Southside east of College Ave (about 8,500 people).' },
 ];
 
 const PANORAMIC_UNORDERED = 'Most of those still there live in Berkeley zones this fire never orders (about 10,450): the City\'s order covers only Panoramic Hill\'s 7 zones, while Oakland orders its own zones as the fire comes within 1 km.';
@@ -33,6 +34,7 @@ export const PRESETS = [
       ref1923: 'In Plan B about 30% fewer modeled residents are not yet out when modeled embers reach their street (about 4,050 against 2,850 in the medium-severity case).',
       panoramic: `In Plan B about a seventh fewer modeled residents are not yet out when modeled embers reach their street (about 13,550 against 11,600 in the medium-severity case). ${PANORAMIC_UNORDERED}`,
       northHills: 'In Plan B about a fifth fewer modeled residents are not yet out when modeled embers reach their street (about 5,000 against 3,950 in the medium-severity case). If only the City\'s smaller Leave Early Zones do it, the drop is about 8%.',
+      westWind: 'In Plan B about half as many modeled residents are not yet out when modeled embers reach their street (about 156 against 73 in the medium-severity case). If only the City\'s smaller Leave Early Zones do it, almost nothing changes: none of them is near Claremont Canyon.',
     },
     off: {},
     headline: { label: 'Modeled residents not yet out when embers reached their street', f: exposed, dir: -1 },
@@ -50,6 +52,7 @@ export const PRESETS = [
       panoramic: `About 5% fewer modeled residents are not yet out when modeled embers reach their street (about 14,750 against 14,000 in the medium-severity case), a smaller gain than on the two larger fires. ${PANORAMIC_UNORDERED}`,
     },
     off: {
+      westWind: 'Plan B does better in 8 of 15 runs, not all: the modeled residents still at home when modeled embers reach their street are the same under both plans, or within 3, since most live in Oakland\'s Claremont Canyon zones, which Oakland orders as the fire comes within 1 km whatever Berkeley decides; only the count on the road changes, by a few dozen people either way.',
       northHills: 'Plan B does better in 10 of 15 runs, not all: in the 5 low-severity runs it leaves 62–75 fewer modeled residents at home when modeled embers reach their street but 86–147 more on the road on streets the embers reached, as cars drive on toward the edge of the modeled area (SOURCE_NOTES CD20).',
     },
     headline: { label: 'Modeled residents not yet out when embers reached their street', f: exposed, dir: -1 },
@@ -67,6 +70,7 @@ export const PRESETS = [
     on: {
       eastWind: 'On a weekday about 15,950 cars from the zones Berkeley orders evacuate instead of 13,800 (Oakland and other neighbors\' ordered zones add about 170 more under both), some households wait for a commuter to drive home, and parents pick up children. 90% of cars get out about 15 minutes later (about 116 against 101 min). Both plans are the same; only the time of day differs.',
       northHills: 'On a weekday about 12,750 cars from the zones Berkeley orders evacuate instead of 11,350 (Kensington, El Cerrito and Albany add about 2,600–2,850 more under both), some households wait for a commuter to drive home, and parents pick up children. 90% of cars get out about 11 minutes later (about 112 against 101 min); the 2025 Time Study finds 20 minutes for this region (2:05 against 1:45). Both plans are the same; only the time of day differs.',
+      westWind: 'On a weekday about 3,200 cars from the zones Berkeley orders evacuate instead of 2,700 (Oakland\'s ordered zones add about 2,650–2,700 more under both), some households wait for a commuter to drive home, and parents pick up children. 90% of cars get out about 11 minutes later (about 106 against 95 min); the 2025 Time Study finds 40 minutes for this region (2:15 against 1:35). Both plans are the same; only the time of day differs.',
     },
     off: {
       ref1923: 'weekday and night differ by about 7 min here (98 against 91), while the 2025 Time Study finds about 70 min for this region; the simulator misses most of that weekday slowdown.',
@@ -84,7 +88,7 @@ export const PRESETS = [
     otherNote: 'In this simulator engines only drive; they do not fight the fire or protect homes, so better engine access has no effect on the fire. Parking still changes traffic on hill streets a little, but in the runs tested it made no consistent difference to who was still there. Engine travel time to the fire edge, at ignition and at the end of the run, was the same or shorter under Plan B in every run tested (four fires, three severities, five seeds), and shorter in some.',
     // Headline and numbers: SOURCE_NOTES ER2, rerun under the night parking rule in NP6 (central medians). Reach at ignition
     // depends on the seed's parked cars, not the fire, so it is the same on every fire; the end-of-run share (traffic and fire) differs.
-    on: Object.fromEntries([['eastWind', '50%', '80%', 4], ['ref1923', '46%', '71%', 6], ['panoramic', '50%', '82%', 4], ['northHills', '55%', '76%', 4]].map(([id, la, lb, hours]) => [id,
+    on: Object.fromEntries([['eastWind', '50%', '80%', 4], ['ref1923', '46%', '71%', 6], ['panoramic', '50%', '82%', 4], ['northHills', '55%', '76%', 4], ['westWind', '64%', '96%', 4]].map(([id, la, lb, hours]) => [id,
       'Count the modeled hill residents for whom the modeled road network gives no engine route from a station within the City\'s 5-minute standard, before traffic and fire: about 9,900 of Berkeley\'s 27,900 Fire Zones 2–3 residents with today\'s parking, about 1,050 with parking on one side (central case; fewer in every run). '
       + 'At night residents park both sides of most hill streets 17–24 ft wide, leaving one car\'s width: modeled cars get through by taking turns, a modeled engine does not. That rule rests on one night\'s count, at about 1 a.m., of 11 narrow blocks. '
       + 'With parking on one side, most of those left are on Panoramic Hill: its lowest block of Panoramic Way is 17 ft wide, and in 4 of the 5 test seeds a car parked there leaves less than an engine\'s width, leaving about 990 modeled residents with no engine route. '

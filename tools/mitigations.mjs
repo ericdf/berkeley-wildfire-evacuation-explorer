@@ -11,7 +11,7 @@
 //        recomputed from all runs (the saved fires' runs are copied unchanged).
 //
 // Baseline: DEFAULT_PLAN (js/sim.js), Time Study case S6 (fall night) for every fire, fires eastWind,
-// ref1923, panoramic and northHills, low/central/high severity × seeds 1–5. Each lever is one entry in LEVERS below:
+// ref1923, panoramic, northHills and westWind (added 2026-11-13), low/central/high severity × seeds 1–5. Each lever is one entry in LEVERS below:
 // a plan delta (merged onto DEFAULT_PLAN) and/or a world delta, applied the way existing code applies it:
 //   plan     Simple-view Plan B deltas, read from js/presets.js (so they stay in step with the presets)
 //   edges    run-time edge copies from tools/widening-core.mjs (noParkingEdge, widenedEdge), as tools/widening-sim.mjs
@@ -43,7 +43,7 @@ process.env.MITIGATIONS_FUEL = FUEL; // workers inherit it
 const SUFFIX = FUEL === 'landfire' ? '-landfire' : '';
 const OUT = path.join(R, `data/model/mitigations${SUFFIX}.json`), DOC = path.join(R, `docs/mitigations${SUFFIX}.md`);
 
-const FIRES = ['eastWind', 'ref1923', 'panoramic', 'northHills'];
+const FIRES = ['eastWind', 'ref1923', 'panoramic', 'northHills', 'westWind']; // westWind added 2026-11-13 (SOURCE_NOTES FF24)
 const SEVS = ['low', 'central', 'high'];
 const TOD = 'S6';
 
@@ -320,7 +320,7 @@ function writeReport(D) {
   for (const k of MKEYS) p(`- **${MEASURES[k].label}**: ${MEASURES[k].def}.`);
   p('');
   for (const fire of D.meta.fires) {
-    p(`## ${{ eastWind: 'East wind, Grizzly Peak', ref1923: '1923 fire, repeated today', panoramic: 'Panoramic Hill', northHills: 'North hills, Tilden' }[fire] || fire} (\`${fire}\`)`);
+    p(`## ${{ eastWind: 'East wind, Grizzly Peak', ref1923: '1923 fire, repeated today', panoramic: 'Panoramic Hill', northHills: 'North hills, Tilden', westWind: 'West wind, Claremont Canyon' }[fire] || fire} (\`${fire}\`)`);
     p('');
     const base = D.baseline[fire];
     p(`Baseline, central median: ${MKEYS.map(k => `${MEASURES[k].label.toLowerCase()} ${fmtN(base[k], MEASURES[k].unit)}`).join('; ')}.`);

@@ -177,6 +177,19 @@ export function makeScenarios(data) {
       sources: ['Orders: Evacuation Time Study region R09 "North Berkeley Hills" zone list (Table 6-2, p. 6-8); the study lists no warning zones for R09',
         'Ignition point, wind and time of day are illustrative model choices: a fall night, when Diablo winds are strongest, as in the east-wind fire'],
     },
+    {
+      // Added 2026-11-13 (SOURCE_NOTES FF20–FF23): the onshore wind, from the Bay, the direction Berkeley Fire's chief
+      // told a resident to worry about (FF23, relayed). The only fire whose wind blows uphill.
+      id: 'westWind', name: 'West wind: fire low in Claremont Canyon',
+      kind: 'illustrative', onshore: true,
+      blurb: 'Fire starts beside Claremont Ave low in Claremont Canyon, below the homes, on an afternoon with a strong onshore wind from the west-south-west. The wind and the slope both push it up the canyon toward the homes on its rims and the ridge, and it starts below the roads those homes use to drive down. The City\'s South Berkeley Hills region is ordered.',
+      ignition: L(-122.2362, 37.8630), ignitionLabel: 'Claremont Ave in lower Claremont Canyon, about 450 m above Stonewall Rd, no buildings within 60 m (illustrative)',
+      windFrom: 250, windMph: 15, durationMin: 240, timeOfDay: 'S1', orderRegion: 'R10',
+      sources: ['Wind from 250°, west-south-west, at 15 mph: onshore winds "are from the west and travel from the Bay, up the hillslopes and canyons, to the ridgetop" (Oakland Draft Vegetation Management Plan, p. 12). At the Oakland North weather station on the ridge, summer afternoon winds come mostly from 190–220°; 250° is between that record and the plans\' "west", and blows straight up Claremont Canyon, whose road climbs toward about 70° from the start to the ridge (model choice). 15 mph: 1.7% of summer afternoon onshore hours there blow 15–20 mph and 12 hours in 34 years blow faster; the 90th percentile of all summer afternoon hours is 11.7 mph (SOURCE_NOTES FF12, FF20)',
+        'Ignition point is a model choice: a roadside start (agencies name vehicle fires along roads as a common cause, SOURCE_NOTES FF10) at the low end of Claremont Canyon\'s open slopes, where the wind and the slope drive fire uphill toward homes (FF21)',
+        'Recorded west-wind fires in these hills: 6 of 15 major fires since 1923, which burned 4 homes in all (1937, Broadway Terrace); the 1929 fire burned from Lake Temescal up toward Skyline Blvd and Tunnel Rd (Hills Emergency Forum list; SOURCE_NOTES FF8, FF13)',
+        'Orders: the City\'s evacuation region R10 "South Berkeley Hills" (Time Study region R10). Default time: S1, summer midweek midday'],
+    },
     ...(() => { // Earthquake fires (SOURCE_NOTES EQ11): only when the HayWired and structure files load.
       const ign = quakeIgnitions(data); if (!ign) return [];
       const base = {

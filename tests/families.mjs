@@ -32,7 +32,7 @@ for (const sc of scen) {
   }
   const fam = familyOf(sc, data), defs = fam.filter(m => m.isDefault);
   if (defs.length !== 1) fail(`${sc.id}: ${defs.length} default members`);
-  if (!FAMILY_WINDS.includes(sc.windFrom)) fail(`${sc.id}: wind ${sc.windFrom}° is not one of the family winds ${FAMILY_WINDS.join(', ')} (east wind moves to 60° in Part A)`);
+  if (!sc.onshore && !FAMILY_WINDS.includes(sc.windFrom)) fail(`${sc.id}: wind ${sc.windFrom}° is not one of the family winds ${FAMILY_WINDS.join(', ')} (east wind moves to 60° in Part A)`);
 }
 
 // 2. the default member reproduces today's runs
@@ -60,7 +60,7 @@ for (const sc of scen) for (const m of familyOf(sc, data)) {
 if (keys.size !== n) fail(`keys collide: ${n - keys.size}`); else console.log(`ok   ${n} member keys, none collide; ${fires.size} members, each its own fire`);
 
 // 4. pass counts
-const want = { ref1923: 18, northHills: 36, eastWind: 24, panoramic: 24 }; // 0° added 2026-11-04 except on ref1923 (SOURCE_NOTES WC9)
+const want = { ref1923: 18, northHills: 36, eastWind: 24, panoramic: 24, westWind: 15 }; // 0° added 2026-11-04 except on ref1923 (SOURCE_NOTES WC9); the west-wind fire has no family (FF24)
 for (const F of FIRES) {
   const sc = scen.find(s => s.id === F.id);
   const on = comparisonCases(sc, data, { families: true, severities: M.meta.severities }), off = comparisonCases(sc, data, { families: false, severities: M.meta.severities, seeds: M.meta.seeds });

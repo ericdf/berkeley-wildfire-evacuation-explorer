@@ -6,7 +6,10 @@
 // 90% time counts as a failure. Prints the win count, the central medians behind each "What to look for" text,
 // and writes them to --out (default data/model/simple-questions.json).
 //
-//   node tools/simple-questions.mjs [--workers N] [--mix place|citywide] [--seeds 5] [--out file]
+//   node tools/simple-questions.mjs [--workers N] [--mix place|citywide] [--seeds 5] [--out file] [--fires a,b]
+//
+// --fires: run only the fires named and keep every other fire's saved entries in the output file (added 2026-11-13
+// for the west-wind fire, SOURCE_NOTES FF24); meta records the date of each fire's run in fireBuilt.
 //
 // --mix citywide reruns the test on the Time Study's citywide household mix (the default before DM18).
 // Educational comparison, not a prediction. "People still there when embers arrived" is not a casualty count.
@@ -67,7 +70,10 @@ if (!isMainThread) {
   const workers = +arg('--workers', Math.max(1, os.cpus().length - 1)), mix = arg('--mix', 'place'), seeds = +arg('--seeds', 5);
   const outFile = arg('--out', path.join(R, 'data/model/simple-questions.json'));
   const { FIRES, PRESETS } = await import(R + '/js/presets.js');
-  const jobs = []; for (const F of FIRES) for (const sev of SEVS) for (let seed = 1; seed <= seeds; seed++) jobs.push({ fire: F.id, sev, seed });
+  const only = arg('--fires', null)?.split(','), RUN = only ? FIRES.filter(F => only.includes(F.id)) : FIRES;
+  if (only && RUN.length !== only.length) throw new Error(`--fires: unknown fire in ${only}`);
+  const prev = only && fs.existsSync(outFile) ? JSON.parse(fs.readFileSync(outFile)) : null;
+  const jobs = []; for (const F of RUN) for (const sev of SEVS) for (let seed = 1; seed <= seeds; seed++) jobs.push({ fire: F.id, sev, seed });
   const res = [], t0 = Date.now();
   await new Promise(done => {
     let next = 0, live = workers;
@@ -83,9 +89,11 @@ if (!isMainThread) {
   process.stderr.write('\n');
   const med = a => { const v = a.filter(x => x != null && Number.isFinite(x)).sort((x, y) => x - y); return v.length === a.length && v.length ? v[Math.floor(v.length / 2)] : null; };
   const result = { meta: { built: new Date().toISOString().slice(0, 10), tool: 'tools/simple-questions.mjs', householdMix: mix, seeds, severities: SEVS, rule: 'SOURCE_NOTES P19: Plan B better on the headline in every pair and a central median change of 5% or more; a missing 90% time fails', runs: jobs.length * PRESETS.reduce((n, P) => n + 2 + Object.keys(EXTRA[P.id] || {}).length, 0), wallMin: +((Date.now() - t0) / 60000).toFixed(1), workers }, questions: {} };
+  if (prev) { result.meta.runs = prev.meta.runs + result.meta.runs; result.meta.fireBuilt = { ...Object.fromEntries(FIRES.map(F => [F.id, prev.meta.fireBuilt?.[F.id] ?? prev.meta.built])), ...Object.fromEntries(RUN.map(F => [F.id, result.meta.built])) }; }
   for (const P of PRESETS) {
     result.questions[P.id] = {};
     for (const F of FIRES) {
+      if (!RUN.includes(F)) { if (prev?.questions?.[P.id]?.[F.id]) result.questions[P.id][F.id] = prev.questions[P.id][F.id]; continue; }
       const rows = res.filter(r => r.j.fire === F.id);
       let wins = 0;
       for (const r of rows) { const a = r.out[P.id].A.headline, b = r.out[P.id].B.headline; if (a != null && b != null && (b - a) * P.headline.dir > 0) wins++; }
