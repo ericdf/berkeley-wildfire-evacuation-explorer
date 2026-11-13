@@ -254,9 +254,9 @@ export function guidedUI(ctx) {
   }
   function explain(id) {
     const c = cardById(id), f = baseFigure(c), L = f.label, w = watched(c);
+    if (f.na) return ctx.modal(`<div class="gx"><h2>Not computed for this fire: ${c.line}</h2><p>${esc(f.na)} The figure for today's streets is ${n(model().oneWay(data.access).value)} ${badge('derived')}.</p><h3>What it counts</h3><p>${c.counts}</p></div>`, 'gx');
     const sev = f.bySev ? `Median by fire severity: ${SEVS.map(s => `${SEV_WORD[s]} ${n(f.bySev[s].median)}`).join(', ')}; range ${n(f.min)}–${n(f.max)}.` : '';
     const label = MEANS[L.label] + (L.bySeverity ? ' Here the low- and high-severity medians differ by more than 25%.' : '') + (L.parking ? ` Under the night parking rule used before the 2026-11-05 count: ${n(f.alt)}.` : '');
-    if (f.na) return ctx.modal(`<div class="gx"><h2>Not computed for this fire: ${c.line}</h2><p>${esc(f.na)} The figure for today's streets is ${n(model().oneWay(data.access).value)} ${badge('derived')}.</p><h3>What it counts</h3><p>${c.counts}</p></div>`, 'gx');
     const runs = c.id === 'oneWay' ? `The street network is the same in every run, so this does not change from run to run. ${fmt(f.areas)} hill areas. The Ways out map chip shows which of these ways out the fire reached in the runs of this fire.`
       : c.id === 'engine' ? `${runSet()}. Engine reach is measured at ignition, so it depends on the night's parked cars (one draw per seed)${NETWORK_FIRES[state.fire] ? ' and on the streets the earthquake closes at the fault' : ''} and not on the fire. ${sev}`
       : `${runSet()}. ${sev}`;
