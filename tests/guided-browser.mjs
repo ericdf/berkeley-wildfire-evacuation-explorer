@@ -197,6 +197,16 @@ for (const [di, name] of DEVICES.entries()) {
   check(await p.locator('[data-pick="orderSooner"]').first().isDisabled(), `${name}: decide faster cannot be picked on the north hills`);
   await shot('19-north-withheld');
   await p.click('[data-go="map"] >> nth=0');
+  // The west-wind fire (SOURCE_NOTES FF24): runs, shows five result cards and its changes; decide faster is withheld (P19).
+  await p.selectOption('#g-fire', 'westWind'); await p.waitForTimeout(300);
+  await p.click('#g-run'); await waitRunEnd(); await p.click('#g-explore');
+  check((await p.locator('.rc').count()) === 5 && /West wind, Claremont Canyon/.test(await p.locator('#g-panel').innerText()), `${name}: west-wind fire results, 5 cards`);
+  await noScroll('on west-wind results'); await shot('20-west-results');
+  await p.click('[data-go="changes"] >> nth=0');
+  await p.locator('details.cg-none summary').click();
+  check(await p.locator('[data-pick="orderSooner"]').first().isDisabled(), `${name}: decide faster cannot be picked on the west-wind fire`);
+  await shot('21-west-changes');
+  await p.click('[data-go="map"] >> nth=0');
 
   check(!errors.length, `${name}: no console errors${errors.length ? `: ${errors.slice(0, 3).join(' | ')}` : ''}`);
   console.log(`     heights: results ${hr.sh}/${hr.ch}, changes ${hc.sh}/${hc.ch}, comparison ${hcmp.sh}/${hcmp.ch}`);
