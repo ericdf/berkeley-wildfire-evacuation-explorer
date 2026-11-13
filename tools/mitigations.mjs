@@ -451,7 +451,8 @@ if (ADD) {
     if (!added.length) return r;
     const L = LEVERS.find(l => l.id === r.lever);
     if (added.includes('homes') && (L?.plan?.hardenShare || L?.plan?.zone0Share)) throw new Error(`cannot copy homes into ${r.lever}`);
-    return { ...r, m: { ...r.m, ...Object.fromEntries(added.map(k => [k, newBase.get(key(r)).m[k]])) } };
+    const mm = { ...r.m, ...Object.fromEntries(added.map(k => [k, newBase.get(key(r)).m[k]])) };
+    return { ...r, m: Object.fromEntries([...MKEYS, ...Object.keys(mm).filter(k => !MKEYS.includes(k))].map(k => [k, mm[k]])) }; // measure order, as in new runs; extra keys (frontPeople) kept
   });
   console.log(`added ${ADDIDS.join(', ')}; baseline matches the saved one on ${Object.keys(ADD.runs[0].m).length} measures in ${newBase.size} runs; copied ${added.join(', ') || 'nothing'} into ${keptRuns.length} saved lever runs`);
   rows = [...rows.filter(r => r.lever === 'baseline'), ...keptRuns, ...rows.filter(r => r.lever !== 'baseline')]; wallMin = r1(ADD.meta.wallMin + wallMin);
@@ -466,7 +467,7 @@ const checks = rows.filter(r => r.check);
 const mismatches = checks.filter(r => !r.check.ok).map(r => ({ lever: r.lever, fire: r.fire, sev: r.sev, seed: r.seed, problems: r.check.problems }));
 if (mismatches.length) console.log(`WARNING: ${mismatches.length} lever runs drew different households than their baseline`);
 const ctrl = rows.filter(r => r.lever === 'control');
-const ctrlSame = ctrl.filter(r => JSON.stringify(r.m) === JSON.stringify(baseRow.get(keyOf(r)).m)).length;
+const ctrlSame = ctrl.filter(r => MKEYS.every(k => JSON.stringify(r.m[k]) === JSON.stringify(baseRow.get(keyOf(r)).m[k]))).length; // per measure, so key order does not matter
 if (ctrlSame !== ctrl.length) console.log(`WARNING: control differs from baseline in ${ctrl.length - ctrlSame} of ${ctrl.length} runs`);
 const baseline = Object.fromEntries(fires.map(f => [f, Object.fromEntries(MKEYS.map(k => { const v = rows.filter(r => r.lever === 'baseline' && r.fire === f && r.sev === 'central').map(r => r.m[k]); return [k, MEASURES[k].time ? medianTime(v) : median(v)]; }))]));
 const summaries = [];
