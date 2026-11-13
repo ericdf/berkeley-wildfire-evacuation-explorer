@@ -15,6 +15,7 @@
 // streets with one usable lane and blocked where parked cars leave less than an
 // engine's width.
 
+import { structureLosses } from './structures.js';
 import { mulberry32 } from './rng.js';
 import { toUTM } from '../tools/utm.mjs';
 import { parkingState, PARKING_PLANS, ENFORCE_PLANS } from './parking.js';
@@ -1128,16 +1129,15 @@ export class Evacuation {
     // in Fire Zones 2–3, OpenStreetMap outlines elsewhere, and Census housing units, counted by the cell they sit in (SOURCE_NOTES PH10, PH24).
     { const st = data.structures, f = this.fire;
       S.structuresTotal = 0; S.structuresFireFront = 0; S.structuresEmbers = 0; S.housingUnitsFireFront = 0; S.housingUnitsEmbers = 0; S.structuresLostLow = 0; S.structuresLostHigh = 0; S.structuresOtherFireFront = 0; S.structuresOtherEmbers = 0;
-      const LF = data.A.structures?.lossIfFront, near = LF?.within18m, far = LF?.beyond18m;
       if (st && f && st.meta.W === f.W && st.meta.H === f.H) {
-        for (const [c, n, b25, b50, bFar] of st.structures) {
+        for (const [c, n] of st.structures) {
           S.structuresTotal += n; if (f.ember[c] * 60 <= t) S.structuresEmbers += n;
-          if (f.arrival[c] * 60 <= t) {
-            S.structuresFireFront += n;
-            // Losses (step 3e option A, assumption range): front-reached structures only, by gap to the nearest one.
-            if (LF) { S.structuresLostLow += (b25 + b50) * near[0] + bFar * far[0]; S.structuresLostHigh += (b25 + b50) * near[1] + bFar * far[1]; }
-          }
+          if (f.arrival[c] * 60 <= t) S.structuresFireFront += n;
         }
+        // Losses (step 3e option A, assumption range): front-reached structures only, by gap to the nearest one; home
+        // hardening and Zone 0 (plan keys) cut the loss probability only (js/structures.js, SOURCE_NOTES PH23, PH32).
+        const L = structureLosses(data, f, t, this.plan);
+        if (L) { S.structuresLostLow = L.low; S.structuresLostHigh = L.high; S.structuresLostCentral = L.central; }
         for (const [c, n] of st.structuresOther || []) { if (f.arrival[c] * 60 <= t) S.structuresOtherFireFront += n; if (f.ember[c] * 60 <= t) S.structuresOtherEmbers += n; }
         for (const [c, n] of st.housingUnits) { if (f.arrival[c] * 60 <= t) S.housingUnitsFireFront += n; if (f.ember[c] * 60 <= t) S.housingUnitsEmbers += n; }
       } }

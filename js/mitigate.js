@@ -19,6 +19,8 @@ export const MEASURES = {
     tip: 'Synthetic people at home when modeled embers first reached their street, or on the road in a car under embers after leaving; each person counted once. Depends on departure timing and on the traffic model, which runs faster than the City study. Not a casualty count.' },
   front: { group: 'exposure', label: 'Modeled residents not yet out when the fire front reached their street', f: S => S.fireFrontHome + S.fireFrontRoad,
     tip: 'Synthetic people at home when the modeled fire front reached their street, or on the road in a car on a burning street; each person counted once. Not a casualty count.' },
+  homes: { group: 'exposure', notGoal: true, label: 'Structures lost where the fire front reached them, Fire Zones 2–3 (central assumption)', f: S => S.structuresLostCentral ?? null,
+    tip: 'City footprints in Fire Zones 2–3 the modeled fire front reached, each lost with a probability by its gap to the nearest one (assumption ranges, middle of each), cut by any home hardening or Zone 0 in the plan. The fire does not respond to buildings, so only this count changes with hardening or Zone 0 (js/structures.js; SOURCE_NOTES PH32).' },
   clear90: { group: 'time', label: 'Model minutes after the first order until 90% of ordered cars are out (not a forecast)', f: S => S.clearP90, time: true,
     tip: 'Simulated model time, not a forecast: the traffic model\'s 90% times run 4–39% short of the City\'s 2025 Evacuation Time Study on 7 of its 8 calibration cases, by more than 10% on 3 (Assumptions & limits, Model performance). Never used to rank a change. "Not reached" counts as slower than any time.' },
 };
@@ -55,6 +57,6 @@ export function stored(id, fire) {
 // Groups for the checklist: the plan's two halves (Eric, 2026-11-02: "there's a fire scenario and a plan
 // and we are testing the plan against that scenario"), changes made before the fire and the response on the day.
 export const GROUPS = [
-  ['Before the fire', [['Streets and parking', ['parking', 'widen']], ['New roads', ['link']], ['Buyouts', ['retreat']]]],
+  ['Before the fire', [['Streets and parking', ['parking', 'widen']], ['New roads', ['link']], ['Buyouts', ['retreat']], ['Homes: hardening and Zone 0', ['structures']]]],
   ['On the day', [['When people leave', ['timing']], ['Traffic management', ['operations']]]],
 ];

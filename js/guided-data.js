@@ -31,6 +31,11 @@ export const CARDS = [
     line: 'cars left with no open route out',
     counts: 'Cars on the road at the end of the run for which the modeled fire had closed every route out from where they were, almost always before they set off.',
     limits: 'A model state, not a count of people trapped. Parking rules barely change it; leaving earlier does.' },
+  // Added 2026-11-13 with home hardening and Zone 0 (SOURCE_NOTES PH32, PH33).
+  { id: 'homes', key: 'homes', live: 'homes', unit: 'buildings', group: 'homes', cat: 'assumption',
+    line: 'buildings lost in the hill fire zones',
+    counts: 'Buildings in Berkeley\'s Fire Zones 2–3 (City footprints, some of them garages) that the modeled fire front reached, each counted as lost with a probability set by how close it stands to its nearest neighbor: 85–94% under 50 ft, 27–65% farther apart (homes in the 2018 Camp Fire, Knapp et al. 2021); the figure uses the middle of each range. Home hardening and Zone 0 lower those probabilities, most where whole blocks take part.',
+    limits: 'The modeled fire does not spread from building to building and does not respond to hardening or Zone 0, so they change only this count, not the fire, the orders or the traffic. Buildings reached only by embers get no loss figure, though embers start many house fires. Not computed outside Fire Zones 2–3. The loss probabilities and what hardening and Zone 0 do are assumption ranges.' },
 ];
 export const cardById = id => CARDS.find(c => c.id === id);
 // Fires that change the street network itself: the Hayward Fault earthquake closes the segments crossing the mapped
@@ -55,6 +60,7 @@ export const GROUPS = [
   { id: 'people', title: 'Fewer people not yet out when the fire arrives', cards: ['ember', 'front'] },
   { id: 'engine', title: 'Engines reach more hill residents within 5 minutes', cards: ['engine'] },
   { id: 'cars', title: 'Fewer cars with no open route out', cards: ['cutOff'] },
+  { id: 'homes', title: 'Fewer buildings lost', cards: ['homes'] },
   { id: 'none', title: 'No consistent benefit in our tests', cards: [] },
 ];
 

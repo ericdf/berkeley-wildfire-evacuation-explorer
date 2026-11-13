@@ -684,6 +684,17 @@
         0.27,
         0.65
       ]
+    },
+    "mitigation": {
+      "_note": "Assumption ranges [low, central, high]: the share by which home hardening or Zone 0 cuts the loss probability of a structure the fire front reaches (js/structures.js; SOURCE_NOTES PH32). dense: gap under 25 ft to the nearest structure, alone (close neighbors not taking part) or neighbors (they take part too); open: 25 ft or more. Sources: NIST TN 2205 pp. 28, 31-32; Zamanialaei et al. 2025 (PH29); UC Berkeley News 2025-08-28 (PH30); Knapp et al. 2021 (PH18). Loss only: the fire, orders and traffic do not change.",
+      "hardening": {
+        "dense": { "alone": [0, 0, 0.05], "neighbors": [0, 0.06, 0.2] },
+        "open": [0.06, 0.18, 0.3]
+      },
+      "zone0": {
+        "dense": { "alone": [0, 0, 0.05], "neighbors": [0.05, 0.17, 0.2] },
+        "open": [0.1, 0.17, 0.25]
+      }
     }
   },
   "visibility": {

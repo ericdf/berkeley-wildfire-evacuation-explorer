@@ -2,7 +2,7 @@
 // Mitigation synthesis, phase 1 (data only): every mitigation lever run against the same baseline on the
 // same fires, severities and seeds, with costs copied from earlier outputs and a robustness count.
 //
-//   node tools/mitigations.mjs [--seeds 5] [--workers N] [--report-only] [--from-runs] [--fires a,b] [--levers a,b] [--merge] [--fuel landfire]
+//   node tools/mitigations.mjs [--seeds 5] [--workers N] [--report-only] [--from-runs] [--fires a,b] [--levers a,b] [--merge] [--add-levers a,b] [--fuel landfire]
 //        writes data/model/mitigations.json and docs/mitigations.md
 //   --fuel landfire: every run (baseline and levers) on the opt-in LANDFIRE fuel grid (js/fire.js fireGridFor); writes
 //        data/model/mitigations-landfire.json and docs/mitigations-landfire.md instead, for the default-fuel decision (SOURCE_NOTES PH13).
@@ -59,6 +59,8 @@ const MEASURES = {
     def: 'synthetic Berkeley Fire Zones 2–3 residents whose street no engine reaches from a station within the City\'s 5-minute standard, at ignition, under the run\'s parked cars (summary().engineReachBeyond5People); the same on every fire for a seed' },
   noRoute: { label: 'Hill residents with no engine route', get: S => S.engineReachUnreachablePeople, unit: 'people',
     def: 'synthetic Berkeley Fire Zones 2–3 residents whose street no engine route reaches at all from a Berkeley station, at ignition, under the run\'s parked cars and fixed barriers (summary().engineReachUnreachablePeople); added 2026-11-06 for the spread-and-access explorer\'s paired comparisons (SOURCE_NOTES SA1–SA12)' },
+  homes: { label: 'Structures lost in Fire Zones 2–3 (central)', get: S => S.structuresLostCentral ?? null, unit: 'structures',
+    def: 'City footprints in Fire Zones 2–3 the fire front reached, each lost with a probability by its gap to the nearest one, cut by any home hardening or Zone 0 (summary().structuresLostCentral; js/structures.js; the midpoints of the assumption ranges and the central cut, SOURCE_NOTES PH23, PH32); the fire does not respond to structures. Added 2026-11-13; for runs saved before then it is copied from the same fire, severity and seed\'s baseline, since no earlier lever sets hardening or Zone 0' },
   clear90: { label: '90% clearance, model minutes (not a forecast)', get: S => S.clearP90, unit: 'minutes', time: true,
     def: 'minutes from the first order until 90% of vehicles starting in Order zones have left the order area (summary().clearP90, the Time Study\'s ETE); null if never reached in the run, which counts as slower than any finished run' },
 };
@@ -124,6 +126,12 @@ const LEVERS = [
     how: 'plan { routing: guided, compliance: 1 } (js/guidance.js, SOURCE_NOTES DG1–DG30)', plan: { routing: 'guided', compliance: 1 },
     costNote: 'Little capital cost in this table; a real system (data feeds, phones, liability) is unpriced.',
     cannotMeasure: 'Today\'s plan already gives every driver an idealized, well-informed route, so guidance has little to add here; against drivers who follow habit it does better in every run (SOURCE_NOTES DG30). Phone networks failing, distrust, and the households a real system would leave worse off are not shown here.' },
+  // Home hardening and Zone 0 (added 2026-11-13; SOURCE_NOTES PH29–PH32): loss probability only (js/structures.js).
+  ...[['harden', 'Harden homes', 'hardening (ember-resistant vents, roofs, decks and siding)', 'hardenShare', 'hardenMode'], ['zone0', 'Zone 0 around homes', 'a Zone 0: nothing that burns within 5 ft of the building', 'zone0Share', 'zone0Mode']]
+    .flatMap(([k, title, what, sk, mk]) => [['HalfScattered', 0.5, 'scattered', 'half the homes, scattered'], ['HalfBlocks', 0.5, 'blocks', 'half the homes, by whole blocks'], ['All', 1, 'blocks', 'every home']]
+      .map(([suf, share, mode, who]) => ({ id: `${k}${suf}`, group: 'structures', title: `${title}: ${who}`, what: `${who} in Fire Zones 2–3 have ${what}`,
+        how: `plan keys ${sk} ${share}, ${mk} '${mode}' (js/structures.js)`, plan: { [sk]: share, [mk]: mode }, share, mitigation: k,
+        cannotMeasure: 'Whether owners would do it and keep it up. The fire in this simulator does not spread from building to building and does not respond to hardening or Zone 0, so these change only the share of reached structures lost, not the fire, its embers, the orders or the traffic. Structures reached only by embers get no loss figure; ember ignition of the first house is what hardening and Zone 0 most prevent (NIST TN 2205 p. 28). Effects are assumption ranges (SOURCE_NOTES PH32).' }))),
 ];
 const CANNOT = {
   link: 'Environmental review, slope and land acquisition, and whether the link is itself in the fire\'s path on the day. Costs exclude engineering, environmental review and legal costs (egress-candidates.json meta.cost.note).',
@@ -231,6 +239,13 @@ function resolveLevers() {
     const L = { ...L0, cost: null, stopped: null };
     if (!L.cannotMeasure && CANNOT[L.group]) L.cannotMeasure = CANNOT[L.group];
     try {
+      if (L.group === 'structures') {
+        const n = Math.round(readJ('data/model/structures.json').meta.totals.structures * L.share);
+        L.cost = L.mitigation === 'harden'
+          ? { capital: [n * 10000, n * 40000], unpriced: false, structures: n, source: 'Headwaters Economics, Retrofitting a Home for Wildfire Resistance, 2024: ember-focused retrofits $10,000–$15,000 (p. 4), complete retrofit for adequate resistance $23,000–$40,000 (p. 13), for a 2,000 sq ft California home; SOURCE_NOTES PH31',
+            note: `Screening range: $10,000–$40,000 per structure × ${n.toLocaleString()} City footprints in Fire Zones 2–3 (some are outbuildings, so this reads high). Not an estimate for Berkeley homes.` }
+          : { capital: null, unpriced: true, structures: n, source: null, note: 'Not priced: no public per-home cost for Zone 0 was found. The City\'s 2025 financing draft floats "up to $2500?" per homeowner as a grant, not a cost (SOURCE_NOTES PH31).' };
+      }
       if (L.group === 'timing' || L.group === 'operations' || L.group === 'parking' && L.plan) L.cost = { capital: null, unpriced: true, note: L.costNote, source: null };
       if (L.edges) {
         const p = W.pinches.find(x => x.id === L.edges.pinch); if (!p) throw new Error(`pinch ${L.edges.pinch} not in widening.json`);
@@ -301,11 +316,12 @@ function writeReport(D) {
   // all four fires, 15 pairs). They are omitted for any narrower run (--seeds, --fires, --levers);
   // the per-fire "holds" lines above are always computed from this run's summaries.
   const PROSE_LEVERS = 'leaveEarly orderSooner parkingOneSide redCurbFoot link-CITY-1 link-AC-160-N3 link-AC-193-N1 widen-WP-001 widen-WP-007 retreat-footBlock retreat-top100 retreat-panoramicUpper contraflow-officers contraflow-signs policeControl egressGuidance';
-  const full = !LF && n === 15 && FIRES.every(f => D.meta.fires.includes(f)) && ranLevers.map(l => l.id).join(' ') === PROSE_LEVERS;
+  const full = !LF && n === 15 && FIRES.every(f => D.meta.fires.includes(f)) && PROSE_LEVERS.split(' ').every(id => ranLevers.some(l => l.id === id)); // later levers (hardening, Zone 0) get their own paragraph
   if (full) {
   p(`- (Prose written for the full run of 2026-11-02 with 16 levers, extended the same day to the north-hills fire and checked against the rerun with the east-wind fire from 60°, SOURCE_NOTES P32, the reruns with other cities' orders at 2 km and 1 km, FO1 and FO6, the rerun with each person counted once, FO8, rewritten for the rerun under the night parking rule of 2026-11-05, NP9, and for the rerun after evacuees drive on to the model exits, 2026-11-06, CD17 and CD20; check it against the tables after any rerun.) Only the timing levers (leave early, decide faster) and buyouts on the Panoramic Hill fire hold on the counts of people still there; parking, red curb, widening and new links hold on none of them. No street change holds on an evacuation measure. The City\'s Dwight Way–Dwight Place concept comes closest, on the Panoramic Hill fire: fewer cars cut off in 14 of 15 pairs and never more (140 → 100, central median) and fewer hill residents with no engine route in 15 of 15 (rerun of 2026-11-06 after evacuees drive on, SOURCE_NOTES CD20). The three buyouts tested are all on Panoramic Hill; the two larger ones hold on evacuation measures only on the Panoramic Hill fire, and part of their drop is the bought-out people no longer counted.`);
   p(`- Parking, red curb, widening, the curb-clearing buyout and the two Panoramic Hill links all act through engine reach. At night about 9,900 hill residents are beyond 5-minute engine reach with today's parking, most of them behind 17–24 ft streets parked on both sides (SOURCE_NOTES NP1–NP6). A change at the foot of Panoramic Way (red curb, widening, the curb-clearing buyout, the AC-160 link) is better in 12 of 15 pairs and equal in the other 3 (the seeds where no parked car blocks that block today), so it never "holds" under the 15-of-15 rule while never being worse. The Dwight Way–Dwight Place concept and the two larger buyouts hold on engine reach on every fire: the concept gives engines a way around the foot, and the buyouts take residents engines cannot reach off the count.`);
   p(`- Operations: contraflow on the main hill exit streets (officer-staffed or with battery-backed signs), police control of the pre-timed signals and constrained egress guidance hold on nothing on any of the four fires. Contraflow leaves more cars cut off by fire in every pair on the Panoramic Hill fire and fewer in none; on the east-wind fire more in 15 of 15 with signs and either way officer-staffed (6 more, 1 fewer); on the 1923 fire more in 10 of 15 with signs and either way officer-staffed (2 more, 4 fewer); on the north-hills fire more in 7 of 15 with signs (fewer in none) and either way officer-staffed (6 more, 1 fewer). Both leave more people still there when embers arrived in 9 to 11 of 15 pairs on every fire and fewer in 4 to 6. Before other cities ordered their zones (FO1), the east-wind fire from 60° went either way (SOURCE_NOTES CF14). Guidance is measured here against today's plan, whose drivers already take an idealized, well-informed route, so it does little here: people still there when embers arrived go either way on the east-wind and Panoramic Hill fires (7 and 8 of 15 pairs more), more in 13 of 15 on the 1923 fire and fewer in 12 of 15 on the north-hills fire, and the 90% clearance goes either way; against drivers who follow habit it does better in every pair (DG30).`);
+  if (D.levers.some(l => l.group === 'structures' && l.ran)) p(`- (Added 2026-11-13, SOURCE_NOTES PH32, PH33.) **Home hardening and Zone 0** change only structures lost: they hold on that measure on every fire whose front reaches the hill fire zones and leave every other measure the same in every pair, since the fire does not respond to buildings in this simulator. On the east-wind fire (central median, 547 structures lost today) hardening half the homes saves about 12 if they are scattered and 20 if they are whole blocks, every home about 39; Zone 0 saves about 26, 46 and 93. The same number of homes saves more as whole blocks because 7,067 of the 7,706 hill-zone footprints stand under 25 ft from a neighbor, where one home's action does little while the neighbors' still burn. The west-wind fire's front reaches no City footprint in the hill fire zones, so neither changes anything there. Effects are assumption ranges; ember ignition of the first house, which these most prevent, is not modeled.`);
   if (D.meta.fires.includes('quake')) p(`- (Added 2026-11-13 with the earthquake fire in Guided view, SOURCE_NOTES FF27.) **Earthquake: fires start in buildings** is run here on a fall night like every fire (HayWired's quake strikes on a spring weekday afternoon), with the scenario's own fault closures and dark signals. About 19,800 people are still there when embers arrive (central median). Leaving early holds on all three counts of people and cars; deciding faster holds on people home when the front arrived and is better on embers in 14 of 15 pairs (1 worse). The two larger buyouts hold on cars cut off. The red curb and widening at the foot of Panoramic Way, the upper Panoramic Way–Smyth Ln link and the Dwight Way–Dwight Place link gain nothing for engines here (the curb-clearing buyout of the lowest block gains 19): the fault closes two Panoramic Way segments. Constrained egress guidance and both contraflow variants leave more people still there when embers arrived in 10 to 13 of 15 pairs.`);
   if (D.meta.fires.includes('westWind')) p(`- (Added 2026-11-13 with the west-wind fire, SOURCE_NOTES FF25.) **West wind, Claremont Canyon** is a much smaller fire for people: about 156 people still there when embers arrived (central median), against 4,000–13,600 on the other four fires; most of them live in Oakland's zones on the canyon's south rim. Leaving early holds on it (73, 15 of 15), and so does constrained egress guidance (131, 15 of 15). Deciding faster goes either way (6 pairs better, 8 worse): Oakland orders those zones as the fire comes within 1 km, whatever Berkeley decides. Both contraflow variants leave more cars cut off by fire in 15 of 15 pairs (3 → 13). Engine reach is the same on every fire.`);
   } else if (LF) p('- The written conclusions in `docs/mitigations.md` are for the default fuel and are not repeated here. Against the default run, 14 lever-fire-measure results lose "holds in every pair" under LANDFIRE fuel and 1 gains it; 13 of the 14 lose it to ties in low-severity runs where the slower fire reaches almost no one, and one pair goes the other way. Under Change the plan\'s greying rule one change would turn grey (order sooner, north hills). The ready-made Simple-view questions use their own measures and settings and are not part of this run (SOURCE_NOTES PH28).');
@@ -381,15 +397,22 @@ const SAVED = argv.includes('--from-runs') ? JSON.parse(fs.readFileSync(OUT, 'ut
 const MERGE = !SAVED && argv.includes('--merge') ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : null;
 if (MERGE && !arg('--fires', null)) throw new Error('--merge needs --fires');
 if (MERGE && (arg('--seeds', null) || arg('--levers', null))) throw new Error('--merge takes the saved seeds and levers; drop --seeds and --levers');
-const OLD = SAVED || MERGE;
+// --add-levers a,b: run the baseline and only the levers named, on the saved fires, severities and seeds, and keep every
+// other saved run. The new baseline must match the saved one on every saved measure; a measure the saved runs lack is
+// copied into each saved lever run from its new baseline run, which is valid only for levers that cannot change it
+// (the structures-lost measure, for levers that set no hardening or Zone 0; checked below).
+const ADD = !SAVED && !MERGE && arg('--add-levers', null) ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : null;
+const ADDIDS = ADD ? arg('--add-levers').split(',') : null;
+if (ADD && (arg('--seeds', null) || arg('--levers', null) || arg('--fires', null))) throw new Error('--add-levers takes the saved seeds, fires and levers');
+const OLD = SAVED || MERGE || ADD;
 const NSEED = OLD ? OLD.meta.seeds.length : +arg('--seeds', 5), WORKERS = +arg('--workers', Math.max(1, os.cpus().length - 1));
 const seeds = Array.from({ length: NSEED }, (_, i) => i + 1);
 if (MERGE && JSON.stringify(seeds) !== JSON.stringify(MERGE.meta.seeds)) throw new Error('saved seeds are not 1..n');
-const runFires = SAVED ? SAVED.meta.fires : arg('--fires', null)?.split(',') ?? FIRES;
+const runFires = SAVED || ADD ? OLD.meta.fires : arg('--fires', null)?.split(',') ?? FIRES;
 for (const f of runFires) if (!FIRES.includes(f)) throw new Error(`unknown fire ${f}; known: ${FIRES.join(', ')}`);
 const kept = MERGE ? MERGE.runs.filter(r => !runFires.includes(r.fire)) : [];
 const fires = MERGE ? FIRES.filter(f => runFires.includes(f) || kept.some(r => r.fire === f)) : runFires;
-const only = OLD ? OLD.levers.filter(l => l.ran).map(l => l.id) : arg('--levers', null)?.split(',');
+const only = OLD ? [...OLD.levers.filter(l => l.ran).map(l => l.id), ...(ADDIDS || [])] : arg('--levers', null)?.split(',');
 const levers = resolveLevers();
 for (const l of levers.filter(l => l.stopped)) console.log(`STOPPED ${l.id}: ${l.stopped}`);
 const runnable = levers.filter(l => !l.stopped && !l.pending && !l.notComparable && (!only || only.includes(l.id) || l.id === 'control'));
@@ -398,7 +421,7 @@ const byId = Object.fromEntries(runnable.map(l => [l.id, l]));
 const jobs = [];
 for (const fire of runFires) for (const sev of SEVS) for (const seed of seeds) {
   jobs.push({ lever: 'baseline', fire, sev, seed });
-  for (const l of runnable) if (!l.centralOnly || sev === 'central') jobs.push({ lever: l.id, fire, sev, seed });
+  for (const l of runnable) if ((!ADD || ADDIDS.includes(l.id)) && (!l.centralOnly || sev === 'central')) jobs.push({ lever: l.id, fire, sev, seed });
 }
 // Keep each fire|sev|seed on one worker (its baseline snapshot is reused), baseline first.
 const keys = [...new Set(jobs.map(j => `${j.fire}|${j.sev}|${j.seed}`))];
@@ -418,6 +441,23 @@ rows = (await Promise.all(chunks.filter(c => c.length).map(async (chunk, w) => {
 fs.rmSync(TMP, { recursive: true, force: true });
 wallMin = r1((Date.now() - t0) / 60000);
 console.log(`done in ${wallMin} min`);
+if (ADD) {
+  const key = r => `${r.fire}|${r.sev}|${r.seed}`, savedBase = new Map(ADD.runs.filter(r => r.lever === 'baseline').map(r => [key(r), r]));
+  const newBase = new Map(rows.filter(r => r.lever === 'baseline').map(r => [key(r), r]));
+  const added = MKEYS.filter(k => ADD.runs.some(r => !(k in r.m)));
+  for (const [k, r] of newBase) { const o = savedBase.get(k); if (!o) throw new Error(`no saved baseline for ${k}`);
+    for (const m of Object.keys(o.m)) if (JSON.stringify(o.m[m]) !== JSON.stringify(r.m[m])) throw new Error(`baseline ${k} ${m} differs from the saved run: ${o.m[m]} vs ${r.m[m]}`); }
+  if (newBase.size !== savedBase.size) throw new Error(`baseline runs ${newBase.size} vs saved ${savedBase.size}`);
+  const keptRuns = ADD.runs.filter(r => r.lever !== 'baseline' && !ADDIDS.includes(r.lever)).map(r => {
+    if (!added.length) return r;
+    const L = LEVERS.find(l => l.id === r.lever);
+    if (added.includes('homes') && (L?.plan?.hardenShare || L?.plan?.zone0Share)) throw new Error(`cannot copy homes into ${r.lever}`);
+    const mm = { ...r.m, ...Object.fromEntries(added.map(k => [k, newBase.get(key(r)).m[k]])) };
+    return { ...r, m: Object.fromEntries([...MKEYS, ...Object.keys(mm).filter(k => !MKEYS.includes(k))].map(k => [k, mm[k]])) }; // measure order, as in new runs; extra keys (frontPeople) kept
+  });
+  console.log(`added ${ADDIDS.join(', ')}; baseline matches the saved one on ${Object.keys(ADD.runs[0].m).length} measures in ${newBase.size} runs; copied ${added.join(', ') || 'nothing'} into ${keptRuns.length} saved lever runs`);
+  rows = [...rows.filter(r => r.lever === 'baseline'), ...keptRuns, ...rows.filter(r => r.lever !== 'baseline')]; wallMin = r1(ADD.meta.wallMin + wallMin);
+}
 if (MERGE) { console.log(`merged with ${kept.length} saved runs (${[...new Set(kept.map(r => r.fire))].join(', ')})`); rows = [...kept, ...rows]; wallMin = r1(MERGE.meta.wallMin + wallMin); }
 }
 
@@ -428,7 +468,7 @@ const checks = rows.filter(r => r.check);
 const mismatches = checks.filter(r => !r.check.ok).map(r => ({ lever: r.lever, fire: r.fire, sev: r.sev, seed: r.seed, problems: r.check.problems }));
 if (mismatches.length) console.log(`WARNING: ${mismatches.length} lever runs drew different households than their baseline`);
 const ctrl = rows.filter(r => r.lever === 'control');
-const ctrlSame = ctrl.filter(r => JSON.stringify(r.m) === JSON.stringify(baseRow.get(keyOf(r)).m)).length;
+const ctrlSame = ctrl.filter(r => MKEYS.every(k => JSON.stringify(r.m[k]) === JSON.stringify(baseRow.get(keyOf(r)).m[k]))).length; // per measure, so key order does not matter
 if (ctrlSame !== ctrl.length) console.log(`WARNING: control differs from baseline in ${ctrl.length - ctrlSame} of ${ctrl.length} runs`);
 const baseline = Object.fromEntries(fires.map(f => [f, Object.fromEntries(MKEYS.map(k => { const v = rows.filter(r => r.lever === 'baseline' && r.fire === f && r.sev === 'central').map(r => r.m[k]); return [k, MEASURES[k].time ? medianTime(v) : median(v)]; }))]));
 const summaries = [];
@@ -451,7 +491,7 @@ for (const l of runnable) for (const fire of fires) {
 }
 
 const D = {
-  meta: { built: SAVED ? SAVED.meta.built : new Date().toISOString().slice(0, 10), workersNote: SAVED ? 'summaries recomputed from saved runs (--from-runs)' : MERGE ? `runs of ${runFires.join(', ')} added to the saved runs of ${fires.filter(f => !runFires.includes(f)).join(', ')} (--merge); wallMin is the sum` : undefined, tool: 'tools/mitigations.mjs', report: 'docs/mitigations.md',
+  meta: { built: SAVED ? SAVED.meta.built : new Date().toISOString().slice(0, 10), workersNote: SAVED ? 'summaries recomputed from saved runs (--from-runs)' : ADD ? `baseline rerun and levers ${ADDIDS.join(', ')} added to the saved runs (--add-levers); wallMin is the sum` : MERGE ? `runs of ${runFires.join(', ')} added to the saved runs of ${fires.filter(f => !runFires.includes(f)).join(', ')} (--merge); wallMin is the sum` : undefined, tool: 'tools/mitigations.mjs', report: 'docs/mitigations.md',
     note: 'Educational comparison, not a prediction and not an official evacuation plan. Synthetic households, illustrative fires. "People still there when embers arrived" and "still home when the fire front arrived" count synthetic people at that moment; they are not casualty counts. Costs are screening ranges copied from earlier outputs (null = not priced, never zero).',
     fuel: FUEL,
     baseline: 'DEFAULT_PLAN (js/sim.js), Time Study case S6 (fall night) for every fire', plan: DEFAULT_PLAN, timeOfDay: TOD, fires, severities: SEVS, seeds, workers: SAVED ? SAVED.meta.workers : WORKERS, runs: rows.length, wallMin,
