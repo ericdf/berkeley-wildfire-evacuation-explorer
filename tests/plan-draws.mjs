@@ -45,6 +45,12 @@ function identities(sim, growth) {
 // where there was none.
 function compare(label, a, b, { sameZoneOnly = false, growth = 'none', todayOnly = false } = {}) {
   const H = a.hh, K = b.hh, bad = [];
+  // Orders that follow the fire (earthquake fires, js/sim.js ordersByFire): a zone is ordered the plan's decision delay
+  // after a fire comes near it, so a zone the fire nears in the run's last minutes is ordered under the faster plan only.
+  // Its households then differ in status, as under an Expert plan that orders more zones, and are compared the same way;
+  // and a commuter whose zone is ordered later can reach home only after the run ends (SOURCE_NOTES FF27).
+  const fireOrdered = a.scenario?.ordersByFire ? a.orderT.reduce((n, _, z) => n + (status(a, z) !== status(b, z)), 0) : 0;
+  if (fireOrdered) sameZoneOnly = true;
   const ia = identities(a, todayOnly ? 'none' : growth), ib = identities(b, growth);
   if (ia.nBase !== ib.nBase) bad.push(`today's household count ${ia.nBase} vs ${ib.nBase}`);
   if (!todayOnly && a.growth.units !== b.growth.units) bad.push(`unit count ${a.growth.units} vs ${b.growth.units}`);
@@ -64,7 +70,7 @@ function compare(label, a, b, { sameZoneOnly = false, growth = 'none', todayOnly
     if (H.kind[h] !== K.kind[j]) warnSplit++;
     if (!H.kind[h]) continue;
     // with different notice times a commuter can reach home before the run ends in one plan only
-    if (H.commuter[h] !== K.commuter[j] && !(sameZoneOnly && notice(a, h) !== notice(b, j))) bad.push(`hh ${ia.id[h]}: commuter ${H.commuter[h]} vs ${K.commuter[j]}`);
+    if (H.commuter[h] !== K.commuter[j] && !((sameZoneOnly || a.scenario?.ordersByFire) && notice(a, h) !== notice(b, j))) bad.push(`hh ${ia.id[h]}: commuter ${H.commuter[h]} vs ${K.commuter[j]}`);
     const da = H.depart[h] - notice(a, h), db = K.depart[j] - notice(b, j);
     if (Math.abs(da - db) > 1e-6) bad.push(`hh ${ia.id[h]}: mobilization ${da.toFixed(1)} vs ${db.toFixed(1)} s`);
     if (sameZoneOnly) continue; // more ordered neighbors can change who gives a ride
@@ -80,13 +86,18 @@ function compare(label, a, b, { sameZoneOnly = false, growth = 'none', todayOnly
     if (ra2 === -2 && rb < 0) { barred++; continue; } // Plan A's ride is an added unit that R0 bars in Plan B
     bad.push(`hh ${ia.id[h]}: ride ${ra < 0 ? ra : ia.id[ra]} vs ${rb < 0 ? rb : ib.id[rb]}`);
   }
+  // Non-residents leave at their zone's order plus a mobilization draw and are made only if that falls inside the run
+  // (js/sim.js); with orders that follow the fire and a different decision delay, the same draws can fall either side of
+  // the run's end, so the counts are reported, not compared (the shared-stream check below still holds).
+  const nrShift = a.scenario?.ordersByFire && a.plan.orderDelayMin !== b.plan.orderDelayMin;
+  let nrDiff = 0;
   for (const g of new Set([...Object.keys(a.nonResident), ...Object.keys(b.nonResident)]))
-    if (!sameZoneOnly && a.nonResident[g] !== b.nonResident[g]) bad.push(`non-resident ${g}: ${a.nonResident[g]} vs ${b.nonResident[g]}`);
+    if (!sameZoneOnly && a.nonResident[g] !== b.nonResident[g]) { if (nrShift) nrDiff += Math.abs(a.nonResident[g] - b.nonResident[g]); else bad.push(`non-resident ${g}: ${a.nonResident[g]} vs ${b.nonResident[g]}`); }
   const ua = a.rand(), ub = b.rand();
   if (ua !== ub) bad.push(`shared stream differs after setup (${ua} vs ${ub})`);
   checks++;
   if (bad.length) { failures++; console.log(`FAIL ${label}\n  ${bad.join('\n  ')}`); }
-  else console.log(`ok   ${label}: ${compared.toLocaleString()} households compared${rerouted ? `, ${rerouted} rides moved to another neighbor (the other plan's left early)` : ''}${barred ? `, ${barred} without the added neighbor R0 bars` : ''}${toAdded ? `, ${toAdded} ride with an added unit (no neighbor today)` : ''}${warnSplit ? `, ${warnSplit} leave on a warning in one plan and on another city's order in the other` : ''}`);
+  else console.log(`ok   ${label}: ${compared.toLocaleString()} households compared${rerouted ? `, ${rerouted} rides moved to another neighbor (the other plan's left early)` : ''}${barred ? `, ${barred} without the added neighbor R0 bars` : ''}${toAdded ? `, ${toAdded} ride with an added unit (no neighbor today)` : ''}${warnSplit ? `, ${warnSplit} leave on a warning in one plan and on another city's order in the other` : ''}${fireOrdered ? ` (${fireOrdered} zones differ in order status between the plans, as orders follow the fire; their households are left out)` : ''}${nrDiff ? `; ${nrDiff} non-resident vehicles leave inside the run in one plan only (orders follow the fire)` : ''}`);
 }
 
 const LE = PRESETS.find(P => P.A.earlyShare === 0 && P.B.earlyShare > 0);
