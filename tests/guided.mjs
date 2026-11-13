@@ -43,6 +43,7 @@ if (M.meta.fires.includes('quake')) {
   check(G.groups('quake').every(g => g.items.every(i => !i.anyFire)), 'earthquake: every gain is "this fire"');
   const sameAsEast = M.runs.filter(r => r.lever === 'baseline' && r.fire === 'quake').some(r => r.m.engine !== M.runs.find(x => x.lever === 'baseline' && x.fire === 'eastWind' && x.sev === r.sev && x.seed === r.seed).m.engine);
   check(sameAsEast, 'earthquake: engine reach differs from the wildfires (fault closures), so it is excluded from the any-fire test');
+  check(SA.parkingByFire?.quake?.length === SA.meta.seeds.length, 'earthquake: its own engine reach under the alternative night parking rule (spread-access.json parkingByFire, Codex review of PR #87)');
 }
 // The new fires of 2026-11-13 (SOURCE_NOTES FF24, FF27): decide faster withheld on the west-wind fire (P19).
 if (M.meta.fires.includes('westWind')) check(!!G.groups('westWind').find(g => g.id === 'none').items.find(i => i.lever.id === 'orderSooner')?.withheld, 'west wind: decide faster withheld (P19)');

@@ -16,6 +16,7 @@
 //   runs      per run: synthetic residents on streets embers or the front reached, cars cut off by fire, hill
 //             residents an engine cannot reach within 5 minutes or at all (at ignition), live engine reach
 //   parking   engine reach at ignition under the alternative night parking rule (pre-2026-11-05), seeds 1–5
+//   parkingByFire  the same for fires that change the street network (the earthquake's fault closures), seeds 1–5
 //   levers    per new road or opened path in data/model/mitigations.json and fire: runs in which the fire front or
 //             embers reached it; residents no longer behind a single drivable way out (egress-candidates.json)
 //
@@ -107,8 +108,10 @@ function runOne(E, j) {
 }
 
 // Engine reach at ignition under the pre-2026-11-05 night parking rule (Expert-view scenario setting): fire-independent.
-function parkingAlt(E, seed) {
-  const sc = E.scen.eastWind, fire = E.runFire(E.grid, sc, E.SEVERITY.central, seed), out = {};
+// Engine reach at ignition under the two night parking rules. Fire-independent except on fires that change the street
+// network (the earthquake's fault closures, SOURCE_NOTES FF27), which get their own runs (parkingByFire).
+function parkingAlt(E, seed, fireId = 'eastWind') {
+  const sc = E.scen[fireId], fire = E.runFire(E.grid, sc, E.SEVERITY.central, seed), out = {};
   for (const rule of ['count2026', 'pre20261105']) {
     const sim = new E.Evacuation(E.data, E.grid, fire, sc, 'central', { ...E.DEFAULT_PLAN }, seed, E.TIME_OF_DAY[TOD], { ...WORLD, ...(rule === 'count2026' ? {} : { nightParking: rule }) });
     const S = sim.summary();
@@ -122,13 +125,14 @@ if (!isMainThread) {
   const E = await setup();
   parentPort.on('message', j => {
     if (!j) process.exit(0);
-    parentPort.postMessage(j.parking ? { j, parking: parkingAlt(E, j.seed) } : runOne(E, j));
+    parentPort.postMessage(j.parking ? { j, parking: parkingAlt(E, j.seed, j.parkingFire) } : runOne(E, j));
   });
   parentPort.postMessage(null);
 } else {
   const workers = +arg('--workers', Math.max(1, os.cpus().length - 1)), nSeeds = +arg('--seeds', 5);
   const seeds = Array.from({ length: nSeeds }, (_, i) => i + 1);
-  const jobs = [...seeds.map(seed => ({ parking: true, seed })), ...FIRES.flatMap(fire => SEVS.flatMap(sev => seeds.map(seed => ({ fire, sev, seed }))))];
+  const NETWORK_FIRES = FIRES.filter(f => f === 'quake'); // fires whose street network differs (fault closures)
+  const jobs = [...seeds.map(seed => ({ parking: true, seed })), ...NETWORK_FIRES.flatMap(parkingFire => seeds.map(seed => ({ parking: true, seed, parkingFire }))), ...FIRES.flatMap(fire => SEVS.flatMap(sev => seeds.map(seed => ({ fire, sev, seed }))))];
   const t0 = Date.now(), results = [];
   await new Promise((done, fail) => {
     let next = 0, live = 0;
@@ -180,7 +184,7 @@ if (!isMainThread) {
   for (const a of data.access?.areas || []) {
     if (!(a.residents > 0)) continue;
     const rs = runs.map(r => r.areas[a.id]).filter(Boolean);
-    const alt = results.filter(r => r.j.parking).map(r => r.parking.pre20261105.areaFits[a.id]);
+    const alt = results.filter(r => r.j.parking && !r.j.parkingFire).map(r => r.parking.pre20261105.areaFits[a.id]);
     areaStatic[a.id] = { residents: Math.round(10 * rs.reduce((s, x) => s + x.res, 0) / rs.length) / 10,
       engineFits: [central.reduce((s, r) => s + (r.areas[a.id]?.fits || 0), 0), central.length],
       engineFitsAltRule: [alt.reduce((s, x) => s + (x || 0), 0), alt.length],
@@ -193,14 +197,16 @@ if (!isMainThread) {
     leverStatic[l.id] = { residentsFreed: c?.access?.asIs?.residentsFreed ?? null, hillResidentsFreed: c?.access?.asIs?.hillResidentsFreed ?? null,
       source: c ? `data/model/egress-candidates.json, candidate ${L.id}, access.asIs.residentsFreed (tools/access-constraints.mjs --links, built ${egress.meta?.built || 'n/a'})` : null };
   }
-  const parking = results.filter(r => r.j.parking).sort((a, b) => a.j.seed - b.j.seed).map(r => ({ seed: r.j.seed, count2026: { engineBeyond5: r.parking.count2026.engineBeyond5, engineNoRoute: r.parking.count2026.engineNoRoute }, pre20261105: { engineBeyond5: r.parking.pre20261105.engineBeyond5, engineNoRoute: r.parking.pre20261105.engineNoRoute } }));
+  const parkingRow = r => ({ seed: r.j.seed, count2026: { engineBeyond5: r.parking.count2026.engineBeyond5, engineNoRoute: r.parking.count2026.engineNoRoute }, pre20261105: { engineBeyond5: r.parking.pre20261105.engineBeyond5, engineNoRoute: r.parking.pre20261105.engineNoRoute } });
+  const parkingByFire = Object.fromEntries(NETWORK_FIRES.map(f => [f, results.filter(r => r.j.parkingFire === f).sort((a, b) => a.j.seed - b.j.seed).map(parkingRow)]));
+  const parking = results.filter(r => r.j.parking && !r.j.parkingFire).sort((a, b) => a.j.seed - b.j.seed).map(r => ({ seed: r.j.seed, count2026: { engineBeyond5: r.parking.count2026.engineBeyond5, engineNoRoute: r.parking.count2026.engineNoRoute }, pre20261105: { engineBeyond5: r.parking.pre20261105.engineBeyond5, engineNoRoute: r.parking.pre20261105.engineNoRoute } }));
   const out = {
     meta: { built: new Date().toISOString().slice(0, 10), tool: 'tools/spread-access.mjs', fires: FIRES, severities: SEVS, seeds, timeOfDay: TOD, plan: 'DEFAULT_PLAN (js/sim.js): today\'s plan', world: WORLD,
       runs: runs.length, wallMin: Math.round((Date.now() - t0) / 6000) / 10, edges: nE,
       note: 'Educational comparison, not a prediction and not an official evacuation plan. Fires are illustrative scenario outputs; people are synthetic households; minutes are model time, not a forecast. A share of runs is not a probability.',
       encoding: 'streets[fire][severity].ember/front: one base-36 digit per street segment (network edge id order), the number of runs (of streets[fire][severity].runs) in which the modeled embers or fire front reached the segment\'s midpoint cell within the run' },
     residentsPerEdge: Array.from(peSum, x => Math.round(10 * x / runs.length) / 10),
-    streets, areas, areaStatic, levers, leverStatic, parking,
+    streets, areas, areaStatic, levers, leverStatic, parking, parkingByFire,
     runs: runs.map(r => r.run).sort((a, b) => FIRES.indexOf(a.fire) - FIRES.indexOf(b.fire) || SEVS.indexOf(a.sev) - SEVS.indexOf(b.sev) || a.seed - b.seed),
   };
   // Keep only what the page needs: drop per-area entries never reached and with no residents.

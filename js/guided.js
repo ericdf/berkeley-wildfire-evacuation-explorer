@@ -184,6 +184,7 @@ export function guidedUI(ctx) {
     } else if (g.chip === 'ways') {
       // Single ways out are today's street network (data/model/access-constraints.json); a new road you applied is not in it.
       if (g.applied.length) lines.push('<i>Today\'s street network and plan, without your changes.</i>');
+      if (NETWORK_FIRES[state.fire]) lines.push('<i>Today\'s street network, without the earthquake\'s closures at the Hayward Fault: a way out shown here may be closed in this fire.</i>');
       src.push(['One way out', 'derived', 'Network analysis of County and OpenStreetMap streets (tools/access-constraints.mjs). Fire front at the way out: 15 runs of this fire with today\'s plan.']);
       const area = data.access?.edgeAreas.get(sel.id)?.[0], st = area && SA?.areaStatic?.[area.id];
       if (area && st) {
@@ -220,7 +221,7 @@ export function guidedUI(ctx) {
     if (card.id === 'oneWay') { const o = model().oneWay(data.access, state.fire); return { value: o.value, areas: o.areas, na: o.na, label: o.na ? null : { label: 'consistent' } }; }
     const f = model().baseFigure(state.fire, card.key);
     if (card.id === 'engine') { // the night parking rule is the second assumption with an alternative in the repository (SA5)
-      const P = spread()?.parking || [], alt = median(P.map(p => p.pre20261105.engineBeyond5)), cur = median(P.map(p => p.count2026.engineBeyond5));
+      const P = (NETWORK_FIRES[state.fire] ? spread()?.parkingByFire?.[state.fire] : spread()?.parking) || [], alt = median(P.map(p => p.pre20261105.engineBeyond5)), cur = median(P.map(p => p.count2026.engineBeyond5));
       f.alt = alt; if (assumption(cur, alt) === 'sensitive') f.label = { ...f.label, label: 'sensitive', parking: true };
     }
     return f;
