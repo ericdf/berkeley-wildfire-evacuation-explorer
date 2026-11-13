@@ -317,8 +317,10 @@ export function guidedUI(ctx) {
     };
     // Each group shows its top 3 by the current sort, plus any picked change below them, and a control for the rest
     // (Eric, 2026-11-10: keep the Changes view near two screens on an iPhone SE).
-    const TOP = 3;
+    // "Fewer buildings lost" (six variants of two changes, 2026-11-13) shows only its best, to hold that height.
+    const TOPS = { homes: 1 };
     const shortList = gr => {
+      const TOP = TOPS[gr.id] ?? 3;
       const all = sortItems(gr.items, g.sort), open = g.more[gr.id];
       const shown = open ? all : all.filter((it, i) => i < TOP || g.picked.includes(it.lever.id));
       const rest = all.length - shown.length;
