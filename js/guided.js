@@ -228,8 +228,15 @@ export function guidedUI(ctx) {
   const head = (title, sub) => `<div class="gv-head"><h2>${title}</h2><p>${sub}</p></div>`;
   function resultsHTML() {
     if (!mit() || !spread()) return `${head('Results', esc(fireTitle()))}<p>The run-set tables did not load.</p>${footHTML('results')}`;
-    const cards = CARDS.map(c => { const f = baseFigure(c); return `<div class="rc"><div class="rc-n">${n(f.value)}</div><div class="rc-l">${c.line}</div><div class="rc-f">${chipHTML(f.label, c.id === 'oneWay' ? 'network' : 'result')}<button class="linkish" data-explain="${c.id}">Explain this</button></div></div>`; }).join('');
+    const cards = CARDS.map(c => { const f = baseFigure(c); return `<div class="rc"><div class="rc-n">${n(f.value)}</div><div class="rc-l">${c.line}</div>${splitHTML(c)}<div class="rc-f">${chipHTML(f.label, c.id === 'oneWay' ? 'network' : 'result')}<button class="linkish" data-explain="${c.id}">Explain this</button></div></div>`; }).join('');
     return `${head(`Results: ${esc(fireTitle())}`, `Today's plan, median of ${mit().meta.severities.length * mit().meta.seeds.length} runs`)}${cards}${footHTML('results')}`;
+  }
+  // The four parts of a "people not yet out" result, as a stacked bar and a 2 × 2 key (GV13).
+  function splitHTML(c) {
+    const S = c.split && model().splitFigure(state.fire, c.split); if (!S) return '';
+    const tot = S.parts.reduce((s, p) => s + (p.median || 0), 0) || 1;
+    return `<div class="sp" role="img" aria-label="${esc(S.parts.map(p => `${n(p.median)} ${p.label.toLowerCase()}`).join('; '))}"><div class="sp-bar">${S.parts.map(p => `<i class="sp-${p.id}" style="width:${(100 * (p.median || 0) / tot).toFixed(1)}%"></i>`).join('')}</div>
+      <div class="sp-key">${S.parts.map(p => `<span><i class="sp-${p.id}"></i>${n(p.median)} ${p.short}</span>`).join('')}</div></div>`;
   }
   function footHTML(kind) {
     return `<div class="gv-foot">${kind === 'results' ? '<button class="primary" data-go="changes">Explore changes that could help</button>' : '<button class="primary" data-go="changes">Try different changes</button>'}<button data-go="map">Back to the map</button></div>`;
@@ -257,9 +264,17 @@ export function guidedUI(ctx) {
       <h3>What it counts</h3><p>${c.counts}</p>
       <h3>The runs behind it</h3><p>${runs}</p>
       <h3>${chipHTML(L, c.id === 'oneWay' ? 'network' : 'result')}</h3><p>${label}</p>
+      ${splitExplain(c)}
       <h3>Where it comes from</h3><p>${cat}</p>
       <h3>Limits</h3><p>${c.limits}</p>
       ${w != null ? `<h3>The run you watched</h3><p>${n(w)} (medium severity, seed 1)${g.applied.length ? ', with your changes' : ''}.</p>` : ''}</div>`, 'gx');
+  }
+  // Explain this, the four parts: what each counts, its median by severity, and the on-road limit (GV13).
+  function splitExplain(c, title = 'Who they are') {
+    const S = c.split && model().splitFigure(state.fire, c.split); if (!S) return '';
+    return `<h3>${title}</h3><p>Each part is its own median over the ${S.n} runs, so the parts need not add up exactly to the total. "Never ordered" means the household's zone was never ordered to leave during the run${S.warned != null ? `; a median of ${n(S.warned)} of them live in zones under a warning only` : ''}. ${badge('synthetic')}</p>
+      <ul class="sp-list">${S.parts.map(p => `<li><b>${n(p.median)} ${p.label.toLowerCase()}</b> (low ${n(p.bySev.low)}, medium ${n(p.bySev.central)}, high ${n(p.bySev.high)}). ${esc(p.def)}</li>`).join('')}</ul>
+      <p>The on-road count is likely low. The model's road times run short of the 2025 Evacuation Time Study (Assumptions &amp; limits, Model performance), and the count moves with each traffic fix: step 2 raised it on every wildfire scenario (1923 fire, central, seed 1: 756 → 1,115; SOURCE_NOTES CD19); step 3 moved it both ways (1923 1,115 → 754, north hills 369 → 404; CD26); a destination rule tested and not adopted raised it again (1923 fire, weekday, medium severity, medians 578 → 776; CD28).</p>`;
   }
 
   // ---------- changes ----------
@@ -381,6 +396,7 @@ export function guidedUI(ctx) {
     ctx.modal(`<div class="gx"><h2>${cap(c.line)}: ${n(r.a)} → ${n(r.b)}</h2>
       <h3>What it counts</h3><p>${c.counts}</p>
       <h3>The runs behind it</h3><p>${passes}</p>
+      ${splitExplain(c, "Who they are, today's plan")}
       <h3>Where it comes from</h3><p>${provenance(c)}${r.network && r.gain ? ` Second ways out from new roads ${badge('derived')}: data/model/egress-candidates.json.` : ''}</p>
       <h3>${chipHTML(r.d, r.network ? 'networkChange' : 'change')}</h3><p>${MEANS[r.d.label] || ''} ${r.network ? '' : 'Any difference counts as better or worse; the label says whether it holds across the runs.'}</p>
       <h3>Limits</h3><p>${c.limits}</p>
