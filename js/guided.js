@@ -274,7 +274,7 @@ export function guidedUI(ctx) {
     const S = c.split && model().splitFigure(state.fire, c.split); if (!S) return '';
     return `<h3>${title}</h3><p>Each part is its own median over the ${S.n} runs, so the parts need not add up exactly to the total. "Never ordered" means outside every zone the scenario ordered or warned during the run. ${badge('synthetic')}</p>
       <ul class="sp-list">${S.parts.map(p => `<li><b>${n(p.median)} ${p.label.toLowerCase()}</b> (low ${n(p.bySev.low)}, medium ${n(p.bySev.central)}, high ${n(p.bySev.high)}). ${esc(p.def)}</li>`).join('')}</ul>
-      <p>The on-road count is likely low. The model's road times run short of the 2025 Evacuation Time Study (Assumptions &amp; limits, Model performance), and the count moves with each traffic fix: step 2 raised it on every wildfire scenario (1923 fire, central, seed 1: 756 → 1,115; SOURCE_NOTES CD19); step 3 moved it both ways (1923 1,115 → 754, north hills 369 → 404; CD26).</p>`;
+      <p>The on-road count is likely low. The model's road times run short of the 2025 Evacuation Time Study (Assumptions &amp; limits, Model performance), and the count moves with each traffic fix: step 2 raised it on every wildfire scenario (1923 fire, central, seed 1: 756 → 1,115; SOURCE_NOTES CD19); step 3 moved it both ways (1923 1,115 → 754, north hills 369 → 404; CD26); a destination rule tested and not adopted raised it again (1923 fire, weekday, medium severity, medians 578 → 776; CD28).</p>`;
   }
 
   // ---------- changes ----------
