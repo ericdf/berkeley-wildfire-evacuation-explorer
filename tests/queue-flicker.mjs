@@ -1,7 +1,7 @@
 // Guided view's traffic layer (js/queue-display.js; SOURCE_NOTES GV11): how often streets switch between red and not red
 // during a watched run, before (each frame's raw queue, as js/map.js drawQueues draws it in Expert view) and after
 // smoothing. Samples every FRAME_S model seconds: one browser frame at 15 model min/s and 60 frames per second.
-//   node tests/queue-flicker.mjs [fire ...]     (default: the four Guided-view fires; today's plan, fall night, medium, seed 1)
+//   node tests/queue-flicker.mjs [fire ...]     (default: the six Guided-view fires; today's plan, fall night, medium, seed 1)
 // Fails if smoothing does not cut on/off switches by at least 80% on every fire.
 import fs from 'node:fs';
 import { loadData } from '../js/data.js';
@@ -13,7 +13,7 @@ import { QueueSmoother, waiting, QUEUE_ON, QUEUE_TAU_S } from '../js/queue-displ
 const FRAME_S = 15;
 const data = await loadData(async (p, k) => { const b = fs.readFileSync(p); return k === 'json' ? JSON.parse(b) : b.buffer.slice(b.byteOffset, b.byteOffset + b.length); });
 const grid = buildFireGrid(data), scen = makeScenarios(data);
-const fires = process.argv.slice(2).length ? process.argv.slice(2) : ['eastWind', 'ref1923', 'panoramic', 'northHills'];
+const fires = process.argv.slice(2).length ? process.argv.slice(2) : ['eastWind', 'ref1923', 'panoramic', 'northHills', 'quake', 'westWind'];
 let fail = 0;
 for (const id of fires) {
   const sc = scen.find(s => s.id === id);

@@ -33,6 +33,12 @@ export const CARDS = [
     limits: 'A model state, not a count of people trapped. Parking rules barely change it; leaving earlier does.' },
 ];
 export const cardById = id => CARDS.find(c => c.id === id);
+// Fires that change the street network itself: the Hayward Fault earthquake closes the segments crossing the mapped
+// fault trace to traffic and engines and darkens every signal (js/sim.js world.quake; SOURCE_NOTES EQ4, EQ10, FF27).
+// On them engine reach at ignition differs from the other fires, and the single-ways-out figure, computed on the
+// intact network (tools/access-constraints.mjs), does not apply. They are left out when asking whether a measure is
+// the same on any fire.
+export const NETWORK_FIRES = { quake: 'The earthquake closes 69 street segments where they cross the Hayward Fault and darkens every signal, so the street network differs from the one this figure was computed on.' };
 
 // The two "people not yet out" results split four ways (Eric, 2026-11-12, MASTER session; SOURCE_NOTES GV13), in the
 // order of spread-access.json runs[].split (tools/spread-access.mjs; js/sim.js summary). Each run's parts sum to that
@@ -87,7 +93,7 @@ export function makeGuided(M, SA, presets = []) {
   const anyFireMemo = {};
   const anyFire = key => anyFireMemo[key] ??= ['baseline', ...levers.map(l => l.id)].every(id => {
     const seen = new Map();
-    return (M.meta.fires || []).every(f => runsOf(id, f).every(r => { const k = pairKey(r); if (!seen.has(k)) { seen.set(k, r.m[key]); return true; } return sameWithin(seen.get(k), r.m[key]); }));
+    return (M.meta.fires || []).filter(f => !NETWORK_FIRES[f]).every(f => runsOf(id, f).every(r => { const k = pairKey(r); if (!seen.has(k)) { seen.set(k, r.m[key]); return true; } return sameWithin(seen.get(k), r.m[key]); }));
   });
 
   // Today's plan on a fire: the 15-run figure (median), by severity, and its label.
@@ -99,7 +105,8 @@ export function makeGuided(M, SA, presets = []) {
 
   // Hill residents behind a single drivable way out (outermost areas, each street once), and in how many hill areas
   // (js/explore.js routesFindings; data/model/access-constraints.json, spread-access.json areaStatic).
-  function oneWay(access) {
+  function oneWay(access, fire) {
+    if (NETWORK_FIRES[fire]) return { value: null, na: NETWORK_FIRES[fire], areas: 0 };
     const outer = (access?.areas || []).filter(a => !a.parent && SA?.areaStatic?.[a.id]);
     return { value: outer.reduce((s, a) => s + SA.areaStatic[a.id].residents * a.hillShare, 0), areas: outer.filter(a => a.hillShare >= 0.5).length };
   }
@@ -152,7 +159,7 @@ export function makeGuided(M, SA, presets = []) {
         const card = g.cards.map(cardById).find(c => helps(s.measures[c.key]));
         if (!card) continue;
         const cmp = tableCompare(fire, l.id, card.key);
-        out.find(x => x.id === g.id).items.push({ lever: l, card, gain: cmp.gain, d: cmp.d, anyFire: anyFire(card.key) });
+        out.find(x => x.id === g.id).items.push({ lever: l, card, gain: cmp.gain, d: cmp.d, anyFire: !NETWORK_FIRES[fire] && anyFire(card.key) });
         placed = true;
       }
       if (!placed) {
