@@ -210,6 +210,16 @@ for (const [di, name] of DEVICES.entries()) {
   check(await p.locator('[data-pick="orderSooner"]').first().isDisabled(), `${name}: decide faster cannot be picked on the west-wind fire`);
   await shot('21-west-changes');
   await p.click('[data-go="map"] >> nth=0');
+  // The earthquake fire (SOURCE_NOTES FF27): runs; single ways out shows "Not computed" (the fault closes streets).
+  await p.selectOption('#g-fire', 'quake'); await p.waitForTimeout(300);
+  await p.click('#g-run'); await waitRunEnd(); await p.click('#g-explore');
+  const qn = await p.locator('.rc .rc-n').allTextContents();
+  check(qn.length === 5 && qn[3] === 'Not computed' && qn.filter(t => t === 'Not computed').length === 1, `${name}: earthquake results, single ways out not computed (${qn.join(' | ')})`);
+  await p.locator('[data-explain="oneWay"]').click();
+  check(/Hayward Fault/.test(await p.locator('#modal .gx').innerText()), `${name}: earthquake, Explain this says why single ways out is not computed`);
+  await shot('22-quake-results');
+  await p.locator('#modal .close').click();
+  await p.click('[data-go="map"] >> nth=-1');
 
   check(!errors.length, `${name}: no console errors${errors.length ? `: ${errors.slice(0, 3).join(' | ')}` : ''}`);
   console.log(`     heights: results ${hr.sh}/${hr.ch}, changes ${hc.sh}/${hc.ch}, comparison ${hcmp.sh}/${hcmp.ch}`);
