@@ -202,6 +202,10 @@ for (const [di, name] of DEVICES.entries()) {
   await p.click('[data-go="map"] >> nth=0');
   // The west-wind fire (SOURCE_NOTES FF24): runs, shows five result cards and its changes; decide faster is withheld (P19).
   await p.selectOption('#g-fire', 'westWind'); await p.waitForTimeout(300);
+  // The map frames the chosen fire: every start lies inside the map, clear of its edges (MASTER, 2026-11-13).
+  const framed = await p.evaluate(() => { const c = document.getElementById('map'), r = c.getBoundingClientRect(), s = JSON.parse(c.dataset.starts || '[]');
+    return { n: s.length, ok: s.every(([x, y]) => x >= 20 && y >= 20 && x <= r.width - 20 && y <= r.height - 20), s, w: Math.round(r.width), h: Math.round(r.height) }; });
+  check(framed.n > 0 && framed.ok, `${name}: west-wind fire's start inside the map (${JSON.stringify(framed.s)} in ${framed.w}×${framed.h})`);
   await p.click('#g-run'); await waitRunEnd(); await p.click('#g-explore');
   check((await p.locator('.rc').count()) === 6 && /West wind, Claremont Canyon/.test(await p.locator('#g-panel').innerText()), `${name}: west-wind fire results, 6 cards`);
   await noScroll('on west-wind results'); await shot('20-west-results');
@@ -215,6 +219,14 @@ for (const [di, name] of DEVICES.entries()) {
   await p.selectOption('#g-fire', 'eastWind'); await p.waitForTimeout(300);
   await p.click('#g-run'); await waitRunEnd(); await p.click('#g-explore'); await p.click('[data-go="changes"] >> nth=0');
   check(await p.locator('h3.cg', { hasText: 'Fewer buildings lost' }).isVisible() && /Harden homes|Zone 0 around homes/.test(await p.locator('#g-panel').innerText()), `${name}: hardening and Zone 0 listed under fewer buildings lost`);
+  // No change name runs under its cost label (MASTER, 2026-11-13: "Buy out the top-ranked blocks, about$99M–$232M").
+  await p.locator('details.cg-none summary').click().catch(() => {});
+  const overlaps = await p.evaluate(() => [...document.querySelectorAll('#g-panel .cr')].filter(r => {
+    const c = r.querySelector('.cr-c')?.getBoundingClientRect(), b = r.querySelector('.cr-t b'); if (!c || !b || !c.width) return false;
+    const rg = document.createRange(); rg.selectNodeContents(b);
+    return [...rg.getClientRects()].some(t => t.right > c.left + 1 && t.left < c.right - 1 && t.bottom > c.top + 1 && t.top < c.bottom - 1);
+  }).map(r => r.querySelector('.cr-t b').textContent));
+  check(!overlaps.length, `${name}: no change name overlaps its cost${overlaps.length ? `: ${overlaps.join('; ')}` : ''}`);
   await shot('23-homes-group');
   await p.click('[data-go="map"] >> nth=0');
   // The earthquake fire (SOURCE_NOTES FF27): runs; single ways out shows "Not computed" (the fault closes streets).

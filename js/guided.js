@@ -78,7 +78,7 @@ export function guidedUI(ctx) {
     state.fire = id; ctx.store.set('bhe-fire', id);
     cancelLive(); g.applied = []; g.sel = null;
     g.picked = g.picked.filter(id => !model().withheld(state.fire, id)); // withheld on the new fire (P19)
-    setup(); show('map');
+    setup(); frame(); show('map');
   }
   // Today's plan, or today's plan with the applied changes, on the chosen fire (js/main.js guidedRun).
   function setup() { fireSel.value = state.fire; ctx.setupRun(g.applied.map(leverById).filter(Boolean)); }
@@ -121,12 +121,19 @@ export function guidedUI(ctx) {
   $('g-explore').onclick = () => show('results');
   $('g-chips').addEventListener('click', e => { const b = e.target.closest('[data-chip]'); if (!b) return; g.chip = b.dataset.chip; refresh(); if (g.sel) sheet(g.sel); });
 
-  // Frame the hills (Fire Zones 2–3), where every Guided-view fire starts and most results fall.
+  // Frame the chosen fire: its starts and the streets its embers reached in any of the 15 stored runs
+  // (spread-access.json), with a margin; the hills (Fire Zones 2–3) until that table loads.
   function frame() {
-    const pts = (data.layers.fireZones || []).filter(z => z.zone >= 2).flatMap(z => z.rings.flat());
+    const S = spread()?.streets?.[state.fire], sc = state.sim?.scenario, pts = [];
+    if (S) for (const s of SEVS) { const d = S[s]?.ember || ''; for (let e = 0; e < d.length; e++) if (d[e] !== '0' && data.edgeMid[e]) pts.push(data.edgeMid[e]); }
+    if (sc) pts.push(...(typeof sc.ignitions === 'function' ? sc.ignitions(1) : sc.ignitions ?? [sc.ignition]).filter(Boolean));
+    if (pts.length < 2) pts.push(...(data.layers.fireZones || []).filter(z => z.zone >= 2).flatMap(z => z.rings.flat()));
     if (!pts.length) return map.fit();
-    const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
-    map.fit([Math.min(...xs) - 300, Math.min(...ys) - 300, Math.max(...xs) + 300, Math.max(...ys) + 300]);
+    const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]), pad = 400;
+    map.fit([Math.min(...xs) - pad, Math.min(...ys) - pad, Math.max(...xs) + pad, Math.max(...ys) + pad]);
+    // The starts' screen positions, for tests/guided-browser.mjs (every start inside the map).
+    const starts = sc ? (typeof sc.ignitions === 'function' ? sc.ignitions(1) : sc.ignitions ?? [sc.ignition]).filter(Boolean) : [];
+    map.cv.dataset.starts = JSON.stringify(starts.map(([x, y]) => [Math.round(map.sx(x)), Math.round(map.sy(y))]));
   }
 
   // ---------- map layers ----------
@@ -302,7 +309,7 @@ export function guidedUI(ctx) {
       if (seen.has(l.id)) return `<div class="cr cr-dup${on ? ' on' : ''}${off ? ' off' : ''}"><button class="cr-pick" data-pick="${esc(l.id)}" aria-pressed="${on}"${off ? ' disabled' : ''}><span class="cr-s"><b>${esc(l.title)}</b> · ${gain}</span></button></div>`;
       seen.add(l.id);
       return `<div class="cr${on ? ' on' : ''}${off ? ' off' : ''}"><button class="cr-pick" data-pick="${esc(l.id)}" aria-pressed="${on}"${off ? ' disabled' : ''}>
-        <span class="cr-t"><b style="padding-right:${(0.5 * (costLine(l.cost).length + 3)).toFixed(1)}em">${esc(l.title)}</b></span>
+        <span class="cr-t"><b>${esc(l.title)}</b></span>
         <span class="cr-s">${gain}</span>
         ${fr && gid === 'engine' ? `<span class="cr-s muted">Also a second way out for about ${fmt(round10(fr.value))} hill residents</span>` : ''}
         ${clash ? `<span class="cr-w">Changes the same block as “${esc(clash.p.title)}”: pick one.</span>` : ''}</button>
@@ -424,6 +431,9 @@ export function guidedUI(ctx) {
     P.querySelectorAll('[data-more]').forEach(b => b.onclick = () => { g.more[b.dataset.more] = !g.more[b.dataset.more]; rerender(); });
     P.querySelector('[data-about-gains]')?.addEventListener('click', aboutGains);
     P.querySelectorAll('[data-cost]').forEach(b => b.onclick = () => explainCost(leverById(b.dataset.cost)));
+    // A change's name leaves room for its cost label, measured as drawn, so a long name wraps beside it, never under it.
+    const fitCosts = () => P.querySelectorAll('.cr').forEach(r => { const c = r.querySelector('.cr-c'), b = r.querySelector('.cr-t b'); if (c && b && c.offsetWidth) b.style.paddingRight = `${c.offsetWidth + 10}px`; });
+    fitCosts(); P.querySelector('details.cg-none')?.addEventListener('toggle', fitCosts);
     P.querySelectorAll('[data-pick]').forEach(b => b.onclick = () => { const id = b.dataset.pick; g.picked = g.picked.includes(id) ? g.picked.filter(x => x !== id) : [...g.picked, id].slice(0, 3); rerender(); });
     P.querySelector('details.cg-none')?.addEventListener('toggle', e => { g.noneOpen = e.target.open; });
     P.querySelector('[data-clear]')?.addEventListener('click', () => { g.picked = []; rerender(); });
@@ -435,7 +445,7 @@ export function guidedUI(ctx) {
   function rerender() { const y = $('g-panel').scrollTop; show(g.screen); $('g-panel').scrollTop = y; }
 
   return {
-    enter() { G = null; map.barriers = false; map.queueSmooth = true; frame(); setup(); show(g.screen === 'map' ? 'map' : g.screen); },
+    enter() { G = null; map.barriers = false; map.queueSmooth = true; setup(); frame(); show(g.screen === 'map' ? 'map' : g.screen); },
     leave() { map.barriers = true; map.queueSmooth = false; map.marks = []; },
     refresh, legendHTML, sheet, pickFire,
     onRunEnd() { g.chip = 'fire'; refresh(); },
