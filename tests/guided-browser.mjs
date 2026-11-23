@@ -1,6 +1,7 @@
 // Guided view in a browser (js/guided.js; Eric, 2026-11-10): the map screen fits one screen with no page scroll, and the
 // flow run → results → Explain → changes (sort, pick 1, pick 3, overlap warning) → run → comparison (one change from the
-// stored table, three changes live) → back to the map → another fire works with no console errors.
+// stored table, three changes live) → back to the map → another fire works with no console errors. The fire pace control
+// (SOURCE_NOTES GV21) sits on the fire line without page scroll; each pace runs end to end with its own Explain this.
 //
 //   python3 tools/serve.py &            # http://127.0.0.1:8766
 //   node tests/guided-browser.mjs [device ...] [--quick] [--shots dir]
@@ -56,6 +57,18 @@ for (const [di, name] of DEVICES.entries()) {
   check(await p.evaluate(() => document.body.classList.contains('simple')), `${name}: opens in Guided view`);
   check(await visible('#g-run') && !(await visible('#g-chips')) && !(await visible('#g-after')), `${name}: map screen shows Run simulation only`);
   await noScroll('at load'); await shot('01-map');
+  // Fire pace on the fire line: all three buttons and the ⓘ inside the screen; 1923 pace by default (GV21).
+  const pace = await p.evaluate(() => { const w = document.documentElement.clientWidth, bs = [...document.querySelectorAll('#g-pace button')];
+    return { inside: bs.every(b => { const r = b.getBoundingClientRect(); return r.left >= 0 && r.right <= w && r.width > 0; }), labels: bs.map(b => b.textContent).join('|'), on: document.querySelector('#g-pace [aria-pressed="true"]')?.textContent,
+      line: Math.round(document.getElementById('g-fireline').getBoundingClientRect().height), map: Math.round(document.getElementById('map').getBoundingClientRect().height) }; });
+  check(pace.inside && pace.labels === 'Slower|1923 pace|1991 pace|ⓘ' && pace.on === '1923 pace', `${name}: fire pace control on the fire line, inside the screen, 1923 pace by default (fire line ${pace.line} px, map ${pace.map} px)`);
+  for (const [sev, word] of [['low', 'Slower'], ['central', '1923 pace'], ['high', '1991 pace']]) {
+    await p.click('[data-pace-explain]');
+    if (sev !== 'central') await p.click(`#modal [data-pace-other="${sev}"]`);
+    const t = await p.locator('#modal .gx').innerText();
+    check(new RegExp(`Fire pace: ${word}`).test(t) && /model rule/.test(t) && (sev !== 'central' || /S11/.test(t)) && (sev !== 'high' || /FV17/.test(t)) && (sev !== 'low' || /lower bound/.test(t)), `${name}: ${word} has its own Explain this`);
+    await p.locator('#modal .close').click();
+  }
 
   // Run
   await p.click('#g-run');
@@ -67,7 +80,8 @@ for (const [di, name] of DEVICES.entries()) {
   await waitRunEnd();
   check(await visible('#g-chips') && await visible('#g-explore') && await visible('#g-again') && !(await visible('#g-run')), `${name}: after the run, chips, Explore results and Run again`);
   await noScroll('after a run'); await shot('03-after-run-fire');
-  check(/Streets embers reached across 15 runs of this fire/.test(await p.locator('#g-caption').innerText()), `${name}: caption after the run names the 15 runs`);
+  check(/Streets embers reached across 5 runs of this fire/.test(await p.locator('#g-caption').innerText()), `${name}: caption after the run names the 5 runs at the pace`);
+  check(/in 5 runs at 1923 pace/.test(await p.locator("#legend").textContent()), `${name}: map key names the pace`);
   await p.click('[data-chip="ways"]'); await p.waitForTimeout(300); await shot('04-chip-ways');
   await p.click('[data-chip="engine"]'); await p.waitForTimeout(300); await shot('05-chip-engine');
   await p.click('[data-chip="fire"]'); await p.waitForTimeout(300);
@@ -99,7 +113,16 @@ for (const [di, name] of DEVICES.entries()) {
   check(splits === 2 && keys === 8, `${name}: the two people cards each split four ways (${splits} splits, ${keys} parts)`);
   // Plain-language labels (GV12): none of the old three words in Guided view's results.
   const chips = await p.locator('#g-panel .robust').allTextContents();
-  check(chips.length === 6 && chips.every(t => /nearly every run|Depends on|Varies from run to run|Same in every run|None in nearly/.test(t)) && !chips.some(t => /^(Consistent|Sensitive|Mixed)$/.test(t)), `${name}: plain labels on results (${chips.join(' | ')})`);
+  check(chips.length === 6 && chips.every(t => /nearly every run|Depends on the night parking rule|Varies from run to run|Same in every run|None in nearly/.test(t)) && !chips.some(t => /^(Consistent|Sensitive|Mixed)$/.test(t) || /fire strength/.test(t)), `${name}: plain labels on results, none by fire strength within one pace (${chips.join(' | ')})`);
+  // Status quo, the pace and the other paces' medians (GV21, GV22).
+  const rtext = await p.locator('#g-panel').innerText();
+  check(/Status quo ⓘ, median of 5 runs at 1923 pace/.test(rtext) && !/today's plan/i.test(rtext), `${name}: results say "Status quo", 5 runs at 1923 pace`);
+  const plines = await p.locator('#g-panel .rc-p').allTextContents();
+  check(plines.length === 5 && plines.every(t => /^(Slower: .+ · 1991 pace: .+|The same at every fire pace)$/.test(t)), `${name}: each result gives the other paces' medians (${plines.join(' | ')})`);
+  await p.click('#g-panel [data-sq]');
+  const sqt = await p.locator('#modal .gx').innerText();
+  check(/10 minutes after the fire starts/.test(sqt) && /no new roads or rules/.test(sqt) && /assumption/.test(sqt), `${name}: Status quo has its Explain this`);
+  await p.locator('#modal .close').click();
   await p.locator('[data-explain="ember"]').click();
   check(await p.locator('#modal[open] .gx').isVisible(), `${name}: Explain this opens a pop-up`);
   const ex = await p.locator('#modal .gx').innerText();
@@ -143,6 +166,8 @@ for (const [di, name] of DEVICES.entries()) {
   const cmp1 = await p.locator('.rc.cmp').count();
   const diff = await p.locator('.rc.cmp').nth(2).locator('.cmpgrid b').nth(2).innerText();
   check(cmp1 === 6 && /^−/.test(diff), `${name}: one-change comparison from the table, engine row ${diff}`);
+  const heads3 = await p.locator('.rc.cmp').first().locator('.cmpgrid small').allTextContents();
+  check(heads3.join('|') === 'Status quo|With changes|Difference' && (await p.locator('.rc.cmp .rc-p').count()) >= 5, `${name}: comparison columns ${heads3.join(' / ')}, with the other paces' differences`);
   // Difference colors: improvement green, worse amber, no change gray.
   const cls = await p.locator('.rc.cmp .cmpgrid div:nth-child(3) b').evaluateAll(bs => bs.map(b => [b.textContent, b.className]));
   check(cls.every(([t, c]) => t === 'No change' ? c === 'same' : t.startsWith('−') ? c === 'good' : t.startsWith('+') ? c === 'worse' : true), `${name}: difference colors (${cls.map(([t, c]) => `${t}:${c}`).join(' ')})`);
@@ -191,7 +216,7 @@ for (const [di, name] of DEVICES.entries()) {
   // Another fire
   await p.selectOption('#g-fire', 'panoramic');
   await p.waitForTimeout(500);
-  check(await visible('#g-run') && !(await visible('#g-tag')), `${name}: a new fire resets to today's plan`);
+  check(await visible('#g-run') && !(await visible('#g-tag')), `${name}: a new fire resets to the status quo`);
   await noScroll('after a fire change'); await shot('18-fire-change');
   // P19: decide faster is withheld on the north hills and cannot be picked there.
   await p.selectOption('#g-fire', 'northHills'); await p.waitForTimeout(300);
@@ -239,6 +264,32 @@ for (const [di, name] of DEVICES.entries()) {
   await shot('22-quake-results');
   await p.locator('#modal .close').click();
   await p.click('[data-go="map"] >> nth=-1');
+
+  // Each pace end to end (GV21): the earthquake at 1991 pace, then the east-wind fire at Slower; the figures change
+  // with the pace, the map key and results name it, and the map screen still fits.
+  const paceRun = async (fire, sev, word) => {
+    await p.selectOption('#g-fire', fire); await p.waitForTimeout(300);
+    await p.click(`[data-pace="${sev}"]`); await p.waitForTimeout(300);
+    check((await p.locator('#g-pace [aria-pressed="true"]').innerText()) === word, `${name}: ${word} chosen`);
+    await noScroll(`at ${word}`);
+    await p.click('#g-run'); await waitRunEnd();
+    await p.click('#g-explore');
+    const t = await p.locator('#g-panel').innerText(), vals = await p.locator('.rc .rc-n').allTextContents();
+    check(new RegExp(`median of 5 runs at ${word}`).test(t) && vals.length === 6, `${name}: ${fire} at ${word}, results (${vals.join(' | ')})`);
+    await p.locator('[data-explain="ember"]').click();
+    check(new RegExp(`\\(${word}, seed 1\\)`).test(await p.locator('#modal .gx').innerText()), `${name}: ${fire} at ${word}, the watched run is at that pace`);
+    await p.locator('#modal .close').click();
+    await p.click('[data-go="changes"] >> nth=0');
+    check(new RegExp(`· ${word} ·`).test(await p.locator('#g-panel .gv-head').innerText()), `${name}: ${fire} at ${word}, changes`);
+    await p.click('[data-go="map"] >> nth=0');
+    return vals;
+  };
+  const q3 = await paceRun('quake', 'high', '1991 pace');
+  await shot('24-quake-1991');
+  const e1 = await paceRun('eastWind', 'low', 'Slower');
+  await shot('25-east-slower');
+  check(q3[0] !== e1[0], `${name}: figures follow the fire and pace`);
+  await p.click('[data-pace="central"]'); await p.waitForTimeout(300);
 
   check(!errors.length, `${name}: no console errors${errors.length ? `: ${errors.slice(0, 3).join(' | ')}` : ''}`);
   console.log(`     heights: results ${hr.sh}/${hr.ch}, changes ${hc.sh}/${hc.ch}, comparison ${hcmp.sh}/${hcmp.ch}`);

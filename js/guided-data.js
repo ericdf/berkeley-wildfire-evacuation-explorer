@@ -1,12 +1,23 @@
 // Guided view figures (Eric, 2026-11-10, MASTER session; SOURCE_NOTES GV1–GV8). Pure functions over the stored
 // tables, so tests/guided.mjs can check them in Node:
-//   data/model/mitigations.json   today's plan ("baseline") and each change, 15 runs per fire (low, medium and high
-//                                 severity × seeds 1–5, fall night): result figures, change groups, one-change comparisons
+//   data/model/mitigations.json   the status quo ("baseline") and each change, 15 runs per fire (low, medium and high
+//                                 severity × seeds 1–5, fall night): result figures, change groups, one-change comparisons.
+//                                 Guided view reads the 5 runs at the chosen fire pace (severity; SOURCE_NOTES GV21).
 //   data/model/spread-access.json  the street network's single ways out (residents behind them) and what new roads open
 // Nothing here runs the simulator.
 import { presence, direction, assumption } from './robust.js';
 
 export const SEVS = ['low', 'central', 'high'];
+
+// Fire pace in Guided view (Eric, 2026-11-23, MASTER session; SOURCE_NOTES GV21): the three severities of js/scenarios.js
+// SEVERITY under plain names, 1923 pace by default. Each pace's Explain this: what sets it and what anchors it.
+export const PACES = [
+  { sev: 'low', label: 'Slower', explain: 'Half the 1923 pace\'s head spread rate, with embers carried about 300 m ahead of the front and fewer spot fires. No historical fire anchors it; it is a lower bound.' },
+  { sev: 'central', label: '1923 pace', explain: 'The head spread rate is calibrated to the City StoryMap\'s present-day repeat of the 1923 fire, about 5 hours from the eastern edge of the city to Shattuck Avenue (SOURCE_NOTES S11). Embers are carried about 800 m ahead of the front. The default pace; no source says it is the most likely fire.' },
+  { sev: 'high', label: '1991 pace', explain: 'Double the 1923 pace\'s head spread rate, with embers carried about 1.5 km ahead. It slows to a fifth of that rate after its first hour, fitted to the 1991 fire, which ran more than a mile downwind in its first 64 minutes and much more slowly after (SOURCE_NOTES FV17, S19).' },
+];
+export const paceOf = sev => PACES.find(p => p.sev === sev) || PACES[1];
+export const DEFAULT_PACE = 'central';
 
 // The five results, most important first (Eric, 2026-11-10). key: the measure in mitigations.json runs and in a live
 // comparison (js/mitigate.js MEASURES: ember, front, engine, cutOff); oneWay is a property of the street network.
@@ -102,11 +113,14 @@ export function makeGuided(M, SA, presets = []) {
     return (M.meta.fires || []).filter(f => !NETWORK_FIRES[f]).every(f => runsOf(id, f).every(r => { const k = pairKey(r); if (!seen.has(k)) { seen.set(k, r.m[key]); return true; } return sameWithin(seen.get(k), r.m[key]); }));
   });
 
-  // Today's plan on a fire: the 15-run figure (median), by severity, and its label.
-  function baseFigure(fire, key) {
-    const rs = runsOf('baseline', fire), vals = rs.map(r => r.m[key]);
-    const bySev = Object.fromEntries(SEVS.map(s => { const v = rs.filter(r => r.sev === s).map(r => r.m[key]); return [s, { median: median(v), pos: v.filter(x => x > 0).length, n: v.length }]; }));
-    return { value: median(vals), n: rs.length, min: Math.min(...vals), max: Math.max(...vals), bySev, label: countLabel(bySev) };
+  // The status quo on a fire: the figure (median) and its label over the runs at one fire pace (sev), or over all 15
+  // runs when sev is not given; bySev holds every pace's median, for the "other paces" line.
+  // Within one pace there is no severity range, so the label is consistent (present or absent in 5 of 5 runs) or mixed.
+  function baseFigure(fire, key, sev) {
+    const all = runsOf('baseline', fire), rs = sev ? all.filter(r => r.sev === sev) : all, vals = rs.map(r => r.m[key]);
+    const bySev = Object.fromEntries(SEVS.map(s => { const v = all.filter(r => r.sev === s).map(r => r.m[key]); return [s, { median: median(v), pos: v.filter(x => x > 0).length, n: v.length }]; }));
+    const label = sev ? presence({ [sev]: [bySev[sev].pos, bySev[sev].n] }) : countLabel(bySev);
+    return { value: median(vals), n: rs.length, min: Math.min(...vals), max: Math.max(...vals), bySev, label, sev };
   }
 
   // Hill residents behind a single drivable way out (outermost areas, each street once), and in how many hill areas
@@ -124,7 +138,7 @@ export function makeGuided(M, SA, presets = []) {
     return { value: Math.max(...fs), atLeast: fs.length > 1, sources: ids.map(id => SA.leverStatic[id]?.source).filter(Boolean) };
   }
 
-  // Pass-by-pass tally of a change against today's plan on one measure, grouped by severity (lower is better).
+  // Pass-by-pass tally of a change against the status quo on one measure, grouped by severity (lower is better).
   function tallyBySev(pairs, noise = NOISE) {
     const by = {};
     for (const { sev, a, b } of pairs) {
@@ -133,57 +147,69 @@ export function makeGuided(M, SA, presets = []) {
     }
     return direction(by);
   }
-  function tablePairs(fire, leverId, key) {
+  // Same-seed pairs of the status quo and a change; at one fire pace when sev is given.
+  function tablePairs(fire, leverId, key, sev) {
     const base = new Map(runsOf('baseline', fire).map(r => [pairKey(r), r.m[key]]));
-    return runsOf(leverId, fire).filter(r => base.has(pairKey(r))).map(r => ({ sev: r.sev, a: base.get(pairKey(r)), b: r.m[key] }));
+    return runsOf(leverId, fire).filter(r => base.has(pairKey(r)) && (!sev || r.sev === sev)).map(r => ({ sev: r.sev, a: base.get(pairKey(r)), b: r.m[key] }));
   }
-  // One change against today's plan on a fire, from the table: per measure, both medians, the gain and the label.
-  function tableCompare(fire, leverId, key) {
-    const P = tablePairs(fire, leverId, key);
-    // gain: the median of the same-seed differences (today's plan minus the change), so it follows the pairs.
-    const a = median(P.map(p => p.a)), b = median(P.map(p => p.b)), gain = median(P.map(p => p.a != null && p.b != null ? p.a - p.b : null));
-    return { a, b, gain, d: tallyBySev(P), n: P.length };
+  // gain: the median of the same-seed differences (the status quo minus the change), so it follows the pairs.
+  const gainOf = P => median(P.map(p => p.a != null && p.b != null ? p.a - p.b : null));
+  // One change against the status quo on a fire, from the table: per measure, both medians, the gain and the label,
+  // over the runs at one fire pace (sev) or all 15; gainBySev holds every pace's gain, for the "other paces" line.
+  function tableCompare(fire, leverId, key, sev) {
+    const P = tablePairs(fire, leverId, key, sev), all = sev ? tablePairs(fire, leverId, key) : P;
+    const a = median(P.map(p => p.a)), b = median(P.map(p => p.b));
+    return { a, b, gain: gainOf(P), d: tallyBySev(P), n: P.length, gainBySev: Object.fromEntries(SEVS.map(s => [s, gainOf(all.filter(p => p.sev === s))])) };
   }
 
-  // The stored verdict on one measure (js/mitigate.js stored): better in every run (holds), or in at least three of
-  // four with none worse (mostly); harms: worse in at least three of four with none better.
+  // The verdict on one measure, the stored table's rule (js/mitigate.js stored): better in every run (holds), or in at
+  // least three of four with none worse (mostly); harms: worse in at least three of four with none better. Counted
+  // from the same-seed pairs at one fire pace (5 runs: helps = better in at least 4 with none worse; GV21), or from the
+  // stored summary over all 15 runs when sev is not given.
   const summary = (fire, id) => M.summaries.find(s => s.lever === id && s.fire === fire);
   const helps = m => !!m && (m.holds || (m.worse === 0 && m.better >= Math.ceil(m.n * 0.75)));
   const harms = m => !!m && m.better === 0 && m.worse >= Math.ceil(m.n * 0.75);
+  function verdict(fire, id, key, sev) {
+    if (!sev) return summary(fire, id)?.measures[key];
+    const P = tablePairs(fire, id, key, sev); if (!P.length) return null;
+    const better = P.filter(p => !sameWithin(p.a, p.b) && (p.b ?? Infinity) < (p.a ?? Infinity)).length, worse = P.filter(p => !sameWithin(p.a, p.b)).length - better;
+    return { better, worse, same: P.length - better - worse, n: P.length, holds: better === P.length };
+  }
   // A Guided-view question withheld on a fire under the P19 rule withholds its change too (js/presets.js off).
   const withheld = (fire, id) => presets.find(p => p.id === id)?.off?.[fire] || null;
 
-  // The changes view: each change in every group whose card measures it improves on this fire; the rest, and
-  // changes withheld on this fire, under "No consistent benefit".
-  function groups(fire) {
+  // The changes view: each change in every group whose card measures it improves on this fire (at the fire pace sev,
+  // or over all 15 runs); the rest, and changes withheld on this fire, under "No consistent benefit".
+  function groups(fire, sev) {
     const out = GROUPS.map(g => ({ ...g, items: [] })), none = out.find(g => g.id === 'none');
     for (const l of levers) {
       const s = summary(fire, l.id); if (!s) continue;
+      const m = key => verdict(fire, l.id, key, sev);
       const why = withheld(fire, l.id);
       let placed = false;
       if (!why) for (const g of out.filter(g => g.cards.length)) {
-        const card = g.cards.map(cardById).find(c => helps(s.measures[c.key]));
+        const card = g.cards.map(cardById).find(c => helps(m(c.key)));
         if (!card) continue;
-        const cmp = tableCompare(fire, l.id, card.key);
+        const cmp = tableCompare(fire, l.id, card.key, sev);
         out.find(x => x.id === g.id).items.push({ lever: l, card, gain: cmp.gain, d: cmp.d, anyFire: !NETWORK_FIRES[fire] && anyFire(card.key) });
         placed = true;
       }
       if (!placed) {
-        const worse = CARDS.filter(c => c.key && harms(s.measures[c.key])).map(c => ({ card: c, worse: s.measures[c.key].worse, n: s.measures[c.key].n }));
+        const worse = CARDS.filter(c => c.key && harms(m(c.key))).map(c => ({ card: c, worse: m(c.key).worse, n: m(c.key).n }));
         none.items.push({ lever: l, card: null, gain: null, withheld: why, worse });
       }
     }
     return out;
   }
 
-  // A result's four parts on a fire: each part's median over the 15 runs (medians of parts need not add to the median
-  // of the total), by severity, from spread-access.json.
-  function splitFigure(fire, which) {
-    const rs = (SA?.runs || []).filter(r => r.fire === fire && r.split?.[which]);
+  // A result's four parts on a fire: each part's median over the runs at the fire pace sev, or all 15 (medians of parts
+  // need not add to the median of the total), and by severity, from spread-access.json.
+  function splitFigure(fire, which, sev) {
+    const all = (SA?.runs || []).filter(r => r.fire === fire && r.split?.[which]), rs = sev ? all.filter(r => r.sev === sev) : all;
     if (!rs.length) return null;
     const wi = which === 'ember' ? 0 : 1;
     return { n: rs.length, warned: median(rs.map(r => r.splitWarned?.[wi] ?? null)), parts: SPLIT_PARTS.map((p, i) => ({ ...p, median: median(rs.map(r => r.split[which][i])),
-      bySev: Object.fromEntries(SEVS.map(s => [s, median(rs.filter(r => r.sev === s).map(r => r.split[which][i]))])) })) };
+      bySev: Object.fromEntries(SEVS.map(s => [s, median(all.filter(r => r.sev === s).map(r => r.split[which][i]))])) })) };
   }
 
   return { splitFigure, levers, leverById, runsOf, baseFigure, oneWay, freed, tableCompare, tallyBySev, groups, anyFire, withheld, seeds: M?.meta?.seeds || [], severities: M?.meta?.severities || SEVS };

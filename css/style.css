@@ -266,7 +266,21 @@ body.simple #mapwrap { position: absolute; inset: 0; height: auto; min-height: 0
 #g-menu p a { padding: 0; font-size: inherit; color: inherit; text-decoration: underline; }
 #g-fireline { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: var(--panel); border-bottom: 1px solid var(--line); font-size: 15px; }
 #g-fireline label { margin: 0; font-size: 15px; font-weight: 600; color: #4b3a2a; }
-#g-fireline select { flex: 1; min-width: 0; font-size: 16px; padding: 6px 8px; } /* 16px: iOS does not zoom on focus */
+#g-fireline select { flex: 1 1 160px; min-width: 0; font-size: 16px; padding: 6px 8px; } /* 16px: iOS does not zoom on focus */
+/* Fire pace (SOURCE_NOTES GV21): on the fire line on a desktop, wrapped to a second row on a phone. */
+#g-fireline { flex-wrap: wrap; row-gap: 4px; }
+#g-pace { flex: 0 0 auto; display: flex; align-items: center; gap: 5px; font-size: 13px; color: #4b3a2a; }
+.g-pace-l { font-weight: 600; white-space: nowrap; }
+#g-pace .seg { display: inline-flex; }
+#g-pace .seg button { padding: 4px 8px; font-size: 13px; border-radius: 0; margin: 0; white-space: nowrap; }
+#g-pace .seg button:first-child { border-radius: 14px 0 0 14px; }
+#g-pace .seg button:last-child { border-radius: 0 14px 14px 0; }
+#g-pace .seg button + button { border-left: none; }
+#g-pace .seg button[aria-pressed="true"] { background: #4b3a2a; color: #fff; border-color: #4b3a2a; }
+#g-pace .g-pace-x { font-size: 17px; padding: 0 4px; text-decoration: none; }
+.rc-p { font-size: 13px; color: var(--muted); margin: -4px 0 6px; }
+.sq-x { font-size: inherit; padding: 0; }
+@media (max-width: 360px) { #g-pace { gap: 4px; } #g-pace .seg button { padding: 4px 6px; } #g-pace .g-pace-x { padding: 0 2px; } }
 body.simple #clockbar { top: 8px; left: 8px; }
 body.simple #clock { font-size: 16px; }
 body.simple #clock[hidden], body.simple #map-controls, body.simple #status { display: none; }
