@@ -34,7 +34,7 @@ const state = {
   editing: 'A', preset: null, fire: null, playing: false, speed: 900, sim: null, fires: new Map(), batch: 0,
 };
 
-const [data] = await Promise.all([loadData(), loadMitigations(), loadSpread()]);
+const [data] = await Promise.all([loadData(undefined, { lite: true }), loadMitigations(), loadSpread()]);
 const grid = buildFireGrid(data);
 const scenarios = makeScenarios(data);
 state.fire = FIRES.find(f => f.id === store.get('bhe-fire'))?.id ?? FIRES[0].id;
@@ -126,7 +126,7 @@ $('signalGreen').onchange = () => { signalNote(); newRun(); };
 // Home-to-street access time (scenario, both plans, Expert view; tools/walk-access.mjs, SOURCE_NOTES WA13). Off by default.
 const walkNote = () => {
   const W = data.walk, on = $('walkAccess').value === 'terrain';
-  $('walk-note').innerHTML = !on ? '' : !W ? 'data/model/walk-access.json is missing: no access time is applied.'
+  $('walk-note').innerHTML = !on ? '' : !W ? (data.deferredDone ? 'data/model/walk-access.json is missing: no access time is applied.' : 'Loading the access-time data…')
     : `Each departing household leaves its street later by the terrain's extra walking time from door to curb for three legs (two trips out with belongings, one back) ${badge('assumption', 'Three legs is this project\'s assumption. Walking speed on slopes: Tobler\'s hiking function; stairs: Fruin\'s free-flow stair speeds (SOURCE_NOTES WA4–WA6).')}, drawn from its street segment's spread across hill homes ${badge('derived', 'Microsoft building footprints and the 4 m lidar DEM: height and distance from each footprint centroid to the nearest point of its street (tools/walk-access.mjs). Only per-segment percentiles are kept.')}. Across ${fmt(W.meta.counts.hillBuildings)} hill buildings the median is ${fmt(W.meta.counts.delayS.central[0])} s and the 90th percentile ${fmt(W.meta.counts.delayS.central[1])} s; for people with reduced mobility ${fmt(W.meta.counts.delayS.reduced[0])} and ${fmt(W.meta.counts.delayS.reduced[1])} s, which this setting does not apply. The Time Study's mobilization times may already include part of this walk.`;
 };
 $('walkAccess').onchange = () => { walkNote(); newRun(); };
@@ -141,7 +141,7 @@ $('nightParking').onchange = () => { nightParkingNote(); newRun(); };
 // Fuel (scenario setting, Expert view, off by default): LANDFIRE FBFM40 in place of the fire-zone proxy (js/fire.js withLandfireFuel).
 function fuelNote() {
   const on = $('fuel').value === 'landfire', M = data.fuel40?.meta;
-  if (!data.fuel40) { $('fuel').value = 'proxy'; $('fuel').disabled = true; }
+  if (!data.fuel40 && data.deferredDone) { $('fuel').value = 'proxy'; $('fuel').disabled = true; }
   $('fuel-note').innerHTML = !on ? '' : `Spread factors from LANDFIRE ${esc(M.version)} FBFM40 fuel models on the fire grid ${badge('sourced', M.product)}, each factor Rothermel's relative surface spread rate for its Scott and Burgan (2005) fuel model ${badge('model rule', M.provenance.factorRule)}. Urban cells (NB1) keep the fire-zone proxy; ember throw and landing keep the proxy too. This changes the illustrative fire only; it is not a fire-behavior prediction. Comparison in docs/fire-validation.md.`;
 }
 $('fuel').onchange = () => { fuelNote(); newRun(); };
@@ -176,7 +176,7 @@ function mixNote() {
 $('householdMix').onchange = () => { mixNote(); newRun(); };
 function placementNote() {
   const wp = data.workplaces, on = $('nrPlacement').value === 'workplace';
-  if (!wp) { const o = $('nrPlacement').querySelector('option[value="workplace"]'); o.disabled = true; o.textContent += ' (needs data/model/workplaces.json)'; }
+  if (!wp && data.deferredDone) { const o = $('nrPlacement').querySelector('option[value="workplace"]'); o.disabled = true; o.textContent += ' (needs data/model/workplaces.json)'; }
   $('placement-note').innerHTML = !on ? '' : `The 2025 Evacuation Time Study's employee, student and visitor vehicles per area stay the same ${badge('sourced')}. Employees park on streets within ${wp.params.walkM} m of the workplace blocks where LEHD LODES 2023 counts jobs held by people living outside Berkeley ${badge('derived')}; UC employee and commuting-student cars fill UC's off-street parking first (OpenStreetMap facilities scaled to UC's published 5,500 spaces), the rest park on streets near campus as before; Lab employees park in the Lab's lots ${badge('model rule')}. Visitors and on-campus students are placed as before. See docs/weekday-placement.md.`;
 }
 placementNote();
@@ -428,6 +428,8 @@ function getFire(sc, sev, seed) {
   return state.fires.get(k);
 }
 function newRun() {
+  // Opt-in settings whose data load after the page is up (js/data.js deferred): wait for it, then run.
+  const w = world(); if (!data.deferredDone && (w.walkAccess || w.nrPlacement || w.fuel)) { data.deferred.then(() => newRun()); return; }
   const sc = scenario(), sev = $('severity').value, seed = +$('seed').value || 1;
   // Your plan in Change the plan (Plan B) can change streets, add roads and buy out blocks (js/levers.js); Expert view runs plans only.
   const st = document.body.classList.contains('simple') && state.editing === 'B' ? state.preset?.stack : null, d = st ? dataFor(data, st.net) : data;
@@ -554,8 +556,9 @@ function spark(sim) {
 // ---------- inspector ----------
 map.onSelect = sel => inspect(sel);
 map.onHover = (x, y) => {
-  const z = demAt(data.dem, data.Z, x, y); const [lon, lat] = fromUTM(x + data.net.meta.origin[0], y + data.net.meta.origin[1]);
-  $('status').textContent = `${lat.toFixed(5)}, ${lon.toFixed(5)} · elevation ${z == null ? '—' : z.toFixed(0) + ' m'} (bare-earth DEM)`;
+  // The full DEM where loaded (tools), else the fire grid's 30 m cell (the browser's light set, SOURCE_NOTES GV19).
+  const z = data.Z ? demAt(data.dem, data.Z, x, y) : (c => c >= 0 && data.elev30[c] !== -32768 ? data.elev30[c] / 10 : null)(cellOf(grid, x, y)); const [lon, lat] = fromUTM(x + data.net.meta.origin[0], y + data.net.meta.origin[1]);
+  $('status').textContent = `${lat.toFixed(5)}, ${lon.toFixed(5)} · elevation ${z == null ? '—' : z.toFixed(0) + ' m'} (bare-earth DEM${data.Z ? '' : ', 30 m cell'})`;
 };
 // ACS and licensing figures for one zone (data/model/demand-by-zone.json): reported, never trips.
 function zoneDemandRows(id, row) {
@@ -993,5 +996,6 @@ if (data.access) {
 
 // ---------- start ----------
 growthNote(); shutoffNote(); quakeNote(); visibilityNote(); signalNote(); fuelNote(); walkNote(); nightParkingNote(); showScenario(); showPlan(); legend(); newRun();
+data.deferred.then(() => { fuelNote(); walkNote(); placementNote(); }); // their data load after the page is up (js/data.js)
 setMode(store.get('bhe-mode') === 'expert' ? 'expert' : 'simple');
 requestAnimationFrame(loop);

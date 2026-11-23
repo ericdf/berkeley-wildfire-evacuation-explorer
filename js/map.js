@@ -30,8 +30,13 @@ export class MapView {
     this.cv = canvas; this.ctx = canvas.getContext('2d'); this.data = data;
     const t = data.net.meta.terrain;
     this.extent = [0, 0, t.xmax, t.ymax];
-    this.terrain = makeTerrainCanvas(data.dem, data.Z);
-    this.contours = makeContours(data.dem, data.Z, 20, 3);
+    // Full DEM (tools, tests) or the light set's hillshade image and, once loaded, contours (js/data.js; SOURCE_NOTES GV19).
+    if (data.Z) { this.terrain = makeTerrainCanvas(data.dem, data.Z); this.contours = makeContours(data.dem, data.Z, 20, 3); }
+    else {
+      this.contours = data.contours || [];
+      if (data.lite?.hillshade && typeof Image !== 'undefined') { const im = new Image(); im.onload = () => { this.terrain = im; this.draw(); }; im.src = new URL(`../${data.lite.hillshade.file}`, import.meta.url).href; }
+      data.deferred?.then(() => { if (data.contours) { this.contours = data.contours; this.draw(); } });
+    }
     this.layers = { terrain: true, contours: true, streets: true, paths: true, evacZones: false, fireZones: true, neighborhoods: false, fire1923: true,
       cityBoundary: true, stations: true, noParking: false, tightTurns: false, access: false, demand: false, structures: false, fire: true, vehicles: true, queues: true, responder: true };
     this.streetMode = 'class';
@@ -144,7 +149,7 @@ export class MapView {
     ctx.setTransform(d, 0, 0, d, 0, 0);
     ctx.fillStyle = '#e9e6de'; ctx.fillRect(0, 0, this.w, this.h);
     const t = data.net.meta.terrain;
-    if (L.terrain) {
+    if (L.terrain && this.terrain) {
       ctx.imageSmoothingEnabled = this.scale < 1 / t.resolution * 1.5;
       ctx.drawImage(this.terrain, this.sx(0), this.sy(t.ymax), t.width * t.resolution * this.scale, t.height * t.resolution * this.scale);
     }

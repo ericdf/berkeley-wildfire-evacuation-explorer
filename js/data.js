@@ -1,41 +1,67 @@
 // Load simulator data and build lookup structures. Works in the browser (fetch) and in
 // Node tests (pass a loader that reads files).
 
-export async function loadData(load = browserLoad) {
-  const [net, layers, dem, demBuf, A, fireZones2025] = await Promise.all([
+export async function loadData(load = browserLoad, { lite = false } = {}) {
+  // Every file is requested at once; on a phone's 150 ms link, waiting for each before asking for the next cost seconds.
+  const opt = (p, k = 'json') => Promise.resolve().then(() => load(p, k)).catch(() => null);
+  // lite (the browser, Eric, 2026-11-23; SOURCE_NOTES GV19): instead of the 4 m DEM (dem.i16, 10.4 MB), the light set
+  // tools/build-terrain-lite.mjs derives from it: the fire grid's 30 m elevations, the DEM cells new roads read, and the
+  // map's hillshade image and contours. The model reads the same values (tests/terrain-lite.mjs). Without lite (tests
+  // and tools) the full DEM loads as before.
+  const [net, layers, dem, demBuf, A, fireZones2025, liteMeta, e30Buf] = await Promise.all([
     load('data/model/network.json', 'json'), load('data/model/layers.json', 'json'),
-    load('data/terrain/dem.json', 'json'), load('data/terrain/dem.i16', 'buffer'), load('data/assumptions.json', 'json'),
+    load('data/terrain/dem.json', 'json'), lite ? null : load('data/terrain/dem.i16', 'buffer'), load('data/assumptions.json', 'json'),
     load('data/model/fire-zones-2025.json', 'json'), // the 2025 Panoramic and Grizzly Peak zones for the proxy fuel (tools/build-fire-zones-2025.mjs)
+    lite ? load('data/terrain/lite.json', 'json') : null, lite ? load('data/terrain/elev30.i16', 'buffer') : null,
   ]);
   // Optional: access-constrained areas (tools/access-constraints.mjs), for the map layer and the R0 plan setting. The simulator runs without them.
-  const access = await Promise.resolve().then(() => load('data/model/access-constraints.json', 'json')).catch(() => null);
   // Optional: signal junctions (tools/signals.mjs: the City's signals, and OpenStreetMap signals outside Berkeley) and main
   // hill exit streets (tools/contraflow-streets.mjs). Signals set junction capacity (js/sim.js, SOURCE_NOTES CD21) and are
   // read by the police-control and power-shutoff settings; contraflow streets by the contraflow setting.
   // Optional: household mix by place (tools/build-demand.mjs), for the default "Household mix: by place" world
   // setting and the zone figures from the ACS and licensing records. Without it runs use the Time Study's citywide mix.
-  const [signals, signalsOutside, contraflow, demand] = await Promise.all(['data/model/signals.json', 'data/model/signals-outside.json', 'data/model/contraflow-streets.json', 'data/model/demand-by-zone.json']
-    .map(p => Promise.resolve().then(() => load(p, 'json')).catch(() => null)));
-  // Optional: LANDFIRE FBFM40 fuel classes on the fire grid (tools/fetch-fuel.mjs), for the opt-in "Fuel" scenario setting.
-  const [fuelMeta, fuelBuf] = await Promise.all([['data/terrain/fbfm40.json', 'json'], ['data/terrain/fbfm40.u8', 'buffer']]
-    .map(([p, k]) => Promise.resolve().then(() => load(p, k)).catch(() => null)));
-  const fuel40 = fuelMeta && fuelBuf ? { meta: fuelMeta, codes: new Uint8Array(fuelBuf) } : null;
-  // Optional: workplaces and off-street parking (tools/workplaces.mjs), for the opt-in "by workplace" placement of non-residents.
-  const workplaces = await Promise.resolve().then(() => load('data/model/workplaces.json', 'json')).catch(() => null);
-  // Optional: home-to-street walking and stair access by street segment (tools/walk-access.mjs), for the
-  // opt-in "Home-to-street access time" scenario setting and its map layer. Off by default.
-  const walk = await Promise.resolve().then(() => load('data/model/walk-access.json', 'json')).catch(() => null);
   // Optional: structures per fire cell (tools/build-structures.mjs), for exposure context and the map layer.
-  const structures = await Promise.resolve().then(() => load('data/model/structures.json', 'json')).catch(() => null);
   // Optional: street segments a Hayward Fault rupture closes, two bounds (tools/fault-zone-check.mjs --write), for the opt-in earthquake setting.
   // Optional: USGS HayWired fire-following values for Berkeley's station areas (tools/build-haywired.mjs), for the earthquake fires.
-  const haywired = await Promise.resolve().then(() => load('data/model/haywired-ignitions.json', 'json')).catch(() => null);
-  const faultClosures = await Promise.resolve().then(() => load('data/model/fault-closures.json', 'json')).catch(() => null);
   // Optional: the simulator's fire-off times against the Time Study (tests/calibration.mjs) and the household-mix comparison
   // (tools/demand-compare.mjs), shown beside the results they qualify.
-  const [calibration, demandCompare] = await Promise.all(['data/model/calibration.json', 'data/model/demand-compare.json']
-    .map(p => Promise.resolve().then(() => load(p, 'json')).catch(() => null)));
-  return prepare({ net, layers, dem, Z: new Int16Array(demBuf), A, fireZones2025, access, signals, signalsOutside, contraflow, demand, fuel40, workplaces, walk, structures, faultClosures, haywired, calibration, demandCompare });
+  const [access, signals, signalsOutside, contraflow, demand, structures, haywired, faultClosures, calibration, demandCompare] = await Promise.all(
+    ['access-constraints', 'signals', 'signals-outside', 'contraflow-streets', 'demand-by-zone', 'structures', 'haywired-ignitions', 'fault-closures', 'calibration', 'demand-compare']
+      .map(f => opt(`data/model/${f}.json`)));
+  // Opt-in Expert settings only: LANDFIRE FBFM40 fuel classes (tools/fetch-fuel.mjs, the "Fuel" setting), workplaces and
+  // off-street parking (tools/workplaces.mjs, "by workplace" placement of non-residents) and home-to-street walking and
+  // stair access (tools/walk-access.mjs, "Home-to-street access time"). In lite mode they, and the map's contours, load
+  // after the page is up: data.deferred resolves once they are in place, and anything that needs them awaits it.
+  const later = async () => {
+    const [fuelMeta, fuelBuf, workplaces, walk] = await Promise.all([opt('data/terrain/fbfm40.json'), opt('data/terrain/fbfm40.u8', 'buffer'), opt('data/model/workplaces.json'), opt('data/model/walk-access.json')]);
+    return { fuel40: fuelMeta && fuelBuf ? { meta: fuelMeta, codes: new Uint8Array(fuelBuf) } : null, workplaces, walk };
+  };
+  const now = lite ? { fuel40: null, workplaces: null, walk: null } : await later();
+  const data = prepare({ net, layers, dem, Z: demBuf ? new Int16Array(demBuf) : null, A, fireZones2025, access, signals, signalsOutside, contraflow, demand, ...now, structures, faultClosures, haywired, calibration, demandCompare });
+  if (lite) {
+    data.lite = liteMeta;
+    data.elev30 = new Int16Array(e30Buf);
+    const cells = new Map(liteMeta.links.cells.map((c, i) => [c, liteMeta.links.z[i]]));
+    // nearest 4 m DEM cell, as tools/egress-link.mjs demSampler, from the cells new roads read; any other cell is an error
+    data.linkElev = (x, y) => {
+      const c = Math.floor(x / dem.resolution), r = Math.floor((dem.ymax - dem.ymin - y) / dem.resolution);
+      if (c < 0 || r < 0 || c >= dem.width || r >= dem.height) return null;
+      const v = cells.get(r * dem.width + c); if (v === undefined) throw new Error(`DEM cell ${r * dem.width + c} is not in data/terrain/lite.json (rerun tools/build-terrain-lite.mjs)`);
+      return v === -32768 ? null : v / 10;
+    };
+    data.deferred = (async () => {
+      const [more, cBuf] = await Promise.all([later(), opt(liteMeta.contours.file, 'buffer')]);
+      Object.assign(data, more);
+      if (cBuf) { // the map's contours: running sum of the delta-coded half-meter coordinates
+        const q = new Int16Array(cBuf), v = new Float32Array(q.length);
+        let x = 0, y = 0; for (let i = 0; i < q.length; i += 2) { x += q[i]; y += q[i + 1]; v[i] = x / 2; v[i + 1] = y / 2; }
+        let o = 0; data.contours = liteMeta.contours.levels.map(([level, n]) => { const segs = v.subarray(o, o + n); o += n; return { level, segs }; });
+      }
+      data.deferredDone = true;
+      return data;
+    })();
+  } else { data.deferredDone = true; data.deferred = Promise.resolve(data); }
+  return data;
 }
 
 async function browserLoad(path, kind) {
