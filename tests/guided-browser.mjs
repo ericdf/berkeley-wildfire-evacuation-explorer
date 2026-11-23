@@ -338,7 +338,7 @@ for (const [di, name] of DEVICES.entries()) {
     check(new RegExp(`\\(${word}, seed 1\\)`).test(await p.locator('#modal .gx').innerText()), `${name}: ${fire} at ${word}, the watched run is at that pace`);
     await p.locator('#modal .close').click();
     await p.click('[data-go="changes"] >> nth=0');
-    check(new RegExp(`· ${word} ·`).test(await p.locator('#g-panel .gv-head').innerText()), `${name}: ${fire} at ${word}, changes`);
+    check(new RegExp(`${word} · pick up to 3`).test(await p.locator('#g-panel .gv-head').innerText()), `${name}: ${fire} at ${word}, changes`);
     await p.click('[data-go="map"] >> nth=0');
     return vals;
   };
