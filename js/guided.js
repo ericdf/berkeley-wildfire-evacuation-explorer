@@ -160,8 +160,8 @@ export function guidedUI(ctx) {
     $('g-tag').hidden = !tag; $('g-tag').innerHTML = tag;
     // One line on the map saying what the colors show, visible without opening the key (Eric, 2026-11-12).
     const runs = runsN();
-    const cap = !s ? '' : !d ? 'Red: cars backed up'
-      : g.focus ? `${g.focus.street}: where traffic backed up in these runs`
+    // A backup street tapped on Results shows before or after a run (the list reads the stored runs; Codex, PR #94).
+    const cap = g.focus ? `${g.focus.street}: where traffic backed up in these runs` : !s ? '' : !d ? 'Red: cars backed up'
       : g.chip === 'fire' ? `Streets embers reached across ${runs} runs of this fire`
       : g.chip === 'ways' ? `Ways out the fire front reached across ${runs} runs of this fire`
       : 'Engine drive time from the nearest station, this run';
@@ -169,7 +169,7 @@ export function guidedUI(ctx) {
     if (!d) $('g-sheet').hidden = true;
     mapLayers();
   }
-  $('g-run').onclick = () => { ctx.play(!state.playing); refresh(); };
+  $('g-run').onclick = () => { g.focus = null; ctx.play(!state.playing); refresh(); };
   $('g-again').onclick = () => { setup(); frameStart(); ctx.play(true); refresh(); };
   $('g-explore').onclick = () => show('results');
   $('g-chips').addEventListener('click', e => { const b = e.target.closest('[data-chip]'); if (!b) return; g.chip = b.dataset.chip; g.focus = null; refresh(); // a chip clears a backup street's highlight (Codex, PR #94)
@@ -282,7 +282,7 @@ export function guidedUI(ctx) {
       if (spread()) { map.streetMode = 'robust'; map.edgeClass = ctx.areaEdgeClasses(data, state.fire, [g.pace]); map.edgePalette = [...ctx.PALETTE.access]; map.edgePalette[0] = '#c8c8c8'; }
     } else { map.streetMode = 'engineTime'; map.layers.stations = true; }
     map.marks = g.applied.map(leverById).filter(Boolean).flatMap(marksOf);
-    if (g.focus && done()) for (const id of g.focus.edges) map.marks.push({ geom: data.net.edges[id].geom, kind: 'backup', focus: true });
+    if (g.focus) for (const id of g.focus.edges) map.marks.push({ geom: data.net.edges[id].geom, kind: 'backup', focus: true });
     map.draw(); ctx.legend();
   }
   // Outlines of the applied changes: rewritten or bought-out segments and new roads.

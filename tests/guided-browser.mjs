@@ -353,7 +353,11 @@ for (const [di, name] of DEVICES.entries()) {
   const e1 = await paceRun('eastWind', 'low', 'Slower');
   await shot('25-east-slower');
   check(q3[0] !== e1[0], `${name}: figures follow the fire and pace`);
-  await p.click('[data-pace="central"]'); await p.waitForTimeout(300);
+  // A pace change on Results starts a new run; tapping a backup street still frames, highlights and captions it (Codex, PR #94).
+  await p.click('#g-explore'); await p.click('[data-pace="central"]'); await p.waitForTimeout(300);
+  const st2 = (await p.locator('#g-panel .bk-row b').first().innerText()).trim();
+  await p.locator('#g-panel .bk-row').first().click(); await p.waitForTimeout(800);
+  check((await p.locator('#g-caption').innerText()).startsWith(st2) && await visible('#g-caption'), `${name}: before the new run ends, tapping ${st2} still captions and highlights it`);
 
   check(!errors.length, `${name}: no console errors${errors.length ? `: ${errors.slice(0, 3).join(' | ')}` : ''}`);
   console.log(`     heights: results ${hr.sh}/${hr.ch}, changes ${hc.sh}/${hc.ch}, comparison ${hcmp.sh}/${hcmp.ch}`);
