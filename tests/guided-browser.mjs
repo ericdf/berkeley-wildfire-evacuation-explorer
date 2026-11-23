@@ -293,7 +293,12 @@ for (const [di, name] of DEVICES.entries()) {
   const fitted = await dataset();
   check(fitted.follow === 'true' && !(await visible('#g-fit')) && fitted.starts.every(([x, y]) => x >= 0 && y >= 0 && x <= fitted.w && y <= fitted.h), `${name}: Fit restores the follow with the start in view`);
   await noScroll('after Fit');
-  await waitRunEnd(); await p.click('#g-explore');
+  // The follow stays on the fire: ordered zones count only within 1 km of it, so the view never widens to the city (Eric, 2026-11-23).
+  await p.evaluate(() => { const c = document.getElementById('map'); window.__ww = 0; window.__wt = setInterval(() => { if (document.getElementById('g-after').hidden) { const v = JSON.parse(c.dataset.view); window.__ww = Math.max(window.__ww, v[2] - v[0], v[3] - v[1]); } }, 100); });
+  await waitRunEnd();
+  const wwMax = await p.evaluate(() => { clearInterval(window.__wt); return Math.round(window.__ww); });
+  check(wwMax > 0 && wwMax <= 7000, `${name}: west-wind follow stays near the fire (widest side ${wwMax} m, at most 7,000)`);
+  await p.click('#g-explore');
   check((await p.locator('.rc').count()) === 6 && /West wind, Claremont Canyon/.test(await p.locator('#g-panel').innerText()), `${name}: west-wind fire results, 6 cards`);
   await noScroll('on west-wind results'); await shot('20-west-results');
   await p.click('[data-go="changes"] >> nth=0');
