@@ -145,7 +145,7 @@ for (const [di, name] of DEVICES.entries()) {
   const h3 = await bkH(), panelH = await p.evaluate(() => document.getElementById('g-panel').clientHeight);
   await p.click('#g-panel [data-explain-backups]');
   const bkx = await p.locator('#modal .gx').innerText();
-  check(/What it counts/.test(bkx) && /synthetic/.test(bkx) && /model rule/.test(bkx) && /Limits/.test(bkx), `${name}: backups Explain this gives what it counts, provenance and limits`);
+  check(/What it counts/.test(bkx) && /synthetic/.test(bkx) && /model rule/.test(bkx) && /assumption/.test(bkx) && /Limits/.test(bkx), `${name}: backups Explain this gives what it counts, provenance and limits`);
   await p.locator('#modal .close').click();
   await p.click('#g-panel [data-bk-more]'); const n5 = await p.locator('#g-panel .bk-row').count(), h5 = await bkH();
   await p.click('#g-panel [data-bk-more]'); const nAll = await p.locator('#g-panel .bk-row').count(), hAll = await bkH();
