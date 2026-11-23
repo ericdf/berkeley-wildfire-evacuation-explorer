@@ -55,9 +55,13 @@ for (const [di, name] of DEVICES.entries()) {
   await p.waitForTimeout(500);
   check(await p.evaluate(() => document.body.classList.contains('simple')), `${name}: opens in Guided view`);
   check(await visible('#g-run') && !(await visible('#g-chips')) && !(await visible('#g-after')), `${name}: map screen shows Run simulation only`);
+  // Status and official alerts link under the title; the status also tops the menu (Eric, 2026-11-23; SOURCE_NOTES GV15, GV16).
+  check(await visible('#g-status') && /Pending Berkeley Fire Department review/.test(await p.locator('#g-status').innerText()) && /everbridge\.net\/sign-up/.test(await p.locator('#g-status a').getAttribute('href')), `${name}: status and AC Alert link on the map screen`);
+  await p.click('#g-info'); check(/Status: pending Berkeley Fire Department review/.test(await p.locator('#g-menu').innerText()), `${name}: status line in the menu`); await p.click('#g-info');
   await noScroll('at load'); await shot('01-map');
 
-  // Run
+  // Run. Auto-zoom (MASTER, 2026-11-23; SOURCE_NOTES GV18): while the run plays the view only widens.
+  await p.evaluate(() => { const c = document.getElementById('map'); window.__views = []; window.__vt = setInterval(() => { if (document.getElementById('g-after').hidden) window.__views.push(JSON.parse(c.dataset.view)); }, 100); });
   await p.click('#g-run');
   await p.waitForTimeout(2500);
   check(await visible('#clock'), `${name}: clock over the map while running`);
@@ -65,6 +69,10 @@ for (const [di, name] of DEVICES.entries()) {
   await noScroll('while running');
   await shot('02-running');
   await waitRunEnd();
+  const views = await p.evaluate(() => { clearInterval(window.__vt); return window.__views; });
+  const narrowed = views.findIndex((v, i) => i && !(v[0] <= views[i - 1][0] + 1 && v[1] <= views[i - 1][1] + 1 && v[2] >= views[i - 1][2] - 1 && v[3] >= views[i - 1][3] - 1));
+  const widened = views.length > 1 && views.at(-1)[2] - views.at(-1)[0] > views[0][2] - views[0][0] + 1;
+  check(views.length > 10 && narrowed < 0 && widened, `${name}: during the run the view only widens (${views.length} samples, ${Math.round(views[0][2] - views[0][0])} m → ${Math.round(views.at(-1)[2] - views.at(-1)[0])} m across${narrowed >= 0 ? `, narrowed at sample ${narrowed}` : ''})`);
   check(await visible('#g-chips') && await visible('#g-explore') && await visible('#g-again') && !(await visible('#g-run')), `${name}: after the run, chips, Explore results and Run again`);
   await noScroll('after a run'); await shot('03-after-run-fire');
   check(/Streets embers reached across 15 runs of this fire/.test(await p.locator('#g-caption').innerText()), `${name}: caption after the run names the 15 runs`);
@@ -101,6 +109,7 @@ for (const [di, name] of DEVICES.entries()) {
   const chips = await p.locator('#g-panel .robust').allTextContents();
   check(chips.length === 6 && chips.every(t => /nearly every run|Depends on|Varies from run to run|Same in every run|None in nearly/.test(t)) && !chips.some(t => /^(Consistent|Sensitive|Mixed)$/.test(t)), `${name}: plain labels on results (${chips.join(' | ')})`);
   await p.locator('[data-explain="ember"]').click();
+  check(/Ember Threat Zones/.test(await p.locator('#modal .gx').innerText()) && await p.locator('#modal .gx a[href*="3c5e1686ebc543ffbdd1eb8698b51fe2"]').count() === 1, `${name}: embers Explain this notes the County's ember map`);
   check(await p.locator('#modal[open] .gx').isVisible(), `${name}: Explain this opens a pop-up`);
   const ex = await p.locator('#modal .gx').innerText();
   check(/What it counts/.test(ex) && /runs behind it/.test(ex) && /synthetic/.test(ex) && /Limits/.test(ex) && /run you watched/.test(ex), `${name}: the pop-up gives counts, runs, provenance, limits and the watched run`);
@@ -205,8 +214,24 @@ for (const [di, name] of DEVICES.entries()) {
   // The map frames the chosen fire: every start lies inside the map, clear of its edges (MASTER, 2026-11-13).
   const framed = await p.evaluate(() => { const c = document.getElementById('map'), r = c.getBoundingClientRect(), s = JSON.parse(c.dataset.starts || '[]');
     return { n: s.length, ok: s.every(([x, y]) => x >= 20 && y >= 20 && x <= r.width - 20 && y <= r.height - 20), s, w: Math.round(r.width), h: Math.round(r.height) }; });
+  const view = await p.evaluate(() => JSON.parse(document.getElementById('map').dataset.view || 'null'));
+  check(view && view[0] >= -1 && view[1] >= -1 && (view[2] <= view[4] + 1 || view[0] <= 1) && (view[3] <= view[5] + 1 || view[1] <= 1), `${name}: framed view stays on the terrain grid (${JSON.stringify(view)})`);
   check(framed.n > 0 && framed.ok, `${name}: west-wind fire's start inside the map (${JSON.stringify(framed.s)} in ${framed.w}×${framed.h})`);
-  await p.click('#g-run'); await waitRunEnd(); await p.click('#g-explore');
+  // A drag stops the follow for the run and shows Fit; Fit brings the starts back into view and follows again.
+  await p.click('#g-run'); await p.waitForTimeout(1500);
+  const mb = await p.locator("#map").boundingBox(), mx = mb.x + mb.width / 2, my = mb.y + mb.height / 2;
+  await p.mouse.move(mx, my); await p.mouse.down(); await p.mouse.move(mx + 120, my + 90, { steps: 6 }); await p.mouse.up();
+  const dataset = () => p.evaluate(() => { const c = document.getElementById('map'); return { view: c.dataset.view, follow: c.dataset.follow, starts: JSON.parse(c.dataset.starts || '[]'), w: c.clientWidth, h: c.clientHeight }; });
+  const panned = await dataset(); await p.waitForTimeout(3000); const later = await dataset();
+  check(panned.follow === 'false' && await visible('#g-fit'), `${name}: a drag stops auto-follow and shows Fit`);
+  // The view still reads as dragged (the map redraws, but the guided view no longer moves it).
+  const mapView = () => p.evaluate(() => { const c = document.getElementById('map'); return c.dataset.view; });
+  check(later.follow === 'false' && (await mapView()) === panned.view, `${name}: after a drag the view stays where the user put it`);
+  await p.click('#g-fit'); await p.waitForTimeout(900);
+  const fitted = await dataset();
+  check(fitted.follow === 'true' && !(await visible('#g-fit')) && fitted.starts.every(([x, y]) => x >= 0 && y >= 0 && x <= fitted.w && y <= fitted.h), `${name}: Fit restores the follow with the start in view`);
+  await noScroll('after Fit');
+  await waitRunEnd(); await p.click('#g-explore');
   check((await p.locator('.rc').count()) === 6 && /West wind, Claremont Canyon/.test(await p.locator('#g-panel').innerText()), `${name}: west-wind fire results, 6 cards`);
   await noScroll('on west-wind results'); await shot('20-west-results');
   await p.click('[data-go="changes"] >> nth=0');

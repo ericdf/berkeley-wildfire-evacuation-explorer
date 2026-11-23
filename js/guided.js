@@ -8,6 +8,7 @@
 // Figures come from data/model/mitigations.json and spread-access.json through js/guided-data.js.
 import { CARDS, GROUPS, cardById, makeGuided, sortItems, costLine, streetsOf, round10, SEVS, median, NETWORK_FIRES } from './guided-data.js';
 import { presence, direction, assumption, levelText, SEV_WORD } from './robust.js';
+import { CELL } from './fire.js';
 
 // Plain words for the three robustness labels (Eric, 2026-11-12, MASTER session; SOURCE_NOTES GV12). The rules are
 // js/robust.js's (SA4, SA6): consistent = at least 90% of the runs; sensitive = shares differ by 0.6 or more between
@@ -46,10 +47,13 @@ const MEANS = {
   sensitive: 'It depends mainly on an uncertain setting: the share of runs differs by 0.6 or more between low, medium and high fire severity, or the low- and high-severity values (or the two night parking rules) differ by 25% or more.',
 };
 const SCOPE = { this: 'this fire', any: 'any fire' };
+// Where the modeled embers go, against the County's ember map (Eric, 2026-11-23, MASTER session; SOURCE_NOTES FV11, GV14).
+const EMBER_MAP = 'https://berkeley.maps.arcgis.com/apps/mapviewer/index.html?webmap=3c5e1686ebc543ffbdd1eb8698b51fe2';
+const EMBER_NOTE = `The modeled embers follow each fire's start, wind, slope and fuel, not Alameda County's Ember Threat Zones: on four wildfires the two barely agree (rank correlation −0.22 over 7,853 cells, medium severity, measured 2026-11-23). <a href="${EMBER_MAP}" target="_blank" rel="noopener">The County's fire pathways and ember map ↗</a>`;
 
 export function guidedUI(ctx) {
   const { data, map, state, $, esc, fmt, FIRES, PRESETS, mit, spread, MEASURES, badge } = ctx;
-  const g = state.g = { more: {}, screen: 'map', chip: 'fire', applied: [], picked: [], sort: 'benefit', live: null, sel: null };
+  const g = state.g = { more: {}, screen: 'map', chip: 'fire', applied: [], picked: [], sort: 'benefit', live: null, sel: null, follow: true, anim: null, followSim: null, followT: -Infinity };
   let G = null;
   const model = () => G ??= makeGuided(mit(), spread(), PRESETS);
   const fireTitle = () => FIRES.find(f => f.id === state.fire)?.title || state.fire;
@@ -78,7 +82,7 @@ export function guidedUI(ctx) {
     state.fire = id; ctx.store.set('bhe-fire', id);
     cancelLive(); g.applied = []; g.sel = null;
     g.picked = g.picked.filter(id => !model().withheld(state.fire, id)); // withheld on the new fire (P19)
-    setup(); frame(); show('map');
+    setup(); frameStart(); show('map');
   }
   // Today's plan, or today's plan with the applied changes, on the chosen fire (js/main.js guidedRun).
   function setup() { fireSel.value = state.fire; ctx.setupRun(g.applied.map(leverById).filter(Boolean)); }
@@ -117,24 +121,99 @@ export function guidedUI(ctx) {
     mapLayers();
   }
   $('g-run').onclick = () => { ctx.play(!state.playing); refresh(); };
-  $('g-again').onclick = () => { setup(); ctx.play(true); refresh(); };
+  $('g-again').onclick = () => { setup(); frameStart(); ctx.play(true); refresh(); };
   $('g-explore').onclick = () => show('results');
   $('g-chips').addEventListener('click', e => { const b = e.target.closest('[data-chip]'); if (!b) return; g.chip = b.dataset.chip; refresh(); if (g.sel) sheet(g.sel); });
 
-  // Frame the chosen fire: its starts and the streets its embers reached in any of the 15 stored runs
-  // (spread-access.json), with a margin; the hills (Fire Zones 2–3) until that table loads.
-  function frame() {
-    const S = spread()?.streets?.[state.fire], sc = state.sim?.scenario, pts = [];
-    if (S) for (const s of SEVS) { const d = S[s]?.ember || ''; for (let e = 0; e < d.length; e++) if (d[e] !== '0' && data.edgeMid[e]) pts.push(data.edgeMid[e]); }
-    if (sc) pts.push(...(typeof sc.ignitions === 'function' ? sc.ignitions(1) : sc.ignitions ?? [sc.ignition]).filter(Boolean));
-    if (pts.length < 2) pts.push(...(data.layers.fireZones || []).filter(z => z.zone >= 2).flatMap(z => z.rings.flat()));
-    if (!pts.length) return map.fit();
-    const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]), pad = 400;
-    map.fit([Math.min(...xs) - pad, Math.min(...ys) - pad, Math.max(...xs) + pad, Math.max(...ys) + pad]);
-    // The starts' screen positions, for tests/guided-browser.mjs (every start inside the map).
-    const starts = sc ? (typeof sc.ignitions === 'function' ? sc.ignitions(1) : sc.ignitions ?? [sc.ignition]).filter(Boolean) : [];
-    map.cv.dataset.starts = JSON.stringify(starts.map(([x, y]) => [Math.round(map.sx(x)), Math.round(map.sy(y))]));
+  // ---------- map view: framing and auto-zoom (MASTER, 2026-11-23; SOURCE_NOTES GV18) ----------
+  // Before a run the map frames the fire's starts and START_PAD meters around them, the nearest homes and streets.
+  // During the run the view widens, never narrows, to keep the burned and ember cells and the ordered or warned zones in
+  // view: checked every FOLLOW_EVERY model seconds and eased over EASE_MS. A drag, wheel or pinch stops the follow for
+  // the run; Fit brings it back. After the run it frames the 15-run extent (summaryExt). The earthquake fire starts
+  // across the city, so it shows the whole city throughout. Every view stays on the terrain grid (no blank strip past
+  // its edge); the framed points stay in view, since they lie on the grid.
+  const CITY = [1500, 1200, 10300, 7600], START_PAD = 1200, FOLLOW_PAD = 300, FOLLOW_EVERY = 180, EASE_MS = 500;
+  const quake = () => !!NETWORK_FIRES[state.fire];
+  const startsOf = () => { const sc = state.sim?.scenario; return sc ? (typeof sc.ignitions === 'function' ? sc.ignitions(1) : sc.ignitions ?? [sc.ignition]).filter(Boolean) : []; };
+  const grow = (b, x0, y0, x1 = x0, y1 = y0) => b ? [Math.min(b[0], x0), Math.min(b[1], y0), Math.max(b[2], x1), Math.max(b[3], y1)] : [x0, y0, x1, y1];
+  const pad = (b, m) => b && [b[0] - m, b[1] - m, b[2] + m, b[3] + m];
+  const inside = (a, b) => a[0] >= b[0] - 1 && a[1] >= b[1] - 1 && a[2] <= b[2] + 1 && a[3] <= b[3] + 1;
+  const viewNow = () => [map.wx(0), map.wy(map.h), map.wx(map.w), map.wy(0)];
+  // The visible extent that fits ext, kept on the terrain grid.
+  function viewFor(ext) {
+    const s = Math.min(map.w / (ext[2] - ext[0]), map.h / (ext[3] - ext[1])) * 0.95, hw = map.w / s / 2, hh = map.h / s / 2;
+    let cx = (ext[0] + ext[2]) / 2, cy = (ext[1] + ext[3]) / 2;
+    const T = data.net.meta.terrain, clamp = (c, half, hi) => 2 * half >= hi ? hi / 2 : Math.min(Math.max(c, half), hi - half);
+    if (T?.xmax && T?.ymax) { cx = clamp(cx, hw, T.xmax); cy = clamp(cy, hh, T.ymax); }
+    return [cx - hw, cy - hh, cx + hw, cy + hh];
   }
+  function apply(v) { map.scale = map.w / (v[2] - v[0]); map.cx = (v[0] + v[2]) / 2; map.cy = (v[1] + v[3]) / 2; stamp(); }
+  // For tests/guided-browser.mjs: the starts' screen positions and whether the view follows (js/map.js stamps the view).
+  function stamp() {
+    map.cv.dataset.starts = JSON.stringify(startsOf().map(([x, y]) => [Math.round(map.sx(x)), Math.round(map.sy(y))]));
+    map.cv.dataset.follow = String(g.follow);
+    $('g-fit').hidden = g.follow;
+  }
+  // Move to the view that fits ext, at once or eased. Easing moves each edge of the view in a straight line, so a view
+  // that contains the current one only ever widens on the way.
+  function goTo(ext, ease) {
+    if (g.anim) cancelAnimationFrame(g.anim); g.anim = null;
+    const to = viewFor(ext);
+    if (!ease || !map.w) { apply(to); map.draw(); return; }
+    const from = viewNow(), t0 = performance.now();
+    const step = now => {
+      const u = Math.min(1, (now - t0) / EASE_MS), e = u < 0.5 ? 2 * u * u : 1 - (2 - 2 * u) ** 2 / 2;
+      apply(from.map((a, k) => a + (to[k] - a) * e)); if (!state.playing) map.draw();
+      g.anim = u < 1 ? requestAnimationFrame(step) : null;
+    };
+    g.anim = requestAnimationFrame(step);
+  }
+  // The starts and START_PAD around them; the whole city for the earthquake.
+  function startExt() {
+    if (quake()) return CITY;
+    let b = null; for (const [x, y] of startsOf()) b = grow(b, x, y);
+    return b ? pad(b, START_PAD) : summaryExt();
+  }
+  // The chosen fire's starts and the streets its embers reached in any of the 15 stored runs (spread-access.json), with
+  // a margin; the hills (Fire Zones 2–3) until that table loads.
+  function summaryExt() {
+    if (quake()) return CITY;
+    const S = spread()?.streets?.[state.fire]; let b = null, n = 0;
+    const add = ([x, y]) => { b = grow(b, x, y); n++; };
+    if (S) for (const s of SEVS) { const d = S[s]?.ember || ''; for (let e = 0; e < d.length; e++) if (d[e] !== '0' && data.edgeMid[e]) add(data.edgeMid[e]); }
+    startsOf().forEach(add);
+    if (n < 2) for (const z of data.layers.fireZones || []) if (z.zone >= 2) z.rings.flat().forEach(add);
+    return b ? pad(b, 400) : CITY;
+  }
+  // What the follow keeps in view at model time sim.t: burned and ember cells, and zones ordered or warned by then.
+  function followExt(sim) {
+    const f = sim.fire, tMin = sim.t / 60; let b = null;
+    if (f?.arrival) for (let i = 0, N = f.W * f.H; i < N; i++) if (f.arrival[i] <= tMin || f.ember[i] <= tMin) { const x = (i % f.W + 0.5) * CELL, y = (Math.floor(i / f.W) + 0.5) * CELL; b = grow(b, x, y); }
+    b = pad(b, FOLLOW_PAD);
+    map.zoneShapes.forEach(({ bb }, z) => { if (sim.orderT?.[z] <= sim.t || sim.warnT?.[z] <= sim.t) b = grow(b, ...bb); });
+    const T = data.net.meta.terrain;
+    if (b && T?.xmax && T?.ymax) b = [Math.max(0, b[0]), Math.max(0, b[1]), Math.min(T.xmax, b[2]), Math.min(T.ymax, b[3])];
+    return b;
+  }
+  function frameStart(ease) { g.follow = true; g.followSim = null; goTo(startExt(), ease); }
+  function frameSummary(ease) { goTo(summaryExt(), ease); }
+  // Called every animation frame while a run plays (js/main.js loop).
+  function tick() {
+    const sim = state.sim; if (!g.follow || !sim || quake() || !simple()) return;
+    if (g.followSim !== sim) { g.followSim = sim; g.followT = -Infinity; }
+    if (sim.t - g.followT < FOLLOW_EVERY) return; g.followT = sim.t;
+    const need = followExt(sim), v = viewNow(); if (!need || inside(need, v)) return;
+    let u = grow(v, need[0], need[1], need[2], need[3]); const m = 0.05 * Math.max(u[2] - u[0], u[3] - u[1]); // a little slack, so it does not step every check
+    u = pad(u, m); goTo(u, true);
+  }
+  // A drag, wheel or pinch on the map (js/map.js onUserView) stops the follow until Fit, Run again or another fire.
+  map.onUserView = () => { if (!simple()) return; if (g.anim) cancelAnimationFrame(g.anim); g.anim = null; g.follow = false; stamp(); };
+  $('g-fit').onclick = () => {
+    g.follow = true;
+    if (done()) return frameSummary(true);
+    const need = started() && state.sim ? followExt(state.sim) : null, s = startExt();
+    goTo(need ? grow(s, need[0], need[1], need[2], need[3]) : s, true); g.followSim = state.sim; g.followT = state.sim?.t ?? -Infinity;
+  };
 
   // ---------- map layers ----------
   const BASE = { terrain: true, contours: true, streets: true, paths: false, evacZones: false, fireZones: false, neighborhoods: false, fire1923: false, cityBoundary: true, stations: false, noParking: false, tightTurns: false, access: false, demand: false, structures: false, fire: false, vehicles: false, queues: false, responder: false };
@@ -170,7 +249,7 @@ export function guidedUI(ctx) {
     if (!done()) return fireKey + sw('#7f1d1d', 'Cars backed up (over the last few minutes)');
     const runs = mit() ? mit().meta.severities.length * mit().meta.seeds.length : 15;
     // Plain words for the robustness classes (GV12); the precise rule is in the street card and Explain this pop-ups.
-    if (g.chip === 'fire') { const P = ctx.PALETTE.spread; return `<b>Embers reached the street, in ${runs} runs</b>${sw(P[4], 'Reached in nearly every run')}${sw(P[3], 'Depends on fire strength')}${sw(P[2], 'Reached in some runs, by chance')}${sw(P[1], 'Not reached in any run, or nearly none')}${fireKey}`; }
+    if (g.chip === 'fire') { const P = ctx.PALETTE.spread; return `<b>Embers reached the street, in ${runs} runs</b>${sw(P[4], 'Reached in nearly every run')}${sw(P[3], 'Depends on fire strength')}${sw(P[2], 'Reached in some runs, by chance')}${sw(P[1], 'Not reached in any run, or nearly none')}${fireKey}<div class="small muted">${EMBER_NOTE}</div>`; }
     if (g.chip === 'ways') { const P = ctx.PALETTE.access; return `<b>Streets with one way out: did the fire front reach it? In ${runs} runs</b>${g.applied.length ? '<div class="small muted">Today\'s street network, without your changes.</div>' : ''}${sw(P[4], 'Reached in nearly every run')}${sw(P[3], 'Depends on fire strength')}${sw(P[2], 'Reached in some runs, by chance')}${sw(P[1], 'Not reached in any run, or nearly none')}${sw('#c8c8c8', 'More than one way out')}`; }
     const m = data.A.access.engineServiceMin;
     return `<b>Engine drive time from the nearest station</b>${sw('#2f8a4a', `Within ${m} min`)}${sw('#e0a21e', `${m}–8 min`)}${sw('#c0262d', 'Over 8 min')}${sw('#7f1d1d', 'No engine route')}<div class="small muted">At ignition, with this run's parked cars.</div>`;
@@ -188,6 +267,7 @@ export function guidedUI(ctx) {
     if (g.chip === 'fire' && SA && sel.id < SA.meta.edges) {
       for (const [m, w] of [['ember', 'Embers'], ['front', 'The fire front']]) { const p = presence(ctx.edgeClasses(state.fire, m).levels(sel.id)); lines.push(`${w} reached it in ${p.k} of ${p.n} runs (${levelText(p.levels)}). ${chipHTML(p, 'reach')}`); }
       src.push(['Runs reached', 'model rule', 'The illustrative fire model run on this fire\'s ignition and wind; a street counts when embers or the front reach the 30 m cell at its middle (data/model/spread-access.json). The fire does not depend on the plan.']);
+      lines.push(`<span class="small">${EMBER_NOTE}</span>`);
     } else if (g.chip === 'ways') {
       // Single ways out are today's street network (data/model/access-constraints.json); a new road you applied is not in it.
       if (g.applied.length) lines.push('<i>Today\'s street network and plan, without your changes.</i>');
@@ -276,6 +356,7 @@ export function guidedUI(ctx) {
       <h3>${chipHTML(L, c.id === 'oneWay' ? 'network' : 'result')}</h3><p>${label}</p>
       ${splitExplain(c)}
       <h3>Where it comes from</h3><p>${cat}</p>
+      ${c.id === 'ember' ? `<h3>Where the embers go</h3><p>${EMBER_NOTE}</p>` : ''}
       <h3>Limits</h3><p>${c.id === 'engine' && NETWORK_FIRES[state.fire] ? c.limits.replace(' The same on every fire.', ' Here it differs from the other fires: the earthquake closes the streets that cross the fault to engines.') : c.limits}</p>
       ${w != null ? `<h3>The run you watched</h3><p>${n(w)} (medium severity, seed 1)${g.applied.length ? ', with your changes' : ''}.</p>` : ''}</div>`, 'gx');
   }
@@ -441,16 +522,17 @@ export function guidedUI(ctx) {
     P.querySelector('[data-clear]')?.addEventListener('click', () => { g.picked = []; rerender(); });
     P.querySelector('[data-runpicks]')?.addEventListener('click', () => {
       g.applied = [...g.picked]; g.sel = null; map.selected = null;
-      setup(); startLive(); show('map'); ctx.play(true); refresh();
+      setup(); frameStart(); startLive(); show('map'); ctx.play(true); refresh();
     });
   }
   function rerender() { const y = $('g-panel').scrollTop; show(g.screen); $('g-panel').scrollTop = y; }
 
   return {
-    enter() { G = null; map.barriers = false; map.queueSmooth = true; setup(); frame(); show(g.screen === 'map' ? 'map' : g.screen); },
+    enter() { G = null; map.barriers = false; map.queueSmooth = true; setup(); if (done()) frameSummary(); else frameStart(); show(g.screen === 'map' ? 'map' : g.screen); },
     leave() { map.barriers = true; map.queueSmooth = false; map.marks = []; },
     refresh, legendHTML, sheet, pickFire,
-    onRunEnd() { g.chip = 'fire'; refresh(); },
+    onRunEnd() { g.chip = 'fire'; refresh(); if (g.follow) frameSummary(true); },
+    tick,
     onRunStart() { $('g-sheet').hidden = true; refresh(); },
   };
 }
