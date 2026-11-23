@@ -8,7 +8,7 @@ import { reshuffle } from './guidance.js';
 import { dataFor } from './levers.js';
 
 let data, grid, scenarios;
-const ready = (async () => { data = await loadData(); grid = buildFireGrid(data); scenarios = makeScenarios(data); })();
+const ready = (async () => { data = await loadData(undefined, { lite: true }); await data.deferred; grid = buildFireGrid(data); scenarios = makeScenarios(data); })();
 const fires = new Map();
 const cancelled = new Set(); // batches the page no longer wants (a closed comparison)
 
