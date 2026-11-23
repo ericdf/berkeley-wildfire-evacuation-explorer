@@ -46,6 +46,9 @@ const MEANS = {
   sensitive: 'It depends mainly on an uncertain setting: the share of runs differs by 0.6 or more between low, medium and high fire severity, or the low- and high-severity values (or the two night parking rules) differ by 25% or more.',
 };
 const SCOPE = { this: 'this fire', any: 'any fire' };
+// Where the modeled embers go, against the County's ember map (Eric, 2026-11-23, MASTER session; SOURCE_NOTES FV11, GV14).
+const EMBER_MAP = 'https://berkeley.maps.arcgis.com/apps/mapviewer/index.html?webmap=3c5e1686ebc543ffbdd1eb8698b51fe2';
+const EMBER_NOTE = `The modeled embers follow each fire's start, wind, slope and fuel, not Alameda County's Ember Threat Zones: on the four wildfires the two barely agree (rank correlation −0.20 over 7,853 cells, medium severity). <a href="${EMBER_MAP}" target="_blank" rel="noopener">The County's fire pathways and ember map ↗</a>`;
 
 export function guidedUI(ctx) {
   const { data, map, state, $, esc, fmt, FIRES, PRESETS, mit, spread, MEASURES, badge } = ctx;
@@ -131,8 +134,13 @@ export function guidedUI(ctx) {
     if (!pts.length) return map.fit();
     const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]), pad = 400;
     map.fit([Math.min(...xs) - pad, Math.min(...ys) - pad, Math.max(...xs) + pad, Math.max(...ys) + pad]);
+    // Keep the view on the terrain grid (no blank strip past its edge); the framed points stay in view, since they lie
+    // on the grid and the view is wider than their extent (MASTER, 2026-11-23).
+    const T = data.net.meta.terrain, clamp = (c, half, hi) => 2 * half >= hi ? hi / 2 : Math.min(Math.max(c, half), hi - half);
+    if (T?.xmax && T?.ymax) { map.cx = clamp(map.cx, map.w / map.scale / 2, T.xmax); map.cy = clamp(map.cy, map.h / map.scale / 2, T.ymax); }
     // The starts' screen positions, for tests/guided-browser.mjs (every start inside the map).
     const starts = sc ? (typeof sc.ignitions === 'function' ? sc.ignitions(1) : sc.ignitions ?? [sc.ignition]).filter(Boolean) : [];
+    map.cv.dataset.view = JSON.stringify([map.wx(0), map.wy(map.h), map.wx(map.w), map.wy(0), T?.xmax ?? null, T?.ymax ?? null].map(Math.round));
     map.cv.dataset.starts = JSON.stringify(starts.map(([x, y]) => [Math.round(map.sx(x)), Math.round(map.sy(y))]));
   }
 
@@ -170,7 +178,7 @@ export function guidedUI(ctx) {
     if (!done()) return fireKey + sw('#7f1d1d', 'Cars backed up (over the last few minutes)');
     const runs = mit() ? mit().meta.severities.length * mit().meta.seeds.length : 15;
     // Plain words for the robustness classes (GV12); the precise rule is in the street card and Explain this pop-ups.
-    if (g.chip === 'fire') { const P = ctx.PALETTE.spread; return `<b>Embers reached the street, in ${runs} runs</b>${sw(P[4], 'Reached in nearly every run')}${sw(P[3], 'Depends on fire strength')}${sw(P[2], 'Reached in some runs, by chance')}${sw(P[1], 'Not reached in any run, or nearly none')}${fireKey}`; }
+    if (g.chip === 'fire') { const P = ctx.PALETTE.spread; return `<b>Embers reached the street, in ${runs} runs</b>${sw(P[4], 'Reached in nearly every run')}${sw(P[3], 'Depends on fire strength')}${sw(P[2], 'Reached in some runs, by chance')}${sw(P[1], 'Not reached in any run, or nearly none')}${fireKey}<div class="small muted">${EMBER_NOTE}</div>`; }
     if (g.chip === 'ways') { const P = ctx.PALETTE.access; return `<b>Streets with one way out: did the fire front reach it? In ${runs} runs</b>${g.applied.length ? '<div class="small muted">Today\'s street network, without your changes.</div>' : ''}${sw(P[4], 'Reached in nearly every run')}${sw(P[3], 'Depends on fire strength')}${sw(P[2], 'Reached in some runs, by chance')}${sw(P[1], 'Not reached in any run, or nearly none')}${sw('#c8c8c8', 'More than one way out')}`; }
     const m = data.A.access.engineServiceMin;
     return `<b>Engine drive time from the nearest station</b>${sw('#2f8a4a', `Within ${m} min`)}${sw('#e0a21e', `${m}–8 min`)}${sw('#c0262d', 'Over 8 min')}${sw('#7f1d1d', 'No engine route')}<div class="small muted">At ignition, with this run's parked cars.</div>`;
@@ -188,6 +196,7 @@ export function guidedUI(ctx) {
     if (g.chip === 'fire' && SA && sel.id < SA.meta.edges) {
       for (const [m, w] of [['ember', 'Embers'], ['front', 'The fire front']]) { const p = presence(ctx.edgeClasses(state.fire, m).levels(sel.id)); lines.push(`${w} reached it in ${p.k} of ${p.n} runs (${levelText(p.levels)}). ${chipHTML(p, 'reach')}`); }
       src.push(['Runs reached', 'model rule', 'The illustrative fire model run on this fire\'s ignition and wind; a street counts when embers or the front reach the 30 m cell at its middle (data/model/spread-access.json). The fire does not depend on the plan.']);
+      lines.push(`<span class="small">${EMBER_NOTE}</span>`);
     } else if (g.chip === 'ways') {
       // Single ways out are today's street network (data/model/access-constraints.json); a new road you applied is not in it.
       if (g.applied.length) lines.push('<i>Today\'s street network and plan, without your changes.</i>');
@@ -276,6 +285,7 @@ export function guidedUI(ctx) {
       <h3>${chipHTML(L, c.id === 'oneWay' ? 'network' : 'result')}</h3><p>${label}</p>
       ${splitExplain(c)}
       <h3>Where it comes from</h3><p>${cat}</p>
+      ${c.id === 'ember' ? `<h3>Where the embers go</h3><p>${EMBER_NOTE}</p>` : ''}
       <h3>Limits</h3><p>${c.id === 'engine' && NETWORK_FIRES[state.fire] ? c.limits.replace(' The same on every fire.', ' Here it differs from the other fires: the earthquake closes the streets that cross the fault to engines.') : c.limits}</p>
       ${w != null ? `<h3>The run you watched</h3><p>${n(w)} (medium severity, seed 1)${g.applied.length ? ', with your changes' : ''}.</p>` : ''}</div>`, 'gx');
   }

@@ -542,7 +542,9 @@ export class MapView {
     const x1 = X - Math.sin(to) * L - 20, y1 = Y + Math.cos(to) * L, x2 = X - 20, y2 = Y;
     ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
     ctx.beginPath(); ctx.arc(x2, y2, 3, 0, 7); ctx.fillStyle = '#0f172a'; ctx.fill();
-    ctx.font = '11px system-ui, sans-serif'; ctx.fillText(`wind ${now.windMph} mph`, x1, y1 - 4);
+    ctx.font = '11px system-ui, sans-serif';
+    const label = `wind ${now.windMph} mph`, tw = ctx.measureText(label).width; // kept inside the map
+    ctx.fillText(label, Math.min(Math.max(4, x1), this.w - tw - 4), Math.min(Math.max(14, y1 - 4), this.h - 4));
   }
   drawSelection() {
     const { ctx, selected } = this; if (!selected) return;

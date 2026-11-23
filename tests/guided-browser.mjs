@@ -55,6 +55,9 @@ for (const [di, name] of DEVICES.entries()) {
   await p.waitForTimeout(500);
   check(await p.evaluate(() => document.body.classList.contains('simple')), `${name}: opens in Guided view`);
   check(await visible('#g-run') && !(await visible('#g-chips')) && !(await visible('#g-after')), `${name}: map screen shows Run simulation only`);
+  // Status and official alerts link under the title; the status also tops the menu (Eric, 2026-11-23; SOURCE_NOTES GV15, GV16).
+  check(await visible('#g-status') && /Pending Berkeley Fire Department review/.test(await p.locator('#g-status').innerText()) && /everbridge\.net\/sign-up/.test(await p.locator('#g-status a').getAttribute('href')), `${name}: status and AC Alert link on the map screen`);
+  await p.click('#g-info'); check(/Status: pending Berkeley Fire Department review/.test(await p.locator('#g-menu').innerText()), `${name}: status line in the menu`); await p.click('#g-info');
   await noScroll('at load'); await shot('01-map');
 
   // Run
@@ -101,6 +104,7 @@ for (const [di, name] of DEVICES.entries()) {
   const chips = await p.locator('#g-panel .robust').allTextContents();
   check(chips.length === 6 && chips.every(t => /nearly every run|Depends on|Varies from run to run|Same in every run|None in nearly/.test(t)) && !chips.some(t => /^(Consistent|Sensitive|Mixed)$/.test(t)), `${name}: plain labels on results (${chips.join(' | ')})`);
   await p.locator('[data-explain="ember"]').click();
+  check(/Ember Threat Zones/.test(await p.locator('#modal .gx').innerText()) && await p.locator('#modal .gx a[href*="3c5e1686ebc543ffbdd1eb8698b51fe2"]').count() === 1, `${name}: embers Explain this notes the County's ember map`);
   check(await p.locator('#modal[open] .gx').isVisible(), `${name}: Explain this opens a pop-up`);
   const ex = await p.locator('#modal .gx').innerText();
   check(/What it counts/.test(ex) && /runs behind it/.test(ex) && /synthetic/.test(ex) && /Limits/.test(ex) && /run you watched/.test(ex), `${name}: the pop-up gives counts, runs, provenance, limits and the watched run`);
@@ -205,6 +209,8 @@ for (const [di, name] of DEVICES.entries()) {
   // The map frames the chosen fire: every start lies inside the map, clear of its edges (MASTER, 2026-11-13).
   const framed = await p.evaluate(() => { const c = document.getElementById('map'), r = c.getBoundingClientRect(), s = JSON.parse(c.dataset.starts || '[]');
     return { n: s.length, ok: s.every(([x, y]) => x >= 20 && y >= 20 && x <= r.width - 20 && y <= r.height - 20), s, w: Math.round(r.width), h: Math.round(r.height) }; });
+  const view = await p.evaluate(() => JSON.parse(document.getElementById('map').dataset.view || 'null'));
+  check(view && view[0] >= -1 && view[1] >= -1 && (view[2] <= view[4] + 1 || view[0] <= 1) && (view[3] <= view[5] + 1 || view[1] <= 1), `${name}: framed view stays on the terrain grid (${JSON.stringify(view)})`);
   check(framed.n > 0 && framed.ok, `${name}: west-wind fire's start inside the map (${JSON.stringify(framed.s)} in ${framed.w}×${framed.h})`);
   await p.click('#g-run'); await waitRunEnd(); await p.click('#g-explore');
   check((await p.locator('.rc').count()) === 6 && /West wind, Claremont Canyon/.test(await p.locator('#g-panel').innerText()), `${name}: west-wind fire results, 6 cards`);
