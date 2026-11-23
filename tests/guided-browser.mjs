@@ -81,7 +81,10 @@ for (const [di, name] of DEVICES.entries()) {
   check(await visible('#g-chips') && await visible('#g-explore') && await visible('#g-again') && !(await visible('#g-run')), `${name}: after the run, chips, Explore results and Run again`);
   await noScroll('after a run'); await shot('03-after-run-fire');
   check(/Streets embers reached across 5 runs of this fire/.test(await p.locator('#g-caption').innerText()), `${name}: caption after the run names the 5 runs at the pace`);
-  check(/in 5 runs at 1923 pace/.test(await p.locator("#legend").textContent()), `${name}: map key names the pace`);
+  const keyOpen = async () => { const t = p.locator('#legend .key-toggle'); if (await t.count() && /▸/.test(await t.innerText())) { await t.click(); await p.waitForTimeout(150); return true; } return false; };
+  const opened = await keyOpen();
+  check(/in 5 runs at 1923 pace/.test(await p.locator('#legend').textContent()), `${name}: map key names the pace`);
+  if (opened) { await p.locator('#legend .key-toggle').click(); await p.waitForTimeout(150); }
   await p.click('[data-chip="ways"]'); await p.waitForTimeout(300); await shot('04-chip-ways');
   await p.click('[data-chip="engine"]'); await p.waitForTimeout(300); await shot('05-chip-engine');
   await p.click('[data-chip="fire"]'); await p.waitForTimeout(300);
