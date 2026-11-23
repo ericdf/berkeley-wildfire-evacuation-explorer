@@ -28,15 +28,32 @@ for (let run = 0; run < RUNS; run++) {
   const p = await ctx.newPage();
   const cdp = await ctx.newCDPSession(p);
   await cdp.send('Network.enable');
-  await cdp.send('Network.setCacheDisabled', { cacheDisabled: true });
+  // No cache override: each run is a fresh context (empty cache), and the worker's re-reads of the page's files come
+  // from that cache, as on a phone.
   await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: prof.latency, downloadThroughput: prof.down / 8, uploadThroughput: prof.up / 8 });
+  // Every request the page and its worker make (Playwright context events include the dedicated worker's), with the
+  // bytes sent over the wire: response headers + encoded body; a request answered from the browser cache (the worker
+  // re-reading files the page already fetched) transfers nothing and counts 0.
   const reqs = new Map(), t0 = Date.now();
-  cdp.on('Network.requestWillBeSent', e => reqs.set(e.requestId, { url: e.request.url, start: Date.now() - t0 }));
-  cdp.on('Network.loadingFinished', e => { const r = reqs.get(e.requestId); if (r) { r.bytes = e.encodedDataLength; r.end = Date.now() - t0; } });
+  ctx.on('request', r => reqs.set(r, { url: r.url(), start: Date.now() - t0 }));
+  ctx.on('requestfinished', async r => {
+    const o = reqs.get(r); if (!o) return;
+    const z = await r.sizes().catch(() => null);
+    o.bytes = z && z.responseBodySize >= 0 ? z.responseBodySize + z.responseHeadersSize : 0; o.end = Date.now() - t0;
+  });
+  ctx.on('requestfailed', r => { const o = reqs.get(r); if (o) { o.failed = r.failure()?.errorText || 'failed'; o.end = Date.now() - t0; } });
   await p.goto(URL, { waitUntil: 'commit' });
   await p.waitForSelector('#loading', { state: 'detached', timeout: 600000 });
   const ready = Date.now() - t0;
-  await p.waitForTimeout(1500); // files fetched just after the map shows
+  // Then every download the page and worker start: wait until none is outstanding for 2 s (the deferred Expert files
+  // start after the map shows and take several seconds on a throttled link), so the total counts them all (Codex on #91).
+  for (let quiet = 0, t = 0; quiet < 2000; t += 250) {
+    if (t > 600000) throw new Error(`downloads still outstanding after 10 min: ${[...reqs.values()].filter(r => r.end == null).map(r => r.url).join(', ')}`);
+    await p.waitForTimeout(250);
+    quiet = [...reqs.values()].some(r => r.end == null) ? 0 : quiet + 250;
+  }
+  const failed = [...reqs.values()].filter(r => r.failed);
+  if (failed.length) console.log(`  ${failed.length} request(s) failed: ${failed.map(r => `${r.url} (${r.failed})`).join(', ')}`);
   const files = [...reqs.values()].filter(r => r.bytes != null).map(r => ({ file: r.url.replace(URL, '').split('?')[0] || 'index.html', bytes: r.bytes, before: r.end <= ready }));
   results.push({ ready, total: files.reduce((s, f) => s + f.bytes, 0), beforeReady: files.filter(f => f.before).reduce((s, f) => s + f.bytes, 0), files });
   await ctx.close();
