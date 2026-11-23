@@ -95,7 +95,7 @@ function runOne(E, j) {
     if (!bpm[e] || !(data.net.edges[e].fireZone >= 2)) continue;
     const z = zi.get(data.net.edges[e].evacZone);
     if (z == null || !(sim.orderT[z] <= end || sim.warnT[z] <= end)) continue;
-    backup[e] = [Math.round(bpm[e]), Math.round(bpk[e] * 10) / 10];
+    backup[e] = [Math.round(bpm[e]), Math.round(bpk[e])]; // whole person-minutes and people (load size, PR #91)
   }
   // Areas: entrance (choke) timing, residents behind who had not left when the front reached it.
   const areas = {};
