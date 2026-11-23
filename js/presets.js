@@ -24,7 +24,7 @@ const PANORAMIC_UNORDERED = 'Most of those still there live in Berkeley zones th
 
 // Leaving early rests on a warning issued ahead of forecast fire weather (a Red Flag Warning or an Extreme Fire Weather
 // declaration); an earthquake comes without one, so both leave-early changes are withheld on the earthquake fire
-// (MASTER, 2026-11-23, pending Eric; SOURCE_NOTES GV22).
+// (MASTER, 2026-11-23, pending Eric; SOURCE_NOTES GV24).
 export const QUAKE_NO_WARNING = 'earthquakes come without warning: leaving early applies only if one strikes on a declared fire-weather day, and the runs assume one did.';
 // Changes in the Guided view with no question of their own, withheld on a fire (read with PRESETS off by js/guided-data.js).
 export const LEVER_OFF = { leaveEarlyEFW: { quake: QUAKE_NO_WARNING } };
