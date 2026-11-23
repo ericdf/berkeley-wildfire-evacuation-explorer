@@ -3,7 +3,7 @@
 // docs/access-constraints.md). Residents, households and vehicles are synthetic.
 import { ACCESS_BINS } from './map.js';
 
-const SYNTH_NOTE = 'Residents are synthetic: each evacuation zone\'s population spread over its streets by length. A model result, not a list of homes, not a prediction and not an official evacuation plan.';
+const SYNTH_NOTE = 'Residents are synthetic: each evacuation zone\'s population spread over its streets by length, not a list of homes.';
 const fzLabel = k => k === '0' ? 'no zone' : `FZ${k}`;
 const pct = x => `${Math.round(x * 100)}%`;
 const ONE_WAY = 'n/a: two-way operation of the entrance would open it';
@@ -60,7 +60,7 @@ export function accessSummary(data, { badge, fmt }) {
   const T = data.access.totals;
   const hill = 'Hill: a street in City Fire Zone 2 or 3, or outside Berkeley at 90 m elevation or higher. Synthetic residents from zone populations; choke points derived from the street network.';
   return `<div>Hill residents behind a choke point: <b>${fmt(T.hillResidentsBehindAnyChoke)} of ${fmt(T.modeledHillResidents)}</b>${badge('synthetic', hill)}</div>
-  <div class="muted">Berkeley and LBNL zones: ${fmt(T.berkeleyHillResidentsBehindAnyChoke)} of ${fmt(T.berkeleyHillResidents)}. A model result, not a prediction.</div>
+  <div class="muted">Berkeley and LBNL zones: ${fmt(T.berkeleyHillResidentsBehindAnyChoke)} of ${fmt(T.berkeleyHillResidents)}.</div>
   <a href="#" id="access-table-link">Table of the top areas</a>`;
 }
 

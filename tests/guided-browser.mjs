@@ -58,7 +58,11 @@ for (const [di, name] of DEVICES.entries()) {
   check(await visible('#g-run') && !(await visible('#g-chips')) && !(await visible('#g-after')), `${name}: map screen shows Run simulation only`);
   // Status and official alerts link under the title; the status also tops the menu (Eric, 2026-11-23; SOURCE_NOTES GV15, GV16).
   check(await visible('#g-status') && /Pending Berkeley Fire Department review/.test(await p.locator('#g-status').innerText()) && /everbridge\.net\/sign-up/.test(await p.locator('#g-status a').getAttribute('href')), `${name}: status and AC Alert link on the map screen`);
-  await p.click('#g-info'); check(/Status: pending Berkeley Fire Department review/.test(await p.locator('#g-menu').innerText()), `${name}: status line in the menu`); await p.click('#g-info');
+  await p.click('#g-info'); check(/Status: pending Berkeley Fire Department review/.test(await p.locator('#g-menu').innerText()), `${name}: status line in the menu`);
+  // The Guided/Expert switch lives in this menu; on a phone it says Expert view is best on a larger screen (SOURCE_NOTES GV28).
+  { const t = (await p.locator('[data-menu="expert"]').innerText()).trim(), phone = (dev.viewport?.width ?? 1280) <= 760;
+    check(t === (phone ? 'Expert view (best on a larger screen)' : 'Expert view'), `${name}: menu item "${t}"`); }
+  await p.click('#g-info');
   await noScroll('at load'); await shot('01-map');
   // Fire pace on the fire line: all three buttons and the ⓘ inside the screen; 1923 pace by default (GV21).
   const pace = await p.evaluate(() => { const w = document.documentElement.clientWidth, bs = [...document.querySelectorAll('#g-pace button')];

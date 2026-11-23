@@ -131,7 +131,7 @@ export function makeScenarios(data) {
     {
       id: 'ref1923', name: 'Reference: 1923 fire, present-day repeat',
       kind: 'historical reference',
-      blurb: 'The City\'s "1923 Berkeley Fire Repeat": the 1923 fire path, starting 1.3 km farther uphill where neighborhoods now begin, pushed south-west by a Diablo wind. The City orders everything from the eastern edge to Sacramento St, Marin Ave to campus. A historical reference for comparing plans, not a prediction.',
+      blurb: 'The City\'s "1923 Berkeley Fire Repeat": the 1923 fire path, starting 1.3 km farther uphill where neighborhoods now begin, pushed south-west by a Diablo wind. The City orders everything from the eastern edge to Sacramento St, Marin Ave to campus. A historical reference for comparing plans.',
       ignition: [ne[0] + SHIFT * 0.97, ne[1] + SHIFT * 0.97], ignitionLabel: 'Present-day eastern edge, 1.3 km uphill of the 1923 entry point',
       windFrom: 45, windMph: 32, durationMin: 360, timeOfDay: 'S4', clip: footprint,
       orders: R02,
