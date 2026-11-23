@@ -552,15 +552,18 @@ function eteGap(scId, tk) {
   const T = hit[1], g = m => c[m]?.median == null ? null : { study: T[m][tk], model: Math.round(c[m].median), pct: Math.round(100 * (c[m].median - T[m][tk]) / T[m][tk]) };
   return { region: T.region, tk, p90: g('p90'), p100: g('p100') };
 }
-const gapWords = d => d.pct < 0 ? `${-d.pct}% short of` : d.pct > 0 ? `${d.pct}% longer than` : 'level with';
+const gapWords = (d, b = '') => d.pct < 0 ? `${-d.pct}% ${b} short of` : d.pct > 0 ? `${d.pct}% ${b} longer than` : `level ${b} with`;
 const MP_LINK = '<a href="#model-performance" data-goto="model-performance">Assumptions &amp; limits → Model performance</a>';
 function eteNote(scId, tk, p100 = true) {
-  const G = eteGap(scId, tk);
+  const G = eteGap(scId, tk), M = data.calibration?._meta;
+  const gapB = badge('derived', 'Model time against the study time, as a share of the study time: data/model/calibration.json against js/scenarios.js ETE_TARGETS.');
+  const modelB = badge('synthetic', `data/model/calibration.json (tests/calibration.mjs, ${M?.seeds ?? 3} seeds, built ${M?.built ?? 'n/a'}): fire off, the first order at ignition, the Time Study's citywide household mix; median of the seeds.`);
+  const studyB = badge('sourced', '2025 Evacuation Time Study, Tables 7-1 and 7-2 (js/scenarios.js ETE_TARGETS).');
   if (!G?.p90) {
     const short = Object.keys(ETE_TARGETS).flatMap(id => Object.keys(TIME_OF_DAY).map(k => eteGap(id, k)?.p90?.pct)).filter(x => x != null);
-    return short.length ? `The City's 2025 Evacuation Time Study has no case for this fire; on its cases the model's 90% time runs up to ${-Math.min(...short)}% short (${MP_LINK}).` : '';
+    return short.length ? `The City's 2025 Evacuation Time Study has no case for this fire; on its cases the model's 90% time runs up to ${-Math.min(...short)}% short ${gapB} (${MP_LINK}).` : '';
   }
-  return `Model runs ${gapWords(G.p90)} the City's 2025 Evacuation Time Study on this case (${esc(G.region)}, ${esc(tk)}, fire off): 90% out ${G.p90.model} min against ${G.p90.study}${p100 && G.p100 ? `; all out ${G.p100.model} against ${G.p100.study}` : ''} (${MP_LINK}).`;
+  return `Model runs ${gapWords(G.p90, gapB)} the City's 2025 Evacuation Time Study on this case (${esc(G.region)}, ${esc(tk)}, fire off): 90% out ${G.p90.model} min ${modelB} against ${G.p90.study} ${studyB}${p100 && G.p100 ? `; all out ${G.p100.model} against ${G.p100.study}` : ''} (${MP_LINK}).`;
 }
 document.addEventListener('click', e => {
   if (!e.target.closest('[data-goto="model-performance"]')) return;
