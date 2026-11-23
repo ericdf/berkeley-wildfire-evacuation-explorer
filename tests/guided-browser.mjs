@@ -316,6 +316,11 @@ for (const [di, name] of DEVICES.entries()) {
     return vals;
   };
   const q3 = await paceRun('quake', 'high', '1991 pace');
+  // Changing the pace on Results starts a new run: the pop-up no longer reports "the run you watched" (Codex, PR #93).
+  await p.click('#g-explore'); await p.click('[data-pace="central"]'); await p.waitForTimeout(300);
+  await p.locator('[data-explain="ember"]').click();
+  check(!/run you watched/.test(await p.locator('#modal .gx').innerText()), `${name}: after a pace change on Results, no watched-run figure until the new run ends`);
+  await p.locator('#modal .close').click(); await p.click('[data-go="map"] >> nth=0');
   await shot('24-quake-1991');
   const e1 = await paceRun('eastWind', 'low', 'Slower');
   await shot('25-east-slower');

@@ -383,9 +383,10 @@ export function guidedUI(ctx) {
   function footHTML(kind) {
     return `<div class="gv-foot">${kind === 'results' ? '<button class="primary" data-go="changes">Explore changes that could help</button>' : '<button class="primary" data-go="changes">Try different changes</button>'}<button data-go="map">Back to the map</button></div>`;
   }
-  // The watched run's own figure for a card (js/mitigate.js MEASURES on the run's summary).
+  // The watched run's own figure for a card (js/mitigate.js MEASURES on the run's summary), only once that run has
+  // finished: changing the fire pace on Results starts a new run at time zero (Codex, PR #93).
   function watched(card) {
-    if (!card.live || !state.sim) return null;
+    if (!card.live || !state.sim || !done()) return null;
     return MEASURES[card.live].f(state.sim.summary());
   }
   // Where a result's figure comes from: its provenance categories (shared by the result and comparison pop-ups).
