@@ -52,9 +52,9 @@ export const PRESETS = [
       ref1923: 'About a fifth fewer modeled residents are not yet out when modeled embers reach their street (about 5,750 against 4,700 in the medium-severity case). The gain comes from people leaving ahead of the modeled fire, not from faster traffic.',
       eastWind: 'About 7% fewer modeled residents are not yet out when modeled embers reach their street (about 7,400 against 6,900 in the medium-severity case). The gain comes from people leaving ahead of the modeled fire, not from faster traffic.',
       quake: 'About 9% fewer modeled residents are not yet out when modeled embers reach their street (about 42,350 against 38,400 in the medium-severity case, on a weekday). Each zone is ordered once a fire comes within 300 m of it, so deciding faster brings every one of those orders forward.',
-      panoramic: `About 5% fewer modeled residents are not yet out when modeled embers reach their street (about 14,750 against 14,000 in the medium-severity case), a smaller gain than on the two larger fires. ${PANORAMIC_UNORDERED}`,
     },
     off: {
+      panoramic: 'Plan B does better in all 15 runs, but in the medium-severity case it leaves 4.96% fewer modeled residents not yet out when modeled embers reach their street (about 14,750 against 14,000), under the 5% the test asks for (SOURCE_NOTES CD26; withdrawn by Eric, 2026-11-23).',
       westWind: 'Plan B does better in 8 of 15 runs, not all: the modeled residents still at home when modeled embers reach their street are the same under both plans, or within 3, since most live in Oakland\'s Claremont Canyon zones, which Oakland orders as the fire comes within 1 km whatever Berkeley decides; only the count on the road changes, by a few dozen people either way.',
       northHills: 'Plan B does better in 10 of 15 runs, not all: in the 5 low-severity runs it leaves 62–75 fewer modeled residents at home when modeled embers reach their street but 86–147 more on the road on streets the embers reached, as cars drive on toward the edge of the modeled area (SOURCE_NOTES CD20).',
     },

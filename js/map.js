@@ -71,13 +71,13 @@ export class MapView {
     this.cv.addEventListener('mousemove', e => {
       if (drag) {
         const dx = e.offsetX - drag[0], dy = e.offsetY - drag[1];
-        if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
+        if (Math.abs(dx) + Math.abs(dy) > 3) { if (!moved) this.onUserView?.(); moved = true; }
         this.cx = drag[2] - dx / this.scale; this.cy = drag[3] + dy / this.scale; this.draw();
       }
       this.onHover?.(this.wx(e.offsetX), this.wy(e.offsetY));
     });
     this.cv.addEventListener('wheel', e => {
-      e.preventDefault();
+      e.preventDefault(); this.onUserView?.(); // Guided view: the user moved the map, so auto-zoom stops (js/guided.js)
       const x = this.wx(e.offsetX), y = this.wy(e.offsetY);
       const f = Math.exp(-e.deltaY * 0.0015);
       this.scale = Math.max(0.02, Math.min(20, this.scale * f));
@@ -102,9 +102,10 @@ export class MapView {
       const ps = [...e.touches].map(pos);
       if (ps.length === 1 && touch.ps.length === 1) {
         const dx = ps[0][0] - touch.ps[0][0], dy = ps[0][1] - touch.ps[0][1];
-        if (Math.abs(dx) + Math.abs(dy) > 6) { touch.moved = true; touch.tap = false; }
+        if (Math.abs(dx) + Math.abs(dy) > 6) { if (!touch.moved) this.onUserView?.(); touch.moved = true; touch.tap = false; }
         this.cx = touch.cx - dx / this.scale; this.cy = touch.cy + dy / this.scale; this.draw();
       } else if (ps.length >= 2 && touch.ps.length >= 2) {
+        this.onUserView?.();
         const d = Math.hypot(ps[0][0] - ps[1][0], ps[0][1] - ps[1][1]) || 1;
         const mx = (ps[0][0] + ps[1][0]) / 2, my = (ps[0][1] + ps[1][1]) / 2;
         this.scale = Math.max(0.02, Math.min(20, touch.scale * d / touch.d));
@@ -136,7 +137,12 @@ export class MapView {
   // ---------- drawing ----------
   draw() {
     if (this.raf) return;
-    this.raf = requestAnimationFrame(() => { this.raf = null; this.render(); });
+    this.raf = requestAnimationFrame(() => {
+      this.raf = null; this.render();
+      // The view drawn (world meters: left, bottom, right, top) and the terrain grid's extent, for tests/guided-browser.mjs.
+      const T = this.data.net.meta.terrain;
+      this.cv.dataset.view = JSON.stringify([this.wx(0), this.wy(this.h), this.wx(this.w), this.wy(0), T?.xmax ?? null, T?.ymax ?? null].map(v => v == null ? null : Math.round(v)));
+    });
   }
 
   render() {
@@ -542,7 +548,9 @@ export class MapView {
     const x1 = X - Math.sin(to) * L - 20, y1 = Y + Math.cos(to) * L, x2 = X - 20, y2 = Y;
     ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
     ctx.beginPath(); ctx.arc(x2, y2, 3, 0, 7); ctx.fillStyle = '#0f172a'; ctx.fill();
-    ctx.font = '11px system-ui, sans-serif'; ctx.fillText(`wind ${now.windMph} mph`, x1, y1 - 4);
+    ctx.font = '11px system-ui, sans-serif';
+    const label = `wind ${now.windMph} mph`, tw = ctx.measureText(label).width; // kept inside the map
+    ctx.fillText(label, Math.min(Math.max(4, x1), this.w - tw - 4), Math.min(Math.max(14, y1 - 4), this.h - 4));
   }
   drawSelection() {
     const { ctx, selected } = this; if (!selected) return;

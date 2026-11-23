@@ -459,6 +459,7 @@ function loop(now) {
     if (wall > 0 && wall < 2) state.playRate = state.playRate ? state.playRate + Math.min(1, wall / 2) * ((sim.t - t0) / wall - state.playRate) : (sim.t - t0) / wall;
     if (sim.t >= sim.end) { state.playing = false; runLabel('▶ Run again'); update(true); map.draw(); if (document.body.classList.contains('simple')) guided.onRunEnd(); requestAnimationFrame(loop); return; }
     $('scrub').value = Math.floor(sim.t / 60);
+    if (document.body.classList.contains('simple')) guided.tick(); // Guided view: the view widens with the fire
     map.draw();
     if (now - lastUi > 300) { update(false); lastUi = now; }
   }
