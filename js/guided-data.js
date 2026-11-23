@@ -164,8 +164,9 @@ export function makeGuided(M, SA, presets = []) {
 
   // The verdict on one measure, the stored table's rule (js/mitigate.js stored): better in every run (holds), or in at
   // least three of four with none worse (mostly); harms: worse in at least three of four with none better. Over the
-  // stored summary's 15 runs when sev is not given. At one fire pace (5 same-seed pairs) a change must be better in all
-  // 5 (helps) or worse in all 5 (harms), the 90% "nearly every run" rule at n = 5 (MASTER, 2026-11-23; GV21).
+  // stored summary's 15 runs when sev is not given. At one fire pace (5 same-seed pairs) a change helps when it is better
+  // in all 5, or in 4 with the fifth identical, and never worse; harms is the mirror (MASTER, 2026-11-23; GV21).
+  // A run that goes the wrong way keeps a change out; a tie does not.
   const summary = (fire, id) => M.summaries.find(s => s.lever === id && s.fire === fire);
   const helps = m => !!m && (m.holds || (m.worse === 0 && m.better >= Math.ceil(m.n * 0.75)));
   const harms = m => !!m && m.better === 0 && m.worse >= Math.ceil(m.n * 0.75);
@@ -175,7 +176,7 @@ export function makeGuided(M, SA, presets = []) {
     const better = P.filter(p => !sameWithin(p.a, p.b) && (p.b ?? Infinity) < (p.a ?? Infinity)).length, worse = P.filter(p => !sameWithin(p.a, p.b)).length - better;
     return { better, worse, same: P.length - better - worse, n: P.length, holds: better === P.length, pace: true };
   }
-  const helpsAt = m => m?.pace ? m.holds : helps(m), harmsAt = m => m?.pace ? m.worse === m.n && m.n > 0 : harms(m);
+  const helpsAt = m => m?.pace ? m.n > 0 && m.worse === 0 && m.better >= m.n - 1 : helps(m), harmsAt = m => m?.pace ? m.n > 0 && m.better === 0 && m.worse >= m.n - 1 : harms(m);
   // A Guided-view question withheld on a fire under the P19 rule withholds its change too (js/presets.js off).
   const withheld = (fire, id) => presets.find(p => p.id === id)?.off?.[fire] || null;
 
@@ -189,6 +190,9 @@ export function makeGuided(M, SA, presets = []) {
       const why = withheld(fire, l.id);
       let placed = false;
       if (!why) for (const g of out.filter(g => g.cards.length)) {
+        // At one pace a change also must not be worse in any run on another of the group's results (egress guidance on
+        // the 1923 fire at 1923 pace: fewer people under the front in 4 of 5 runs, more under embers in 5 of 5).
+        if (sev && g.cards.some(c => m(cardById(c).key)?.worse > 0)) continue;
         const card = g.cards.map(cardById).find(c => helpsAt(m(c.key)));
         if (!card) continue;
         const cmp = tableCompare(fire, l.id, card.key, sev);
