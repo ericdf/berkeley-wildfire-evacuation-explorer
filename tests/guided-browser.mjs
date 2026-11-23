@@ -126,7 +126,7 @@ for (const [di, name] of DEVICES.entries()) {
   const cut = await p.locator('#g-panel .sp-key span').evaluateAll(ss => ss.filter(s => s.scrollWidth > s.clientWidth + 1 || getComputedStyle(s).textOverflow === 'ellipsis').map(s => s.textContent));
   check(!cut.length, `${name}: the four-part key shows every label in full${cut.length ? ` (cut: ${cut.join('; ')})` : ''}`);
   // Plain-language labels (GV12): none of the old three words in Guided view's results.
-  const chips = await p.locator('#g-panel .robust').allTextContents();
+  const chips = await p.locator('#g-panel .rc .robust').allTextContents();
   check(chips.length === 6 && chips.every(t => /nearly every run|Depends on the night parking rule|Varies from run to run|Same in every run|None in nearly/.test(t)) && !chips.some(t => /^(Consistent|Sensitive|Mixed)$/.test(t) || /fire strength/.test(t)), `${name}: plain labels on results, none by fire strength within one pace (${chips.join(' | ')})`);
   // Status quo, the pace and the other paces' medians (GV21, GV22).
   const rtext = await p.locator('#g-panel').innerText();
@@ -137,6 +137,22 @@ for (const [di, name] of DEVICES.entries()) {
   const sqt = await p.locator('#modal .gx').innerText();
   check(/10 minutes after the fire starts/.test(sqt) && /no new roads or rules/.test(sqt) && /assumption/.test(sqt), `${name}: Status quo has its Explain this`);
   await p.locator('#modal .close').click();
+  // Where traffic backed up (SOURCE_NOTES GV23): after the cards, top 5 hill streets, Show more, the flats line, Explain this.
+  const bk = await p.locator('#g-panel .bk').innerText().catch(() => '');
+  const bkRows = await p.locator('#g-panel .bk-row').count();
+  check(/Where traffic backed up in these runs/.test(bk) && bkRows === 5 && /flats/.test(bk) && /Show \d+ more/.test(bk) && /person-hours/.test(bk), `${name}: backups list after the cards, 5 rows, Show more, flats line`);
+  await p.click('#g-panel [data-explain-backups]');
+  const bkx = await p.locator('#modal .gx').innerText();
+  check(/What it counts/.test(bkx) && /synthetic/.test(bkx) && /model rule/.test(bkx) && /Limits/.test(bkx), `${name}: backups Explain this gives what it counts, provenance and limits`);
+  await p.locator('#modal .close').click();
+  await p.locator('#g-panel [data-more="backups"]').click();
+  check((await p.locator('#g-panel .bk-row').count()) > 5, `${name}: Show more lists the rest of the backups`);
+  await p.locator('#g-panel [data-more="backups"]').click();
+  const firstStreet = (await p.locator('#g-panel .bk-row b').first().innerText()).trim();
+  await p.locator('#g-panel .bk-row').first().click(); await p.waitForTimeout(800);
+  check(!(await visible('#g-panel')) && (await p.locator('#g-caption').innerText()).startsWith(`${firstStreet}:`), `${name}: tapping ${firstStreet} goes to the map, captioned and highlighted`);
+  await noScroll('on a backup street'); await shot('07b-backup-street');
+  await p.click('#g-explore');
   await p.locator('[data-explain="ember"]').click();
   check(/Ember Threat Zones/.test(await p.locator('#modal .gx').innerText()) && await p.locator('#modal .gx a[href*="3c5e1686ebc543ffbdd1eb8698b51fe2"]').count() === 1, `${name}: embers Explain this notes the County's ember map`);
   check(await p.locator('#modal[open] .gx').isVisible(), `${name}: Explain this opens a pop-up`);
