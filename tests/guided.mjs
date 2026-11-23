@@ -19,10 +19,17 @@ const ids = (gs, id) => gs.find(g => g.id === id).items.map(i => i.lever.id).sor
 const set = xs => [...xs].sort().join(',');
 
 const east = G.groups('eastWind');
-check(ids(east, 'people') === set(['leaveEarly', 'orderSooner']), `east wind, people: ${ids(east, 'people')}`);
+check(ids(east, 'people') === set(['leaveEarly', 'leaveEarlyEFW', 'orderSooner']), `east wind, people: ${ids(east, 'people')}`);
 check(ids(east, 'engine') === set(['parkingOneSide', 'redCurbFoot', 'widen-WP-001', 'link-AC-160-N3', 'retreat-footBlock', 'retreat-top100', 'retreat-panoramicUpper', 'widen-WP-007', 'link-CITY-1']), `east wind, engines: ${ids(east, 'engine')}`);
-check(ids(east, 'cars') === set(['leaveEarly', 'orderSooner']), `east wind, cars: ${ids(east, 'cars')}`);
+check(ids(east, 'cars') === set(['leaveEarly', 'leaveEarlyEFW', 'orderSooner']), `east wind, cars: ${ids(east, 'cars')}`);
 check(ids(east, 'none') === set(['contraflow-officers', 'contraflow-signs', 'policeControl', 'egressGuidance', 'link-AC-193-N1']), `east wind, no consistent benefit: ${ids(east, 'none')}`);
+
+// Leave on Extreme Fire Weather (SOURCE_NOTES GV20, GV21): the 10 Leave Early Zones lie in the hills, so on every fire its
+// gain in people still there when embers arrived is at most the Red Flag lever's (half of all hill households).
+for (const f of M.meta.fires) {
+  const efw = G.tableCompare(f, 'leaveEarlyEFW', 'ember').gain, le = G.tableCompare(f, 'leaveEarly', 'ember').gain;
+  check(efw != null && le != null && efw <= le, `${f}: leave on Extreme Fire Weather gains no more than leave early on a Red Flag day (${Math.round(efw)} vs ${Math.round(le)} people)`);
+}
 
 // P19: decide faster is withheld on the north hills (js/presets.js PRESETS orderSooner.off.northHills).
 const north = G.groups('northHills');
