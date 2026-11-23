@@ -86,7 +86,7 @@ export function countLabel(bySev) {
   return p;
 }
 
-export function makeGuided(M, SA, presets = []) {
+export function makeGuided(M, SA, presets = [], leverOff = {}) {
   const runs = new Map(); // `${lever}|${fire}` → [{ sev, seed, m }]
   for (const r of M?.runs || []) { const k = `${r.lever}|${r.fire}`; if (!runs.has(k)) runs.set(k, []); runs.get(k).push(r); }
   const runsOf = (lever, fire) => runs.get(`${lever}|${fire}`) || [];
@@ -151,7 +151,7 @@ export function makeGuided(M, SA, presets = []) {
   const helps = m => !!m && (m.holds || (m.worse === 0 && m.better >= Math.ceil(m.n * 0.75)));
   const harms = m => !!m && m.better === 0 && m.worse >= Math.ceil(m.n * 0.75);
   // A Guided-view question withheld on a fire under the P19 rule withholds its change too (js/presets.js off).
-  const withheld = (fire, id) => presets.find(p => p.id === id)?.off?.[fire] || null;
+  const withheld = (fire, id) => presets.find(p => p.id === id)?.off?.[fire] || leverOff[id]?.[fire] || null;
 
   // The changes view: each change in every group whose card measures it improves on this fire; the rest, and
   // changes withheld on this fire, under "No consistent benefit".

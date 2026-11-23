@@ -6,13 +6,13 @@
 // comparisons pair the same seeds; new roads that free the same areas give a floor, not a sum.
 import fs from 'node:fs';
 import { makeGuided, CARDS, median, sortItems, costLine } from '../js/guided-data.js';
-import { PRESETS } from '../js/presets.js';
+import { PRESETS, LEVER_OFF } from '../js/presets.js';
 import { plainLabel } from '../js/guided.js';
 
 const R = new URL('..', import.meta.url).pathname;
 const M = JSON.parse(fs.readFileSync(R + 'data/model/mitigations.json'));
 const SA = JSON.parse(fs.readFileSync(R + 'data/model/spread-access.json'));
-const G = makeGuided(M, SA, PRESETS);
+const G = makeGuided(M, SA, PRESETS, LEVER_OFF);
 let fail = 0;
 const check = (ok, what) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${what}`); if (!ok) fail++; };
 const ids = (gs, id) => gs.find(g => g.id === id).items.map(i => i.lever.id).sort().join(',');
@@ -29,6 +29,15 @@ check(ids(east, 'none') === set(['contraflow-officers', 'contraflow-signs', 'pol
 for (const f of M.meta.fires) {
   const efw = G.tableCompare(f, 'leaveEarlyEFW', 'ember').gain, le = G.tableCompare(f, 'leaveEarly', 'ember').gain;
   check(efw != null && le != null && efw <= le, `${f}: leave on Extreme Fire Weather gains no more than leave early on a Red Flag day (${Math.round(efw)} vs ${Math.round(le)} people)`);
+}
+
+// Both leave-early changes are withheld on the earthquake fire: earthquakes come without warning (SOURCE_NOTES GV22).
+{
+  const q = G.groups('quake'), none = q.find(g => g.id === 'none');
+  for (const id of ['leaveEarly', 'leaveEarlyEFW']) {
+    const it = none.items.find(i => i.lever.id === id);
+    check(!!it?.withheld && /^earthquakes come without warning/.test(it.withheld) && !q.filter(g => g.id !== 'none').some(g => g.items.some(i => i.lever.id === id)), `earthquake: ${id} withheld (GV22)`);
+  }
 }
 
 // P19: decide faster is withheld on the north hills (js/presets.js PRESETS orderSooner.off.northHills).
