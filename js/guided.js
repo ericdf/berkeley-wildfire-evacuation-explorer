@@ -182,7 +182,7 @@ export function guidedUI(ctx) {
   // the run; Fit brings it back. After the run it frames the extent of the 5 runs at the chosen pace (summaryExt). The earthquake fire starts
   // across the city, so it shows the whole city throughout. Every view stays on the terrain grid (no blank strip past
   // its edge); the framed points stay in view, since they lie on the grid.
-  const CITY = [1500, 1200, 10300, 7600], START_PAD = 1200, FOLLOW_PAD = 300, FOLLOW_EVERY = 180, EASE_MS = 500;
+  const CITY = [1500, 1200, 10300, 7600], START_PAD = 1200, FOLLOW_PAD = 300, ZONE_NEAR = 1000, FOLLOW_EVERY = 180, EASE_MS = 500;
   const quake = () => !!NETWORK_FIRES[state.fire];
   const startsOf = () => { const sc = state.sim?.scenario; return sc ? (typeof sc.ignitions === 'function' ? sc.ignitions(1) : sc.ignitions ?? [sc.ignition]).filter(Boolean) : []; };
   const grow = (b, x0, y0, x1 = x0, y1 = y0) => b ? [Math.min(b[0], x0), Math.min(b[1], y0), Math.max(b[2], x1), Math.max(b[3], y1)] : [x0, y0, x1, y1];
@@ -208,7 +208,7 @@ export function guidedUI(ctx) {
   // that contains the current one only ever widens on the way.
   function goTo(ext, ease) {
     if (g.anim) cancelAnimationFrame(g.anim); g.anim = null;
-    const to = viewFor(ext);
+    const to = g.target = viewFor(ext);
     if (!ease || !map.w) { apply(to); map.draw(); return; }
     const from = viewNow(), t0 = performance.now();
     const step = now => {
@@ -235,12 +235,19 @@ export function guidedUI(ctx) {
     if (n < 2) for (const z of data.layers.fireZones || []) if (z.zone >= 2) z.rings.flat().forEach(add);
     return b ? pad(b, 400) : CITY;
   }
-  // What the follow keeps in view at model time sim.t: burned and ember cells, and zones ordered or warned by then.
+  // What the follow keeps in view at model time sim.t: burned and ember cells, and the parts of zones ordered or warned
+  // by then that lie within ZONE_NEAR of them. Zones are not drawn during the run, so a large zone's far end must not pull
+  // the view across the city (Eric, 2026-11-23: the west-wind fire widened to the whole city for zones reaching north).
   function followExt(sim) {
     const f = sim.fire, tMin = sim.t / 60; let b = null;
     if (f?.arrival) for (let i = 0, N = f.W * f.H; i < N; i++) if (f.arrival[i] <= tMin || f.ember[i] <= tMin) { const x = (i % f.W + 0.5) * CELL, y = (Math.floor(i / f.W) + 0.5) * CELL; b = grow(b, x, y); }
     b = pad(b, FOLLOW_PAD);
-    map.zoneShapes.forEach(({ bb }, z) => { if (sim.orderT?.[z] <= sim.t || sim.warnT?.[z] <= sim.t) b = grow(b, ...bb); });
+    const near = pad(b, ZONE_NEAR);
+    if (near) map.zoneShapes.forEach(({ bb }, z) => {
+      if (!(sim.orderT?.[z] <= sim.t || sim.warnT?.[z] <= sim.t)) return;
+      const c = [Math.max(bb[0], near[0]), Math.max(bb[1], near[1]), Math.min(bb[2], near[2]), Math.min(bb[3], near[3])];
+      if (c[0] < c[2] && c[1] < c[3]) b = grow(b, ...c);
+    });
     const T = data.net.meta.terrain;
     if (b && T?.xmax && T?.ymax) b = [Math.max(0, b[0]), Math.max(0, b[1]), Math.min(T.xmax, b[2]), Math.min(T.ymax, b[3])];
     return b;
@@ -252,7 +259,10 @@ export function guidedUI(ctx) {
     const sim = state.sim; if (!g.follow || !sim || quake() || !simple()) return;
     if (g.followSim !== sim) { g.followSim = sim; g.followT = -Infinity; }
     if (sim.t - g.followT < FOLLOW_EVERY) return; g.followT = sim.t;
-    const need = followExt(sim), v = viewNow(); if (!need || inside(need, v)) return;
+    // While an ease is under way, compare with and widen from where it is going, not the view part way there: checks come
+    // every 0.2 s at 15 min/s, inside the 0.5 s ease, and widening from the part-way view with slack each time compounded
+    // until the west-wind run showed the whole city (Eric, 2026-11-23).
+    const need = followExt(sim), v = g.anim && g.target ? g.target : viewNow(); if (!need || inside(need, v)) return;
     let u = grow(v, need[0], need[1], need[2], need[3]); const m = 0.05 * Math.max(u[2] - u[0], u[3] - u[1]); // a little slack, so it does not step every check
     u = pad(u, m); goTo(u, true);
   }
