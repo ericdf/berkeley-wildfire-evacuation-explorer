@@ -53,7 +53,7 @@ export function dataFor(base, net) {
   const k = JSON.stringify(net);
   if (!memo.has(k)) {
     if (memo.size > 6) memo.delete(memo.keys().next().value);
-    const elev = demSampler(base.dem, base.Z);
+    const elev = base.linkElev ?? demSampler(base.dem, base.Z); // the light set's cells in the browser (js/data.js)
     const N = withLinks(base.net, base.A, elev, { open: net.open, links: net.links });
     for (const r of net.repl) for (const id of r.edges) {
       const e = base.net.edges[id];

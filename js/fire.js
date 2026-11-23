@@ -44,7 +44,8 @@ export function buildFireGrid(data, opts = {}) {
   const zones = layers.evacZones.map((z, i) => ({ i, rings: z.rings, bb: bbox(z.rings) }));
   for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) {
     const i = r * W + c, x = (c + 0.5) * CELL, y = (r + 0.5) * CELL;
-    const z = demAt(dem, Z, x, y);
+    // the light set's 30 m grid holds exactly these samples (tools/build-terrain-lite.mjs; tests/terrain-lite.mjs)
+    const z = data.elev30 ? (v => v === -32768 ? null : v / 10)(data.elev30[i]) : demAt(dem, Z, x, y);
     elev[i] = z ?? 0;
     const insideCity = city.some(q => inBB(q.bb, x, y) && inPoly(x, y, q.rings));
     inCity[i] = insideCity ? 1 : 0;
