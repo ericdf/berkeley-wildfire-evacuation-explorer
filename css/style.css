@@ -403,7 +403,7 @@ h3.cg { margin-top: 10px; }
 .sp-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: #eee; }
 .sp-bar i { display: block; height: 100%; }
 .sp-key { display: grid; grid-template-columns: 1fr 1fr; gap: 1px 10px; margin-top: 4px; font-size: 12.5px; color: #333; }
-.sp-key span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-key span { white-space: normal; padding-left: 12px; text-indent: -12px; } /* wrap, never cut off (iPhone SE, MASTER 2026-11-23) */
 .sp-key i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 4px; vertical-align: 0; }
 .sp-car { background: #7c2d12; } .sp-noCar { background: #dc6b2f; } .sp-notOrdered { background: #d4a017; } .sp-road { background: #64748b; }
 .sp-list { padding-left: 18px; margin: 4px 0; font-size: 14px; } .sp-list li { margin: 4px 0; }

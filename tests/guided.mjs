@@ -121,8 +121,8 @@ for (const f of M.meta.fires) for (const sev of SEVS) {
 check(true, 'every result figure, split and one-change gain at each pace is the median of that pace\'s 5 runs in the table, labeled over those 5 only');
 // The verdict over all 15 pairs (no pace) still reproduces the stored summaries: groups without a pace are unchanged.
 for (const f of M.meta.fires) check(JSON.stringify(G.groups(f).map(g => g.items.map(i => i.lever.id))) === JSON.stringify(G.groups(f, undefined).map(g => g.items.map(i => i.lever.id))), `${f}: groups over 15 runs unchanged`);
-// Groups per pace: a change is in a group at a pace when at least 4 of its 5 pairs are better on the card's measure and
-// none worse. Report which memberships change by pace (for SOURCE_NOTES GV21 and the PR).
+// Groups per pace: a change is in a group at a pace when all 5 of its pairs are better on the card's measure (MASTER,
+// 2026-11-23). Report which memberships change by pace (for SOURCE_NOTES GV21 and the PR).
 const memb = (f, sev) => new Set(G.groups(f, sev).flatMap(g => g.items.map(i => `${g.id}:${i.lever.id}`)));
 for (const f of M.meta.fires) {
   const by = Object.fromEntries(SEVS.map(s => [s, memb(f, s)])), all = new Set(SEVS.flatMap(s => [...by[s]]));
@@ -132,12 +132,16 @@ for (const f of M.meta.fires) {
     const P = M.runs.filter(r => r.lever === it.lever.id && r.fire === f && r.sev === s), k = it.card.key;
     const b = P.filter(r => { const a = M.runs.find(x => x.lever === 'baseline' && x.fire === f && x.sev === s && x.seed === r.seed).m[k]; return r.m[k] < a && Math.abs(a - r.m[k]) > 1e-9 * Math.max(Math.abs(a), Math.abs(r.m[k])); }).length;
     const w = P.filter(r => { const a = M.runs.find(x => x.lever === 'baseline' && x.fire === f && x.sev === s && x.seed === r.seed).m[k]; return r.m[k] > a && Math.abs(a - r.m[k]) > 1e-9 * Math.max(Math.abs(a), Math.abs(r.m[k])); }).length;
-    if (!(b >= 4 && w === 0)) check(false, `${f} ${s}: ${it.lever.id} in ${g.id} with ${b} better, ${w} worse of 5`);
+    if (!(b === 5 && w === 0)) check(false, `${f} ${s}: ${it.lever.id} in ${g.id} with ${b} better, ${w} worse of 5`);
   }
 }
 const eastC = G.groups('eastWind', 'central');
-check(['people', 'engine', 'cars', 'none'].every(id => ids(eastC, id) === ids(east, id)), 'east wind at 1923 pace (the default): the groups Eric approved on 2026-11-10');
-check(true, 'every per-pace group member is better in at least 4 of its 5 runs at that pace and never worse');
+// At one pace a change must be better in all 5 runs (MASTER, 2026-11-23). Engine reach depends on the seed only, so four
+// Panoramic Hill changes better in 4 of 5 seeds and the same in the fifth leave the engine group at every pace.
+const ENGINE_4OF5 = ['link-AC-160-N3', 'redCurbFoot', 'retreat-footBlock', 'widen-WP-001'];
+check(['people', 'cars'].every(id => ids(eastC, id) === ids(east, id)) && ids(eastC, 'engine') === set(ids(east, 'engine').split(',').filter(x => !ENGINE_4OF5.includes(x)))
+  && ids(eastC, 'none') === set([...ids(east, 'none').split(','), ...ENGINE_4OF5]), 'east wind at 1923 pace (the default): the groups approved on 2026-11-10, less the four engine changes better in 4 of 5 seeds');
+check(true, 'every per-pace group member is better in all 5 of its runs at that pace');
 check(plainLabel(G.baseFigure('eastWind', 'ember', 'central').label, 'result').text !== 'Depends on fire strength', 'within one pace no result reads "Depends on fire strength"');
 
 console.log(fail ? `\n${fail} check(s) failed` : '\nall checks passed');

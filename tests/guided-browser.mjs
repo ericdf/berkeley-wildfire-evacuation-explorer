@@ -122,6 +122,9 @@ for (const [di, name] of DEVICES.entries()) {
   // The four-way split under the two people cards (GV13).
   const splits = await p.locator('#g-panel .rc .sp').count(), keys = await p.locator('#g-panel .rc:nth-of-type(1) .sp-key span, #g-panel .rc .sp-key span').count();
   check(splits === 2 && keys === 8, `${name}: the two people cards each split four ways (${splits} splits, ${keys} parts)`);
+  // No part's label is cut off (MASTER, 2026-11-23: truncated at 320 px on iPhone SE).
+  const cut = await p.locator('#g-panel .sp-key span').evaluateAll(ss => ss.filter(s => s.scrollWidth > s.clientWidth + 1 || getComputedStyle(s).textOverflow === 'ellipsis').map(s => s.textContent));
+  check(!cut.length, `${name}: the four-part key shows every label in full${cut.length ? ` (cut: ${cut.join('; ')})` : ''}`);
   // Plain-language labels (GV12): none of the old three words in Guided view's results.
   const chips = await p.locator('#g-panel .robust').allTextContents();
   check(chips.length === 6 && chips.every(t => /nearly every run|Depends on the night parking rule|Varies from run to run|Same in every run|None in nearly/.test(t)) && !chips.some(t => /^(Consistent|Sensitive|Mixed)$/.test(t) || /fire strength/.test(t)), `${name}: plain labels on results, none by fire strength within one pace (${chips.join(' | ')})`);
@@ -179,7 +182,7 @@ for (const [di, name] of DEVICES.entries()) {
   const diff = await p.locator('.rc.cmp').nth(2).locator('.cmpgrid b').nth(2).innerText();
   check(cmp1 === 6 && /^−/.test(diff), `${name}: one-change comparison from the table, engine row ${diff}`);
   const heads3 = await p.locator('.rc.cmp').first().locator('.cmpgrid small').allTextContents();
-  check(heads3.join('|') === 'Status quo|With changes|Difference' && (await p.locator('.rc.cmp .rc-p').count()) >= 5, `${name}: comparison columns ${heads3.join(' / ')}, with the other paces' differences`);
+  check(heads3.join('|') === 'Status quo|With changes|Difference' && (await p.locator('.rc.cmp .rc-p').count()) === 0, `${name}: comparison columns ${heads3.join(' / ')}, no other-paces line`);
   // Difference colors: improvement green, worse amber, no change gray.
   const cls = await p.locator('.rc.cmp .cmpgrid div:nth-child(3) b').evaluateAll(bs => bs.map(b => [b.textContent, b.className]));
   check(cls.every(([t, c]) => t === 'No change' ? c === 'same' : t.startsWith('−') ? c === 'good' : t.startsWith('+') ? c === 'worse' : true), `${name}: difference colors (${cls.map(([t, c]) => `${t}:${c}`).join(' ')})`);

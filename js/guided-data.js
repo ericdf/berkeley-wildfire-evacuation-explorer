@@ -163,9 +163,9 @@ export function makeGuided(M, SA, presets = []) {
   }
 
   // The verdict on one measure, the stored table's rule (js/mitigate.js stored): better in every run (holds), or in at
-  // least three of four with none worse (mostly); harms: worse in at least three of four with none better. Counted
-  // from the same-seed pairs at one fire pace (5 runs: helps = better in at least 4 with none worse; GV21), or from the
-  // stored summary over all 15 runs when sev is not given.
+  // least three of four with none worse (mostly); harms: worse in at least three of four with none better. Over the
+  // stored summary's 15 runs when sev is not given. At one fire pace (5 same-seed pairs) a change must be better in all
+  // 5 (helps) or worse in all 5 (harms), the 90% "nearly every run" rule at n = 5 (MASTER, 2026-11-23; GV21).
   const summary = (fire, id) => M.summaries.find(s => s.lever === id && s.fire === fire);
   const helps = m => !!m && (m.holds || (m.worse === 0 && m.better >= Math.ceil(m.n * 0.75)));
   const harms = m => !!m && m.better === 0 && m.worse >= Math.ceil(m.n * 0.75);
@@ -173,8 +173,9 @@ export function makeGuided(M, SA, presets = []) {
     if (!sev) return summary(fire, id)?.measures[key];
     const P = tablePairs(fire, id, key, sev); if (!P.length) return null;
     const better = P.filter(p => !sameWithin(p.a, p.b) && (p.b ?? Infinity) < (p.a ?? Infinity)).length, worse = P.filter(p => !sameWithin(p.a, p.b)).length - better;
-    return { better, worse, same: P.length - better - worse, n: P.length, holds: better === P.length };
+    return { better, worse, same: P.length - better - worse, n: P.length, holds: better === P.length, pace: true };
   }
+  const helpsAt = m => m?.pace ? m.holds : helps(m), harmsAt = m => m?.pace ? m.worse === m.n && m.n > 0 : harms(m);
   // A Guided-view question withheld on a fire under the P19 rule withholds its change too (js/presets.js off).
   const withheld = (fire, id) => presets.find(p => p.id === id)?.off?.[fire] || null;
 
@@ -188,14 +189,14 @@ export function makeGuided(M, SA, presets = []) {
       const why = withheld(fire, l.id);
       let placed = false;
       if (!why) for (const g of out.filter(g => g.cards.length)) {
-        const card = g.cards.map(cardById).find(c => helps(m(c.key)));
+        const card = g.cards.map(cardById).find(c => helpsAt(m(c.key)));
         if (!card) continue;
         const cmp = tableCompare(fire, l.id, card.key, sev);
         out.find(x => x.id === g.id).items.push({ lever: l, card, gain: cmp.gain, d: cmp.d, anyFire: !NETWORK_FIRES[fire] && anyFire(card.key) });
         placed = true;
       }
       if (!placed) {
-        const worse = CARDS.filter(c => c.key && harms(m(c.key))).map(c => ({ card: c, worse: m(c.key).worse, n: m(c.key).n }));
+        const worse = CARDS.filter(c => c.key && harmsAt(m(c.key))).map(c => ({ card: c, worse: m(c.key).worse, n: m(c.key).n }));
         none.items.push({ lever: l, card: null, gain: null, withheld: why, worse });
       }
     }

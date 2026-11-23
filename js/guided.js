@@ -486,7 +486,7 @@ export function guidedUI(ctx) {
     ctx.modal(`<div class="gx"><h2>About these gains</h2>
       <h3>What a gain is</h3><p>Each change was run against the status quo on ${runs} paired runs of ${esc(fireTitle())} at ${paceName()} (random seeds ${M.meta.seeds[0]}–${M.meta.seeds.at(-1)}, a fall night): the same fire, households and parked cars with and without the change. The gain is the median of the ${runs} differences. Changing the fire pace changes the gains and can move a change between groups.</p>
       <h3>Where it comes from</h3><p>${badge('synthetic')} Synthetic households placed from zone population counts, on an illustrative ${badge('model rule')} fire. Stored table: data/model/mitigations.json, built ${esc(M.meta.built)}.</p>
-      <h3>Groups</h3><p>${badge('model rule')} A change joins a group when it does better on that result in at least three of four runs at this pace and never worse: of 5 runs, at least 4 better and none worse. A change can sit in more than one group. A change whose ready-made question is withheld on this fire is listed under "No consistent benefit" and cannot be picked here.</p>
+      <h3>Groups</h3><p>${badge('model rule')} A change joins a group when it does better on that result in all 5 runs at this pace (the 90% "nearly every run" rule, which of 5 runs means all 5). A change can sit in more than one group. A change whose ready-made question is withheld on this fire is listed under "No consistent benefit" and cannot be picked here.</p>
       <h3>This fire or any fire</h3><p>Engine reach is measured at ignition, so its gain is the same on every fire except the earthquake, which closes streets at the fault. People and cars depend on the fire.</p>
       <h3>Labels</h3><p><b>Better in nearly every run</b>: better in all 5 runs at this pace (the rule is at least 90% of the runs). <b>Varies from run to run</b>: ${MEANS.mixed} Any difference counts, as in the stored table.</p>
       <h3>Costs</h3><p>Tap a cost for its source and category.</p></div>`, 'gx');
@@ -527,11 +527,8 @@ export function guidedUI(ctx) {
       const same = r && (r.d.dir === 'same' || Math.abs(r.gain) < 0.5);
       const diff = !r ? '…' : same ? 'No change' : `${r.gain > 0 ? '−' : '+'}${fmt(round10(Math.abs(r.gain)))}${r.atLeast ? ' or more' : ''}`;
       const cls = !r ? '' : same ? 'same' : r.gain > 0 ? 'good' : 'worse';
-      // One change, from the table: the difference at the other two paces (GV21). Live stacks run one pace only.
-      const dTxt = x => x == null ? '—' : Math.abs(x) < 0.5 ? 'no change' : `${x > 0 ? '−' : '+'}${fmt(round10(Math.abs(x)))}`;
-      const other = r?.gainBySev && !r.network ? `<div class="rc-p">Difference at the other paces: ${PACES.filter(p => p.sev !== g.pace).map(p => `${p.label} ${dTxt(r.gainBySev[p.sev])}`).join(', ')}</div>` : '';
       return `<div class="rc cmp"><div class="rc-l">${cap(c.line)}</div>
-        <div class="cmpgrid"><div><small>Status quo</small><b>${v(r?.a)}</b></div><div><small>With changes</small><b>${v(r?.b)}</b></div><div><small>Difference</small><b class="${cls}">${diff}</b></div></div>${other}
+        <div class="cmpgrid"><div><small>Status quo</small><b>${v(r?.a)}</b></div><div><small>With changes</small><b>${v(r?.b)}</b></div><div><small>Difference</small><b class="${cls}">${diff}</b></div></div>
         <div class="rc-f">${r ? chipHTML(r.d, r.network ? 'networkChange' : 'change') : ''}<button class="linkish" data-explain-cmp="${c.id}"${r ? '' : ' disabled'}>Explain this</button></div></div>`;
     }).join('');
     const title = ls.length === 1 ? `With ${esc(ls[0].title.charAt(0).toLowerCase() + ls[0].title.slice(1))}` : `With ${ls.length} changes`;
