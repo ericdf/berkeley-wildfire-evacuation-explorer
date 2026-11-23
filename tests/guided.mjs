@@ -65,6 +65,8 @@ if (M.levers.some(l => l.id === 'hardenHalfBlocks' && l.ran)) {
     for (const id of ['hardenAll', 'zone0All']) for (const key of ['ember', 'frontPeople', 'cutOff', 'engine']) { const c = G.tableCompare(f, id, key); check(c.d.better === 0 && c.d.worse === 0, `${f} ${id}: ${key} unchanged in every run`); }
   }
 }
+// P19 cleanup (Eric, 2026-11-23): decide faster withdrawn on Panoramic Hill (4.96% against the 5% line, SOURCE_NOTES CD26).
+check(!!G.groups('panoramic').find(g => g.id === 'none').items.find(i => i.lever.id === 'orderSooner')?.withheld, 'Panoramic Hill: decide faster withheld (P19, 4.96%)');
 // The new fires of 2026-11-13 (SOURCE_NOTES FF24, FF27): decide faster withheld on the west-wind fire (P19).
 if (M.meta.fires.includes('westWind')) check(!!G.groups('westWind').find(g => g.id === 'none').items.find(i => i.lever.id === 'orderSooner')?.withheld, 'west wind: decide faster withheld (P19)');
 
