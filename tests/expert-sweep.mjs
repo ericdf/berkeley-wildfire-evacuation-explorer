@@ -1,4 +1,4 @@
-// Expert view control sweep (MASTER, 2026-11-23; SOURCE_NOTES GV29). At desktop width (1280 px), for every Expert setting
+// Expert view control sweep (MASTER, 2026-11-23; SOURCE_NOTES GV30). At desktop width (1280 px), for every Expert setting
 // (each option of each select, each checkbox, the seed box at both ends), set it from the defaults, run the simulation to
 // the end with the time slider (js/main.js seek: the same steps as playing, without drawing each frame) and check that:
 //   - no console error or page error occurs,
@@ -46,7 +46,7 @@ await p.addInitScript(() => { try { localStorage.setItem('bhe-intro-seen', '1');
 await p.goto(URL);
 await p.waitForSelector('#loading', { state: 'detached', timeout: 120000 });
 
-// The switch: Guided view's ⓘ menu opens Expert view; Expert view's header button goes back (SOURCE_NOTES GV28).
+// The switch: Guided view's ⓘ menu opens Expert view; Expert view's header button goes back (SOURCE_NOTES GV29).
 await p.click('#g-info');
 const item = (await p.locator('[data-menu="expert"]').innerText()).trim();
 check(item === 'Expert view', `desktop: the ⓘ menu item reads "${item}"`);

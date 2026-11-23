@@ -543,7 +543,7 @@ function modelPerformanceHTML() {
 }
 // How far the model's evacuation time runs from the City study on the case matching a run: the Time Study region the
 // scenario orders (ETE_TARGETS, by id or orderRegion) at the run's time of day, fire off (data/model/calibration.json).
-// Shown beside every model evacuation time in Expert view (MASTER, 2026-11-23; SOURCE_NOTES GV27).
+// Shown beside every model evacuation time in Expert view (MASTER, 2026-11-23; SOURCE_NOTES GV28).
 const todKeyOf = tod => Object.keys(TIME_OF_DAY).find(k => TIME_OF_DAY[k] === tod) ?? $('tod').value;
 function eteGap(scId, tk) {
   const C = data.calibration?.regions, sc = scenarios.find(s => s.id === scId);

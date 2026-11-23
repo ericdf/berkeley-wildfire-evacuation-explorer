@@ -426,3 +426,13 @@ h3.cg { margin-top: 10px; }
 .bk-v { font-size: 13px; color: #333; white-space: nowrap; }
 .bk-l { flex: 1 1 100%; font-size: 12px; padding: 0; background: none !important; }
 .bk .cg-more { margin: 2px 0; }
+
+/* Changes view on a phone (Eric, 2026-11-23, "fix the cosmetic items"): tighter rows and headings. */
+@media (max-width: 430px) {
+  .cr-pick { padding: 5px 9px; }
+  .cr .cr-c { top: 5px; right: 9px; }
+  .cr { margin-bottom: 4px; }
+  .cr-s { margin-top: 1px; }
+  h3.cg { margin: 8px auto 4px; }
+  .sortbar { margin-bottom: 2px; }
+}
