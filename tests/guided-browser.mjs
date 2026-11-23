@@ -178,7 +178,10 @@ for (const [di, name] of DEVICES.entries()) {
   await p.locator('#modal .close').click();
   // Top 3 per group, the rest behind "Show N more".
   const perGroup = await p.locator('#g-panel').evaluate(P => [...P.querySelectorAll('h3.cg')].filter(h => !h.closest('details')).map(h => { let n = 0; for (let e = h.nextElementSibling; e && !e.matches('h3, details'); e = e.nextElementSibling) if (e.matches('.cr')) n++; return n; }));
-  check(perGroup.every(n => n <= 3), `${name}: at most 3 changes per group before Show more (${perGroup.join(', ')})`);
+  const phone = name !== 'desktop';
+  check(perGroup.every(n => n <= (phone ? 2 : 3)), `${name}: at most ${phone ? 2 : 3} changes per group before Show more (${perGroup.join(', ')})`);
+  // The Extreme Fire Weather change's shorter row name (Eric, 2026-11-23, cosmetic fixes; SOURCE_NOTES GV26).
+  check(/Leave on Extreme Fire Weather \(10 zones\)/.test(await p.locator('#g-panel').innerText()), `${name}: Extreme Fire Weather row uses its short name`);
   await noScroll('on changes'); const hc = await panelHeight('Changes view');
   await shot('09-changes');
   const before = await p.locator('.cr').count();

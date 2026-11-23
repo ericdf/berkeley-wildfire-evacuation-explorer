@@ -156,7 +156,10 @@ export class MapView {
     ctx.fillStyle = '#e9e6de'; ctx.fillRect(0, 0, this.w, this.h);
     const t = data.net.meta.terrain;
     if (L.terrain && this.terrain) {
-      ctx.imageSmoothingEnabled = this.scale < 1 / t.resolution * 1.5;
+      // The full DEM's relief draws sharp at close zoom. The browser's light hillshade (8 m per pixel, SOURCE_NOTES GV19) is
+      // always smoothed, so close zoom shows soft relief instead of 8 m blocks (Eric, 2026-11-23, "fix the cosmetic items").
+      ctx.imageSmoothingEnabled = !this.data.Z || this.scale < 1 / t.resolution * 1.5;
+      ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(this.terrain, this.sx(0), this.sy(t.ymax), t.width * t.resolution * this.scale, t.height * t.resolution * this.scale);
     }
     if (L.contours) this.drawContours();
