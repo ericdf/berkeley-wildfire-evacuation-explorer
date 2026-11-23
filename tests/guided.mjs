@@ -5,7 +5,7 @@
 // "any fire" and people measures as "this fire"; result figures are medians of today's plan's 15 runs; one-change
 // comparisons pair the same seeds; new roads that free the same areas give a floor, not a sum.
 import fs from 'node:fs';
-import { makeGuided, CARDS, median, sortItems, costLine, SEVS } from '../js/guided-data.js';
+import { makeGuided, CARDS, median, sortItems, costLine, SEVS, backupRows, BACKUP_ROW_MIN } from '../js/guided-data.js';
 import { PRESETS } from '../js/presets.js';
 import { plainLabel } from '../js/guided.js';
 
@@ -153,6 +153,27 @@ check(true, 'at each pace no group member is worse in any run on any of its grou
 check(!G.groups('ref1923', 'central').find(g => g.id === 'people').items.some(i => i.lever.id === 'egressGuidance'), '1923 fire at 1923 pace: egress guidance not in "people" (front better 4 of 5, embers worse 5 of 5)');
 check(true, 'every per-pace group member is better in at least 4 of its 5 runs at that pace, the rest identical, never worse');
 check(plainLabel(G.baseFigure('eastWind', 'ember', 'central').label, 'result').text !== 'Depends on fire strength', 'within one pace no result reads "Depends on fire strength"');
+
+// Where traffic backed up (SOURCE_NOTES GV23): rows derive from spread-access.json backups; every segment is a hill street
+// (Fire Zones 2–3), none in the flats or on I-80; a row's figure is the median of its runs' sums; labels follow the rule.
+if (SA.backups) {
+  const net = JSON.parse(fs.readFileSync(R + 'data/model/network.json'));
+  let rowsN = 0;
+  for (const f of M.meta.fires) for (const sev of SEVS) {
+    const B = SA.backups[f][sev], rows = backupRows(SA, net, f, sev), at = new Map(B.edges.map((e, i) => [e, i]));
+    if (!B.edges.every(e => net.edges[e].fireZone >= 2 && !/I-?80\b/i.test(net.edges[e].name || ''))) check(false, `${f} ${sev}: a backup segment outside Fire Zones 2–3`);
+    for (const r of rows) {
+      rowsN++;
+      const vals = B.seeds.map((_, k) => r.edges.reduce((s, e) => s + B.pm[at.get(e)][k], 0));
+      if (JSON.stringify(vals) !== JSON.stringify(r.vals) || r.median !== median(vals) || r.median < BACKUP_ROW_MIN || !r.edges.every(e => net.edges[e].name === r.name)) check(false, `${f} ${sev} ${r.street}: row does not follow the table`);
+      if ((r.label === 'consistent') !== (r.top === B.seeds.length)) check(false, `${f} ${sev} ${r.street}: label ${r.label} with ${r.top} of ${B.seeds.length}`);
+    }
+    for (let i = 1; i < rows.length; i++) if (rows[i].median > rows[i - 1].median) check(false, `${f} ${sev}: rows out of order`);
+  }
+  check(rowsN > 0, `backup rows derive from spread-access.json (${rowsN} rows over ${M.meta.fires.length} fires × 3 paces), hill streets only, ranked by median, labels by the 5-of-5 rule`);
+  const e19 = backupRows(SA, net, 'eastWind', 'central').slice(0, 3).map(r => r.street).sort().join(',');
+  check(e19 === 'Arlington Av,Boynton Av,Vassar Av', `east wind at 1923 pace, top 3: ${e19}`);
+}
 
 console.log(fail ? `\n${fail} check(s) failed` : '\nall checks passed');
 process.exit(fail ? 1 : 0);

@@ -412,3 +412,12 @@ h3.cg { margin-top: 10px; }
 #g-status a { color: inherit; text-decoration: underline; white-space: nowrap; }
 #g-menu .g-menu-status { margin: 0 0 6px; font-weight: 600; }
 
+
+/* Where traffic backed up (SOURCE_NOTES GV23) */
+.bk { margin: 14px 0 6px; }
+.bk-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.bk-head h3 { margin-bottom: 2px; }
+.bk-sub, .bk-note { font-size: 13px; color: var(--muted); margin: 2px 0 6px; }
+.bk-row { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; width: 100%; text-align: left; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; margin: 0 0 6px; font-size: 14px; }
+.bk-t { flex: 1 1 100%; }
+.bk-v { font-size: 13px; color: #333; }
