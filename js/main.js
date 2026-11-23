@@ -256,8 +256,9 @@ function routingPanel(sim, S, done) {
     P = { runs: [], mine: sim.householdOutcomes() }; routingPairs.set(key, P);
     const batch = ++state.batch, plan = { ...sim.plan, routing: base, compliance: 1, name: ROUTING[base].short };
     const job = { scenarioId: sim.scenario.id, sev: sim.sevKey, seed: sim.seed, tod: $('tod').value, plan, world: world(), outcomes: true };
-    const on = ev => { const m = ev.data; if (m.batch !== batch) return; if (m.done) { worker.removeEventListener('message', on); P.ready = true; if (state.sim === sim) update(false); return; } P.runs.push(m.outcomes); };
+    const on = ev => { const m = ev.data; if (m.batch !== batch) return; if (m.done) { worker.removeEventListener('message', on); P.ready = true; state.routingCheck = null; if (state.sim === sim) update(false); return; } P.runs.push(m.outcomes); };
     worker.addEventListener('message', on);
+    state.routingCheck = { batch, key, on };
     worker.postMessage({ batch, jobs: [job, { ...job, reshuffle: true }, { ...job, plan: { ...sim.plan }, reshuffle: true }] });
   }
   const thr = data.A.routing.worseOffDelayMin;
@@ -430,7 +431,15 @@ function getFire(sc, sev, seed) {
   return state.fires.get(k);
 }
 let runGen = 0; // newRun calls so far: a deferred rebuild runs only if no later call has come since (Codex on #91)
+// A routing check still running for a run the page no longer shows is cancelled, so it does not hold up a later check
+// or Compare on the shared worker (found by tests/expert-sweep.mjs: after a few routing settings, Compare waited
+// behind every earlier check; SOURCE_NOTES GV30). Its unfinished entry is dropped, so showing that run again redoes it.
+function cancelRoutingCheck() {
+  const R = state.routingCheck; if (!R) return;
+  worker.postMessage({ cancel: R.batch }); worker.removeEventListener('message', R.on); routingPairs.delete(R.key); state.routingCheck = null;
+}
 function newRun() {
+  cancelRoutingCheck();
   // Opt-in settings whose data load after the page is up (js/data.js deferred): wait for it, then run, unless a later
   // call (say, the setting switched back off) has started or queued a newer run meanwhile.
   const gen = ++runGen;
