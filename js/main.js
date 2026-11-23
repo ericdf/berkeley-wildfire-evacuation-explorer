@@ -310,8 +310,8 @@ $('nbhd').onchange = e => {
 
 // ---------- Guided view (js/guided.js; Eric, 2026-11-10, SOURCE_NOTES GV1–GV8) ----------
 // One fire picker, the map and one Run button; results, changes and comparisons replace the map until dismissed.
-// Guided view always runs today's plan (DEFAULT_PLAN, fall night S6, medium severity, seed 1) on the chosen fire, with
-// any changes the user applied (js/levers.js stackOf), the same baseline as the stored tables.
+// Guided view always runs the status quo (DEFAULT_PLAN, fall night S6, seed 1) on the chosen fire at the chosen fire pace
+// (severity; SOURCE_NOTES GV21), with any changes the user applied (js/levers.js stackOf), the same baseline as the stored tables.
 Object.assign(state, { todayCache: new Map(), families: false, liveBatch: null });
 const FIRE_TITLE = () => FIRES.find(f => f.id === state.fire)?.title || state.fire;
 
@@ -350,29 +350,30 @@ famBox($('families'));
 
 // Today's plan on the chosen fire (the stored tables' baseline: DEFAULT_PLAN, fall night).
 const todayPreset = () => ({ id: 'today', title: "Today's plan", tod: 'S6', A: { ...DEFAULT_PLAN, name: "A: today's plan" }, B: { ...DEFAULT_PLAN, name: "B: today's plan" }, on: {}, off: {}, headline: null, always: true });
-// The watched run in Guided view: today's plan, or today's plan with the applied changes (Plan B).
-function guidedRun(levers) {
+// The watched run in Guided view: the status quo, or the status quo with the applied changes (Plan B), at fire pace sev.
+function guidedRun(levers, sev = 'central') {
   cancelCompare();
   const st = levers.length ? stackOf(levers) : null;
   state.preset = st ? { id: 'try', title: 'With changes', tod: 'S6', A: { ...DEFAULT_PLAN, name: "A: today's plan" }, B: { ...st.plan, name: 'B: with changes' }, on: {}, off: {}, headline: null, always: true, stack: st } : todayPreset();
   $('scenario').value = state.fire; showScenario();
-  $('tod').value = 'S6'; todNote(); $('severity').value = 'central'; $('seed').value = 1;
+  $('tod').value = 'S6'; todNote(); $('severity').value = sev; $('seed').value = 1;
   state.plans.A = { ...state.preset.A }; state.plans.B = { ...state.preset.B }; state.editing = st ? 'B' : 'A'; showPlan();
   $('compare-out').innerHTML = ''; newRun();
 }
 function play(on) { state.playing = on; state.playRate = null; state.playAt = null; runLabel(on ? '❚❚ Pause' : '▶ Run'); if (on) guided?.onRunStart(); }
 
-// Live paired comparison of two or three changes: the stored table's 15 passes (severities × seeds), each running today's
-// plan and the stack on the same fire, households, parked cars and seed. Today's plan results are cached per pass.
+// Live paired comparison of two or three changes: the stored table's 5 passes at the chosen fire pace (seeds 1–5; GV21),
+// each running the status quo and the stack on the same fire, households, parked cars and seed. Status quo results are
+// cached per pass.
 let pool = null;
 const workers = () => pool ??= Array.from({ length: Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 2) - 1)) }, () => new Worker(new URL('./worker.js', import.meta.url), { type: 'module' }));
-const passesFor = fire => comparisonCases(scenById(fire), data, { families: false, severities: mit().meta.severities, seeds: mit().meta.seeds });
+const passesFor = (fire, sev) => comparisonCases(scenById(fire), data, { families: false, severities: [sev], seeds: mit().meta.seeds });
 function cancelLive(L) {
   for (const w of pool || []) w.postMessage({ cancel: L.batch });
   if (state.liveBatch === L.batch) state.liveBatch = null;
 }
-function runLive(levers, onProgress) {
-  const st = stackOf(levers), fire = state.fire, cases = passesFor(fire);
+function runLive(levers, sev, onProgress) {
+  const st = stackOf(levers), fire = state.fire, cases = passesFor(fire, sev);
   const L = { fire, ids: levers.map(l => l.id), cases, A: {}, B: {}, passes: 0, done: false };
   for (const c of cases) if (state.todayCache.has(c.key)) L.A[c.key] = state.todayCache.get(c.key);
   const base = { scenarioId: fire, tod: 'S6' }, W = world();
@@ -877,9 +878,10 @@ function intro() {
   modal(`<div class="intro"><h2>How to use</h2>
   <ol class="howto">
     <li><b>Pick a fire</b> above the map. Each starts at a set place, with a set wind, and Berkeley orders out set zones.</li>
-    <li><b>Run simulation</b> plays one run of that fire with today's plan: the first evacuation order 10 minutes after ignition, today's street parking, a fall night.</li>
-    <li><b>Explore results</b> gives five results for that fire, each the median of 15 runs (low, medium and high fire severity × 5 random seeds) and labeled consistent, mixed or sensitive. <b>Explain this</b> says what a result counts, where it comes from and its limits.</li>
-    <li><b>Explore changes that could help</b> lists the changes tested against today's plan, grouped by the result they improve. Pick up to three, run them, and see each result with and without them.</li>
+    <li><b>Fire pace</b>: Slower, 1923 pace (the default) or 1991 pace. Every result and change below uses the 5 runs at that pace.</li>
+    <li><b>Run simulation</b> plays one run of that fire with the status quo: the first evacuation order 10 minutes after ignition, today's street parking, a fall night.</li>
+    <li><b>Explore results</b> gives six results for that fire, each the median of 5 runs at the chosen pace (5 random seeds), with the other paces' medians below it. <b>Explain this</b> says what a result counts, where it comes from and its limits.</li>
+    <li><b>Explore changes that could help</b> lists the changes tested against the status quo, grouped by the result they improve. Pick up to three, run them, and see each result with and without them.</li>
   </ol>
   <p>People are synthetic households placed from public population counts; the fire is an illustrative model run on Berkeley's real streets and terrain.</p>
   <p>Two fixed settings shape the results most: the first order 10 minutes after ignition, and night parking on both sides of most 17–24 ft hill streets, leaving one car's width (one night's count of 11 blocks, 2026-11-05).</p>

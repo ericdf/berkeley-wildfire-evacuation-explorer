@@ -20,26 +20,27 @@ export const PALETTE = {
 const SEVS = ['low', 'central', 'high'];
 
 // Per street segment: in how many runs of each severity embers (or the front) reached it, and its class.
+// sevs: the severities to count (Guided view passes the chosen fire pace alone, SOURCE_NOTES GV21); all three by default.
 const memo = new Map();
-export function edgeClasses(fire, measure) {
-  const k = `${fire}|${measure}`; if (memo.has(k)) return memo.get(k);
+export function edgeClasses(fire, measure, sevs = SEVS) {
+  const k = `${fire}|${measure}|${sevs}`; if (memo.has(k)) return memo.get(k);
   const S = SA?.streets?.[fire]; if (!S) return null;
-  const n = SA.meta.edges, cls = new Uint8Array(n), counts = SEVS.map(s => S[s][measure]), runs = SEVS.map(s => S[s].runs);
-  const levels = e => Object.fromEntries(SEVS.map((s, i) => [s, [parseInt(counts[i][e], 36), runs[i]]]));
+  const n = SA.meta.edges, cls = new Uint8Array(n), counts = sevs.map(s => S[s][measure]), runs = sevs.map(s => S[s].runs);
+  const levels = e => Object.fromEntries(sevs.map((s, i) => [s, [parseInt(counts[i][e], 36), runs[i]]]));
   for (let e = 0; e < n; e++) cls[e] = classOf(presence(levels(e)));
   const out = { cls, levels, runs: runs.reduce((a, b) => a + b, 0) };
   memo.set(k, out); return out;
 }
 // Per access-constrained area: in how many runs the fire front reached its entrance (its only drivable way out).
-export function areaClass(fire, id) {
+export function areaClass(fire, id, sevs = SEVS) {
   const A = SA?.areas?.[fire]?.[id], runs = SA ? SA.meta.seeds.length : 5;
-  const levels = Object.fromEntries(SEVS.map(s => [s, A?.front?.[s] || [0, runs]]));
+  const levels = Object.fromEntries(sevs.map(s => [s, A?.front?.[s] || [0, runs]]));
   const p = presence(levels);
   return { cls: classOf(p), p, A, levels };
 }
-export function areaEdgeClasses(data, fire) {
-  const k = `area|${fire}`; if (memo.has(k)) return memo.get(k);
+export function areaEdgeClasses(data, fire, sevs = SEVS) {
+  const k = `area|${fire}|${sevs}`; if (memo.has(k)) return memo.get(k);
   const cls = new Uint8Array(data.net.edges.length);
-  if (data.access) for (const [e, areas] of data.access.edgeAreas) if (SA?.areaStatic?.[areas[0].id]) cls[e] = areaClass(fire, areas[0].id).cls;
+  if (data.access) for (const [e, areas] of data.access.edgeAreas) if (SA?.areaStatic?.[areas[0].id]) cls[e] = areaClass(fire, areas[0].id, sevs).cls;
   memo.set(k, cls); return cls;
 }
