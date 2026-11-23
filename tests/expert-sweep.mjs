@@ -153,7 +153,12 @@ if (!only) {
 if (doCompare) {
   const t0 = Date.now();
   await p.click('#compare');
-  await p.waitForFunction(() => /Plan comparison/.test(document.getElementById('compare-out').innerText), null, { timeout: +(process.env.CMP_TIMEOUT || 900000) });
+  for (let last = ''; !/Plan comparison/i.test(await p.locator('#compare-out').textContent());) {
+    if (Date.now() - t0 > +(process.env.CMP_TIMEOUT || 900000)) { check(false, `Compare did not finish in ${((Date.now() - t0) / 1000).toFixed(0)} s (last: "${last}")`); break; }
+    const b = await p.locator('#sim-banner-text').innerText().catch(() => '');
+    if (b !== last) { console.log(`     ${((Date.now() - t0) / 1000).toFixed(0)} s: ${b || '(no banner)'}`); last = b; }
+    await p.waitForTimeout(2000);
+  }
   const r = await p.evaluate(() => ({ tables: document.querySelectorAll('#compare-out table').length, notes: [...document.querySelectorAll('#compare-out .ete-note')].map(x => x.innerText) }));
   check(!errors.length && r.tables >= 3 && r.notes.length === 3 && r.notes.every(t => /short of|longer than|no case/.test(t)), `Compare: ${r.tables} tables, ${r.notes.length} evacuation-time notes, ${((Date.now() - t0) / 1000).toFixed(0)} s${errors.length ? `; errors: ${errors.join(' | ')}` : ''}`);
 }
