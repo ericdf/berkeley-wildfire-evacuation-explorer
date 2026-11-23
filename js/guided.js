@@ -467,6 +467,11 @@ export function guidedUI(ctx) {
   }
 
   // ---------- changes ----------
+  // A shorter name in the Changes rows where the table's title runs to three lines on a phone (Eric, 2026-11-23); the
+  // full title stays in the cost pop-up, the comparison and the map tag.
+  const SHORT = { leaveEarlyEFW: 'Leave on Extreme Fire Weather (10 zones)' };
+  const narrowView = () => typeof matchMedia === 'function' && matchMedia('(max-width: 430px)').matches;
+  const shortTitle = l => SHORT[l.id] || l.title;
   const GAIN = { ember: 'fewer when embers arrived', frontPeople: 'fewer when the front arrived', engine: 'more within reach', cutOff: 'fewer cars', homes: 'fewer buildings lost' };
   function changesHTML() {
     if (!mit()) return `${head('Changes that could help', '')}<p>The change table did not load.</p>${footHTML('changes')}`;
@@ -485,10 +490,10 @@ export function guidedUI(ctx) {
       // and opens its provenance (category, source, note).
       const off = !on && (clash || full || it.withheld);
       // A change already listed in an earlier group: one compact line (its cost and notes are on the full row above).
-      if (seen.has(l.id)) return `<div class="cr cr-dup${on ? ' on' : ''}${off ? ' off' : ''}"><button class="cr-pick" data-pick="${esc(l.id)}" aria-pressed="${on}"${off ? ' disabled' : ''}><span class="cr-s"><b>${esc(l.title)}</b> · ${gain}</span></button></div>`;
+      if (seen.has(l.id)) return `<div class="cr cr-dup${on ? ' on' : ''}${off ? ' off' : ''}"><button class="cr-pick" data-pick="${esc(l.id)}" aria-pressed="${on}"${off ? ' disabled' : ''}><span class="cr-s"><b>${esc(shortTitle(l))}</b> · ${gain}</span></button></div>`;
       seen.add(l.id);
       return `<div class="cr${on ? ' on' : ''}${off ? ' off' : ''}"><button class="cr-pick" data-pick="${esc(l.id)}" aria-pressed="${on}"${off ? ' disabled' : ''}>
-        <span class="cr-t"><b>${esc(l.title)}</b></span>
+        <span class="cr-t"><b>${esc(shortTitle(l))}</b></span>
         <span class="cr-s">${gain}</span>
         ${fr && gid === 'engine' ? `<span class="cr-s muted">Also a second way out for about ${fmt(round10(fr.value))} hill residents</span>` : ''}
         ${clash ? `<span class="cr-w">Changes the same block as “${esc(clash.p.title)}”: pick one.</span>` : ''}</button>
@@ -497,9 +502,12 @@ export function guidedUI(ctx) {
     // Each group shows its top 3 by the current sort, plus any picked change below them, and a control for the rest
     // (Eric, 2026-11-10: keep the Changes view near two screens on an iPhone SE).
     // "Fewer buildings lost" (six variants of two changes, 2026-11-13) shows only its best, to hold that height.
+    // On a phone (430 px wide or less) each group shows its top 2 (Eric, 2026-11-23, "fix the cosmetic items": the
+    // Extreme Fire Weather change, #92, had pushed the view past three screens on an iPhone SE).
     const TOPS = { homes: 1 };
+    const narrow = narrowView();
     const shortList = gr => {
-      const TOP = TOPS[gr.id] ?? 3;
+      const TOP = TOPS[gr.id] ?? (narrow ? 2 : 3);
       const all = sortItems(gr.items, g.sort), open = g.more[gr.id];
       const shown = open ? all : all.filter((it, i) => i < TOP || g.picked.includes(it.lever.id));
       const rest = all.length - shown.length;
@@ -516,7 +524,7 @@ export function guidedUI(ctx) {
       const a = streetsOf(picked[i], data.net, data.nodeEdges), b = streetsOf(picked[j], data.net, data.nodeEdges), both = [...a].filter(x => b.has(x));
       if (both.length) warn.push(`“${esc(picked[i].title)}” and “${esc(picked[j].title)}” both change ${esc(both.slice(0, 2).map(s => s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())).join(' and '))}: together they may gain less than the two added up.`);
     }
-    const sub = `${esc(fireTitle())} · ${paceName()} · pick up to 3, then Run`;
+    const sub = narrowView() ? `${paceName()} · pick up to 3` : `${esc(fireTitle())} · ${paceName()} · pick up to 3, then Run`; // the fire is in the picker above
     return `<div class="gv-back"><button class="linkish" data-go="results">← Results</button><button class="linkish" data-go="map">Map</button></div>${head('Changes that could help', sub)}
       <div class="sortbar"><span role="group" aria-label="Sort">Sort <button data-sort="benefit" aria-pressed="${g.sort === 'benefit'}">Benefit</button><button data-sort="cost" aria-pressed="${g.sort === 'cost'}">Cost</button></span><button class="linkish gv-about" data-about-gains>About these gains</button></div>
       ${body}
