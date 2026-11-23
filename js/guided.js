@@ -12,6 +12,7 @@
 import { CARDS, GROUPS, cardById, makeGuided, sortItems, costLine, streetsOf, round10, SEVS, median, NETWORK_FIRES, PACES, paceOf, DEFAULT_PACE } from './guided-data.js';
 import { presence, direction, assumption } from './robust.js';
 import { CELL } from './fire.js';
+import { LEVER_OFF } from './presets.js';
 
 // Plain words for the three robustness labels (Eric, 2026-11-12, MASTER session; SOURCE_NOTES GV12). The rules are
 // js/robust.js's (SA4, SA6): consistent = at least 90% of the runs; sensitive = shares differ by 0.6 or more between
@@ -64,7 +65,7 @@ export function guidedUI(ctx) {
   const pace = () => paceOf(g.pace), paceName = () => pace().label;
   const runsN = () => mit()?.meta.seeds.length || 5; // runs at one pace
   let G = null;
-  const model = () => G ??= makeGuided(mit(), spread(), PRESETS);
+  const model = () => G ??= makeGuided(mit(), spread(), PRESETS, LEVER_OFF);
   const fireTitle = () => FIRES.find(f => f.id === state.fire)?.title || state.fire;
   const leverById = id => model().leverById(id);
   const simple = () => document.body.classList.contains('simple');
