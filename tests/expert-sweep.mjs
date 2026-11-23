@@ -11,7 +11,7 @@
 //   python3 tools/serve.py &            # http://127.0.0.1:8766
 //   node tests/expert-sweep.mjs [--only id,id] [--no-compare]
 //
-// About 15 minutes on 4 cores. Needs Playwright with its Chromium (not a repository dependency).
+// About 8 minutes on 4 cores. Needs Playwright with its Chromium (not a repository dependency).
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
