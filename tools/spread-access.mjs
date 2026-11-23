@@ -19,6 +19,13 @@
 //   parkingByFire  the same for fires that change the street network (the earthquake's fault closures), seeds 1–5
 //   levers    per new road or opened path in data/model/mitigations.json and fire: runs in which the fire front or
 //             embers reached it; residents no longer behind a single drivable way out (egress-candidates.json)
+//   backups   per fire and severity, hill street segments (Fire Zones 2–3) in zones ordered or warned during the run:
+//             people in waiting cars, summed over the run (person-minutes), and the most people waiting at once, per
+//             run (seeds 1–5). A car waits when it has been on its link longer than the link's free-flow time (the
+//             queue layer's rule, js/queue-display.js), sampled every 30 model seconds; a resident car carries its
+//             household's persons and any carless neighbors riding with it, split over the household's cars; a
+//             non-resident car one person. Segments under BACKUP_MIN person-minutes in every run are left out.
+//             Guided view's "Where traffic backed up" list (Eric, 2026-11-23; SOURCE_NOTES GV25).
 //
 //   node tools/spread-access.mjs [--seeds 5] [--workers N]
 //
@@ -37,17 +44,19 @@ const FIRES = ['eastWind', 'ref1923', 'panoramic', 'northHills', 'quake', 'westW
 const SEVS = ['low', 'central', 'high'];
 const TOD = 'S6';
 const WORLD = { growth: 'none', powerShutoff: 'none' }; // the Guided view's world (js/main.js world())
+const BACKUP_EVERY = 30, BACKUP_MIN = 100; // seconds between samples; person-minutes kept (model rule, GV25)
 
 async function setup() {
   const { loadData } = await import(R + '/js/data.js');
   const { buildFireGrid, runFire, cellOf } = await import(R + '/js/fire.js');
   const { makeScenarios, SEVERITY, TIME_OF_DAY } = await import(R + '/js/scenarios.js');
   const { Evacuation, DEFAULT_PLAN } = await import(R + '/js/sim.js');
+  const { waiting } = await import(R + '/js/queue-display.js');
   const data = await loadData(async (p, k) => { const b = fs.readFileSync(path.resolve(R, p)); return k === 'json' ? JSON.parse(b) : b.buffer.slice(b.byteOffset, b.byteOffset + b.length); });
   const grid = buildFireGrid(data);
   const scen = Object.fromEntries(makeScenarios(data).map(s => [s.id, s]));
   const mit = JSON.parse(fs.readFileSync(path.join(R, 'data/model/mitigations.json'), 'utf8'));
-  return { data, grid, scen, runFire, cellOf, SEVERITY, TIME_OF_DAY, Evacuation, DEFAULT_PLAN, mit };
+  return { data, grid, scen, runFire, cellOf, SEVERITY, TIME_OF_DAY, Evacuation, DEFAULT_PLAN, mit, waiting };
 }
 
 // Persons per household of household h in this run.
@@ -63,7 +72,31 @@ function runOne(E, j) {
   // Synthetic persons per segment (before any trip; bought-out households: none in today's plan).
   const pe = new Float64Array(nE);
   for (let h = 0; h < hh.n; h++) pe[hh.edge[h]] += persons(sim, h);
-  const S = sim.runToEnd();
+  // Run to the end as sim.runToEnd() does, sampling the queues every BACKUP_EVERY model seconds (read-only).
+  const { v } = sim, carry = new Float64Array(hh.n);
+  for (let h = 0; h < hh.n; h++) if (hh.ride[h] >= 0) carry[hh.ride[h]] += persons(sim, h);
+  const perCar = i => { const h = v.hh[i]; return h >= 0 ? (persons(sim, h) + carry[h]) / Math.max(1, hh.veh[h]) : 1; };
+  const bpm = new Float64Array(nE), bpk = new Float64Array(nE);
+  while (sim.t < sim.end) {
+    sim.step();
+    if (Math.round(sim.t) % BACKUP_EVERY) continue;
+    const now = new Map();
+    for (const lid of sim.active) {
+      const L = sim.links[lid]; let p = 0;
+      for (const i of L.q) if (sim.t >= v.enter[i] + L.ff) p += perCar(i);
+      if (p) now.set(L.e, (now.get(L.e) || 0) + p);
+    }
+    for (const [e, p] of now) { bpm[e] += p * BACKUP_EVERY / 60; if (p > bpk[e]) bpk[e] = p; }
+  }
+  const S = sim.summary();
+  const zi = new Map(data.layers.evacZones.map((z, i) => [z.id, i]));
+  const backup = {};
+  for (let e = 0; e < nE; e++) {
+    if (!bpm[e] || !(data.net.edges[e].fireZone >= 2)) continue;
+    const z = zi.get(data.net.edges[e].evacZone);
+    if (z == null || !(sim.orderT[z] <= end || sim.warnT[z] <= end)) continue;
+    backup[e] = [Math.round(bpm[e]), Math.round(bpk[e])]; // whole person-minutes and people (load size, PR #91)
+  }
   // Areas: entrance (choke) timing, residents behind who had not left when the front reached it.
   const areas = {};
   for (const a of data.access?.areas || []) {
@@ -104,7 +137,7 @@ function runOne(E, j) {
     }).map(([k, v]) => [k, v.map(x => Math.round(x * 10) / 10)])),
     // Of the "never ordered" part, those whose zone was under a warning only (ember, front).
     splitWarned: [S.notOrderedWarnedExposed, S.fireFrontNotOrderedWarned].map(x => Math.round(x * 10) / 10) };
-  return { j, run, ember: Buffer.from(ember).toString('base64'), front: Buffer.from(front).toString('base64'), pe: Array.from(pe, x => Math.round(x * 100) / 100), areas, levers };
+  return { j, run, backup, ember: Buffer.from(ember).toString('base64'), front: Buffer.from(front).toString('base64'), pe: Array.from(pe, x => Math.round(x * 100) / 100), areas, levers };
 }
 
 // Engine reach at ignition under the pre-2026-11-05 night parking rule (Expert-view scenario setting): fire-independent.
@@ -150,10 +183,11 @@ if (!isMainThread) {
   const data = await loadData(async (p, k) => { const b = fs.readFileSync(path.resolve(R, p)); return k === 'json' ? JSON.parse(b) : b.buffer.slice(b.byteOffset, b.byteOffset + b.length); });
   const nE = data.net.edges.length, mit = JSON.parse(fs.readFileSync(path.join(R, 'data/model/mitigations.json'), 'utf8'));
   const egress = JSON.parse(fs.readFileSync(path.join(R, 'data/model/egress-candidates.json'), 'utf8'));
-  const runs = results.filter(r => !r.j.parking);
+  // In a fixed order, so sums of floating-point values (residentsPerEdge) do not depend on which worker finished first.
+  const runs = results.filter(r => !r.j.parking).sort((a, b) => FIRES.indexOf(a.j.fire) - FIRES.indexOf(b.j.fire) || SEVS.indexOf(a.j.sev) - SEVS.indexOf(b.j.sev) || a.j.seed - b.j.seed);
   const dec = s => Buffer.from(s, 'base64');
   const digits = counts => Array.from(counts, c => c.toString(36)).join('');
-  const streets = {}, areas = {}, levers = {};
+  const streets = {}, areas = {}, levers = {}, backups = {};
   const peSum = new Float64Array(nE);
   for (const r of runs) for (let e = 0; e < nE; e++) peSum[e] += r.pe[e];
   for (const fire of FIRES) {
@@ -163,6 +197,11 @@ if (!isMainThread) {
       const em = new Uint8Array(nE), fr = new Uint8Array(nE);
       for (const r of rs) { const a = dec(r.ember), b = dec(r.front); for (let e = 0; e < nE; e++) { em[e] += a[e]; fr[e] += b[e]; } }
       streets[fire][sev] = { runs: rs.length, ember: digits(em), front: digits(fr) };
+      // Backups: segments with at least BACKUP_MIN person-minutes in some run; per run (seed order) person-minutes and
+      // the most people waiting at once (0 where the segment had no qualifying backup in that run).
+      const keep = [...new Set(rs.flatMap(r => Object.keys(r.backup).map(Number)))].filter(e => rs.some(r => (r.backup[e]?.[0] || 0) >= BACKUP_MIN)).sort((a, b) => a - b);
+      backups[fire] ||= {};
+      backups[fire][sev] = { seeds: rs.map(r => r.j.seed), edges: keep, pm: keep.map(e => rs.map(r => r.backup[e]?.[0] || 0)), peak: keep.map(e => rs.map(r => r.backup[e]?.[1] || 0)) };
       for (const r of rs) {
         for (const [id, a] of Object.entries(r.areas)) {
           const A = areas[fire][id] ||= { front: {}, ember: {}, notLeft: [], gapMin: [] };
@@ -206,7 +245,8 @@ if (!isMainThread) {
       note: 'Educational comparison, not a prediction and not an official evacuation plan. Fires are illustrative scenario outputs; people are synthetic households; minutes are model time, not a forecast. A share of runs is not a probability.',
       encoding: 'streets[fire][severity].ember/front: one base-36 digit per street segment (network edge id order), the number of runs (of streets[fire][severity].runs) in which the modeled embers or fire front reached the segment\'s midpoint cell within the run' },
     residentsPerEdge: Array.from(peSum, x => Math.round(10 * x / runs.length) / 10),
-    streets, areas, areaStatic, levers, leverStatic, parking, parkingByFire,
+    streets, areas, areaStatic, levers, leverStatic, parking, parkingByFire, backups,
+    backupsNote: `backups[fire][severity]: hill street segments (Fire Zones 2–3) in zones ordered or warned during the run; pm = person-minutes in waiting cars over the run, peak = most people waiting at once, per seed; sampled every ${BACKUP_EVERY} model seconds; segments under ${BACKUP_MIN} person-minutes in every run left out (model rule, SOURCE_NOTES GV25).`,
     runs: runs.map(r => r.run).sort((a, b) => FIRES.indexOf(a.fire) - FIRES.indexOf(b.fire) || SEVS.indexOf(a.sev) - SEVS.indexOf(b.sev) || a.seed - b.seed),
   };
   // Keep only what the page needs: drop per-area entries never reached and with no residents.

@@ -239,3 +239,45 @@ export function streetsOf(lever, net, nodeEdges) {
   if (d.link && !d.link.open) for (const n of [d.link.a, d.link.b]) for (const e of nodeEdges?.[n] || []) ids.push(e);
   return new Set(ids.map(id => E[id]).filter(e => e && e.mode === 'vehicle' && e.name).map(e => e.name));
 }
+
+// "Where traffic backed up in these runs" (Eric, 2026-11-23, MASTER session; SOURCE_NOTES GV25). From spread-access.json
+// backups[fire][sev] (tools/spread-access.mjs): hill street segments (Fire Zones 2–3) in zones ordered or warned during
+// the run, with person-minutes in waiting cars per run. Streets in the flats and the I-80 approaches are not in the table
+// (the model's queues there sit at different junctions from the 2025 Evacuation Time Study's; CD25, CD29).
+// A row is one street: adjacent table segments with the same name, joined where they share a node. Its value in a run is
+// the sum of its segments' person-minutes; rows rank by the median over the 5 runs at the pace, and a row is listed when
+// that median is at least BACKUP_ROW_MIN. A row is present in a run when it is among that run's BACKUP_TOP rows and holds
+// at least BACKUP_ROW_MIN there; "in nearly every run" when present in all 5 runs (the 90% rule at n = 5), else "varies".
+export const BACKUP_TOP = 10, BACKUP_ROW_MIN = 60; // rows; person-minutes, one person-hour (model rule, GV25)
+export const titleCase = s => String(s || '').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+export function backupRows(SA, net, fire, sev) {
+  const B = SA?.backups?.[fire]?.[sev]; if (!B || !net) return null;
+  const E = net.edges, at = new Map(B.edges.map((e, i) => [e, i])), nRuns = B.seeds.length;
+  const byName = new Map();
+  for (const e of B.edges) { const k = E[e]?.name || ''; if (!k) continue; if (!byName.has(k)) byName.set(k, []); byName.get(k).push(e); }
+  const rows = [];
+  for (const [name, es] of byName) {
+    const left = new Set(es);
+    while (left.size) {
+      const g = [left.values().next().value]; left.delete(g[0]);
+      for (let i = 0; i < g.length; i++) for (const x of [...left]) { const a = E[g[i]], b = E[x]; if (a.a === b.a || a.a === b.b || a.b === b.a || a.b === b.b) { g.push(x); left.delete(x); } }
+      const vals = Array.from({ length: nRuns }, (_, r) => g.reduce((s, e) => s + B.pm[at.get(e)][r], 0));
+      const peaks = Array.from({ length: nRuns }, (_, r) => Math.max(...g.map(e => B.peak[at.get(e)][r])));
+      rows.push({ name, street: titleCase(name), edges: g.sort((a, b) => a - b), vals, peaks, median: median(vals), peak: median(peaks) });
+    }
+  }
+  rows.sort((a, b) => b.median - a.median || a.edges[0] - b.edges[0]);
+  for (let r = 0; r < nRuns; r++) [...rows].sort((a, b) => b.vals[r] - a.vals[r]).slice(0, BACKUP_TOP).forEach(x => { if (x.vals[r] >= BACKUP_ROW_MIN) x.top = (x.top || 0) + 1; });
+  for (const x of rows) { x.top ||= 0; x.n = nRuns; x.label = x.top === nRuns ? 'consistent' : 'mixed'; }
+  return rows.filter(x => x.median >= BACKUP_ROW_MIN);
+}
+// The cross streets at a row's two ends ("from … to …"): at each end node of the joined segments, the first other named
+// street for cars. nodeEdges: data.nodeEdges (js/data.js).
+export function blockRange(row, net, nodeEdges) {
+  const E = net.edges, deg = new Map();
+  for (const e of row.edges) for (const n of [E[e].a, E[e].b]) deg.set(n, (deg.get(n) || 0) + 1);
+  const ends = [...deg].filter(([, d]) => d === 1).map(([n]) => n);
+  const cross = n => (nodeEdges[n] || []).map(id => E[id]).find(x => x && x.mode === 'vehicle' && x.name && x.name !== row.name)?.name;
+  const names = [...new Set(ends.map(cross).filter(Boolean))].map(titleCase);
+  return names.length >= 2 ? `${names[0]} to ${names[1]}` : names.length ? `near ${names[0]}` : '';
+}

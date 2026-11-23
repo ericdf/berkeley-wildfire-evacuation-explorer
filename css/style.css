@@ -412,3 +412,16 @@ h3.cg { margin-top: 10px; }
 #g-status a { color: inherit; text-decoration: underline; white-space: nowrap; }
 #g-menu .g-menu-status { margin: 0 0 6px; font-weight: 600; }
 
+
+/* Where traffic backed up (SOURCE_NOTES GV25): one compact card, one line per street where it fits */
+.bk { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin: 0 auto 8px; }
+.bk-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.bk-head .rc-l { margin: 0; font-size: 15px; }
+.bk-head .linkish { font-size: 13px; white-space: nowrap; }
+.bk-sub, .bk-note { font-size: 12.5px; color: var(--muted); margin: 2px 0 4px; }
+.bk-one { font-size: 14px; margin: 4px 0; }
+.bk-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; width: 100%; text-align: left; background: none; border: none; border-top: 1px solid var(--line); border-radius: 0; padding: 4px 0; margin: 0; font-size: 14px; line-height: 1.25; }
+.bk-row b { flex: 1 1 auto; }
+.bk-v { font-size: 13px; color: #333; white-space: nowrap; }
+.bk-l { flex: 1 1 100%; font-size: 12px; padding: 0; background: none !important; }
+.bk .cg-more { margin: 2px 0; }

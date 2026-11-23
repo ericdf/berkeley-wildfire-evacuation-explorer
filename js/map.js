@@ -189,7 +189,7 @@ export class MapView {
   // a bought-out block (purple). The change the user is looking at is drawn heavier.
   drawMarks() {
     const { ctx } = this; if (!this.marks.length) return;
-    const C = { street: '#15803d', link: '#15803d', buyout: '#7e22ce' };
+    const C = { street: '#15803d', link: '#15803d', buyout: '#7e22ce', backup: '#7f1d1d' }; // backup: a street from Guided view's backups list
     ctx.save(); ctx.lineCap = 'round';
     for (const m of this.marks) {
       ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = m.focus ? 11 : 8; ctx.setLineDash([]); ctx.beginPath(); this.path(m.geom); ctx.stroke();

@@ -9,7 +9,7 @@
 // Figures come from data/model/mitigations.json and spread-access.json through js/guided-data.js. "Status quo" was
 // "today's plan" until 2026-11-23, and the fire pace (Slower, 1923 pace, 1991 pace: low, medium and high severity)
 // came back to Guided view then (Eric, MASTER session; SOURCE_NOTES GV21, GV22).
-import { CARDS, GROUPS, cardById, makeGuided, sortItems, costLine, streetsOf, round10, SEVS, median, NETWORK_FIRES, PACES, paceOf, DEFAULT_PACE } from './guided-data.js';
+import { CARDS, GROUPS, cardById, makeGuided, sortItems, costLine, streetsOf, round10, SEVS, median, NETWORK_FIRES, PACES, paceOf, DEFAULT_PACE, backupRows, blockRange, BACKUP_TOP, BACKUP_ROW_MIN } from './guided-data.js';
 import { presence, direction, assumption } from './robust.js';
 import { CELL } from './fire.js';
 import { LEVER_OFF } from './presets.js';
@@ -133,7 +133,7 @@ export function guidedUI(ctx) {
     setup(); frameStart(); show('map');
   }
   // The status quo, or the status quo with the applied changes, on the chosen fire at the chosen pace (js/main.js guidedRun).
-  function setup() { fireSel.value = state.fire; syncPace(); ctx.setupRun(g.applied.map(leverById).filter(Boolean), g.pace); }
+  function setup() { g.focus = null; fireSel.value = state.fire; syncPace(); ctx.setupRun(g.applied.map(leverById).filter(Boolean), g.pace); }
 
   // ---------- screens ----------
   function show(screen) {
@@ -160,7 +160,8 @@ export function guidedUI(ctx) {
     $('g-tag').hidden = !tag; $('g-tag').innerHTML = tag;
     // One line on the map saying what the colors show, visible without opening the key (Eric, 2026-11-12).
     const runs = runsN();
-    const cap = !s ? '' : !d ? 'Red: cars backed up'
+    // A backup street tapped on Results shows before or after a run (the list reads the stored runs; Codex, PR #94).
+    const cap = g.focus ? `${g.focus.street}: where traffic backed up in these runs` : !s ? '' : !d ? 'Red: cars backed up'
       : g.chip === 'fire' ? `Streets embers reached across ${runs} runs of this fire`
       : g.chip === 'ways' ? `Ways out the fire front reached across ${runs} runs of this fire`
       : 'Engine drive time from the nearest station, this run';
@@ -168,10 +169,11 @@ export function guidedUI(ctx) {
     if (!d) $('g-sheet').hidden = true;
     mapLayers();
   }
-  $('g-run').onclick = () => { ctx.play(!state.playing); refresh(); };
+  $('g-run').onclick = () => { g.focus = null; ctx.play(!state.playing); refresh(); };
   $('g-again').onclick = () => { setup(); frameStart(); ctx.play(true); refresh(); };
   $('g-explore').onclick = () => show('results');
-  $('g-chips').addEventListener('click', e => { const b = e.target.closest('[data-chip]'); if (!b) return; g.chip = b.dataset.chip; refresh(); if (g.sel) sheet(g.sel); });
+  $('g-chips').addEventListener('click', e => { const b = e.target.closest('[data-chip]'); if (!b) return; g.chip = b.dataset.chip; g.focus = null; refresh(); // a chip clears a backup street's highlight (Codex, PR #94)
+    if (g.sel) sheet(g.sel); });
 
   // ---------- map view: framing and auto-zoom (MASTER, 2026-11-23; SOURCE_NOTES GV18) ----------
   // Before a run the map frames the fire's starts and START_PAD meters around them, the nearest homes and streets.
@@ -280,6 +282,7 @@ export function guidedUI(ctx) {
       if (spread()) { map.streetMode = 'robust'; map.edgeClass = ctx.areaEdgeClasses(data, state.fire, [g.pace]); map.edgePalette = [...ctx.PALETTE.access]; map.edgePalette[0] = '#c8c8c8'; }
     } else { map.streetMode = 'engineTime'; map.layers.stations = true; }
     map.marks = g.applied.map(leverById).filter(Boolean).flatMap(marksOf);
+    if (g.focus) for (const id of g.focus.edges) map.marks.push({ geom: data.net.edges[id].geom, kind: 'backup', focus: true });
     map.draw(); ctx.legend();
   }
   // Outlines of the applied changes: rewritten or bought-out segments and new roads.
@@ -366,7 +369,46 @@ export function guidedUI(ctx) {
   function resultsHTML() {
     if (!mit() || !spread()) return `${head('Results', esc(fireTitle()))}<p>The run-set tables did not load.</p>${footHTML('results')}`;
     const cards = CARDS.map(c => { const f = baseFigure(c); return `<div class="rc"><div class="rc-n">${f.na ? 'Not computed' : n(f.value)}</div><div class="rc-l">${c.line}</div>${paceLine(c, f)}${splitHTML(c)}<div class="rc-f">${chipHTML(f.label, c.id === 'oneWay' ? 'network' : 'result')}<button class="linkish" data-explain="${c.id}">Explain this</button></div></div>`; }).join('');
-    return `${head(`Results: ${esc(fireTitle())}`, `${sqBtn()}, median of ${runsN()} runs at ${paceName()}`)}${cards}${footHTML('results')}`;
+    return `${head(`Results: ${esc(fireTitle())}`, `${sqBtn()}, median of ${runsN()} runs at ${paceName()}`)}${cards}${backupsHTML()}${footHTML('results')}`;
+  }
+
+  // ---------- where traffic backed up (Eric, 2026-11-23; SOURCE_NOTES GV25) ----------
+  // Hill streets only, from spread-access.json backups (js/guided-data.js backupRows): the top 5 rows, "Show more" for up
+  // to BACKUP_LIST in all. When most of the top 5 vary from run to run, one line replaces the list (Eric, 2026-11-23, option a).
+  const BACKUP_LIST = 15;
+  const backups = () => backupRows(spread(), data.net, state.fire, g.pace);
+  const hours = pm => { const h = pm / 60; return h >= 10 ? fmt(round10(h)) : fmt(h, 1); };
+  // One compact card (MASTER, 2026-11-23: Results may grow by about 0.6 screens on an iPhone SE): the top 3 rows, then
+  // "Show 2 more" (top 5), then "Show all" (up to BACKUP_LIST). g.bkOpen: 0, 1 or 2.
+  function backupsHTML() {
+    const R = backups(); if (!R) return '';
+    const flats = '<p class="bk-note">Hill streets only: the flats and I-80 approaches are not ranked.</p>';
+    const top5 = R.slice(0, 5), stable = top5.filter(r => r.label === 'consistent').length;
+    const headH = `<div class="bk-head"><div class="rc-l"><b>Where traffic backed up in these runs</b></div><button class="linkish" data-explain-backups>Explain this</button></div>`;
+    if (!R.length) return `<div class="bk">${headH}<p class="bk-one">No hill street held a backup of an hour of people's time or more in a median run at ${paceName()}.</p>${flats}</div>`;
+    if (stable * 2 < top5.length) return `<div class="bk">${headH}<p class="bk-one">No street backed up in nearly every run of this fire at this pace; backups moved from run to run.</p>${flats}</div>`;
+    const all = R.slice(0, BACKUP_LIST), lvl = g.bkOpen || 0, shown = all.slice(0, lvl === 0 ? 3 : lvl === 1 ? 5 : all.length);
+    // One line per street; a street that is not in nearly every run carries "Varies from run to run" under it.
+    const row = (r, i) => `<button class="bk-row" data-backup="${i}" aria-label="${esc(r.street)}, ${hours(r.median)} person-hours, ${r.label === 'consistent' ? 'in nearly every run' : 'varies from run to run'}"><b>${esc(r.street)}</b><span class="bk-v">${hours(r.median)} person-hours</span>${r.label === 'consistent' ? '' : '<span class="bk-l r-mixed">Varies from run to run</span>'}</button>`;
+    const next = shown.length < all.length ? (lvl === 0 && all.length > 3 ? `Show ${Math.min(2, all.length - 3)} more` : `Show all ${all.length}`) : all.length > 3 ? 'Show fewer' : '';
+    const more = next ? `<button class="linkish cg-more" data-bk-more aria-expanded="${shown.length > 3}">${next}</button>` : '';
+    return `<div class="bk">${headH}<p class="bk-sub">Median of ${runsN()} runs at ${paceName()}; in nearly every run unless marked. Tap for the map.</p>${shown.map(row).join('')}${more}${flats}</div>`;
+  }
+  function focusBackup(i) {
+    const r = backups()?.[i]; if (!r) return;
+    const range = blockRange(r, data.net, data.nodeEdges);
+    show('map'); g.focus = { street: range ? `${r.street} (${range})` : r.street, edges: r.edges };
+    let b = null; for (const id of r.edges) for (const [x, y] of data.net.edges[id].geom) b = grow(b, x, y);
+    g.follow = false; goTo(pad(b, 250), true); refresh();
+  }
+  function explainBackups() {
+    const R = backups() || [];
+    ctx.modal(`<div class="gx"><h2>Where traffic backed up in these runs</h2>
+      <h3>What it counts</h3><p>For each hill street, the people in cars waiting on it, added up over the run, in person-hours: 10 people waiting 6 minutes count 1 person-hour. A car is waiting once it has been on its stretch of street longer than it takes to drive it with no traffic, checked every 30 model seconds. A resident's car carries its household and any carless neighbors riding with it, shared over the household's cars; a car from outside the area carries one person. Next-door stretches of one street are one row; the row's figure is the median over the ${runsN()} runs of ${esc(fireTitle())} at ${paceName()}, status quo, fall night, and rows below one person-hour are not listed.</p>
+      <h3>Which streets</h3><p>Streets in Berkeley's Fire Zones 2–3 in zones ordered or warned during the run. Streets in the flats and the I-80 approaches are left out: there the model's queues form at different junctions from those the City's 2025 Evacuation Time Study found (Assumptions &amp; limits, Model performance).</p>
+      <h3>In nearly every run, or varies</h3><p>"In nearly every run": the street is among that run's ${BACKUP_TOP} largest backups, with at least one person-hour, in all ${runsN()} runs. "Varies from run to run": in fewer. When most of the top 5 vary, the list is not shown.${R.length ? ` Here ${R.slice(0, 5).filter(r => r.label === 'consistent').length} of the top ${Math.min(5, R.length)} are in nearly every run.` : ''}</p>
+      <h3>Where it comes from</h3><p>${badge('synthetic')} Synthetic households and their cars, placed from zone population counts and driven by the traffic model; ${badge('model rule')} the waiting rule and the sampling; ${badge('assumption')} one person in each car from outside the area. Stored table: data/model/spread-access.json backups (tools/spread-access.mjs), built ${esc(spread()?.meta?.built || '')}.</p>
+      <h3>Limits</h3><p>The traffic model clears roads faster than the 2025 Evacuation Time Study, so these backups are likely shorter than the study's. A person-hour of waiting is time spent in a slow or stopped car, not harm. Where the fire closes a street, cars on it stop counting once they reroute or the run ends.</p></div>`, 'gx');
   }
   // The other paces' medians under a result (GV21); one way out is the street network, the same in every run.
   function paceLine(c, f) {
@@ -566,6 +608,9 @@ export function guidedUI(ctx) {
     P.querySelectorAll('[data-go]').forEach(b => b.onclick = () => show(b.dataset.go));
     P.querySelectorAll('[data-sq]').forEach(b => b.onclick = explainSQ);
     P.querySelectorAll('[data-explain]').forEach(b => b.onclick = () => explain(b.dataset.explain));
+    P.querySelectorAll('[data-backup]').forEach(b => b.onclick = () => focusBackup(+b.dataset.backup));
+    P.querySelector('[data-bk-more]')?.addEventListener('click', () => { const R = backups() || [], lvl = g.bkOpen || 0, shownN = lvl === 0 ? 3 : lvl === 1 ? 5 : R.length; g.bkOpen = shownN >= Math.min(R.length, BACKUP_LIST) ? 0 : lvl + 1; rerender(); });
+    P.querySelector('[data-explain-backups]')?.addEventListener('click', explainBackups);
     P.querySelectorAll('[data-explain-cmp]').forEach(b => b.onclick = () => explainCompare(b.dataset.explainCmp));
     P.querySelectorAll('[data-sort]').forEach(b => b.onclick = () => { g.sort = b.dataset.sort; rerender(); });
     P.querySelectorAll('[data-more]').forEach(b => b.onclick = () => { g.more[b.dataset.more] = !g.more[b.dataset.more]; rerender(); });

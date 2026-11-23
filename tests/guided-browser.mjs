@@ -126,7 +126,7 @@ for (const [di, name] of DEVICES.entries()) {
   const cut = await p.locator('#g-panel .sp-key span').evaluateAll(ss => ss.filter(s => s.scrollWidth > s.clientWidth + 1 || getComputedStyle(s).textOverflow === 'ellipsis').map(s => s.textContent));
   check(!cut.length, `${name}: the four-part key shows every label in full${cut.length ? ` (cut: ${cut.join('; ')})` : ''}`);
   // Plain-language labels (GV12): none of the old three words in Guided view's results.
-  const chips = await p.locator('#g-panel .robust').allTextContents();
+  const chips = await p.locator('#g-panel .rc .robust').allTextContents();
   check(chips.length === 6 && chips.every(t => /nearly every run|Depends on the night parking rule|Varies from run to run|Same in every run|None in nearly/.test(t)) && !chips.some(t => /^(Consistent|Sensitive|Mixed)$/.test(t) || /fire strength/.test(t)), `${name}: plain labels on results, none by fire strength within one pace (${chips.join(' | ')})`);
   // Status quo, the pace and the other paces' medians (GV21, GV22).
   const rtext = await p.locator('#g-panel').innerText();
@@ -137,6 +137,30 @@ for (const [di, name] of DEVICES.entries()) {
   const sqt = await p.locator('#modal .gx').innerText();
   check(/10 minutes after the fire starts/.test(sqt) && /no new roads or rules/.test(sqt) && /assumption/.test(sqt), `${name}: Status quo has its Explain this`);
   await p.locator('#modal .close').click();
+  // Where traffic backed up (SOURCE_NOTES GV25): one compact card after the six result cards: top 3 streets, then 2 more,
+  // then all; the flats line; Explain this. Heights collapsed and expanded (MASTER, 2026-11-23).
+  const bk = await p.locator('#g-panel .bk').innerText().catch(() => '');
+  check(/Where traffic backed up in these runs/.test(bk) && (await p.locator('#g-panel .bk-row').count()) === 3 && /flats/.test(bk) && /Show 2 more/.test(bk) && /person-hours/.test(bk), `${name}: backups card after the results, 3 streets, Show 2 more, flats line`);
+  const bkH = async () => p.evaluate(() => Math.round(document.querySelector('#g-panel .bk').getBoundingClientRect().height));
+  const h3 = await bkH(), panelH = await p.evaluate(() => document.getElementById('g-panel').clientHeight);
+  await p.click('#g-panel [data-explain-backups]');
+  const bkx = await p.locator('#modal .gx').innerText();
+  check(/What it counts/.test(bkx) && /synthetic/.test(bkx) && /model rule/.test(bkx) && /assumption/.test(bkx) && /Limits/.test(bkx), `${name}: backups Explain this gives what it counts, provenance and limits`);
+  await p.locator('#modal .close').click();
+  await p.click('#g-panel [data-bk-more]'); const n5 = await p.locator('#g-panel .bk-row').count(), h5 = await bkH();
+  await p.click('#g-panel [data-bk-more]'); const nAll = await p.locator('#g-panel .bk-row').count(), hAll = await bkH();
+  check(n5 === 5 && nAll > 5, `${name}: Show 2 more lists 5 streets, Show all lists ${nAll}`);
+  console.log(`     ${name}: backups card ${h3} px collapsed (${(h3 / panelH).toFixed(2)} screens), ${h5} px with 5, ${hAll} px with all ${nAll}`);
+  await p.click('#g-panel [data-bk-more]');
+  check((await p.locator('#g-panel .bk-row').count()) === 3, `${name}: Show fewer goes back to 3`);
+  const firstStreet = (await p.locator('#g-panel .bk-row b').first().innerText()).trim();
+  await p.locator('#g-panel .bk-row').first().click(); await p.waitForTimeout(800);
+  check(!(await visible('#g-panel')) && (await p.locator('#g-caption').innerText()).startsWith(firstStreet), `${name}: tapping ${firstStreet} goes to the map, captioned and highlighted`);
+  await noScroll('on a backup street'); await shot('07b-backup-street');
+  await p.click('[data-chip="ways"]'); await p.waitForTimeout(200);
+  check(/Ways out the fire front reached/.test(await p.locator('#g-caption').innerText()), `${name}: a map chip clears the backup street's caption and highlight`);
+  await p.click('[data-chip="fire"]'); await p.waitForTimeout(200);
+  await p.click('#g-explore');
   await p.locator('[data-explain="ember"]').click();
   check(/Ember Threat Zones/.test(await p.locator('#modal .gx').innerText()) && await p.locator('#modal .gx a[href*="3c5e1686ebc543ffbdd1eb8698b51fe2"]').count() === 1, `${name}: embers Explain this notes the County's ember map`);
   check(await p.locator('#modal[open] .gx').isVisible(), `${name}: Explain this opens a pop-up`);
@@ -316,6 +340,10 @@ for (const [di, name] of DEVICES.entries()) {
     return vals;
   };
   const q3 = await paceRun('quake', 'high', '1991 pace');
+  // The earthquake's backups move from run to run, so one line replaces the list (Eric, 2026-11-23, option a; GV25).
+  await p.click('#g-explore');
+  check((await p.locator('#g-panel .bk-row').count()) === 0 && /No street backed up in nearly every run of this fire at this pace; backups moved from run to run\./.test(await p.locator('#g-panel .bk').innerText()), `${name}: earthquake at 1991 pace, one line instead of the backups list`);
+  await p.click('[data-go="map"] >> nth=0');
   // Changing the pace on Results starts a new run: the pop-up no longer reports "the run you watched" (Codex, PR #93).
   await p.click('#g-explore'); await p.click('[data-pace="central"]'); await p.waitForTimeout(300);
   await p.locator('[data-explain="ember"]').click();
@@ -325,7 +353,11 @@ for (const [di, name] of DEVICES.entries()) {
   const e1 = await paceRun('eastWind', 'low', 'Slower');
   await shot('25-east-slower');
   check(q3[0] !== e1[0], `${name}: figures follow the fire and pace`);
-  await p.click('[data-pace="central"]'); await p.waitForTimeout(300);
+  // A pace change on Results starts a new run; tapping a backup street still frames, highlights and captions it (Codex, PR #94).
+  await p.click('#g-explore'); await p.click('[data-pace="central"]'); await p.waitForTimeout(300);
+  const st2 = (await p.locator('#g-panel .bk-row b').first().innerText()).trim();
+  await p.locator('#g-panel .bk-row').first().click(); await p.waitForTimeout(800);
+  check((await p.locator('#g-caption').innerText()).startsWith(st2) && await visible('#g-caption'), `${name}: before the new run ends, tapping ${st2} still captions and highlights it`);
 
   check(!errors.length, `${name}: no console errors${errors.length ? `: ${errors.slice(0, 3).join(' | ')}` : ''}`);
   console.log(`     heights: results ${hr.sh}/${hr.ch}, changes ${hc.sh}/${hc.ch}, comparison ${hcmp.sh}/${hcmp.ch}`);
