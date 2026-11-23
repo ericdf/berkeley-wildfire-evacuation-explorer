@@ -428,9 +428,12 @@ function getFire(sc, sev, seed) {
   if (!state.fires.has(k)) state.fires.set(k, runFire(fireGridFor(grid, data, fuel), sc, SEVERITY[sev], seed));
   return state.fires.get(k);
 }
+let runGen = 0; // newRun calls so far: a deferred rebuild runs only if no later call has come since (Codex on #91)
 function newRun() {
-  // Opt-in settings whose data load after the page is up (js/data.js deferred): wait for it, then run.
-  const w = world(); if (!data.deferredDone && (w.walkAccess || w.nrPlacement || w.fuel)) { data.deferred.then(() => newRun()); return; }
+  // Opt-in settings whose data load after the page is up (js/data.js deferred): wait for it, then run, unless a later
+  // call (say, the setting switched back off) has started or queued a newer run meanwhile.
+  const gen = ++runGen;
+  const w = world(); if (!data.deferredDone && (w.walkAccess || w.nrPlacement || w.fuel)) { data.deferred.then(() => { if (gen === runGen) newRun(); }); return; }
   const sc = scenario(), sev = $('severity').value, seed = +$('seed').value || 1;
   // Your plan in Change the plan (Plan B) can change streets, add roads and buy out blocks (js/levers.js); Expert view runs plans only.
   const st = document.body.classList.contains('simple') && state.editing === 'B' ? state.preset?.stack : null, d = st ? dataFor(data, st.net) : data;
