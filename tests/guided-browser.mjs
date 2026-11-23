@@ -157,6 +157,9 @@ for (const [di, name] of DEVICES.entries()) {
   await p.locator('#g-panel .bk-row').first().click(); await p.waitForTimeout(800);
   check(!(await visible('#g-panel')) && (await p.locator('#g-caption').innerText()).startsWith(firstStreet), `${name}: tapping ${firstStreet} goes to the map, captioned and highlighted`);
   await noScroll('on a backup street'); await shot('07b-backup-street');
+  await p.click('[data-chip="ways"]'); await p.waitForTimeout(200);
+  check(/Ways out the fire front reached/.test(await p.locator('#g-caption').innerText()), `${name}: a map chip clears the backup street's caption and highlight`);
+  await p.click('[data-chip="fire"]'); await p.waitForTimeout(200);
   await p.click('#g-explore');
   await p.locator('[data-explain="ember"]').click();
   check(/Ember Threat Zones/.test(await p.locator('#modal .gx').innerText()) && await p.locator('#modal .gx a[href*="3c5e1686ebc543ffbdd1eb8698b51fe2"]').count() === 1, `${name}: embers Explain this notes the County's ember map`);

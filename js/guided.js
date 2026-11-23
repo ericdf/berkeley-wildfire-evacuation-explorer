@@ -172,7 +172,8 @@ export function guidedUI(ctx) {
   $('g-run').onclick = () => { ctx.play(!state.playing); refresh(); };
   $('g-again').onclick = () => { setup(); frameStart(); ctx.play(true); refresh(); };
   $('g-explore').onclick = () => show('results');
-  $('g-chips').addEventListener('click', e => { const b = e.target.closest('[data-chip]'); if (!b) return; g.chip = b.dataset.chip; refresh(); if (g.sel) sheet(g.sel); });
+  $('g-chips').addEventListener('click', e => { const b = e.target.closest('[data-chip]'); if (!b) return; g.chip = b.dataset.chip; g.focus = null; refresh(); // a chip clears a backup street's highlight (Codex, PR #94)
+    if (g.sel) sheet(g.sel); });
 
   // ---------- map view: framing and auto-zoom (MASTER, 2026-11-23; SOURCE_NOTES GV18) ----------
   // Before a run the map frames the fire's starts and START_PAD meters around them, the nearest homes and streets.
