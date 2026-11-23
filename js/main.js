@@ -142,7 +142,8 @@ $('nightParking').onchange = () => { nightParkingNote(); newRun(); };
 function fuelNote() {
   const on = $('fuel').value === 'landfire', M = data.fuel40?.meta;
   if (!data.fuel40 && data.deferredDone) { $('fuel').value = 'proxy'; $('fuel').disabled = true; }
-  $('fuel-note').innerHTML = !on ? '' : `Spread factors from LANDFIRE ${esc(M.version)} FBFM40 fuel models on the fire grid ${badge('sourced', M.product)}, each factor Rothermel's relative surface spread rate for its Scott and Burgan (2005) fuel model ${badge('model rule', M.provenance.factorRule)}. Urban cells (NB1) keep the fire-zone proxy; ember throw and landing keep the proxy too. This changes the illustrative fire only; it is not a fire-behavior prediction. Comparison in docs/fire-validation.md.`;
+  // Before the deferred data arrive (js/data.js), a loading line, so the change handler still reaches newRun(), which waits for them.
+  $('fuel-note').innerHTML = !on ? '' : !M ? (data.deferredDone ? 'data/terrain/fbfm40.* is missing: the fire-zone proxy is used.' : 'Loading the LANDFIRE fuel data…') : `Spread factors from LANDFIRE ${esc(M.version)} FBFM40 fuel models on the fire grid ${badge('sourced', M.product)}, each factor Rothermel's relative surface spread rate for its Scott and Burgan (2005) fuel model ${badge('model rule', M.provenance.factorRule)}. Urban cells (NB1) keep the fire-zone proxy; ember throw and landing keep the proxy too. This changes the illustrative fire only; it is not a fire-behavior prediction. Comparison in docs/fire-validation.md.`;
 }
 $('fuel').onchange = () => { fuelNote(); newRun(); };
 // Streets I choose: the clicked segment and the same-named two-way street running on from it.
@@ -177,7 +178,7 @@ $('householdMix').onchange = () => { mixNote(); newRun(); };
 function placementNote() {
   const wp = data.workplaces, on = $('nrPlacement').value === 'workplace';
   if (!wp && data.deferredDone) { const o = $('nrPlacement').querySelector('option[value="workplace"]'); o.disabled = true; o.textContent += ' (needs data/model/workplaces.json)'; }
-  $('placement-note').innerHTML = !on ? '' : `The 2025 Evacuation Time Study's employee, student and visitor vehicles per area stay the same ${badge('sourced')}. Employees park on streets within ${wp.params.walkM} m of the workplace blocks where LEHD LODES 2023 counts jobs held by people living outside Berkeley ${badge('derived')}; UC employee and commuting-student cars fill UC's off-street parking first (OpenStreetMap facilities scaled to UC's published 5,500 spaces), the rest park on streets near campus as before; Lab employees park in the Lab's lots ${badge('model rule')}. Visitors and on-campus students are placed as before. See docs/weekday-placement.md.`;
+  $('placement-note').innerHTML = !on ? '' : !wp ? (data.deferredDone ? 'data/model/workplaces.json is missing: non-residents are placed by the Time Study\'s areas.' : 'Loading the workplace data…') : `The 2025 Evacuation Time Study's employee, student and visitor vehicles per area stay the same ${badge('sourced')}. Employees park on streets within ${wp.params.walkM} m of the workplace blocks where LEHD LODES 2023 counts jobs held by people living outside Berkeley ${badge('derived')}; UC employee and commuting-student cars fill UC's off-street parking first (OpenStreetMap facilities scaled to UC's published 5,500 spaces), the rest park on streets near campus as before; Lab employees park in the Lab's lots ${badge('model rule')}. Visitors and on-campus students are placed as before. See docs/weekday-placement.md.`;
 }
 placementNote();
 $('nrPlacement').onchange = () => { placementNote(); newRun(); };
