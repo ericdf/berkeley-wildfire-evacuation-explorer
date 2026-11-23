@@ -97,7 +97,7 @@ export function countLabel(bySev) {
   return p;
 }
 
-export function makeGuided(M, SA, presets = []) {
+export function makeGuided(M, SA, presets = [], leverOff = {}) {
   const runs = new Map(); // `${lever}|${fire}` → [{ sev, seed, m }]
   for (const r of M?.runs || []) { const k = `${r.lever}|${r.fire}`; if (!runs.has(k)) runs.set(k, []); runs.get(k).push(r); }
   const runsOf = (lever, fire) => runs.get(`${lever}|${fire}`) || [];
@@ -178,7 +178,7 @@ export function makeGuided(M, SA, presets = []) {
   }
   const helpsAt = m => m?.pace ? m.n > 0 && m.worse === 0 && m.better >= m.n - 1 : helps(m), harmsAt = m => m?.pace ? m.n > 0 && m.better === 0 && m.worse >= m.n - 1 : harms(m);
   // A Guided-view question withheld on a fire under the P19 rule withholds its change too (js/presets.js off).
-  const withheld = (fire, id) => presets.find(p => p.id === id)?.off?.[fire] || null;
+  const withheld = (fire, id) => presets.find(p => p.id === id)?.off?.[fire] || leverOff[id]?.[fire] || null;
 
   // The changes view: each change in every group whose card measures it improves on this fire (at the fire pace sev,
   // or over all 15 runs); the rest, and changes withheld on this fire, under "No consistent benefit".
@@ -240,7 +240,7 @@ export function streetsOf(lever, net, nodeEdges) {
   return new Set(ids.map(id => E[id]).filter(e => e && e.mode === 'vehicle' && e.name).map(e => e.name));
 }
 
-// "Where traffic backed up in these runs" (Eric, 2026-11-23, MASTER session; SOURCE_NOTES GV23). From spread-access.json
+// "Where traffic backed up in these runs" (Eric, 2026-11-23, MASTER session; SOURCE_NOTES GV25). From spread-access.json
 // backups[fire][sev] (tools/spread-access.mjs): hill street segments (Fire Zones 2–3) in zones ordered or warned during
 // the run, with person-minutes in waiting cars per run. Streets in the flats and the I-80 approaches are not in the table
 // (the model's queues there sit at different junctions from the 2025 Evacuation Time Study's; CD25, CD29).
@@ -248,7 +248,7 @@ export function streetsOf(lever, net, nodeEdges) {
 // the sum of its segments' person-minutes; rows rank by the median over the 5 runs at the pace, and a row is listed when
 // that median is at least BACKUP_ROW_MIN. A row is present in a run when it is among that run's BACKUP_TOP rows and holds
 // at least BACKUP_ROW_MIN there; "in nearly every run" when present in all 5 runs (the 90% rule at n = 5), else "varies".
-export const BACKUP_TOP = 10, BACKUP_ROW_MIN = 60; // rows; person-minutes, one person-hour (model rule, GV23)
+export const BACKUP_TOP = 10, BACKUP_ROW_MIN = 60; // rows; person-minutes, one person-hour (model rule, GV25)
 export const titleCase = s => String(s || '').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
 export function backupRows(SA, net, fire, sev) {
   const B = SA?.backups?.[fire]?.[sev]; if (!B || !net) return null;

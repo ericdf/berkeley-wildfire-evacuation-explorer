@@ -22,6 +22,13 @@ export const FIRES = [
 
 const PANORAMIC_UNORDERED = 'Most of those still there live in Berkeley zones this fire never orders (about 10,450): the City\'s order covers only Panoramic Hill\'s 7 zones, while Oakland orders its own zones as the fire comes within 1 km.';
 
+// Leaving early rests on a warning issued ahead of forecast fire weather (a Red Flag Warning or an Extreme Fire Weather
+// declaration); an earthquake comes without one, so both leave-early changes are withheld on the earthquake fire
+// (MASTER, 2026-11-23, pending Eric; SOURCE_NOTES GV24).
+export const QUAKE_NO_WARNING = 'earthquakes come without warning: leaving early applies only if one strikes on a declared fire-weather day, and the runs assume one did.';
+// Changes in the Guided view with no question of their own, withheld on a fire (read with PRESETS off by js/guided-data.js).
+export const LEVER_OFF = { leaveEarlyEFW: { quake: QUAKE_NO_WARNING } };
+
 export const PRESETS = [
   {
     id: 'leaveEarly',
@@ -35,10 +42,9 @@ export const PRESETS = [
       ref1923: 'In Plan B about 30% fewer modeled residents are not yet out when modeled embers reach their street (about 4,050 against 2,850 in the medium-severity case).',
       panoramic: `In Plan B about a seventh fewer modeled residents are not yet out when modeled embers reach their street (about 13,550 against 11,600 in the medium-severity case). ${PANORAMIC_UNORDERED}`,
       northHills: 'In Plan B about a fifth fewer modeled residents are not yet out when modeled embers reach their street (about 5,000 against 3,950 in the medium-severity case). If only the City\'s smaller Leave Early Zones do it, the drop is about 8%.',
-      quake: 'In Plan B about a fifth fewer modeled residents are not yet out when modeled embers reach their street (about 19,800 against 15,450 in the medium-severity case): the earthquake\'s fires start across the city, so half of hill households leaving beforehand helps less here than on the wildfires. If only the City\'s smaller Leave Early Zones do it, the drop is about 9%.',
       westWind: 'In Plan B about half as many modeled residents are not yet out when modeled embers reach their street (about 156 against 73 in the medium-severity case). If only the City\'s smaller Leave Early Zones do it, almost nothing changes: none of them is near Claremont Canyon.',
     },
-    off: {},
+    off: { quake: QUAKE_NO_WARNING },
     headline: { label: 'Modeled residents not yet out when embers reached their street', f: exposed, dir: -1 },
   },
   {

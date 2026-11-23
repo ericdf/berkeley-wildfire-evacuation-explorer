@@ -413,7 +413,7 @@ h3.cg { margin-top: 10px; }
 #g-menu .g-menu-status { margin: 0 0 6px; font-weight: 600; }
 
 
-/* Where traffic backed up (SOURCE_NOTES GV23) */
+/* Where traffic backed up (SOURCE_NOTES GV25) */
 .bk { margin: 14px 0 6px; }
 .bk-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .bk-head h3 { margin-bottom: 2px; }

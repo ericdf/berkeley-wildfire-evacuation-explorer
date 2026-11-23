@@ -6,23 +6,39 @@
 // comparisons pair the same seeds; new roads that free the same areas give a floor, not a sum.
 import fs from 'node:fs';
 import { makeGuided, CARDS, median, sortItems, costLine, SEVS, backupRows, BACKUP_ROW_MIN } from '../js/guided-data.js';
-import { PRESETS } from '../js/presets.js';
+import { PRESETS, LEVER_OFF } from '../js/presets.js';
 import { plainLabel } from '../js/guided.js';
 
 const R = new URL('..', import.meta.url).pathname;
 const M = JSON.parse(fs.readFileSync(R + 'data/model/mitigations.json'));
 const SA = JSON.parse(fs.readFileSync(R + 'data/model/spread-access.json'));
-const G = makeGuided(M, SA, PRESETS);
+const G = makeGuided(M, SA, PRESETS, LEVER_OFF);
 let fail = 0;
 const check = (ok, what) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${what}`); if (!ok) fail++; };
 const ids = (gs, id) => gs.find(g => g.id === id).items.map(i => i.lever.id).sort().join(',');
 const set = xs => [...xs].sort().join(',');
 
 const east = G.groups('eastWind');
-check(ids(east, 'people') === set(['leaveEarly', 'orderSooner']), `east wind, people: ${ids(east, 'people')}`);
+check(ids(east, 'people') === set(['leaveEarly', 'leaveEarlyEFW', 'orderSooner']), `east wind, people: ${ids(east, 'people')}`);
 check(ids(east, 'engine') === set(['parkingOneSide', 'redCurbFoot', 'widen-WP-001', 'link-AC-160-N3', 'retreat-footBlock', 'retreat-top100', 'retreat-panoramicUpper', 'widen-WP-007', 'link-CITY-1']), `east wind, engines: ${ids(east, 'engine')}`);
-check(ids(east, 'cars') === set(['leaveEarly', 'orderSooner']), `east wind, cars: ${ids(east, 'cars')}`);
+check(ids(east, 'cars') === set(['leaveEarly', 'leaveEarlyEFW', 'orderSooner']), `east wind, cars: ${ids(east, 'cars')}`);
 check(ids(east, 'none') === set(['contraflow-officers', 'contraflow-signs', 'policeControl', 'egressGuidance', 'link-AC-193-N1']), `east wind, no consistent benefit: ${ids(east, 'none')}`);
+
+// Leave on Extreme Fire Weather (SOURCE_NOTES GV20, GV23): the 10 Leave Early Zones lie in the hills, so on every fire its
+// gain in people still there when embers arrived is at most the Red Flag lever's (half of all hill households).
+for (const f of M.meta.fires) {
+  const efw = G.tableCompare(f, 'leaveEarlyEFW', 'ember').gain, le = G.tableCompare(f, 'leaveEarly', 'ember').gain;
+  check(efw != null && le != null && efw <= le, `${f}: leave on Extreme Fire Weather gains no more than leave early on a Red Flag day (${Math.round(efw)} vs ${Math.round(le)} people)`);
+}
+
+// Both leave-early changes are withheld on the earthquake fire: earthquakes come without warning (SOURCE_NOTES GV24).
+{
+  const q = G.groups('quake'), none = q.find(g => g.id === 'none');
+  for (const id of ['leaveEarly', 'leaveEarlyEFW']) {
+    const it = none.items.find(i => i.lever.id === id);
+    check(!!it?.withheld && /^earthquakes come without warning/.test(it.withheld) && !q.filter(g => g.id !== 'none').some(g => g.items.some(i => i.lever.id === id)), `earthquake: ${id} withheld (GV24)`);
+  }
+}
 
 // P19: decide faster is withheld on the north hills (js/presets.js PRESETS orderSooner.off.northHills).
 const north = G.groups('northHills');
@@ -154,7 +170,7 @@ check(!G.groups('ref1923', 'central').find(g => g.id === 'people').items.some(i 
 check(true, 'every per-pace group member is better in at least 4 of its 5 runs at that pace, the rest identical, never worse');
 check(plainLabel(G.baseFigure('eastWind', 'ember', 'central').label, 'result').text !== 'Depends on fire strength', 'within one pace no result reads "Depends on fire strength"');
 
-// Where traffic backed up (SOURCE_NOTES GV23): rows derive from spread-access.json backups; every segment is a hill street
+// Where traffic backed up (SOURCE_NOTES GV25): rows derive from spread-access.json backups; every segment is a hill street
 // (Fire Zones 2–3), none in the flats or on I-80; a row's figure is the median of its runs' sums; labels follow the rule.
 if (SA.backups) {
   const net = JSON.parse(fs.readFileSync(R + 'data/model/network.json'));

@@ -25,7 +25,7 @@
 //             queue layer's rule, js/queue-display.js), sampled every 30 model seconds; a resident car carries its
 //             household's persons and any carless neighbors riding with it, split over the household's cars; a
 //             non-resident car one person. Segments under BACKUP_MIN person-minutes in every run are left out.
-//             Guided view's "Where traffic backed up" list (Eric, 2026-11-23; SOURCE_NOTES GV23).
+//             Guided view's "Where traffic backed up" list (Eric, 2026-11-23; SOURCE_NOTES GV25).
 //
 //   node tools/spread-access.mjs [--seeds 5] [--workers N]
 //
@@ -44,7 +44,7 @@ const FIRES = ['eastWind', 'ref1923', 'panoramic', 'northHills', 'quake', 'westW
 const SEVS = ['low', 'central', 'high'];
 const TOD = 'S6';
 const WORLD = { growth: 'none', powerShutoff: 'none' }; // the Guided view's world (js/main.js world())
-const BACKUP_EVERY = 30, BACKUP_MIN = 100; // seconds between samples; person-minutes kept (model rule, GV23)
+const BACKUP_EVERY = 30, BACKUP_MIN = 100; // seconds between samples; person-minutes kept (model rule, GV25)
 
 async function setup() {
   const { loadData } = await import(R + '/js/data.js');
@@ -246,7 +246,7 @@ if (!isMainThread) {
       encoding: 'streets[fire][severity].ember/front: one base-36 digit per street segment (network edge id order), the number of runs (of streets[fire][severity].runs) in which the modeled embers or fire front reached the segment\'s midpoint cell within the run' },
     residentsPerEdge: Array.from(peSum, x => Math.round(10 * x / runs.length) / 10),
     streets, areas, areaStatic, levers, leverStatic, parking, parkingByFire, backups,
-    backupsNote: `backups[fire][severity]: hill street segments (Fire Zones 2–3) in zones ordered or warned during the run; pm = person-minutes in waiting cars over the run, peak = most people waiting at once, per seed; sampled every ${BACKUP_EVERY} model seconds; segments under ${BACKUP_MIN} person-minutes in every run left out (model rule, SOURCE_NOTES GV23).`,
+    backupsNote: `backups[fire][severity]: hill street segments (Fire Zones 2–3) in zones ordered or warned during the run; pm = person-minutes in waiting cars over the run, peak = most people waiting at once, per seed; sampled every ${BACKUP_EVERY} model seconds; segments under ${BACKUP_MIN} person-minutes in every run left out (model rule, SOURCE_NOTES GV25).`,
     runs: runs.map(r => r.run).sort((a, b) => FIRES.indexOf(a.fire) - FIRES.indexOf(b.fire) || SEVS.indexOf(a.sev) - SEVS.indexOf(b.sev) || a.seed - b.seed),
   };
   // Keep only what the page needs: drop per-area entries never reached and with no residents.

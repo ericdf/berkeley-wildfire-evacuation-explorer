@@ -12,6 +12,7 @@
 import { CARDS, GROUPS, cardById, makeGuided, sortItems, costLine, streetsOf, round10, SEVS, median, NETWORK_FIRES, PACES, paceOf, DEFAULT_PACE, backupRows, blockRange, BACKUP_TOP, BACKUP_ROW_MIN } from './guided-data.js';
 import { presence, direction, assumption } from './robust.js';
 import { CELL } from './fire.js';
+import { LEVER_OFF } from './presets.js';
 
 // Plain words for the three robustness labels (Eric, 2026-11-12, MASTER session; SOURCE_NOTES GV12). The rules are
 // js/robust.js's (SA4, SA6): consistent = at least 90% of the runs; sensitive = shares differ by 0.6 or more between
@@ -64,7 +65,7 @@ export function guidedUI(ctx) {
   const pace = () => paceOf(g.pace), paceName = () => pace().label;
   const runsN = () => mit()?.meta.seeds.length || 5; // runs at one pace
   let G = null;
-  const model = () => G ??= makeGuided(mit(), spread(), PRESETS);
+  const model = () => G ??= makeGuided(mit(), spread(), PRESETS, LEVER_OFF);
   const fireTitle = () => FIRES.find(f => f.id === state.fire)?.title || state.fire;
   const leverById = id => model().leverById(id);
   const simple = () => document.body.classList.contains('simple');
@@ -370,9 +371,9 @@ export function guidedUI(ctx) {
     return `${head(`Results: ${esc(fireTitle())}`, `${sqBtn()}, median of ${runsN()} runs at ${paceName()}`)}${cards}${backupsHTML()}${footHTML('results')}`;
   }
 
-  // ---------- where traffic backed up (Eric, 2026-11-23; SOURCE_NOTES GV23) ----------
+  // ---------- where traffic backed up (Eric, 2026-11-23; SOURCE_NOTES GV25) ----------
   // Hill streets only, from spread-access.json backups (js/guided-data.js backupRows): the top 5 rows, "Show more" for up
-  // to BACKUP_LIST in all. When most of the top 5 vary from run to run, one line replaces the list (MASTER, 2026-11-23).
+  // to BACKUP_LIST in all. When most of the top 5 vary from run to run, one line replaces the list (Eric, 2026-11-23, option a).
   const BACKUP_LIST = 15;
   const backups = () => backupRows(spread(), data.net, state.fire, g.pace);
   const hours = pm => { const h = pm / 60; return h >= 10 ? fmt(round10(h)) : fmt(h, 1); };
@@ -382,7 +383,7 @@ export function guidedUI(ctx) {
     const top5 = R.slice(0, 5), stable = top5.filter(r => r.label === 'consistent').length;
     const headH = `<div class="bk-head"><h3 class="cg">Where traffic backed up in these runs</h3><button class="linkish" data-explain-backups>Explain this</button></div>`;
     if (!R.length) return `<section class="bk">${headH}<p>No hill street held a backup of an hour of people's time or more in a median run at ${paceName()}.</p>${flats}</section>`;
-    if (stable * 2 < top5.length) return `<section class="bk">${headH}<p>No hill street backed up in nearly every run of this fire at ${paceName()}; the backups moved from run to run.</p>${flats}</section>`;
+    if (stable * 2 < top5.length) return `<section class="bk">${headH}<p>No street backed up in nearly every run of this fire at this pace; backups moved from run to run.</p>${flats}</section>`;
     const all = R.slice(0, BACKUP_LIST), open = g.more.backups, shown = open ? all : all.slice(0, 5);
     const row = (r, i) => { const range = blockRange(r, data.net, data.nodeEdges);
       return `<button class="bk-row" data-backup="${i}"><span class="bk-t"><b>${esc(r.street)}</b>${range ? ` <span class="muted">${esc(range)}</span>` : ''}</span><span class="bk-v">${hours(r.median)} person-hours</span>${chipHTML({ label: r.label }, 'result')}</button>`; };

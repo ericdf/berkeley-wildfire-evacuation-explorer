@@ -137,7 +137,7 @@ for (const [di, name] of DEVICES.entries()) {
   const sqt = await p.locator('#modal .gx').innerText();
   check(/10 minutes after the fire starts/.test(sqt) && /no new roads or rules/.test(sqt) && /assumption/.test(sqt), `${name}: Status quo has its Explain this`);
   await p.locator('#modal .close').click();
-  // Where traffic backed up (SOURCE_NOTES GV23): after the cards, top 5 hill streets, Show more, the flats line, Explain this.
+  // Where traffic backed up (SOURCE_NOTES GV25): after the cards, top 5 hill streets, Show more, the flats line, Explain this.
   const bk = await p.locator('#g-panel .bk').innerText().catch(() => '');
   const bkRows = await p.locator('#g-panel .bk-row').count();
   check(/Where traffic backed up in these runs/.test(bk) && bkRows === 5 && /flats/.test(bk) && /Show \d+ more/.test(bk) && /person-hours/.test(bk), `${name}: backups list after the cards, 5 rows, Show more, flats line`);
@@ -332,6 +332,10 @@ for (const [di, name] of DEVICES.entries()) {
     return vals;
   };
   const q3 = await paceRun('quake', 'high', '1991 pace');
+  // The earthquake's backups move from run to run, so one line replaces the list (Eric, 2026-11-23, option a; GV25).
+  await p.click('#g-explore');
+  check((await p.locator('#g-panel .bk-row').count()) === 0 && /No street backed up in nearly every run of this fire at this pace; backups moved from run to run\./.test(await p.locator('#g-panel .bk').innerText()), `${name}: earthquake at 1991 pace, one line instead of the backups list`);
+  await p.click('[data-go="map"] >> nth=0');
   // Changing the pace on Results starts a new run: the pop-up no longer reports "the run you watched" (Codex, PR #93).
   await p.click('#g-explore'); await p.click('[data-pace="central"]'); await p.waitForTimeout(300);
   await p.locator('[data-explain="ember"]').click();
