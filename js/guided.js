@@ -377,22 +377,26 @@ export function guidedUI(ctx) {
   const BACKUP_LIST = 15;
   const backups = () => backupRows(spread(), data.net, state.fire, g.pace);
   const hours = pm => { const h = pm / 60; return h >= 10 ? fmt(round10(h)) : fmt(h, 1); };
+  // One compact card (MASTER, 2026-11-23: Results may grow by about 0.6 screens on an iPhone SE): the top 3 rows, then
+  // "Show 2 more" (top 5), then "Show all" (up to BACKUP_LIST). g.bkOpen: 0, 1 or 2.
   function backupsHTML() {
     const R = backups(); if (!R) return '';
-    const flats = '<p class="bk-note">Streets in the flats and the I-80 approaches are not ranked: there the model\'s queues form at different junctions from those in the City\'s 2025 Evacuation Time Study.</p>';
+    const flats = '<p class="bk-note">Hill streets only: the flats and I-80 approaches are not ranked.</p>';
     const top5 = R.slice(0, 5), stable = top5.filter(r => r.label === 'consistent').length;
-    const headH = `<div class="bk-head"><h3 class="cg">Where traffic backed up in these runs</h3><button class="linkish" data-explain-backups>Explain this</button></div>`;
-    if (!R.length) return `<section class="bk">${headH}<p>No hill street held a backup of an hour of people's time or more in a median run at ${paceName()}.</p>${flats}</section>`;
-    if (stable * 2 < top5.length) return `<section class="bk">${headH}<p>No street backed up in nearly every run of this fire at this pace; backups moved from run to run.</p>${flats}</section>`;
-    const all = R.slice(0, BACKUP_LIST), open = g.more.backups, shown = open ? all : all.slice(0, 5);
-    const row = (r, i) => { const range = blockRange(r, data.net, data.nodeEdges);
-      return `<button class="bk-row" data-backup="${i}"><span class="bk-t"><b>${esc(r.street)}</b>${range ? ` <span class="muted">${esc(range)}</span>` : ''}</span><span class="bk-v">${hours(r.median)} person-hours</span>${chipHTML({ label: r.label }, 'result')}</button>`; };
-    const more = all.length > 5 ? `<button class="linkish cg-more" data-more="backups" aria-expanded="${!!open}">${open ? 'Show fewer' : `Show ${all.length - 5} more`}</button>` : '';
-    return `<section class="bk">${headH}<p class="bk-sub">Hill streets, median of ${runsN()} runs at ${paceName()}. Tap one to see it on the map.</p>${shown.map(row).join('')}${more}${flats}</section>`;
+    const headH = `<div class="bk-head"><div class="rc-l"><b>Where traffic backed up in these runs</b></div><button class="linkish" data-explain-backups>Explain this</button></div>`;
+    if (!R.length) return `<div class="bk">${headH}<p class="bk-one">No hill street held a backup of an hour of people's time or more in a median run at ${paceName()}.</p>${flats}</div>`;
+    if (stable * 2 < top5.length) return `<div class="bk">${headH}<p class="bk-one">No street backed up in nearly every run of this fire at this pace; backups moved from run to run.</p>${flats}</div>`;
+    const all = R.slice(0, BACKUP_LIST), lvl = g.bkOpen || 0, shown = all.slice(0, lvl === 0 ? 3 : lvl === 1 ? 5 : all.length);
+    // One line per street; a street that is not in nearly every run carries "Varies from run to run" under it.
+    const row = (r, i) => `<button class="bk-row" data-backup="${i}" aria-label="${esc(r.street)}, ${hours(r.median)} person-hours, ${r.label === 'consistent' ? 'in nearly every run' : 'varies from run to run'}"><b>${esc(r.street)}</b><span class="bk-v">${hours(r.median)} person-hours</span>${r.label === 'consistent' ? '' : '<span class="bk-l r-mixed">Varies from run to run</span>'}</button>`;
+    const next = shown.length < all.length ? (lvl === 0 && all.length > 3 ? `Show ${Math.min(2, all.length - 3)} more` : `Show all ${all.length}`) : all.length > 3 ? 'Show fewer' : '';
+    const more = next ? `<button class="linkish cg-more" data-bk-more aria-expanded="${shown.length > 3}">${next}</button>` : '';
+    return `<div class="bk">${headH}<p class="bk-sub">Median of ${runsN()} runs at ${paceName()}; in nearly every run unless marked. Tap for the map.</p>${shown.map(row).join('')}${more}${flats}</div>`;
   }
   function focusBackup(i) {
     const r = backups()?.[i]; if (!r) return;
-    show('map'); g.focus = { street: r.street, edges: r.edges };
+    const range = blockRange(r, data.net, data.nodeEdges);
+    show('map'); g.focus = { street: range ? `${r.street} (${range})` : r.street, edges: r.edges };
     let b = null; for (const id of r.edges) for (const [x, y] of data.net.edges[id].geom) b = grow(b, x, y);
     g.follow = false; goTo(pad(b, 250), true); refresh();
   }
@@ -604,6 +608,7 @@ export function guidedUI(ctx) {
     P.querySelectorAll('[data-sq]').forEach(b => b.onclick = explainSQ);
     P.querySelectorAll('[data-explain]').forEach(b => b.onclick = () => explain(b.dataset.explain));
     P.querySelectorAll('[data-backup]').forEach(b => b.onclick = () => focusBackup(+b.dataset.backup));
+    P.querySelector('[data-bk-more]')?.addEventListener('click', () => { const R = backups() || [], lvl = g.bkOpen || 0, shownN = lvl === 0 ? 3 : lvl === 1 ? 5 : R.length; g.bkOpen = shownN >= Math.min(R.length, BACKUP_LIST) ? 0 : lvl + 1; rerender(); });
     P.querySelector('[data-explain-backups]')?.addEventListener('click', explainBackups);
     P.querySelectorAll('[data-explain-cmp]').forEach(b => b.onclick = () => explainCompare(b.dataset.explainCmp));
     P.querySelectorAll('[data-sort]').forEach(b => b.onclick = () => { g.sort = b.dataset.sort; rerender(); });

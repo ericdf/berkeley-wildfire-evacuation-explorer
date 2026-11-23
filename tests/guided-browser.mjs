@@ -137,20 +137,25 @@ for (const [di, name] of DEVICES.entries()) {
   const sqt = await p.locator('#modal .gx').innerText();
   check(/10 minutes after the fire starts/.test(sqt) && /no new roads or rules/.test(sqt) && /assumption/.test(sqt), `${name}: Status quo has its Explain this`);
   await p.locator('#modal .close').click();
-  // Where traffic backed up (SOURCE_NOTES GV25): after the cards, top 5 hill streets, Show more, the flats line, Explain this.
+  // Where traffic backed up (SOURCE_NOTES GV25): one compact card after the six result cards: top 3 streets, then 2 more,
+  // then all; the flats line; Explain this. Heights collapsed and expanded (MASTER, 2026-11-23).
   const bk = await p.locator('#g-panel .bk').innerText().catch(() => '');
-  const bkRows = await p.locator('#g-panel .bk-row').count();
-  check(/Where traffic backed up in these runs/.test(bk) && bkRows === 5 && /flats/.test(bk) && /Show \d+ more/.test(bk) && /person-hours/.test(bk), `${name}: backups list after the cards, 5 rows, Show more, flats line`);
+  check(/Where traffic backed up in these runs/.test(bk) && (await p.locator('#g-panel .bk-row').count()) === 3 && /flats/.test(bk) && /Show 2 more/.test(bk) && /person-hours/.test(bk), `${name}: backups card after the results, 3 streets, Show 2 more, flats line`);
+  const bkH = async () => p.evaluate(() => Math.round(document.querySelector('#g-panel .bk').getBoundingClientRect().height));
+  const h3 = await bkH(), panelH = await p.evaluate(() => document.getElementById('g-panel').clientHeight);
   await p.click('#g-panel [data-explain-backups]');
   const bkx = await p.locator('#modal .gx').innerText();
   check(/What it counts/.test(bkx) && /synthetic/.test(bkx) && /model rule/.test(bkx) && /Limits/.test(bkx), `${name}: backups Explain this gives what it counts, provenance and limits`);
   await p.locator('#modal .close').click();
-  await p.locator('#g-panel [data-more="backups"]').click();
-  check((await p.locator('#g-panel .bk-row').count()) > 5, `${name}: Show more lists the rest of the backups`);
-  await p.locator('#g-panel [data-more="backups"]').click();
+  await p.click('#g-panel [data-bk-more]'); const n5 = await p.locator('#g-panel .bk-row').count(), h5 = await bkH();
+  await p.click('#g-panel [data-bk-more]'); const nAll = await p.locator('#g-panel .bk-row').count(), hAll = await bkH();
+  check(n5 === 5 && nAll > 5, `${name}: Show 2 more lists 5 streets, Show all lists ${nAll}`);
+  console.log(`     ${name}: backups card ${h3} px collapsed (${(h3 / panelH).toFixed(2)} screens), ${h5} px with 5, ${hAll} px with all ${nAll}`);
+  await p.click('#g-panel [data-bk-more]');
+  check((await p.locator('#g-panel .bk-row').count()) === 3, `${name}: Show fewer goes back to 3`);
   const firstStreet = (await p.locator('#g-panel .bk-row b').first().innerText()).trim();
   await p.locator('#g-panel .bk-row').first().click(); await p.waitForTimeout(800);
-  check(!(await visible('#g-panel')) && (await p.locator('#g-caption').innerText()).startsWith(`${firstStreet}:`), `${name}: tapping ${firstStreet} goes to the map, captioned and highlighted`);
+  check(!(await visible('#g-panel')) && (await p.locator('#g-caption').innerText()).startsWith(firstStreet), `${name}: tapping ${firstStreet} goes to the map, captioned and highlighted`);
   await noScroll('on a backup street'); await shot('07b-backup-street');
   await p.click('#g-explore');
   await p.locator('[data-explain="ember"]').click();
