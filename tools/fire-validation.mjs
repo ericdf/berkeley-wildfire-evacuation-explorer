@@ -4,6 +4,7 @@
 //
 //   node tools/fire-validation.mjs fire [seeds=3]           # §2 footprints, §3 ember zones, §4 1923 and 1991 (fire only, a few minutes)
 //   node tools/fire-validation.mjs sim [seeds=3] --workers 1 # §2 resident exposure: full runs, fuel proxy vs LANDFIRE (serial)
+//   FIRES=ref1923,eastWind,panoramic,northHills node tools/fire-validation.mjs fire 3   # only those fires
 //
 // Fuel: 'proxy' is today's fire-zone factor; 'landfire' is the opt-in LANDFIRE FBFM40 setting
 // (js/fire.js withLandfireFuel). Writes data/model/fire-validation.json (merged by section).
@@ -31,7 +32,8 @@ if (!data.fuel40) throw new Error('data/terrain/fbfm40.* missing: run node tools
 const proxy = buildFireGrid(data), FUELS = { proxy, landfire: fireGridFor(proxy, data, 'landfire') };
 const { W, H } = proxy, N = W * H;
 const SEVS = ['low', 'central', 'high'];
-const scen = makeScenarios(data), FIRES = scen.filter(s => s.id !== 'eastWindDay');
+// FIRES=ref1923,eastWind,panoramic,northHills limits the runs to those fires (the four wildfires of FV11 and GV14).
+const scen = makeScenarios(data), FIRES = scen.filter(s => s.id !== 'eastWindDay' && (!process.env.FIRES || process.env.FIRES.split(',').includes(s.id)));
 const med = a => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : null; };
 const rng = a => [Math.min(...a), Math.max(...a)];
 const km2 = c => +(c * CELL * CELL / 1e6).toFixed(3);
@@ -106,7 +108,7 @@ if (mode === 'fire') {
       const zl = [...zs].filter(([, o]) => o.n >= 20).map(([z, o]) => ({ id: data.layers.evacZones[z].id, risk: o.r / o.n, share: o.s / o.n, n: o.n }));
       const topR = new Set([...zl].sort((a, b) => b.risk - a.risk).slice(0, Math.ceil(zl.length / 4)).map(z => z.id)), topS = new Set([...zl].sort((a, b) => b.share - a.share).slice(0, Math.ceil(zl.length / 4)).map(z => z.id));
       const cls = (r, names) => Object.fromEntries(names.map((nm, v) => [nm, v]).filter(([nm]) => nm).map(([nm, v]) => { let n = 0, s = 0, h = 0; for (let i = 0; i < N; i++) if (r[i] === v && proxy.elev[i] >= 0.5) { n++; s += share[i]; if (share[i] >= 0.5) h++; } return [nm, { cells: n, km2: km2(n), meanShare: n ? +(s / n).toFixed(3) : null, halfShare: n ? +(h / n).toFixed(3) : null }]; }));
-      const hill = cells.filter(i => proxy.fuel[i] >= 0.7), reach = cells.filter(i => share[i] > 0);
+      const hill = cells.filter(i => proxy.fuel[i] >= Math.fround(0.7)), reach = cells.filter(i => share[i] > 0);
       const outside = []; for (let i = 0; i < N; i++) if (Number.isNaN(city[i]) && proxy.inCity[i] && proxy.elev[i] >= 0.5) outside.push(share[i]);
       const topCut = cut[3];
       ember[`${fu}|${sevSet.join('+')}`] = {
@@ -115,7 +117,7 @@ if (mode === 'fire') {
         // the same inside the hill classes of the proxy (fuel ≥ 0.7), and over cells any run reached
         hillCells: hill.length, spearmanHill: +spearman(hill.map(i => neR[i]), hill.map(i => share[i])).toFixed(3),
         reachedCells: reach.length, spearmanReached: +spearman(reach.map(i => neR[i]), reach.map(i => share[i])).toFixed(3),
-        topQuintileHillShare: +(cells.filter(i => neR[i] >= topCut && proxy.fuel[i] >= 0.7).length / cells.filter(i => neR[i] >= topCut).length).toFixed(3),
+        topQuintileHillShare: +(cells.filter(i => neR[i] >= topCut && proxy.fuel[i] >= Math.fround(0.7)).length / cells.filter(i => neR[i] >= topCut).length).toFixed(3),
         berkeleyOutsideCityZones: { cells: outside.length, meanShare: +(outside.reduce((a, b) => a + b, 0) / outside.length).toFixed(3) },
         byNeQuintile: byQ,
         zones: { n: zl.length, spearman: +spearman(zl.map(z => z.risk), zl.map(z => z.share)).toFixed(3), topQuarterOverlap: [...topR].filter(z => topS.has(z)).length, topQuarterSize: topR.size },

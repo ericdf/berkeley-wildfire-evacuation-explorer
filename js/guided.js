@@ -9,7 +9,7 @@
 // Figures come from data/model/mitigations.json and spread-access.json through js/guided-data.js. "Status quo" was
 // "today's plan" until 2026-11-23, and the fire pace (Slower, 1923 pace, 1991 pace: low, medium and high severity)
 // came back to Guided view then (Eric, MASTER session; SOURCE_NOTES GV21, GV22).
-import { CARDS, GROUPS, cardById, makeGuided, sortItems, costLine, costKey, streetsOf, round10, SEVS, median, NETWORK_FIRES, PACES, paceOf, DEFAULT_PACE, backupRows, blockRange, BACKUP_TOP, BACKUP_ROW_MIN } from './guided-data.js';
+import { CARDS, GROUPS, cardById, makeGuided, sortItems, costLine, costKey, streetsOf, round10, SEVS, median, NETWORK_FIRES, PACES, pacesFor, paceOf, DEFAULT_PACE, backupRows, blockRange, BACKUP_TOP, BACKUP_ROW_MIN } from './guided-data.js';
 import { presence, direction, assumption } from './robust.js';
 import { CELL } from './fire.js';
 import { swatch } from './map.js';
@@ -63,7 +63,7 @@ const meansChange = d => d?.label !== 'consistent' ? MEANS[d?.label] || ''
 const SCOPE = { this: 'this fire', any: 'any wildfire' }; // the earthquake closes streets at the fault, so engine reach differs there (GV36)
 // Where the modeled embers go, against the County's ember map (Eric, 2026-11-23, MASTER session; SOURCE_NOTES FV11, GV14).
 const EMBER_MAP = 'https://berkeley.maps.arcgis.com/apps/mapviewer/index.html?webmap=3c5e1686ebc543ffbdd1eb8698b51fe2';
-const EMBER_NOTE = `The modeled embers follow each fire's start, wind, slope and fuel, not Alameda County's Ember Threat Zones: on four wildfires the two barely agree (rank correlation −0.22 over 7,853 cells, medium severity, measured 2026-11-23). <a href="${EMBER_MAP}" target="_blank" rel="noopener">The County's fire pathways and ember map ↗</a>`;
+const EMBER_NOTE = `The modeled embers follow each fire's start, wind, slope and fuel, not Alameda County's Ember Threat Zones: on four wildfires the two barely agree (rank correlation −0.09 over 7,853 cells, medium severity, measured 2026-11-24). <a href="${EMBER_MAP}" target="_blank" rel="noopener">The County's fire pathways and ember map ↗</a>`;
 
 // Street and landmark names drawn on the Guided map once zoomed in (js/map.js drawLabels; GV41). Landmark points are
 // in the network's meters, placed from its streets: the campus between Oxford St, Gayley Rd, Bancroft Wy and Hearst Av;
@@ -74,9 +74,15 @@ const LABELS = {
 };
 // Plain lead sentences for each fire pace's Explain this (GV41); the sourced detail is PACES[].explain, under Details.
 const PACE_LEAD = {
-  low: 'Slower is a fire that spreads at half the speed of the 1923 pace, with embers landing about 300 m ahead of it.',
-  central: '1923 pace spreads about as fast as the City\'s present-day repeat of the 1923 Berkeley fire, with embers landing about 800 m ahead of it.',
-  high: '1991 pace spreads twice as fast as the 1923 pace in its first hour, like the 1991 Oakland Hills fire, with embers landing about 1.5 km ahead of it.',
+  low: 'Slower is a fire that spreads at half the speed of the 1923 pace. In a 32 mph wind three quarters of its spot-fire embers land within about 150 m of it, and none beyond about 300 m.',
+  central: '1923 pace spreads about as fast as the City\'s present-day repeat of the 1923 Berkeley fire, faster in a stronger wind and slower in a weaker one. In a 32 mph wind three quarters of its spot-fire embers land within about 400 m of it, and none beyond about 800 m.',
+  high: '1991 pace spreads nearly three times as fast as the 1923 pace in its first hour, like the 1991 Oakland Hills fire, then at the 1923 pace. In a 32 mph wind three quarters of its spot-fire embers land within about 750 m of it, and none beyond about 1.5 km.',
+};
+// The earthquake fire's leads (QUAKE_PACES in js/guided-data.js): its medium pace is fitted to the USGS HayWired scenario.
+const QUAKE_PACE_LEAD = {
+  low: 'Slower is a fire that spreads at half the speed of the HayWired pace.',
+  central: 'HayWired pace burns about as many buildings in Berkeley in 6 hours as the USGS HayWired earthquake scenario does, in the ordinary spring breeze.',
+  high: 'Faster spreads nearly three times as fast as the HayWired pace in its first hour, then at the HayWired pace.',
 };
 // The City's fire weather and evacuation page, also in the ⓘ menu (index.html).
 const CITY_EVAC = 'https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation';
@@ -86,7 +92,7 @@ export function guidedUI(ctx) {
   const stripTags = t => String(t ?? '').replace(/<[^>]*>/g, '');
   const savedPace = ctx.store.get('bhe-pace');
   const g = state.g = { more: {}, screen: 'map', chip: 'fire', applied: [], picked: [], sort: 'benefit', live: null, sel: null, follow: true, anim: null, followSim: null, followT: -Infinity, pace: PACES.some(p => p.sev === savedPace) ? savedPace : DEFAULT_PACE };
-  const pace = () => paceOf(g.pace), paceName = () => pace().label;
+  const pace = () => paceOf(g.pace, state.fire), paceName = () => pace().label, paces = () => pacesFor(state.fire);
   const runsN = () => mit()?.meta.seeds.length || 5; // runs at one pace
   let G = null;
   const model = () => G ??= makeGuided(mit(), spread(), PRESETS, LEVER_OFF);
@@ -100,7 +106,7 @@ export function guidedUI(ctx) {
   const chipHTML = (L, c) => { const p = plainLabel(L, c); return p ? `<span class="robust ${p.cls}">${p.text}</span>` : ''; };
   const runSet = () => { const M = mit(); return `${runsN()} runs of ${esc(fireTitle())} at ${paceName()}: the status quo on a fall night, random seeds ${M ? `${M.meta.seeds[0]}–${M.meta.seeds.at(-1)}` : '1–5'}`; };
   // The other two paces' medians, one line under a figure (GV21).
-  const otherPaces = (bySev, f = x => n(x)) => PACES.filter(p => p.sev !== g.pace).map(p => `${p.label}: ${f(bySev[p.sev])}`).join(' · ');
+  const otherPaces = (bySev, f = x => n(x)) => paces().filter(p => p.sev !== g.pace).map(p => `${p.label}: ${f(bySev[p.sev])}`).join(' · ');
   // Lever and preset text from the stored tables still says "today's plan"; Guided view says "status quo" (GV22).
   const sq = t => String(t ?? '').replace(/today's plan/g, 'the status quo').replace(/Today's plan/g, 'The status quo');
 
@@ -120,7 +126,9 @@ export function guidedUI(ctx) {
   fireSel.onchange = () => pickFire(fireSel.value);
   // Fire pace (GV21): three buttons on the fire line and one ⓘ that explains the chosen pace.
   const paceBox = $('g-pace');
-  paceBox.innerHTML = `<span class="g-pace-l" id="g-pace-l">Fire pace:</span><span class="seg" role="group" aria-labelledby="g-pace-l">${PACES.map(p => `<button data-pace="${p.sev}">${p.label}</button>`).join('')}</span><button class="linkish g-pace-x" data-pace-explain aria-label="Explain this fire pace">ⓘ</button>`;
+  // The earthquake fire has its own pace names (js/guided-data.js QUAKE_PACES), so the buttons follow the fire.
+  const paceButtons = () => { paceBox.innerHTML = `<span class="g-pace-l" id="g-pace-l">Fire pace:</span><span class="seg" role="group" aria-labelledby="g-pace-l">${paces().map(p => `<button data-pace="${p.sev}">${p.label}</button>`).join('')}</span><button class="linkish g-pace-x" data-pace-explain aria-label="Explain this fire pace">ⓘ</button>`; };
+  paceButtons();
   paceBox.addEventListener('click', e => {
     const b = e.target.closest('[data-pace]'); if (b) return setPace(b.dataset.pace);
     if (e.target.closest('[data-pace-explain]')) explainPace(g.pace);
@@ -134,12 +142,12 @@ export function guidedUI(ctx) {
   }
   // Each pace's Explain this; the other two paces are one tap away inside the pop-up.
   function explainPace(sev) {
-    const p = paceOf(sev);
+    const p = paceOf(sev, state.fire);
     pop(`<div class="gx"><h2>Fire pace: ${p.label}</h2><p>${p.explain}</p>
       <p>The wind's direction and speed are the same at every pace; how strongly the wind pushes the fire is part of the pace. ${badge('model rule')} The illustrative fire model (js/scenarios.js SEVERITY: ${p.sev === 'central' ? 'medium' : p.sev} severity in Expert view). Ember distances and spot-fire chances are illustrative.</p>
       <p>Every result, change and comparison in Guided view uses the 5 runs at the chosen pace; each result also gives the other paces' medians.</p></div>`,
-      `${PACE_LEAD[p.sev]} The wind's direction and speed are the same at every pace.`,
-      `<p class="small">Other paces: ${PACES.filter(x => x.sev !== sev).map(x => `<button class="linkish" data-pace-other="${x.sev}">${x.label}</button>`).join(' · ')}</p>`);
+      `${(/^quake/.test(state.fire) ? QUAKE_PACE_LEAD : PACE_LEAD)[p.sev]} The wind's direction and speed are the same at every pace.`,
+      `<p class="small">Other paces: ${paces().filter(x => x.sev !== sev).map(x => `<button class="linkish" data-pace-other="${x.sev}">${x.label}</button>`).join(' · ')}</p>`);
     document.querySelectorAll('#modal [data-pace-other]').forEach(b => b.onclick = () => explainPace(b.dataset.paceOther));
   }
   // What the status quo is (GV22).
@@ -166,7 +174,7 @@ export function guidedUI(ctx) {
 
   function pickFire(id) {
     state.fire = id; ctx.store.set('bhe-fire', id);
-    cancelLive(); g.applied = []; g.sel = null;
+    cancelLive(); g.applied = []; g.sel = null; paceButtons();
     g.picked = g.picked.filter(id => !model().withheld(state.fire, id)); // withheld on the new fire (P19)
     setup(); frameStart(); show('map');
   }
@@ -584,7 +592,7 @@ export function guidedUI(ctx) {
     const c = cardById(id), f = baseFigure(c), L = f.label, w = watched(c);
     if (f.na) return pop(`<div class="gx"><h2>Not computed for this fire: ${c.line}</h2><p>${esc(f.na)} The figure for today's streets is ${n(model().oneWay(data.access).value)} ${badge('derived')}.</p><h3>What it counts</h3><p>${c.counts}</p></div>`,
       'This number is not worked out for this fire, because the earthquake closes streets and changes the street map it depends on. The details say which streets.');
-    const sev = f.bySev ? `Range at ${paceName()}: ${n(f.min)}–${n(f.max)}. Median at each fire pace: ${PACES.map(p => `${p.label} ${n(f.bySev[p.sev].median)}`).join(', ')}.` : '';
+    const sev = f.bySev ? `Range at ${paceName()}: ${n(f.min)}–${n(f.max)}. Median at each fire pace: ${paces().map(p => `${p.label} ${n(f.bySev[p.sev].median)}`).join(', ')}.` : '';
     const label = MEANS[L.label] + (L.bySeverity ? ' Here the low- and high-severity medians differ by more than 25%.' : '') + (L.parking ? ` Under the night parking rule used before the 2026-11-05 count: ${n(f.alt)}.` : '');
     const runs = c.id === 'oneWay' ? `The street network is the same in every run, so this does not change from run to run. ${fmt(f.areas)} hill areas. The Ways out map chip shows which of these ways out the fire reached in the runs of this fire.`
       : c.id === 'engine' ? `${runSet()}. Engine reach is measured at ignition, so it depends on the night's parked cars (one draw per seed)${NETWORK_FIRES[state.fire] ? ' and on the streets the earthquake closes at the fault' : ''} and not on the fire. ${sev}`

@@ -9,303 +9,303 @@
   "rows": {
    "ref1923|low": {
     "proxy": {
-     "b60": 0.041,
-     "b120": 0.12,
-     "all": 0.754,
-     "emb": 1.023,
-     "spots": 0,
+     "b60": 0.026,
+     "b120": 0.093,
+     "all": 0.563,
+     "emb": 0.658,
+     "spots": 1,
      "allRange": [
-      0.754,
-      0.8
+      0.559,
+      0.583
      ]
     },
     "landfire": {
-     "b60": 0.014,
-     "b120": 0.069,
-     "all": 0.575,
-     "emb": 0.83,
+     "b60": 0.009,
+     "b120": 0.039,
+     "all": 0.384,
+     "emb": 0.475,
      "spots": 1,
      "allRange": [
-      0.536,
-      0.581
+      0.383,
+      0.394
      ]
     },
-    "iou": 0.679
+    "iou": 0.649
    },
    "ref1923|central": {
     "proxy": {
-     "b60": 0.15,
-     "b120": 0.514,
-     "all": 1.77,
-     "emb": 3.159,
-     "spots": 1,
+     "b60": 0.092,
+     "b120": 0.295,
+     "all": 1.693,
+     "emb": 1.978,
+     "spots": 8,
      "allRange": [
-      1.77,
-      1.784
+      1.658,
+      1.757
      ]
     },
     "landfire": {
-     "b60": 0.079,
-     "b120": 0.339,
-     "all": 1.684,
-     "emb": 3.063,
-     "spots": 1,
+     "b60": 0.041,
+     "b120": 0.197,
+     "all": 1.49,
+     "emb": 1.773,
+     "spots": 10,
      "allRange": [
-      1.681,
-      1.731
+      1.472,
+      1.494
      ]
     },
-    "iou": 0.951
+    "iou": 0.867
    },
    "ref1923|high": {
     "proxy": {
-     "b60": 0.613,
-     "b120": 1.571,
-     "all": 1.802,
-     "emb": 4.725,
-     "spots": 3,
+     "b60": 0.837,
+     "b120": 1.32,
+     "all": 1.796,
+     "emb": 2.294,
+     "spots": 15,
      "allRange": [
-      1.802,
-      1.802
+      1.796,
+      1.796
      ]
     },
     "landfire": {
-     "b60": 0.418,
-     "b120": 1.334,
-     "all": 1.798,
-     "emb": 4.716,
-     "spots": 3,
+     "b60": 0.546,
+     "b120": 1.099,
+     "all": 1.778,
+     "emb": 2.272,
+     "spots": 16,
      "allRange": [
-      1.798,
-      1.798
+      1.778,
+      1.778
      ]
     },
-    "iou": 0.998
+    "iou": 0.99
    },
    "eastWind|low": {
     "proxy": {
-     "b60": 0.034,
-     "b120": 0.121,
-     "all": 0.402,
-     "emb": 0.59,
+     "b60": 0.028,
+     "b120": 0.104,
+     "all": 0.329,
+     "emb": 0.396,
      "spots": 1,
      "allRange": [
-      0.368,
-      0.409
+      0.329,
+      0.335
+     ]
+    },
+    "landfire": {
+     "b60": 0.005,
+     "b120": 0.044,
+     "all": 0.204,
+     "emb": 0.265,
+     "spots": 0,
+     "allRange": [
+      0.204,
+      0.205
+     ]
+    },
+    "iou": 0.62
+   },
+   "eastWind|central": {
+    "proxy": {
+     "b60": 0.109,
+     "b120": 0.349,
+     "all": 1.183,
+     "emb": 1.516,
+     "spots": 9,
+     "allRange": [
+      1.152,
+      1.285
+     ]
+    },
+    "landfire": {
+     "b60": 0.045,
+     "b120": 0.205,
+     "all": 0.779,
+     "emb": 1.053,
+     "spots": 5,
+     "allRange": [
+      0.765,
+      0.913
+     ]
+    },
+    "iou": 0.645
+   },
+   "eastWind|high": {
+    "proxy": {
+     "b60": 0.953,
+     "b120": 1.583,
+     "all": 2.594,
+     "emb": 3.108,
+     "spots": 30,
+     "allRange": [
+      2.579,
+      2.644
+     ]
+    },
+    "landfire": {
+     "b60": 0.648,
+     "b120": 1.167,
+     "all": 2.261,
+     "emb": 2.858,
+     "spots": 24,
+     "allRange": [
+      2.24,
+      2.607
+     ]
+    },
+    "iou": 0.752
+   },
+   "panoramic|low": {
+    "proxy": {
+     "b60": 0.013,
+     "b120": 0.077,
+     "all": 0.274,
+     "emb": 0.339,
+     "spots": 1,
+     "allRange": [
+      0.273,
+      0.277
      ]
     },
     "landfire": {
      "b60": 0.008,
-     "b120": 0.058,
-     "all": 0.224,
-     "emb": 0.37,
+     "b120": 0.042,
+     "all": 0.17,
+     "emb": 0.225,
      "spots": 0,
      "allRange": [
-      0.224,
-      0.238
+      0.17,
+      0.17
      ]
     },
-    "iou": 0.593
+    "iou": 0.595
    },
-   "eastWind|central": {
+   "panoramic|central": {
     "proxy": {
-     "b60": 0.134,
-     "b120": 0.484,
-     "all": 1.358,
-     "emb": 2.649,
-     "spots": 1,
+     "b60": 0.079,
+     "b120": 0.292,
+     "all": 0.733,
+     "emb": 0.89,
+     "spots": 4,
      "allRange": [
-      1.235,
-      1.372
+      0.727,
+      0.744
      ]
     },
     "landfire": {
-     "b60": 0.064,
-     "b120": 0.273,
-     "all": 1.021,
-     "emb": 2.479,
-     "spots": 1,
+     "b60": 0.042,
+     "b120": 0.175,
+     "all": 0.569,
+     "emb": 0.715,
+     "spots": 3,
      "allRange": [
-      0.978,
-      1.294
+      0.563,
+      0.592
      ]
     },
-    "iou": 0.737
+    "iou": 0.764
    },
-   "eastWind|high": {
+   "panoramic|high": {
     "proxy": {
-     "b60": 0.554,
-     "b120": 1.625,
-     "all": 3.756,
-     "emb": 7.864,
-     "spots": 6,
+     "b60": 0.556,
+     "b120": 0.775,
+     "all": 1.331,
+     "emb": 1.661,
+     "spots": 13,
      "allRange": [
-      3.504,
-      4.271
+      1.33,
+      1.476
      ]
     },
     "landfire": {
-     "b60": 0.363,
-     "b120": 1.393,
-     "all": 3.407,
-     "emb": 7.789,
-     "spots": 5,
+     "b60": 0.415,
+     "b120": 0.655,
+     "all": 1.201,
+     "emb": 1.37,
+     "spots": 13,
      "allRange": [
-      3.331,
-      3.964
+      1.194,
+      1.292
      ]
     },
-    "iou": 0.863
+    "iou": 0.705
    },
-   "panoramic|low": {
+   "northHills|low": {
     "proxy": {
-     "b60": 0.034,
-     "b120": 0.146,
-     "all": 0.43,
-     "emb": 0.631,
+     "b60": 0.022,
+     "b120": 0.106,
+     "all": 0.397,
+     "emb": 0.48,
+     "spots": 0,
+     "allRange": [
+      0.397,
+      0.397
+     ]
+    },
+    "landfire": {
+     "b60": 0.007,
+     "b120": 0.022,
+     "all": 0.09,
+     "emb": 0.132,
      "spots": 1,
      "allRange": [
-      0.428,
-      0.448
+      0.09,
+      0.091
+     ]
+    },
+    "iou": 0.221
+   },
+   "northHills|central": {
+    "proxy": {
+     "b60": 0.117,
+     "b120": 0.422,
+     "all": 1.385,
+     "emb": 1.831,
+     "spots": 11,
+     "allRange": [
+      1.349,
+      1.616
      ]
     },
     "landfire": {
      "b60": 0.022,
-     "b120": 0.082,
-     "all": 0.301,
-     "emb": 0.477,
-     "spots": 1,
+     "b120": 0.096,
+     "all": 0.639,
+     "emb": 0.87,
+     "spots": 4,
      "allRange": [
-      0.291,
-      0.305
+      0.628,
+      0.73
      ]
     },
-    "iou": 0.668
-   },
-   "panoramic|central": {
-    "proxy": {
-     "b60": 0.15,
-     "b120": 0.451,
-     "all": 1.075,
-     "emb": 2.143,
-     "spots": 2,
-     "allRange": [
-      1.012,
-      1.124
-     ]
-    },
-    "landfire": {
-     "b60": 0.083,
-     "b120": 0.307,
-     "all": 0.968,
-     "emb": 2.032,
-     "spots": 2,
-     "allRange": [
-      0.966,
-      0.979
-     ]
-    },
-    "iou": 0.79
-   },
-   "panoramic|high": {
-    "proxy": {
-     "b60": 0.486,
-     "b120": 1.218,
-     "all": 3.201,
-     "emb": 7.375,
-     "spots": 8,
-     "allRange": [
-      2.795,
-      3.413
-     ]
-    },
-    "landfire": {
-     "b60": 0.364,
-     "b120": 1.017,
-     "all": 2.916,
-     "emb": 6.714,
-     "spots": 6,
-     "allRange": [
-      2.65,
-      3.115
-     ]
-    },
-    "iou": 0.791
-   },
-   "northHills|low": {
-    "proxy": {
-     "b60": 0.034,
-     "b120": 0.147,
-     "all": 0.48,
-     "emb": 0.691,
-     "spots": 1,
-     "allRange": [
-      0.472,
-      0.51
-     ]
-    },
-    "landfire": {
-     "b60": 0.008,
-     "b120": 0.032,
-     "all": 0.156,
-     "emb": 0.301,
-     "spots": 1,
-     "allRange": [
-      0.153,
-      0.178
-     ]
-    },
-    "iou": 0.311
-   },
-   "northHills|central": {
-    "proxy": {
-     "b60": 0.161,
-     "b120": 0.535,
-     "all": 1.756,
-     "emb": 3.188,
-     "spots": 1,
-     "allRange": [
-      1.582,
-      1.794
-     ]
-    },
-    "landfire": {
-     "b60": 0.032,
-     "b120": 0.192,
-     "all": 1.003,
-     "emb": 2.106,
-     "spots": 1,
-     "allRange": [
-      0.838,
-      1.308
-     ]
-    },
-    "iou": 0.592
+    "iou": 0.434
    },
    "northHills|high": {
     "proxy": {
-     "b60": 0.712,
-     "b120": 2.119,
-     "all": 5.174,
-     "emb": 9.597,
-     "spots": 4,
+     "b60": 1.004,
+     "b120": 1.714,
+     "all": 3.235,
+     "emb": 3.776,
+     "spots": 39,
      "allRange": [
-      4.224,
-      5.207
+      3.075,
+      3.452
      ]
     },
     "landfire": {
-     "b60": 0.26,
-     "b120": 1.715,
-     "all": 4.297,
-     "emb": 8.797,
-     "spots": 7,
+     "b60": 0.449,
+     "b120": 1.104,
+     "all": 2.404,
+     "emb": 3.068,
+     "spots": 30,
      "allRange": [
-      4.178,
-      4.513
+      2.209,
+      2.545
      ]
     },
-    "iou": 0.771
+    "iou": 0.652
    }
   }
  },
@@ -322,250 +322,56 @@
    "proxy|central": {
     "runs": 12,
     "etzCells": 7853,
-    "spearmanCells": -0.204,
-    "hillCells": 1479,
-    "spearmanHill": -0.158,
-    "reachedCells": 3470,
-    "spearmanReached": -0.033,
-    "topQuintileHillShare": 0.561,
+    "spearmanCells": -0.092,
+    "hillCells": 6727,
+    "spearmanHill": -0.142,
+    "reachedCells": 2644,
+    "spearmanReached": -0.141,
+    "topQuintileHillShare": 0.995,
     "berkeleyOutsideCityZones": {
      "cells": 21499,
-     "meanShare": 0.054
+     "meanShare": 0.011
     },
     "byNeQuintile": [
      {
       "cells": 1549,
-      "mean": 0.145,
-      "half": 0.105,
+      "mean": 0.094,
+      "half": 0.07,
       "lo": 0,
       "hi": 0.08
      },
      {
       "cells": 1585,
-      "mean": 0.159,
-      "half": 0.134,
+      "mean": 0.116,
+      "half": 0.079,
       "lo": 0.08,
       "hi": 0.97
      },
      {
       "cells": 1525,
-      "mean": 0.155,
-      "half": 0.157,
-      "lo": 0.97,
-      "hi": 6.34
-     },
-     {
-      "cells": 1604,
       "mean": 0.113,
-      "half": 0.026,
-      "lo": 6.34,
-      "hi": 30.1
-     },
-     {
-      "cells": 1590,
-      "mean": 0.056,
-      "half": 0.005,
-      "lo": 30.1,
-      "hi": 638.22
-     }
-    ],
-    "zones": {
-     "n": 74,
-     "spearman": -0.28,
-     "topQuarterOverlap": 3,
-     "topQuarterSize": 19
-    },
-    "cityFHSZ": {
-     "High (City)": {
-      "cells": 8331,
-      "km2": 7.498,
-      "meanShare": 0.179,
-      "halfShare": 0.125
-     },
-     "Very High (City)": {
-      "cells": 379,
-      "km2": 0.341,
-      "meanShare": 0.243,
-      "halfShare": 0
-     }
-    },
-    "calfireLRA": {
-     "NonWildland": {
-      "cells": 21184,
-      "km2": 19.066,
-      "meanShare": 0.001,
-      "halfShare": 0
-     },
-     "Moderate": {
-      "cells": 3581,
-      "km2": 3.223,
-      "meanShare": 0.029,
-      "halfShare": 0
-     },
-     "High": {
-      "cells": 5817,
-      "km2": 5.235,
-      "meanShare": 0.007,
-      "halfShare": 0
-     },
-     "Very High": {
-      "cells": 3103,
-      "km2": 2.793,
-      "meanShare": 0.002,
-      "halfShare": 0
-     }
-    }
-   },
-   "proxy|low+central+high": {
-    "runs": 36,
-    "etzCells": 7853,
-    "spearmanCells": -0.22,
-    "hillCells": 1479,
-    "spearmanHill": -0.106,
-    "reachedCells": 4380,
-    "spearmanReached": 0.02,
-    "topQuintileHillShare": 0.561,
-    "berkeleyOutsideCityZones": {
-     "cells": 21499,
-     "meanShare": 0.092
-    },
-    "byNeQuintile": [
-     {
-      "cells": 1549,
-      "mean": 0.128,
-      "half": 0,
-      "lo": 0,
-      "hi": 0.08
-     },
-     {
-      "cells": 1585,
-      "mean": 0.144,
-      "half": 0.005,
-      "lo": 0.08,
-      "hi": 0.97
-     },
-     {
-      "cells": 1525,
-      "mean": 0.139,
-      "half": 0.004,
+      "half": 0.075,
       "lo": 0.97,
       "hi": 6.34
      },
      {
       "cells": 1604,
-      "mean": 0.11,
-      "half": 0.002,
-      "lo": 6.34,
-      "hi": 30.1
-     },
-     {
-      "cells": 1590,
-      "mean": 0.058,
-      "half": 0,
-      "lo": 30.1,
-      "hi": 638.22
-     }
-    ],
-    "zones": {
-     "n": 74,
-     "spearman": -0.276,
-     "topQuarterOverlap": 3,
-     "topQuarterSize": 19
-    },
-    "cityFHSZ": {
-     "High (City)": {
-      "cells": 8331,
-      "km2": 7.498,
-      "meanShare": 0.163,
-      "halfShare": 0.003
-     },
-     "Very High (City)": {
-      "cells": 379,
-      "km2": 0.341,
-      "meanShare": 0.229,
-      "halfShare": 0
-     }
-    },
-    "calfireLRA": {
-     "NonWildland": {
-      "cells": 21184,
-      "km2": 19.066,
-      "meanShare": 0.012,
-      "halfShare": 0
-     },
-     "Moderate": {
-      "cells": 3581,
-      "km2": 3.223,
-      "meanShare": 0.034,
-      "halfShare": 0
-     },
-     "High": {
-      "cells": 5817,
-      "km2": 5.235,
-      "meanShare": 0.008,
-      "halfShare": 0
-     },
-     "Very High": {
-      "cells": 3103,
-      "km2": 2.793,
-      "meanShare": 0.002,
-      "halfShare": 0
-     }
-    }
-   },
-   "landfire|central": {
-    "runs": 12,
-    "etzCells": 7853,
-    "spearmanCells": -0.184,
-    "hillCells": 1479,
-    "spearmanHill": -0.175,
-    "reachedCells": 3228,
-    "spearmanReached": -0.036,
-    "topQuintileHillShare": 0.561,
-    "berkeleyOutsideCityZones": {
-     "cells": 21499,
-     "meanShare": 0.045
-    },
-    "byNeQuintile": [
-     {
-      "cells": 1549,
-      "mean": 0.131,
-      "half": 0.093,
-      "lo": 0,
-      "hi": 0.08
-     },
-     {
-      "cells": 1585,
-      "mean": 0.148,
-      "half": 0.128,
-      "lo": 0.08,
-      "hi": 0.97
-     },
-     {
-      "cells": 1525,
-      "mean": 0.147,
-      "half": 0.161,
-      "lo": 0.97,
-      "hi": 6.34
-     },
-     {
-      "cells": 1604,
-      "mean": 0.108,
-      "half": 0.028,
+      "mean": 0.093,
+      "half": 0.013,
       "lo": 6.34,
       "hi": 30.1
      },
      {
       "cells": 1590,
       "mean": 0.05,
-      "half": 0.007,
+      "half": 0.004,
       "lo": 30.1,
       "hi": 638.22
      }
     ],
     "zones": {
      "n": 74,
-     "spearman": -0.26,
+     "spearman": -0.256,
      "topQuarterOverlap": 3,
      "topQuarterSize": 19
     },
@@ -573,13 +379,13 @@
      "High (City)": {
       "cells": 8331,
       "km2": 7.498,
-      "meanShare": 0.163,
-      "halfShare": 0.123
+      "meanShare": 0.139,
+      "halfShare": 0.073
      },
      "Very High (City)": {
       "cells": 379,
       "km2": 0.341,
-      "meanShare": 0.242,
+      "meanShare": 0.214,
       "halfShare": 0
      }
     },
@@ -593,7 +399,7 @@
      "Moderate": {
       "cells": 3581,
       "km2": 3.223,
-      "meanShare": 0.024,
+      "meanShare": 0.021,
       "halfShare": 0
      },
      "High": {
@@ -610,51 +416,51 @@
      }
     }
    },
-   "landfire|low+central+high": {
+   "proxy|low+central+high": {
     "runs": 36,
     "etzCells": 7853,
-    "spearmanCells": -0.23,
-    "hillCells": 1479,
-    "spearmanHill": -0.105,
-    "reachedCells": 4467,
-    "spearmanReached": 0.04,
-    "topQuintileHillShare": 0.561,
+    "spearmanCells": -0.108,
+    "hillCells": 6727,
+    "spearmanHill": -0.144,
+    "reachedCells": 3373,
+    "spearmanReached": 0.084,
+    "topQuintileHillShare": 0.995,
     "berkeleyOutsideCityZones": {
      "cells": 21499,
-     "meanShare": 0.085
+     "meanShare": 0.02
     },
     "byNeQuintile": [
      {
       "cells": 1549,
-      "mean": 0.119,
+      "mean": 0.078,
       "half": 0,
       "lo": 0,
       "hi": 0.08
      },
      {
       "cells": 1585,
-      "mean": 0.131,
-      "half": 0.001,
+      "mean": 0.092,
+      "half": 0,
       "lo": 0.08,
       "hi": 0.97
      },
      {
       "cells": 1525,
-      "mean": 0.131,
-      "half": 0.002,
+      "mean": 0.098,
+      "half": 0,
       "lo": 0.97,
       "hi": 6.34
      },
      {
       "cells": 1604,
-      "mean": 0.1,
+      "mean": 0.086,
       "half": 0,
       "lo": 6.34,
       "hi": 30.1
      },
      {
       "cells": 1590,
-      "mean": 0.054,
+      "mean": 0.047,
       "half": 0,
       "lo": 30.1,
       "hi": 638.22
@@ -662,7 +468,7 @@
     ],
     "zones": {
      "n": 74,
-     "spearman": -0.285,
+     "spearman": -0.225,
      "topQuarterOverlap": 3,
      "topQuarterSize": 19
     },
@@ -670,13 +476,13 @@
      "High (City)": {
       "cells": 8331,
       "km2": 7.498,
-      "meanShare": 0.149,
-      "halfShare": 0.001
+      "meanShare": 0.118,
+      "halfShare": 0
      },
      "Very High (City)": {
       "cells": 379,
       "km2": 0.341,
-      "meanShare": 0.221,
+      "meanShare": 0.191,
       "halfShare": 0
      }
     },
@@ -684,19 +490,213 @@
      "NonWildland": {
       "cells": 21184,
       "km2": 19.066,
-      "meanShare": 0.01,
+      "meanShare": 0.001,
       "halfShare": 0
      },
      "Moderate": {
       "cells": 3581,
       "km2": 3.223,
-      "meanShare": 0.031,
+      "meanShare": 0.021,
       "halfShare": 0
      },
      "High": {
       "cells": 5817,
       "km2": 5.235,
-      "meanShare": 0.007,
+      "meanShare": 0.006,
+      "halfShare": 0
+     },
+     "Very High": {
+      "cells": 3103,
+      "km2": 2.793,
+      "meanShare": 0.002,
+      "halfShare": 0
+     }
+    }
+   },
+   "landfire|central": {
+    "runs": 12,
+    "etzCells": 7853,
+    "spearmanCells": -0.05,
+    "hillCells": 6727,
+    "spearmanHill": -0.094,
+    "reachedCells": 2034,
+    "spearmanReached": -0.031,
+    "topQuintileHillShare": 0.995,
+    "berkeleyOutsideCityZones": {
+     "cells": 21499,
+     "meanShare": 0.005
+    },
+    "byNeQuintile": [
+     {
+      "cells": 1549,
+      "mean": 0.06,
+      "half": 0.008,
+      "lo": 0,
+      "hi": 0.08
+     },
+     {
+      "cells": 1585,
+      "mean": 0.086,
+      "half": 0.056,
+      "lo": 0.08,
+      "hi": 0.97
+     },
+     {
+      "cells": 1525,
+      "mean": 0.089,
+      "half": 0.064,
+      "lo": 0.97,
+      "hi": 6.34
+     },
+     {
+      "cells": 1604,
+      "mean": 0.079,
+      "half": 0.014,
+      "lo": 6.34,
+      "hi": 30.1
+     },
+     {
+      "cells": 1590,
+      "mean": 0.04,
+      "half": 0.004,
+      "lo": 30.1,
+      "hi": 638.22
+     }
+    ],
+    "zones": {
+     "n": 74,
+     "spearman": -0.212,
+     "topQuarterOverlap": 3,
+     "topQuarterSize": 19
+    },
+    "cityFHSZ": {
+     "High (City)": {
+      "cells": 8331,
+      "km2": 7.498,
+      "meanShare": 0.102,
+      "halfShare": 0.047
+     },
+     "Very High (City)": {
+      "cells": 379,
+      "km2": 0.341,
+      "meanShare": 0.189,
+      "halfShare": 0
+     }
+    },
+    "calfireLRA": {
+     "NonWildland": {
+      "cells": 21184,
+      "km2": 19.066,
+      "meanShare": 0,
+      "halfShare": 0
+     },
+     "Moderate": {
+      "cells": 3581,
+      "km2": 3.223,
+      "meanShare": 0.017,
+      "halfShare": 0
+     },
+     "High": {
+      "cells": 5817,
+      "km2": 5.235,
+      "meanShare": 0.005,
+      "halfShare": 0
+     },
+     "Very High": {
+      "cells": 3103,
+      "km2": 2.793,
+      "meanShare": 0.002,
+      "halfShare": 0
+     }
+    }
+   },
+   "landfire|low+central+high": {
+    "runs": 36,
+    "etzCells": 7853,
+    "spearmanCells": -0.139,
+    "hillCells": 6727,
+    "spearmanHill": -0.151,
+    "reachedCells": 2983,
+    "spearmanReached": 0.201,
+    "topQuintileHillShare": 0.995,
+    "berkeleyOutsideCityZones": {
+     "cells": 21499,
+     "meanShare": 0.015
+    },
+    "byNeQuintile": [
+     {
+      "cells": 1549,
+      "mean": 0.062,
+      "half": 0,
+      "lo": 0,
+      "hi": 0.08
+     },
+     {
+      "cells": 1585,
+      "mean": 0.076,
+      "half": 0,
+      "lo": 0.08,
+      "hi": 0.97
+     },
+     {
+      "cells": 1525,
+      "mean": 0.08,
+      "half": 0,
+      "lo": 0.97,
+      "hi": 6.34
+     },
+     {
+      "cells": 1604,
+      "mean": 0.066,
+      "half": 0,
+      "lo": 6.34,
+      "hi": 30.1
+     },
+     {
+      "cells": 1590,
+      "mean": 0.037,
+      "half": 0,
+      "lo": 30.1,
+      "hi": 638.22
+     }
+    ],
+    "zones": {
+     "n": 74,
+     "spearman": -0.257,
+     "topQuarterOverlap": 3,
+     "topQuarterSize": 19
+    },
+    "cityFHSZ": {
+     "High (City)": {
+      "cells": 8331,
+      "km2": 7.498,
+      "meanShare": 0.094,
+      "halfShare": 0
+     },
+     "Very High (City)": {
+      "cells": 379,
+      "km2": 0.341,
+      "meanShare": 0.165,
+      "halfShare": 0
+     }
+    },
+    "calfireLRA": {
+     "NonWildland": {
+      "cells": 21184,
+      "km2": 19.066,
+      "meanShare": 0.001,
+      "halfShare": 0
+     },
+     "Moderate": {
+      "cells": 3581,
+      "km2": 3.223,
+      "meanShare": 0.017,
+      "halfShare": 0
+     },
+     "High": {
+      "cells": 5817,
+      "km2": 5.235,
+      "meanShare": 0.005,
       "halfShare": 0
      },
      "Very High": {
@@ -720,9 +720,9 @@
   "rows": {
    "proxy|low": {
     "entryMin": [
-     212,
-     232,
-     232
+     260,
+     274,
+     274
     ],
     "westMin": [
      null,
@@ -732,33 +732,33 @@
    },
    "proxy|central": {
     "entryMin": [
-     104,
-     116,
-     54
+     123,
+     127,
+     125
     ],
     "westMin": [
-     264,
-     285,
-     220
+     238,
+     293,
+     346
     ]
    },
    "proxy|high": {
     "entryMin": [
-     28,
-     52,
-     58
+     43,
+     48,
+     46
     ],
     "westMin": [
-     113,
-     82,
-     91
+     37,
+     39,
+     51
     ]
    },
    "landfire|low": {
     "entryMin": [
-     280,
-     313,
-     313
+     null,
+     null,
+     null
     ],
     "westMin": [
      null,
@@ -768,26 +768,26 @@
    },
    "landfire|central": {
     "entryMin": [
-     140,
-     157,
-     77
+     146,
+     170,
+     172
     ],
     "westMin": [
-     303,
-     329,
-     250
+     334,
+     null,
+     294
     ]
    },
    "landfire|high": {
     "entryMin": [
-     39,
-     41,
-     78
+     46,
+     51,
+     64
     ],
     "westMin": [
-     124,
-     86,
-     97
+     72,
+     133,
+     109
     ]
    }
   }
@@ -809,446 +809,446 @@
   "rows": {
    "proxy|central|30": {
     "35": {
-     "km2": 0.047,
-     "downwindM": 841,
+     "km2": 0.019,
+     "downwindM": 273,
+     "perimeterCovered": 0.003,
+     "inPerimeterShare": 1,
+     "iou": 0.003
+    },
+    "60": {
+     "km2": 0.072,
+     "downwindM": 619,
+     "perimeterCovered": 0.012,
+     "inPerimeterShare": 1,
+     "iou": 0.012
+    },
+    "64": {
+     "km2": 0.079,
+     "downwindM": 634,
+     "perimeterCovered": 0.013,
+     "inPerimeterShare": 1,
+     "iou": 0.013
+    },
+    "120": {
+     "km2": 0.31,
+     "downwindM": 1378,
+     "perimeterCovered": 0.052,
+     "inPerimeterShare": 1,
+     "iou": 0.052
+    },
+    "240": {
+     "km2": 1.152,
+     "downwindM": 2631,
+     "perimeterCovered": 0.193,
+     "inPerimeterShare": 0.999,
+     "iou": 0.193
+    }
+   },
+   "proxy|central|45": {
+    "35": {
+     "km2": 0.027,
+     "downwindM": 342,
+     "perimeterCovered": 0.005,
+     "inPerimeterShare": 1,
+     "iou": 0.005
+    },
+    "60": {
+     "km2": 0.08,
+     "downwindM": 639,
+     "perimeterCovered": 0.013,
+     "inPerimeterShare": 1,
+     "iou": 0.013
+    },
+    "64": {
+     "km2": 0.094,
+     "downwindM": 681,
+     "perimeterCovered": 0.016,
+     "inPerimeterShare": 1,
+     "iou": 0.016
+    },
+    "120": {
+     "km2": 0.325,
+     "downwindM": 1424,
+     "perimeterCovered": 0.054,
+     "inPerimeterShare": 1,
+     "iou": 0.054
+    },
+    "240": {
+     "km2": 1.192,
+     "downwindM": 2442,
+     "perimeterCovered": 0.19,
+     "inPerimeterShare": 0.952,
+     "iou": 0.188
+    }
+   },
+   "proxy|central|60": {
+    "35": {
+     "km2": 0.032,
+     "downwindM": 417,
+     "perimeterCovered": 0.005,
+     "inPerimeterShare": 1,
+     "iou": 0.005
+    },
+    "60": {
+     "km2": 0.092,
+     "downwindM": 655,
+     "perimeterCovered": 0.015,
+     "inPerimeterShare": 1,
+     "iou": 0.015
+    },
+    "64": {
+     "km2": 0.103,
+     "downwindM": 689,
+     "perimeterCovered": 0.017,
+     "inPerimeterShare": 1,
+     "iou": 0.017
+    },
+    "120": {
+     "km2": 0.329,
+     "downwindM": 1246,
+     "perimeterCovered": 0.055,
+     "inPerimeterShare": 1,
+     "iou": 0.055
+    },
+    "240": {
+     "km2": 1.228,
+     "downwindM": 2393,
+     "perimeterCovered": 0.187,
+     "inPerimeterShare": 0.857,
+     "iou": 0.181
+    }
+   },
+   "proxy|high|30": {
+    "35": {
+     "km2": 0.272,
+     "downwindM": 1728,
+     "perimeterCovered": 0.045,
+     "inPerimeterShare": 1,
+     "iou": 0.045
+    },
+    "60": {
+     "km2": 0.888,
+     "downwindM": 2687,
+     "perimeterCovered": 0.147,
+     "inPerimeterShare": 0.991,
+     "iou": 0.147
+    },
+    "64": {
+     "km2": 0.935,
+     "downwindM": 2687,
+     "perimeterCovered": 0.154,
+     "inPerimeterShare": 0.989,
+     "iou": 0.154
+    },
+    "120": {
+     "km2": 1.74,
+     "downwindM": 2918,
+     "perimeterCovered": 0.259,
+     "inPerimeterShare": 0.915,
+     "iou": 0.251
+    },
+    "240": {
+     "km2": 3.163,
+     "downwindM": 3203,
+     "perimeterCovered": 0.454,
+     "inPerimeterShare": 0.857,
+     "iou": 0.422
+    }
+   },
+   "proxy|high|45": {
+    "35": {
+     "km2": 0.284,
+     "downwindM": 1763,
+     "perimeterCovered": 0.048,
+     "inPerimeterShare": 1,
+     "iou": 0.048
+    },
+    "60": {
+     "km2": 0.851,
+     "downwindM": 2972,
+     "perimeterCovered": 0.132,
+     "inPerimeterShare": 0.929,
+     "iou": 0.131
+    },
+    "64": {
+     "km2": 0.899,
+     "downwindM": 2972,
+     "perimeterCovered": 0.139,
+     "inPerimeterShare": 0.924,
+     "iou": 0.137
+    },
+    "120": {
+     "km2": 1.536,
+     "downwindM": 3100,
+     "perimeterCovered": 0.216,
+     "inPerimeterShare": 0.839,
+     "iou": 0.207
+    },
+    "240": {
+     "km2": 2.93,
+     "downwindM": 3460,
+     "perimeterCovered": 0.358,
+     "inPerimeterShare": 0.715,
+     "iou": 0.309
+    }
+   },
+   "proxy|high|60": {
+    "35": {
+     "km2": 0.32,
+     "downwindM": 1935,
+     "perimeterCovered": 0.053,
+     "inPerimeterShare": 0.992,
+     "iou": 0.053
+    },
+    "60": {
+     "km2": 0.895,
+     "downwindM": 3311,
+     "perimeterCovered": 0.13,
+     "inPerimeterShare": 0.843,
+     "iou": 0.127
+    },
+    "64": {
+     "km2": 0.938,
+     "downwindM": 3311,
+     "perimeterCovered": 0.134,
+     "inPerimeterShare": 0.836,
+     "iou": 0.131
+    },
+    "120": {
+     "km2": 1.571,
+     "downwindM": 3445,
+     "perimeterCovered": 0.193,
+     "inPerimeterShare": 0.709,
+     "iou": 0.181
+    },
+    "240": {
+     "km2": 2.718,
+     "downwindM": 3960,
+     "perimeterCovered": 0.275,
+     "inPerimeterShare": 0.592,
+     "iou": 0.233
+    }
+   },
+   "landfire|central|30": {
+    "35": {
+     "km2": 0.035,
+     "downwindM": 314,
+     "perimeterCovered": 0.006,
+     "inPerimeterShare": 1,
+     "iou": 0.006
+    },
+    "60": {
+     "km2": 0.092,
+     "downwindM": 530,
+     "perimeterCovered": 0.015,
+     "inPerimeterShare": 1,
+     "iou": 0.015
+    },
+    "64": {
+     "km2": 0.107,
+     "downwindM": 597,
+     "perimeterCovered": 0.018,
+     "inPerimeterShare": 1,
+     "iou": 0.018
+    },
+    "120": {
+     "km2": 0.364,
+     "downwindM": 1214,
+     "perimeterCovered": 0.061,
+     "inPerimeterShare": 1,
+     "iou": 0.061
+    },
+    "240": {
+     "km2": 1.175,
+     "downwindM": 2325,
+     "perimeterCovered": 0.196,
+     "inPerimeterShare": 1,
+     "iou": 0.196
+    }
+   },
+   "landfire|central|45": {
+    "35": {
+     "km2": 0.048,
+     "downwindM": 342,
      "perimeterCovered": 0.008,
      "inPerimeterShare": 1,
      "iou": 0.008
     },
     "60": {
-     "km2": 0.194,
-     "downwindM": 1217,
-     "perimeterCovered": 0.033,
+     "km2": 0.123,
+     "downwindM": 597,
+     "perimeterCovered": 0.021,
      "inPerimeterShare": 1,
-     "iou": 0.033
+     "iou": 0.021
     },
     "64": {
-     "km2": 0.23,
-     "downwindM": 1308,
-     "perimeterCovered": 0.038,
+     "km2": 0.136,
+     "downwindM": 639,
+     "perimeterCovered": 0.023,
      "inPerimeterShare": 1,
-     "iou": 0.038
+     "iou": 0.023
     },
     "120": {
-     "km2": 0.792,
-     "downwindM": 1932,
-     "perimeterCovered": 0.133,
+     "km2": 0.383,
+     "downwindM": 1169,
+     "perimeterCovered": 0.064,
      "inPerimeterShare": 1,
-     "iou": 0.133
+     "iou": 0.064
     },
     "240": {
-     "km2": 2.556,
-     "downwindM": 2968,
-     "perimeterCovered": 0.382,
-     "inPerimeterShare": 0.88,
-     "iou": 0.363
-    }
-   },
-   "proxy|central|45": {
-    "35": {
-     "km2": 0.056,
-     "downwindM": 1042,
-     "perimeterCovered": 0.009,
-     "inPerimeterShare": 1,
-     "iou": 0.009
-    },
-    "60": {
-     "km2": 0.216,
-     "downwindM": 1339,
-     "perimeterCovered": 0.036,
-     "inPerimeterShare": 1,
-     "iou": 0.036
-    },
-    "64": {
-     "km2": 0.254,
-     "downwindM": 1488,
-     "perimeterCovered": 0.042,
-     "inPerimeterShare": 1,
-     "iou": 0.042
-    },
-    "120": {
-     "km2": 0.931,
-     "downwindM": 2145,
-     "perimeterCovered": 0.154,
-     "inPerimeterShare": 0.984,
-     "iou": 0.154
-    },
-    "240": {
-     "km2": 2.587,
-     "downwindM": 3079,
-     "perimeterCovered": 0.357,
-     "inPerimeterShare": 0.824,
-     "iou": 0.331
-    }
-   },
-   "proxy|central|60": {
-    "35": {
-     "km2": 0.064,
-     "downwindM": 893,
-     "perimeterCovered": 0.011,
-     "inPerimeterShare": 1,
-     "iou": 0.011
-    },
-    "60": {
-     "km2": 0.218,
-     "downwindM": 1455,
-     "perimeterCovered": 0.036,
-     "inPerimeterShare": 1,
-     "iou": 0.036
-    },
-    "64": {
-     "km2": 0.255,
-     "downwindM": 1481,
-     "perimeterCovered": 0.043,
-     "inPerimeterShare": 1,
-     "iou": 0.043
-    },
-    "120": {
-     "km2": 0.896,
-     "downwindM": 2202,
-     "perimeterCovered": 0.135,
-     "inPerimeterShare": 0.937,
-     "iou": 0.133
-    },
-    "240": {
-     "km2": 2.55,
-     "downwindM": 2942,
-     "perimeterCovered": 0.288,
-     "inPerimeterShare": 0.686,
-     "iou": 0.247
-    }
-   },
-   "proxy|high|30": {
-    "35": {
-     "km2": 0.284,
-     "downwindM": 2182,
-     "perimeterCovered": 0.048,
-     "inPerimeterShare": 1,
-     "iou": 0.048
-    },
-    "60": {
-     "km2": 1.055,
-     "downwindM": 2724,
-     "perimeterCovered": 0.172,
-     "inPerimeterShare": 0.95,
-     "iou": 0.171
-    },
-    "64": {
-     "km2": 1.22,
-     "downwindM": 2791,
-     "perimeterCovered": 0.194,
-     "inPerimeterShare": 0.931,
-     "iou": 0.193
-    },
-    "120": {
-     "km2": 3.238,
-     "downwindM": 3218,
-     "perimeterCovered": 0.44,
-     "inPerimeterShare": 0.827,
-     "iou": 0.399
-    },
-    "240": {
-     "km2": 4.94,
-     "downwindM": 3383,
-     "perimeterCovered": 0.655,
-     "inPerimeterShare": 0.792,
-     "iou": 0.559
-    }
-   },
-   "proxy|high|45": {
-    "35": {
-     "km2": 0.308,
-     "downwindM": 2166,
-     "perimeterCovered": 0.05,
-     "inPerimeterShare": 0.987,
-     "iou": 0.05
-    },
-    "60": {
-     "km2": 1.112,
-     "downwindM": 2866,
-     "perimeterCovered": 0.168,
-     "inPerimeterShare": 0.927,
-     "iou": 0.165
-    },
-    "64": {
-     "km2": 1.27,
-     "downwindM": 2930,
+     "km2": 1.146,
+     "downwindM": 2463,
      "perimeterCovered": 0.19,
-     "inPerimeterShare": 0.912,
-     "iou": 0.186
-    },
-    "120": {
-     "km2": 3.224,
-     "downwindM": 3312,
-     "perimeterCovered": 0.386,
-     "inPerimeterShare": 0.715,
-     "iou": 0.334
-    },
-    "240": {
-     "km2": 5.848,
-     "downwindM": 3736,
-     "perimeterCovered": 0.562,
-     "inPerimeterShare": 0.593,
-     "iou": 0.405
-    }
-   },
-   "proxy|high|60": {
-    "35": {
-     "km2": 0.315,
-     "downwindM": 1987,
-     "perimeterCovered": 0.049,
-     "inPerimeterShare": 0.934,
-     "iou": 0.049
-    },
-    "60": {
-     "km2": 1.037,
-     "downwindM": 2587,
-     "perimeterCovered": 0.136,
-     "inPerimeterShare": 0.794,
-     "iou": 0.131
-    },
-    "64": {
-     "km2": 1.188,
-     "downwindM": 2587,
-     "perimeterCovered": 0.152,
-     "inPerimeterShare": 0.764,
-     "iou": 0.145
-    },
-    "120": {
-     "km2": 3.076,
-     "downwindM": 3150,
-     "perimeterCovered": 0.288,
-     "inPerimeterShare": 0.611,
-     "iou": 0.238
-    },
-    "240": {
-     "km2": 5.807,
-     "downwindM": 3954,
-     "perimeterCovered": 0.443,
-     "inPerimeterShare": 0.455,
-     "iou": 0.289
-    }
-   },
-   "landfire|central|30": {
-    "35": {
-     "km2": 0.072,
-     "downwindM": 886,
-     "perimeterCovered": 0.012,
-     "inPerimeterShare": 1,
-     "iou": 0.012
-    },
-    "60": {
-     "km2": 0.247,
-     "downwindM": 1437,
-     "perimeterCovered": 0.041,
-     "inPerimeterShare": 1,
-     "iou": 0.041
-    },
-    "64": {
-     "km2": 0.286,
-     "downwindM": 1504,
-     "perimeterCovered": 0.048,
-     "inPerimeterShare": 1,
-     "iou": 0.048
-    },
-    "120": {
-     "km2": 0.875,
-     "downwindM": 1943,
-     "perimeterCovered": 0.146,
-     "inPerimeterShare": 1,
-     "iou": 0.146
-    },
-    "240": {
-     "km2": 2.672,
-     "downwindM": 2961,
-     "perimeterCovered": 0.402,
-     "inPerimeterShare": 0.928,
-     "iou": 0.385
-    }
-   },
-   "landfire|central|45": {
-    "35": {
-     "km2": 0.096,
-     "downwindM": 894,
-     "perimeterCovered": 0.016,
-     "inPerimeterShare": 1,
-     "iou": 0.016
-    },
-    "60": {
-     "km2": 0.285,
-     "downwindM": 1360,
-     "perimeterCovered": 0.048,
-     "inPerimeterShare": 1,
-     "iou": 0.048
-    },
-    "64": {
-     "km2": 0.323,
-     "downwindM": 1403,
-     "perimeterCovered": 0.054,
-     "inPerimeterShare": 1,
-     "iou": 0.054
-    },
-    "120": {
-     "km2": 0.816,
-     "downwindM": 1869,
-     "perimeterCovered": 0.136,
-     "inPerimeterShare": 0.994,
-     "iou": 0.136
-    },
-    "240": {
-     "km2": 2.362,
-     "downwindM": 2718,
-     "perimeterCovered": 0.358,
-     "inPerimeterShare": 0.906,
-     "iou": 0.345
+     "inPerimeterShare": 0.978,
+     "iou": 0.19
     }
    },
    "landfire|central|60": {
     "35": {
-     "km2": 0.104,
-     "downwindM": 985,
-     "perimeterCovered": 0.017,
+     "km2": 0.058,
+     "downwindM": 454,
+     "perimeterCovered": 0.01,
      "inPerimeterShare": 1,
-     "iou": 0.017
+     "iou": 0.01
     },
     "60": {
-     "km2": 0.256,
-     "downwindM": 1738,
-     "perimeterCovered": 0.041,
-     "inPerimeterShare": 0.996,
-     "iou": 0.041
+     "km2": 0.119,
+     "downwindM": 588,
+     "perimeterCovered": 0.02,
+     "inPerimeterShare": 1,
+     "iou": 0.02
     },
     "64": {
-     "km2": 0.283,
-     "downwindM": 1738,
-     "perimeterCovered": 0.045,
-     "inPerimeterShare": 0.996,
-     "iou": 0.045
+     "km2": 0.129,
+     "downwindM": 588,
+     "perimeterCovered": 0.022,
+     "inPerimeterShare": 1,
+     "iou": 0.022
     },
     "120": {
-     "km2": 0.885,
-     "downwindM": 2128,
-     "perimeterCovered": 0.13,
-     "inPerimeterShare": 0.965,
-     "iou": 0.127
+     "km2": 0.294,
+     "downwindM": 1306,
+     "perimeterCovered": 0.049,
+     "inPerimeterShare": 1,
+     "iou": 0.049
     },
     "240": {
-     "km2": 2.446,
-     "downwindM": 2916,
-     "perimeterCovered": 0.291,
-     "inPerimeterShare": 0.746,
-     "iou": 0.265
+     "km2": 1.125,
+     "downwindM": 2144,
+     "perimeterCovered": 0.185,
+     "inPerimeterShare": 0.962,
+     "iou": 0.184
     }
    },
    "landfire|high|30": {
     "35": {
-     "km2": 0.366,
-     "downwindM": 1807,
-     "perimeterCovered": 0.061,
+     "km2": 0.316,
+     "downwindM": 1869,
+     "perimeterCovered": 0.053,
      "inPerimeterShare": 1,
-     "iou": 0.061
+     "iou": 0.053
     },
     "60": {
-     "km2": 1.048,
-     "downwindM": 2686,
-     "perimeterCovered": 0.175,
-     "inPerimeterShare": 0.995,
-     "iou": 0.173
+     "km2": 0.864,
+     "downwindM": 2790,
+     "perimeterCovered": 0.144,
+     "inPerimeterShare": 0.999,
+     "iou": 0.144
     },
     "64": {
-     "km2": 1.183,
-     "downwindM": 2753,
-     "perimeterCovered": 0.197,
-     "inPerimeterShare": 0.99,
-     "iou": 0.194
+     "km2": 0.896,
+     "downwindM": 2790,
+     "perimeterCovered": 0.15,
+     "inPerimeterShare": 0.996,
+     "iou": 0.15
     },
     "120": {
-     "km2": 3.236,
-     "downwindM": 3173,
-     "perimeterCovered": 0.452,
-     "inPerimeterShare": 0.842,
-     "iou": 0.415
+     "km2": 1.417,
+     "downwindM": 3005,
+     "perimeterCovered": 0.231,
+     "inPerimeterShare": 0.959,
+     "iou": 0.229
     },
     "240": {
-     "km2": 5.3,
-     "downwindM": 3398,
-     "perimeterCovered": 0.718,
-     "inPerimeterShare": 0.81,
-     "iou": 0.617
+     "km2": 3.194,
+     "downwindM": 3173,
+     "perimeterCovered": 0.458,
+     "inPerimeterShare": 0.852,
+     "iou": 0.407
     }
    },
    "landfire|high|45": {
     "35": {
-     "km2": 0.353,
-     "downwindM": 1869,
+     "km2": 0.351,
+     "downwindM": 1700,
      "perimeterCovered": 0.059,
-     "inPerimeterShare": 0.99,
+     "inPerimeterShare": 0.998,
      "iou": 0.059
     },
     "60": {
-     "km2": 0.919,
-     "downwindM": 2718,
-     "perimeterCovered": 0.148,
-     "inPerimeterShare": 0.945,
-     "iou": 0.147
+     "km2": 0.847,
+     "downwindM": 2697,
+     "perimeterCovered": 0.134,
+     "inPerimeterShare": 0.949,
+     "iou": 0.133
     },
     "64": {
-     "km2": 1.039,
-     "downwindM": 2760,
-     "perimeterCovered": 0.166,
-     "inPerimeterShare": 0.934,
-     "iou": 0.164
+     "km2": 0.88,
+     "downwindM": 2739,
+     "perimeterCovered": 0.139,
+     "inPerimeterShare": 0.946,
+     "iou": 0.138
     },
     "120": {
-     "km2": 3.013,
-     "downwindM": 3397,
-     "perimeterCovered": 0.386,
-     "inPerimeterShare": 0.768,
-     "iou": 0.347
+     "km2": 1.498,
+     "downwindM": 2888,
+     "perimeterCovered": 0.227,
+     "inPerimeterShare": 0.906,
+     "iou": 0.222
     },
     "240": {
-     "km2": 6.408,
-     "downwindM": 3906,
-     "perimeterCovered": 0.682,
-     "inPerimeterShare": 0.634,
-     "iou": 0.483
+     "km2": 3.144,
+     "downwindM": 3566,
+     "perimeterCovered": 0.408,
+     "inPerimeterShare": 0.776,
+     "iou": 0.353
     }
    },
    "landfire|high|60": {
     "35": {
-     "km2": 0.314,
-     "downwindM": 2217,
-     "perimeterCovered": 0.049,
-     "inPerimeterShare": 0.979,
-     "iou": 0.049
+     "km2": 0.292,
+     "downwindM": 1987,
+     "perimeterCovered": 0.048,
+     "inPerimeterShare": 0.975,
+     "iou": 0.048
     },
     "60": {
-     "km2": 0.959,
-     "downwindM": 2705,
-     "perimeterCovered": 0.136,
-     "inPerimeterShare": 0.825,
-     "iou": 0.134
+     "km2": 0.851,
+     "downwindM": 3124,
+     "perimeterCovered": 0.119,
+     "inPerimeterShare": 0.839,
+     "iou": 0.116
     },
     "64": {
-     "km2": 1.115,
-     "downwindM": 2771,
-     "perimeterCovered": 0.156,
-     "inPerimeterShare": 0.792,
-     "iou": 0.153
+     "km2": 0.904,
+     "downwindM": 3124,
+     "perimeterCovered": 0.125,
+     "inPerimeterShare": 0.83,
+     "iou": 0.121
     },
     "120": {
-     "km2": 3.101,
-     "downwindM": 3210,
-     "perimeterCovered": 0.337,
-     "inPerimeterShare": 0.612,
-     "iou": 0.28
+     "km2": 1.601,
+     "downwindM": 3329,
+     "perimeterCovered": 0.209,
+     "inPerimeterShare": 0.75,
+     "iou": 0.197
     },
     "240": {
-     "km2": 6.78,
-     "downwindM": 3999,
-     "perimeterCovered": 0.521,
-     "inPerimeterShare": 0.461,
-     "iou": 0.32
+     "km2": 3.045,
+     "downwindM": 3597,
+     "perimeterCovered": 0.302,
+     "inPerimeterShare": 0.637,
+     "iou": 0.25
     }
    }
   }

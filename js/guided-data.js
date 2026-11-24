@@ -12,11 +12,20 @@ export const SEVS = ['low', 'central', 'high'];
 // Fire pace in Guided view (Eric, 2026-11-23, MASTER session; SOURCE_NOTES GV21): the three severities of js/scenarios.js
 // SEVERITY under plain names, 1923 pace by default. Each pace's Explain this: what sets it and what anchors it.
 export const PACES = [
-  { sev: 'low', label: 'Slower', explain: 'Half the 1923 pace\'s head spread rate, with embers carried about 300 m ahead of the front and fewer spot fires. No historical fire anchors it; it is a lower bound.' },
-  { sev: 'central', label: '1923 pace', explain: 'The head spread rate is calibrated to the City StoryMap\'s present-day repeat of the 1923 fire, about 5 hours from the eastern edge of the city to Shattuck Avenue (SOURCE_NOTES S11). Embers are carried about 800 m ahead of the front. The default pace; no source says it is the most likely fire.' },
-  { sev: 'high', label: '1991 pace', explain: 'Double the 1923 pace\'s head spread rate, with embers carried about 1.5 km ahead. It slows to a fifth of that rate after its first hour, fitted to the 1991 fire, which ran more than a mile downwind in its first 64 minutes and much more slowly after (SOURCE_NOTES FV17, S19).' },
+  { sev: 'low', label: 'Slower', explain: 'Half the 1923 pace\'s head spread rate. Embers reach up to about 300 m downwind in the 32 mph wind of the 1923 repeat, farther in a stronger wind and less far in a weaker one, and most land much nearer; spot fires are rarer. No historical fire anchors it; it is a lower bound.' },
+  { sev: 'central', label: '1923 pace', explain: 'The head spread rate is calibrated to the City StoryMap\'s present-day repeat of the 1923 fire, about 5 hours from the eastern edge of the city to Shattuck Avenue in a 32 mph wind (SOURCE_NOTES S11). In a weaker wind the head spreads more slowly, in a stronger one faster (FW2). Embers reach up to about 800 m downwind at 32 mph, in proportion to the wind speed, and most land much nearer (FW8, FW9). The default pace; no source says it is the most likely fire.' },
+  { sev: 'high', label: '1991 pace', explain: 'For its first hour the head spreads faster than the 1923 pace, fitted to the 1991 fire, which ran more than a mile downwind in its first 64 minutes; after that it spreads at the 1923 pace, never slower (Eric, 2026-11-24; SOURCE_NOTES FV17, FW6, FW7, S19). The 1991 head nearly stalled after its first hour as the wind eased and firefighters arrived; the model includes neither, so this pace burns more than 1991 did after the first hours. Embers reach up to about 1.5 km downwind at 32 mph, in proportion to the wind speed, and most land much nearer.' },
 ];
-export const paceOf = sev => PACES.find(p => p.sev === sev) || PACES[1];
+// The earthquake fire's paces (FW12, FW15): its medium rate is fitted to the USGS HayWired scenario's floor area burned in
+// Berkeley, not to the 1923 fire, so it has its own names and Explain text.
+const QUAKE_LIMIT = 'The model does not include the water system failing after the earthquake, or fire passing from building to building on its own: buildings burn as fuel at the rate of the fire zone they stand in, and do not change how the fire spreads.';
+export const QUAKE_PACES = [
+  { sev: 'low', label: 'Slower', explain: `Half the HayWired pace's head spread rate, with fewer spot fires. No source anchors it; it is a lower bound. ${QUAKE_LIMIT}` },
+  { sev: 'central', label: 'HayWired pace', explain: `The head spread rate is fitted so the spring-afternoon fire reaches about as many structures in Berkeley in 6 hours as the USGS HayWired scenario burns there (about 2,270 single-family-home equivalents of floor area; SOURCE_NOTES EQ11, FW12). The wind and the fire zones then set how fast each part burns. The default pace. ${QUAKE_LIMIT}` },
+  { sev: 'high', label: 'Faster', explain: `Faster than the HayWired pace for the first hour, then at the HayWired pace, never slower: the 1991 pace's rule applied to the earthquake's rate (SOURCE_NOTES FW6). No source anchors it. ${QUAKE_LIMIT}` },
+];
+export const pacesFor = fire => (/^quake/.test(fire || '') ? QUAKE_PACES : PACES);
+export const paceOf = (sev, fire) => { const P = pacesFor(fire); return P.find(p => p.sev === sev) || P[1]; };
 export const DEFAULT_PACE = 'central';
 
 // The five results, most important first (Eric, 2026-11-10). key: the measure in mitigations.json runs and in a live
