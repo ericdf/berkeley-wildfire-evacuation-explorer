@@ -169,7 +169,7 @@ for (const [di, name] of DEVICES.entries()) {
   check((await p.locator('#g-find-list [role="option"]').first().innerText()) === 'Panoramic Wy', `${name}: search lists Panoramic Wy for "panoramic way"`);
   await p.keyboard.press('Enter'); await p.waitForTimeout(900);
   const findCap = await p.locator('#g-caption').innerText();
-  check(/^Embers reached \d+ of \d+ blocks? of Panoramic Wy in at least one run at this pace$/.test(findCap) && await visible('#g-sheet'), `${name}: choosing Panoramic Wy frames it, counts its blocks embers reached and opens its card (${findCap})`);
+  check(/^Embers reached \d+ of \d+ blocks? of Panoramic Wy in at least one run at this pace Explain this$/.test(findCap) && await visible('#g-sheet'), `${name}: choosing Panoramic Wy frames it, counts its blocks embers reached and opens its card (${findCap})`);
   const card = await p.locator('#g-sheet').innerText();
   check(apart(await rect('#g-sheet'), await rect('#legend')), `${name}: the street card does not cover the key`);
   // The count's provenance: in the card's sources and behind the caption's Explain this (Codex review of PR #104).
