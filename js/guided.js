@@ -213,10 +213,17 @@ export function guidedUI(ctx) {
     return `<h3>On the map</h3><p>Green streets are within ${m} minutes of a station; red, over ${m} minutes; dotted red, no engine route at all. In the run you watched, of ${fmt(z)} hill street segments, ${fmt(a)} are ${m}–8 minutes away, ${fmt(b)} over 8 minutes and ${fmt(c)} have no engine route. ${badge('model rule')}</p>`;
   }
   // The finding each map view states after a run, from the same figures as the result cards (GV37).
+  // With changes applied, the figure is the comparison's "with changes" median (the table for one change, the live runs
+  // for two or three); while live runs are still going, the status quo's, labeled as such (Codex, PR #101).
+  function capFig(id, base) {
+    if (!g.applied.length) return { v: base, tag: '' };
+    const r = compareRow(cardById(id));
+    return r ? { v: r.b, tag: ' with your changes' } : { v: base, tag: ' in the status quo' };
+  }
   const FINDING = {
-    fire: () => { const f = model().baseFigure(state.fire, 'ember', g.pace); return { card: 'ember', text: `Embers reached the dark streets in every run, the amber ones in some: ${n(f.value)} people were not yet out when they arrived.` }; },
-    ways: () => { const o = model().oneWay(data.access, state.fire); return o.na ? { card: 'oneWay', text: 'Streets with one way out: not computed on the earthquake\'s street network.' } : { card: 'oneWay', text: `Red: one-way-out streets the fire front reached in every run. ${n(o.value)} hill residents live on streets with one way out.` }; },
-    engine: () => { const f = baseFigure(cardById('engine')); return { card: 'engine', text: `Red: hill streets no engine reaches within ${data.A.access.engineServiceMin} minutes, mostly because parked cars narrow them (${n(f.value)} residents).` }; },
+    fire: () => { const f = capFig('ember', model().baseFigure(state.fire, 'ember', g.pace).value); return { card: 'ember', text: `Embers reached the dark streets in every run, the amber ones in some: ${n(f.v)} people were not yet out when they arrived${f.tag}.` }; },
+    ways: () => { const o = model().oneWay(data.access, state.fire); if (o.na) return { card: 'oneWay', text: 'Streets with one way out: not computed on the earthquake\'s street network.' }; const f = capFig('oneWay', o.value); return { card: 'oneWay', text: `Red: one-way-out streets the fire front reached in every run. ${n(f.v)} hill residents live on streets with one way out${f.tag}.` }; },
+    engine: () => { const f = capFig('engine', baseFigure(cardById('engine')).value); return { card: 'engine', text: `Red: hill streets no engine reaches within ${data.A.access.engineServiceMin} minutes, mostly because parked cars narrow them (${n(f.v)} residents${f.tag}).` }; },
   };
   // The key opens by itself the first time each map view is shown in a session, then follows the remembered choice.
   const keySeen = new Set();
@@ -737,7 +744,7 @@ export function guidedUI(ctx) {
   function startLive() {
     cancelLive();
     if (g.applied.length < 2) return;
-    g.live = ctx.runLive(g.applied.map(leverById), g.pace, () => { if (g.screen === 'results') { const y = $('g-panel').scrollTop; $('g-panel').innerHTML = compareHTML(); $('g-panel').scrollTop = y; wirePanel(); } });
+    g.live = ctx.runLive(g.applied.map(leverById), g.pace, () => { if (g.screen === 'results') { const y = $('g-panel').scrollTop; $('g-panel').innerHTML = compareHTML(); $('g-panel').scrollTop = y; wirePanel(); } else if (g.live?.done) refresh(); }); // the map caption's figure, once the live runs finish
   }
 
   // ---------- panel events ----------
@@ -769,7 +776,7 @@ export function guidedUI(ctx) {
 
   return {
     enter() { G = null; map.barriers = false; map.queueSmooth = true; map.labels = LABELS; setup(); if (done()) frameSummary(); else frameStart(); show(g.screen === 'map' ? 'map' : g.screen); },
-    leave() { map.barriers = true; map.queueSmooth = false; map.marks = []; map.labels = null; openFind(false); },
+    leave() { map.barriers = true; map.queueSmooth = false; map.marks = []; map.labels = null; map.noShelters = false; openFind(false); }, // Expert's shelters draw again (Codex, PR #101)
     refresh, legendHTML, sheet, pickFire,
     keyView: () => done() ? g.chip : 'run',
     title: () => `${fireTitle()}, ${paceName()}`,

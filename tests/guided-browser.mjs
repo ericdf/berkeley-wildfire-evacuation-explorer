@@ -253,6 +253,11 @@ for (const [di, name] of DEVICES.entries()) {
   await waitRunEnd();
   check(await visible('#g-tag'), `${name}: the map says it shows changes`);
   await noScroll('after a run with a change'); await shot('12-run-with-change');
+  // With a change applied, the map captions give the "with changes" figure (Codex, PR #101).
+  await p.click('[data-chip="engine"]'); await p.waitForTimeout(250);
+  const engWith = await p.locator('#g-caption').innerText();
+  check(/\([\d,]+ residents with your changes\)/.test(engWith) && !engCap.includes(engWith.match(/\(([\d,]+) residents/)?.[1] + ' residents)'), `${name}: with one-side parking the engine caption gives the figure with the change (${engWith.match(/\(([^)]*)\)/)?.[1]})`);
+  await p.click('[data-chip="fire"]'); await p.waitForTimeout(200);
   await p.click('#g-explore');
   const cmp1 = await p.locator('.rc.cmp').count();
   const diff = await p.locator('.rc.cmp').nth(2).locator('.cmpgrid b').nth(2).innerText();
