@@ -447,3 +447,8 @@ header :focus-visible { outline-color: #fbbf24; box-shadow: none; }
 #events:focus-visible, #map:focus-visible { outline-offset: -3px; }
 /* Notes in the map key sit on a 92% white box over the map: darker than --muted so they keep 4.5:1 over a dark map. */
 #legend .muted { color: #4a4f57; }
+/* Reviewer fixes (2026-11-24; SOURCE_NOTES GV36, GV38): sub-groups in the folded "Other changes", a group note, the
+   "No cost estimate" band in the cost sort. */
+h4.cg-sub { font-size: 13px; margin: 10px 0 4px; color: #4b3a2a; }
+.cg-note { font-size: 12.5px; color: var(--muted); margin: -2px 0 6px; }
+.cr-band { font-size: 12px; font-weight: 600; color: var(--muted); margin: 8px 0 2px; }
