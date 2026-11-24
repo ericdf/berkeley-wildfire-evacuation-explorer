@@ -435,6 +435,16 @@ for (const [di, name] of DEVICES.entries()) {
   await p.click('#g-run'); await waitRunEnd(); await p.click('#g-explore');
   const qn = await p.locator('.rc .rc-n').allTextContents();
   check(qn.length === 5 && qn[2] === 'Not computed' && qn.filter(t => t === 'Not computed').length === 1, `${name}: earthquake results, single ways out not computed (${qn.join(' | ')})`);
+  // The buildings card leads with structures reached citywide, the hill-zone loss second (SOURCE_NOTES FW19).
+  const qh = await p.locator('#rc-h-homes').locator('..').innerText();
+  check(/structures in Berkeley the fire front reached \(range [\d,]+–[\d,]+\)/.test(qh) && /Lost in the hill fire zones: [\d,]+/.test(qh), `${name}: earthquake buildings card leads with structures reached citywide, hill-zone loss second`);
+  await panelHeight('Earthquake Results view');
+  await p.locator('[data-explain="homes"]').click();
+  check(/Citywide/.test(await gxText()), `${name}: earthquake buildings Explain this gives the citywide count`);
+  await p.locator('#modal .close').click();
+  await p.locator('[data-explain="ember"]').click();
+  check(/with that threshold at a tenth or at half, the embers-only median runs [\d,]+–[\d,]+/.test(await gxText()), `${name}: the people card's Details give the embers-only range by ember threshold (FW20)`);
+  await p.locator('#modal .close').click();
   await p.locator('[data-explain="oneWay"]').click();
   check(/Hayward Fault/.test(await gxText()), `${name}: earthquake, Explain this says why single ways out is not computed`);
   await shot('22-quake-results');
