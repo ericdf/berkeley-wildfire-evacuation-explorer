@@ -217,7 +217,7 @@ export class MapView {
   // a bought-out block (purple). The change the user is looking at is drawn heavier.
   drawMarks() {
     const { ctx } = this; if (!this.marks.length) return;
-    const C = { street: '#15803d', link: '#15803d', buyout: '#7e22ce', backup: '#7f1d1d' }; // backup: a street from Guided view's backups list
+    const C = { street: '#15803d', link: '#15803d', buyout: '#7e22ce', backup: '#1d4ed8' }; // backup: a street from Guided view's backups list (blue, GV37)
     ctx.save(); ctx.lineCap = 'round';
     for (const m of this.marks) {
       ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = m.focus ? 11 : 8; ctx.setLineDash([]); ctx.beginPath(); this.path(m.geom); ctx.stroke();
@@ -520,14 +520,16 @@ export class MapView {
       ctx.beginPath(); this.path(this.data.net.edges[L.e].geom); ctx.stroke();
     }
   }
-  // Guided view (js/guided.js sets queueSmooth): queues smoothed over model time (js/queue-display.js), thin, one dark red.
+  // Guided view (js/guided.js sets queueSmooth): queues smoothed over model time (js/queue-display.js), thin, one blue
+  // on a white edge. Dark red (#7f1d1d) vanished over burned ground (#5a1e19); blue stays apart from the fire's reds and
+  // ambers under deuteranopia and protanopia too (reviewer subagent, MASTER, 2026-11-23; SOURCE_NOTES GV37).
   drawQueuesSmoothed() {
     const { ctx, sim } = this;
     const { s, on } = (this.qSmoother ??= new QueueSmoother()).update(sim);
     ctx.lineCap = 'round';
-    for (const lid of on) {
-      const L = sim.links[lid], frac = Math.min(1, s.get(lid) / L.storage);
-      ctx.strokeStyle = `rgba(127,29,29,${0.6 + 0.35 * frac})`; ctx.lineWidth = 1.5 + 2.5 * frac;
+    for (const pass of [0, 1]) for (const lid of on) {
+      const L = sim.links[lid], frac = Math.min(1, s.get(lid) / L.storage), w = 1.5 + 2.5 * frac;
+      ctx.strokeStyle = pass ? `rgba(29,78,216,${0.75 + 0.25 * frac})` : 'rgba(255,255,255,0.9)'; ctx.lineWidth = pass ? w : w + 2.5;
       ctx.beginPath(); this.path(this.data.net.edges[L.e].geom); ctx.stroke();
     }
   }

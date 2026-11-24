@@ -176,7 +176,7 @@ for (const [di, name] of DEVICES.entries()) {
   // Changes
   await p.click('[data-go="changes"] >> nth=0');
   const heads = await p.locator('h3.cg').allTextContents();
-  check(heads[0]?.startsWith('Fewer people') && heads.includes('No consistent benefit in our tests'), `${name}: changes grouped by result (${heads.join(' | ')})`);
+  check(heads[0]?.startsWith('Fewer people') && heads.includes('Other changes'), `${name}: changes grouped by result (${heads.join(' | ')})`);
   await p.click('[data-about-gains]');
   check(/Where it comes from/.test(await p.locator('#modal .gx').innerText()), `${name}: About these gains gives provenance`);
   await p.locator('#modal .close').click();
@@ -213,7 +213,7 @@ for (const [di, name] of DEVICES.entries()) {
   const diff = await p.locator('.rc.cmp').nth(2).locator('.cmpgrid b').nth(2).innerText();
   check(cmp1 === 6 && /^−/.test(diff), `${name}: one-change comparison from the table, engine row ${diff}`);
   const heads3 = await p.locator('.rc.cmp').first().locator('.cmpgrid small').allTextContents();
-  check(heads3.join('|') === 'Status quo|With changes|Difference' && (await p.locator('.rc.cmp .rc-p').count()) === 0, `${name}: comparison columns ${heads3.join(' / ')}, no other-paces line`);
+  check(heads3.join('|') === 'Status quo|With changes|Median change' && (await p.locator('.rc.cmp .rc-p').count()) === 0, `${name}: comparison columns ${heads3.join(' / ')}, no other-paces line`);
   // Difference colors: improvement green, worse amber, no change gray.
   const cls = await p.locator('.rc.cmp .cmpgrid div:nth-child(3) b').evaluateAll(bs => bs.map(b => [b.textContent, b.className]));
   check(cls.every(([t, c]) => t === 'No change' ? c === 'same' : t.startsWith('−') ? c === 'good' : t.startsWith('+') ? c === 'worse' : true), `${name}: difference colors (${cls.map(([t, c]) => `${t}:${c}`).join(' ')})`);

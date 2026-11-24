@@ -1,4 +1,4 @@
-# Berkeley Wildfire Spread and Access Explorer
+# Berkeley Wildfire Evacuation Explorer
 
 Explore how different wildfire scenarios could affect Berkeley's neighborhoods and routes, and see which access vulnerabilities and possible mitigations recur across scenarios. Live at https://ericdf.github.io/berkeley-wildfire-evacuation-explorer/ (the repository keeps its name, `berkeley-wildfire-evacuation-explorer`).
 
@@ -9,7 +9,7 @@ holds in nearly every run, depends on fire strength, or varies from run to run) 
 Official instructions: the City's
 [Fire Weather and Evacuation page](https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation).
 
-**Why no evacuation times.** The traffic model clears roads much faster than the City's 2025 Evacuation Time Study: with the fire off, its 90%-out times run 4–39% short of the study's on 7 of 8 calibration cases, more than 10% short on 3 (R02, the 1923 repeat, weekday 39% and night 12%; R05, Fire Zones 2–3, weekday 20%), and within 10% on Panoramic Hill (SOURCE_NOTES CD1–CD19, `docs/model-fix-plan.md`). So the explorer does not headline, rank or summarize with clearance times. Where a clock still appears (the run's clock, Expert view's results and Compare) it is labeled model time, not a forecast. The comparison with the study sits in Assumptions & limits, Model performance, as a known limitation. Product brief: `docs/product-brief-spread-access.md` (Eric, 2026-11-06).
+**Why no evacuation times.** The traffic model clears roads much faster than the City's 2025 Evacuation Time Study: with the fire off, its 90%-out times run short of the study's on 22 of its 24 cases (4 regions × 6 times of day), by more than 10% on 12 (largest: R02, the 1923 repeat, weekday, 39%), and 1–2% long on Panoramic Hill at two times of day (`data/model/calibration.json`; SOURCE_NOTES CD1–CD29, `docs/model-fix-plan.md`). So the explorer does not headline, rank or summarize with clearance times. Where a clock still appears (the run's clock, Expert view's results and Compare) it is labeled model time, not a forecast. The comparison with the study sits in Assumptions & limits, Model performance, as a known limitation. Product brief: `docs/product-brief-spread-access.md` (Eric, 2026-11-06).
 
 The design brief is `specification.md`. Every insight taken from a document (the City's 2025 Evacuation Time Study, SB 99 and AB 747 reports, StoryMap and others), with page references and what we did with it, is in `SOURCE_NOTES.md`. What is still missing is listed in `DATA_INVENTORY.md`; problems found in other publishers' data, and whether they have been told, in `ISSUES.md`; where the project stands and what comes next, in `HANDOFF.md`. Design notes for work in progress are in `docs/design/`, and reports from finished analyses in `docs/`.
 
@@ -488,16 +488,21 @@ by the simulator at load time. Scenario presets, severities and time-of-day valu
 
 - Structures do not change how the fire spreads: house-to-house spread is in the fire-zone
   spread factor, which was tuned to the 1923 fire's timing. Structures lost is an assumption
-  range applied afterwards, for the fire front only. No home-hardening or vegetation settings
+  range applied afterwards, for the fire front only. Home hardening and Zone 0 lower that loss
+  share and do not change the fire; vegetation management is not modeled
   (`docs/design/structure-spread.md`).
 - Stair and path access time is an opt-in setting (`docs/walk-access.md`). Households without a
   car or a ride are not moved: pickups are not simulated, and who may need help is reported only.
 - Employees, students, visitors and I-80 and CA-24 through traffic come from the Time Study's tables,
-  but where they park is approximated by area. Signals and stop signs are not modeled one by
-  one: every junction has a typical delay and a capacity by road class. Panoramic Hill matches
-  the study's evacuation times; the 1923 and Fire Zones 2–3 regions run about 15 min fast at
-  night and 25–80 min fast on weekdays (see `SOURCE_NOTES.md`, calibration). Tuning junction
-  capacity to close that gap broke Panoramic Hill, so it is left untuned.
+  but where they park is approximated by area. Since 2026-11-12 each approach to a signal
+  passes at most lanes × 1,900 vehicles per hour × an assumed green share (SOURCE_NOTES CD21);
+  other junctions have a capacity by road class, scaled for collectors and arterials by the
+  tuned `intersections.scale` (1; lower values broke Panoramic Hill, CD5). With the fire off,
+  the 90%-out times run 4–13 min fast at night and 11–69 min fast on weekdays in the 1923,
+  Fire Zones 2–3 and north hills regions (`data/model/calibration.json`). Panoramic Hill's 90%
+  times agree with the study because departures set them there: the model's road time is 2–7
+  min against the study's 40–80 (CD1, CD19), and the weekday-minus-night check (G2, CD19)
+  fails in every region.
 - Streets outside Berkeley come from OpenStreetMap with assumed widths. The model area ends at
   the edge of the elevation grid (37.84–37.91° N, 122.33–122.21° W), about 1 km into Oakland
   and through the middle of Kensington; north Kensington (about 1,500 people) and Oakland

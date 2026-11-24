@@ -9,7 +9,7 @@
 // Figures come from data/model/mitigations.json and spread-access.json through js/guided-data.js. "Status quo" was
 // "today's plan" until 2026-11-23, and the fire pace (Slower, 1923 pace, 1991 pace: low, medium and high severity)
 // came back to Guided view then (Eric, MASTER session; SOURCE_NOTES GV21, GV22).
-import { CARDS, GROUPS, cardById, makeGuided, sortItems, costLine, streetsOf, round10, SEVS, median, NETWORK_FIRES, PACES, paceOf, DEFAULT_PACE, backupRows, blockRange, BACKUP_TOP, BACKUP_ROW_MIN } from './guided-data.js';
+import { CARDS, GROUPS, cardById, makeGuided, sortItems, costLine, costKey, streetsOf, round10, SEVS, median, NETWORK_FIRES, PACES, paceOf, DEFAULT_PACE, backupRows, blockRange, BACKUP_TOP, BACKUP_ROW_MIN } from './guided-data.js';
 import { presence, direction, assumption } from './robust.js';
 import { CELL } from './fire.js';
 import { swatch } from './map.js';
@@ -27,7 +27,10 @@ export function plainLabel(L, ctx) {
   const label = L?.label; if (!label) return null;
   if (ctx === 'networkChange') return L.dir === 'better' ? { text: 'Better in every run', cls: 'r-consistent' } : { text: 'No change in any run', cls: 'r-same' }; // the street network is the same in every run
   if (ctx === 'change') {
-    if (label === 'consistent') return { text: L.dir === 'better' ? 'Better in nearly every run' : L.dir === 'worse' ? 'Worse in nearly every run' : 'No difference in nearly every run', cls: L.dir === 'worse' ? 'r-worse' : L.dir === 'better' ? 'r-consistent' : 'r-same' };
+    // Exact counts where the label covers every run, as it does at one fire pace (5 runs; reviewer subagent, MASTER,
+    // 2026-11-23; SOURCE_NOTES GV36): "nearly every run" read as fewer than all of them.
+    const k = L.dir === 'better' ? L.better : L.dir === 'worse' ? L.worse : L.same, all = L.n && k === L.n;
+    if (label === 'consistent') return { text: L.dir === 'better' ? (all ? `Better in all ${L.n} runs` : 'Better in nearly every run') : L.dir === 'worse' ? (all ? `Worse in all ${L.n} runs` : 'Worse in nearly every run') : (all ? `No difference in any of the ${L.n} runs` : 'No difference in nearly every run'), cls: L.dir === 'worse' ? 'r-worse' : L.dir === 'better' ? 'r-consistent' : 'r-same' };
     return { text: label === 'sensitive' ? 'Depends on fire strength' : 'Varies from run to run', cls: `r-${label}` };
   }
   if (label === 'consistent') {
@@ -54,7 +57,10 @@ const MEANS = {
   mixed: 'Present in some of the 5 runs at this fire pace and not in others, or better in some and not in others: at least 1 of the 5 differs.',
   sensitive: 'It depends mainly on an uncertain assumption: the values under the two night parking rules differ by 25% or more.',
 };
-const SCOPE = { this: 'this fire', any: 'any fire' };
+// What a change's label means (Explain this on a comparison card): the same rule, worded for a change.
+const meansChange = d => d?.label !== 'consistent' ? MEANS[d?.label] || ''
+  : `${d.dir === 'better' ? 'Better' : d.dir === 'worse' ? 'Worse' : 'No different'} in ${d.n && (d.dir === 'better' ? d.better : d.dir === 'worse' ? d.worse : d.same) === d.n ? `all ${d.n}` : 'nearly all'} paired runs at this fire pace: each run with the change against the same run without it.`;
+const SCOPE = { this: 'this fire', any: 'any wildfire' }; // the earthquake closes streets at the fault, so engine reach differs there (GV36)
 // Where the modeled embers go, against the County's ember map (Eric, 2026-11-23, MASTER session; SOURCE_NOTES FV11, GV14).
 const EMBER_MAP = 'https://berkeley.maps.arcgis.com/apps/mapviewer/index.html?webmap=3c5e1686ebc543ffbdd1eb8698b51fe2';
 const EMBER_NOTE = `The modeled embers follow each fire's start, wind, slope and fuel, not Alameda County's Ember Threat Zones: on four wildfires the two barely agree (rank correlation −0.22 over 7,853 cells, medium severity, measured 2026-11-23). <a href="${EMBER_MAP}" target="_blank" rel="noopener">The County's fire pathways and ember map ↗</a>`;
@@ -125,9 +131,9 @@ export function guidedUI(ctx) {
       <p>Berkeley's first evacuation order 10 minutes after the fire starts, streets parked as they are now, and no new roads or rules. Every change is compared against it.</p>
       <h3>Where it comes from</h3>
       <p><b>The order</b> ${badge('assumption')} 10 minutes after ignition is the simulator's default decision delay; no source gives how fast Berkeley orders. Which zones are ordered or warned is each fire's scenario.</p>
-      <p><b>Parking</b> ${badge('model rule')} At night residents park on both sides of most 17–24 ft hill streets, leaving one car's width, a rule resting on one night's count of 11 blocks (2026-11-05). Which blocks are parked is drawn for each run.</p>
+      <p><b>Parking</b> ${badge('assumption')} At night residents park on both sides of most 17–24 ft hill streets, leaving one car's width, a rule resting on one night's count of 11 blocks (2026-11-05). Which blocks are parked is drawn for each run.</p>
       <p><b>Streets</b> ${badge('derived')} County and OpenStreetMap streets as mapped, with no new roads, widenings, contraflow or police at signals.</p>
-      <p>Every run is a fall night.</p></div>`, 'gx');
+      <p>Every run has fall-night households and traffic. The earthquake fire keeps its spring-afternoon wind (the USGS HayWired scenario) and the west-wind fire its afternoon onshore wind; Expert view runs each at its own time of day.</p></div>`, 'gx');
   }
   const sqBtn = (t = 'Status quo') => `<button class="linkish sq-x" data-sq>${t} ⓘ</button>`;
 
@@ -314,7 +320,8 @@ export function guidedUI(ctx) {
     // Street classes: a line in the class's color and pattern, as drawn on the map (js/map.js swatch; SOURCE_NOTES GV31).
     const sl = (mode, c, t) => `<div>${swatch(mode, c)}${t}</div>`;
     const fireKey = '<div><span class="dot" style="background:#ff7a00"></span>Fire front (last 15 min)</div><div><span class="dot" style="background:#5a1e19"></span>Burned</div><div><span class="dot" style="background:#ffb020;opacity:.6"></span>Embers</div>';
-    if (!done()) return fireKey + sw('#7f1d1d', 'Cars backed up (over the last few minutes)');
+    // Blue with a white edge, so it shows over burned ground and to color-blind readers (GV37); the rule: js/queue-display.js.
+    if (!done()) return fireKey + sw('#1d4ed8', 'Cars backed up: 3 or more cars waiting longer than the street\'s free-flow time, averaged over about 7 model minutes');
     const runs = runsN();
     // Plain words for the robustness classes (GV12); the precise rule is in the street card and Explain this pop-ups.
     // One pace's 5 runs (GV21): reached in all 5, in some, or in none.
@@ -425,7 +432,7 @@ export function guidedUI(ctx) {
       <h3>Which streets</h3><p>Streets in Berkeley's Fire Zones 2–3 in zones ordered or warned during the run. Streets in the flats and the I-80 approaches are left out: there the model's queues form at different junctions from those the City's 2025 Evacuation Time Study found (Assumptions &amp; limits, Model performance).</p>
       <h3>In nearly every run, or varies</h3><p>"In nearly every run": the street is among that run's ${BACKUP_TOP} largest backups, with at least one person-hour, in all ${runsN()} runs. "Varies from run to run": in fewer. When most of the top 5 vary, the list is not shown.${R.length ? ` Here ${R.slice(0, 5).filter(r => r.label === 'consistent').length} of the top ${Math.min(5, R.length)} are in nearly every run.` : ''}</p>
       <h3>Where it comes from</h3><p>${badge('synthetic')} Synthetic households and their cars, placed from zone population counts and driven by the traffic model; ${badge('model rule')} the waiting rule and the sampling; ${badge('assumption')} one person in each car from outside the area. Stored table: data/model/spread-access.json backups (tools/spread-access.mjs), built ${esc(spread()?.meta?.built || '')}.</p>
-      <h3>Limits</h3><p>The traffic model clears roads faster than the 2025 Evacuation Time Study, so these backups are likely shorter than the study's. A person-hour of waiting is time spent in a slow or stopped car, not harm. Where the fire closes a street, cars on it stop counting once they reroute or the run ends.</p></div>`, 'gx');
+      <h3>Limits</h3><p>The model's road delays are about a tenth of the 2025 Evacuation Time Study's (median road time 2–7 min against the study's 40–80 min on a 1923 weekday; SOURCE_NOTES CD1, CD19), and its queues form at different junctions from the study's (CD25), so the ranking of hill streets may move where the junctions downstream differ. A person-hour of waiting is time spent in a slow or stopped car, not harm. Where the fire closes a street, cars on it stop counting once they reroute or the run ends.</p></div>`, 'gx');
   }
   // The other paces' medians under a result (GV21); one way out is the street network, the same in every run.
   function paceLine(c, f) {
@@ -453,6 +460,7 @@ export function guidedUI(ctx) {
   function provenance(c) {
     return c.id === 'oneWay' ? `${badge('derived')} Network analysis of County and OpenStreetMap streets (tools/access-constraints.mjs); residents ${badge('synthetic')}, placed from zone population counts.`
       : c.id === 'homes' ? `${badge('sourced')} City building footprints in Fire Zones 2–3, by their measured gap to the nearest one (data/model/structures.json); reached by the illustrative ${badge('model rule')} fire; loss probabilities and the effects of hardening and Zone 0 ${badge('assumption')} (data/assumptions.json structures; SOURCE_NOTES PH23, PH32).`
+      : c.id === 'engine' ? `${badge('synthetic')} Residents placed from zone population counts; ${badge('derived')} engine routes from Berkeley's 7 fire stations over County and OpenStreetMap streets; ${badge('assumption')} the night's parked cars, from the night parking rule (one night's count of 11 blocks, 2026-11-05). Measured at ignition, so the fire does not enter it.`
       : c.id === 'cutOff' ? `${badge('synthetic')} Cars of synthetic households, placed from zone population counts and driven by the traffic model; the fire is an illustrative ${badge('model rule')} run on the scenario's ignition and wind.`
       : `${badge('synthetic')} Synthetic households placed from zone population counts; the fire is an illustrative ${badge('model rule')} run on the scenario's ignition and wind.`;
   }
@@ -486,7 +494,23 @@ export function guidedUI(ctx) {
   // ---------- changes ----------
   // A shorter name in the Changes rows where the table's title runs to three lines on a phone (Eric, 2026-11-23); the
   // full title stays in the cost pop-up, the comparison and the map tag.
-  const SHORT = { leaveEarlyEFW: 'Leave on Extreme Fire Weather (10 zones)' };
+  const SHORT = { leaveEarlyEFW: 'Leave on Extreme Fire Weather (10 zones)',
+  };
+  // A line on the row itself for changes whose gain is easy to misread (GV36).
+  // The Red Flag change is this project's hypothetical; the City's policy is the Extreme Fire Weather change, listed
+  // before it (reviewer subagent, MASTER, 2026-11-23; SOURCE_NOTES GV36).
+  const BUYOUT = 'Not a proposal; gains partly because bought-out households are no longer counted.';
+  const NOTES = { 'retreat-footBlock': BUYOUT, 'retreat-top100': BUYOUT, 'retreat-panoramicUpper': BUYOUT,
+    leaveEarly: 'Hypothetical: half of hill households leave.',
+    parkingOneSide: 'Engine access only, not who gets out. From one night\'s count of 11 blocks.' };
+  // The City's policy before the hypothetical Red Flag change when both are listed.
+  const policyFirst = items => {
+    const i = items.findIndex(it => it.lever.id === 'leaveEarly'), j = items.findIndex(it => it.lever.id === 'leaveEarlyEFW');
+    if (i < 0 || j < i) return items;
+    const out = [...items]; const [efw] = out.splice(j, 1); out.splice(i, 0, efw); return out;
+  };
+  // Sorted by cost, changes with no cost estimate form their own band at the end of a list, under a label (GV36).
+  const banded = (items, render) => items.map((it, i) => (g.sort === 'cost' && costKey(it.lever.cost) === Infinity && (i === 0 || costKey(items[i - 1].lever.cost) !== Infinity) ? '<div class="cr-band">No cost estimate</div>' : '') + render(it)).join('');
   const narrowView = () => typeof matchMedia === 'function' && matchMedia('(max-width: 430px)').matches;
   const shortTitle = l => SHORT[l.id] || l.title;
   const GAIN = { ember: 'fewer when embers arrived', frontPeople: 'fewer when the front arrived', engine: 'more within reach', cutOff: 'fewer cars', homes: 'fewer buildings lost' };
@@ -513,6 +537,7 @@ export function guidedUI(ctx) {
         <span class="cr-t"><b>${esc(shortTitle(l))}</b></span>
         <span class="cr-s">${gain}</span>
         ${fr && gid === 'engine' ? `<span class="cr-s muted">Also a second way out for about ${fmt(round10(fr.value))} hill residents</span>` : ''}
+        ${NOTES[l.id] ? `<span class="cr-s muted">${esc(NOTES[l.id])}</span>` : ''}
         ${clash ? `<span class="cr-w">Changes the same block as “${esc(clash.p.title)}”: pick one.</span>` : ''}</button>
         <button class="cr-c linkish" data-cost="${esc(l.id)}" aria-label="Cost of ${esc(l.title)}: ${esc(costLine(l.cost))}. Where it comes from">${esc(costLine(l.cost))} ⓘ</button></div>`;
     };
@@ -525,16 +550,21 @@ export function guidedUI(ctx) {
     const narrow = narrowView();
     const shortList = gr => {
       const TOP = TOPS[gr.id] ?? (narrow ? 2 : 3);
-      const all = sortItems(gr.items, g.sort), open = g.more[gr.id];
+      const all = policyFirst(sortItems(gr.items, g.sort)), open = g.more[gr.id];
       const shown = open ? all : all.filter((it, i) => i < TOP || g.picked.includes(it.lever.id));
       const rest = all.length - shown.length;
       const ctl = all.length > TOP && (rest > 0 || open) ? `<button class="linkish cg-more" data-more="${gr.id}" aria-expanded="${!!open}">${open ? 'Show fewer' : `Show ${rest} more`}</button>` : '';
-      return shown.map(it => row(it, gr.id)).join('') + ctl;
+      return banded(shown, it => row(it, gr.id)) + ctl;
     };
-    // "No consistent benefit" comes last and folded, unless one of its changes is picked.
-    const body = groups.map(gr => gr.id === 'none'
-      ? `<details class="cg-none"${gr.items.some(it => g.picked.includes(it.lever.id)) || g.noneOpen ? ' open' : ''}><summary><h3 class="cg">${esc(gr.title)}</h3><span>${gr.items.length} changes</span></summary>${sortItems(gr.items, g.sort).map(it => row(it, gr.id)).join('')}</details>`
-      : `<h3 class="cg">${esc(gr.title)}</h3>${shortList(gr)}`).join('');
+    // Zone 0 ranks above hardening because the model leaves out embers igniting the first house (GV36).
+    const GROUP_NOTE = { homes: 'The order is not a ranking of effectiveness (About these gains).' };
+    // The changes that help no result (worse in every run, no consistent change, not offered here) come last, in one
+    // fold, unless one of them is picked.
+    // A change designed but not simulated (docs/design/assisted-evacuation.md, option B; GV38).
+    const UNTESTED = '<h4 class="cg-sub">Not yet tested</h4><p class="cg-note">Pickups for people who cannot leave on their own: in the simulator nobody needs help to leave, so no change yet tests pickups, paratransit or care-facility evacuation.</p>';
+    const restGroups = groups.filter(gr => gr.rest), restN = restGroups.reduce((s, gr) => s + gr.items.length, 0);
+    const body = groups.filter(gr => !gr.rest).map(gr => `<h3 class="cg">${esc(gr.title)}</h3>${GROUP_NOTE[gr.id] ? `<p class="cg-note">${GROUP_NOTE[gr.id]}</p>` : ''}${shortList(gr)}`).join('')
+      + (restN ? `<details class="cg-none"${restGroups.some(gr => gr.items.some(it => g.picked.includes(it.lever.id))) || g.noneOpen ? ' open' : ''}><summary><h3 class="cg">Other changes</h3><span>${restN} tested, 1 not yet</span></summary>${restGroups.map(gr => `<h4 class="cg-sub">${esc(gr.title)}</h4>${banded(policyFirst(sortItems(gr.items, g.sort)), it => row(it, gr.id))}`).join('')}${UNTESTED}</details>` : '');
     // Picks that act on the same street: their gains can overlap, so the combined gain may be less than the sum.
     const warn = [];
     for (let i = 0; i < picked.length; i++) for (let j = i + 1; j < picked.length; j++) {
@@ -555,9 +585,10 @@ export function guidedUI(ctx) {
     ctx.modal(`<div class="gx"><h2>About these gains</h2>
       <h3>What a gain is</h3><p>Each change was run against the status quo on ${runs} paired runs of ${esc(fireTitle())} at ${paceName()} (random seeds ${M.meta.seeds[0]}–${M.meta.seeds.at(-1)}, a fall night): the same fire, households and parked cars with and without the change. The gain is the median of the ${runs} differences. Changing the fire pace changes the gains and can move a change between groups.</p>
       <h3>Where it comes from</h3><p>${badge('synthetic')} Synthetic households placed from zone population counts, on an illustrative ${badge('model rule')} fire. Stored table: data/model/mitigations.json, built ${esc(M.meta.built)}.</p>
-      <h3>Groups</h3><p>${badge('model rule')} A change joins a group when it does better on that result in all 5 runs at this pace, or in 4 with the fifth exactly the same, and is worse in no run on any of the group's results. A change can sit in more than one group. A change whose ready-made question is withheld on this fire is listed under "No consistent benefit" and cannot be picked here.</p>
-      <h3>This fire or any fire</h3><p>Engine reach is measured at ignition, so its gain is the same on every fire except the earthquake, which closes streets at the fault. People and cars depend on the fire.</p>
-      <h3>Labels</h3><p><b>Better in nearly every run</b>: better in all 5 runs at this pace (the rule is at least 90% of the runs). <b>Varies from run to run</b>: ${MEANS.mixed} Any difference counts, as in the stored table.</p>
+      <h3>Groups</h3><p>${badge('model rule')} A change joins a group when it does better on that result in all 5 runs at this pace, or in 4 with the fifth exactly the same, and is worse in no run on any of the group's results. A change can sit in more than one group. The rest are folded under "Other changes tested": worse on some result in every run ("Worse in every run"), withheld on this fire ("Not offered on this fire"; these cannot be picked here), or neither ("No consistent change").</p>
+      <h3>Fewer buildings lost: the order</h3><p>Zone 0 ranks above home hardening here because the model leaves out embers lighting the first house, which hardening is meant to prevent; it counts only losses where the fire front reaches a building. The order is not a ranking of effectiveness.</p>
+      <h3>This fire or any wildfire</h3><p>Engine reach is measured at ignition, so its gain is the same on every fire except the earthquake, which closes streets at the fault. People and cars depend on the fire.</p>
+      <h3>Labels</h3><p><b>Better in all 5 runs</b>: better in each of the 5 paired runs at this pace (the rule is at least 90% of the runs, which of 5 is all 5). <b>Varies from run to run</b>: ${MEANS.mixed} Any difference counts, as in the stored table.</p>
       <h3>Costs</h3><p>Tap a cost for its source and category.</p></div>`, 'gx');
   }
 
@@ -597,11 +628,11 @@ export function guidedUI(ctx) {
       const diff = !r ? '…' : same ? 'No change' : `${r.gain > 0 ? '−' : '+'}${fmt(round10(Math.abs(r.gain)))}${r.atLeast ? ' or more' : ''}`;
       const cls = !r ? '' : same ? 'same' : r.gain > 0 ? 'good' : 'worse';
       return `<section class="rc cmp" aria-labelledby="rc-h-${c.id}"><div class="rc-l" role="heading" aria-level="3" id="rc-h-${c.id}">${cap(c.line)}</div>
-        <div class="cmpgrid"><div><small>Status quo</small><b>${v(r?.a)}</b></div><div><small>With changes</small><b>${v(r?.b)}</b></div><div><small>Difference</small><b class="${cls}">${diff}</b></div></div>
+        <div class="cmpgrid"><div><small>Status quo</small><b>${v(r?.a)}</b></div><div><small>With changes</small><b>${v(r?.b)}</b></div><div><small>Median change</small><b class="${cls}">${diff}</b></div></div>
         <div class="rc-f">${r ? chipHTML(r.d, r.network ? 'networkChange' : 'change') : ''}<button class="linkish" data-explain-cmp="${c.id}"${r ? '' : ' disabled'} aria-label="Explain this: ${esc(stripTags(c.line))}">Explain this</button></div></section>`;
     }).join('');
     const title = ls.length === 1 ? `With ${esc(ls[0].title.charAt(0).toLowerCase() + ls[0].title.slice(1))}` : `With ${ls.length} changes`;
-    const sub = `${ls.length > 1 ? `${ls.map(l => esc(l.title)).join('; ')}. ` : ''}${esc(fireTitle())} · ${runs} paired runs at ${paceName()}: same fire, households and parked cars with and without. Against the ${sqBtn('status quo')}`;
+    const sub = `${ls.length > 1 ? `${ls.map(l => esc(l.title)).join('; ')}. ` : ''}${esc(fireTitle())} · ${runs} paired runs at ${paceName()}: same fire, households and parked cars with and without. Against the ${sqBtn('status quo')}. Median change: the median of the ${runs} paired differences`;
     return `${head(title, sub)}${prog}${cards}${footHTML('compare')}`;
   }
   function explainCompare(id) {
@@ -614,7 +645,7 @@ export function guidedUI(ctx) {
       <h3>The runs behind it</h3><p>${passes}</p>
       ${splitExplain(c, 'Who they are, status quo')}
       <h3>Where it comes from</h3><p>${provenance(c)}${r.network && r.gain ? ` Second ways out from new roads ${badge('derived')}: data/model/egress-candidates.json.` : ''}</p>
-      <h3>${chipHTML(r.d, r.network ? 'networkChange' : 'change')}</h3><p>${MEANS[r.d.label] || ''} ${r.network ? '' : 'Any difference counts as better or worse; the label says whether it holds across the runs.'}</p>
+      <h3>${chipHTML(r.d, r.network ? 'networkChange' : 'change')}</h3><p>${r.network ? '' : `${meansChange(r.d)} Any difference counts as better or worse; the label says whether it holds across the runs. The median change (${r.gain > 0 ? '−' : '+'}${n(Math.abs(r.gain))}) is the median of the paired differences, not the difference of the two medians.`}</p>
       <h3>Limits</h3><p>${c.limits}</p>
       ${w != null ? `<h3>The run you watched</h3><p>${n(w)} with your changes (${paceName()}, seed 1).</p>` : ''}</div>`, 'gx');
   }

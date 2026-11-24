@@ -25,11 +25,11 @@ export const CARDS = [
   { id: 'ember', key: 'ember', split: 'ember', live: 'ember', unit: 'people', group: 'people', cat: 'synthetic',
     line: 'people not yet out when embers reached their street',
     counts: 'Synthetic residents still at home when modeled embers first reached their street, or on the road in a car on a street under embers after leaving. Each person is counted once.',
-    limits: 'It counts people at that moment, not injuries or deaths: many would shelter or come through unharmed. Departure times come from the 2025 Evacuation Time Study survey; the traffic model clears roads faster than that study, so this count is likely low.' },
+    limits: 'It counts people at that moment, not injuries or deaths: many would shelter or come through unharmed. Departure times come from the 2025 Evacuation Time Study survey; the traffic model clears roads faster than that study, so this count is likely low. Riders leave the moment the neighbor they ride with leaves, and nobody in the simulator needs help to leave: there are no pickups, paratransit or care-facility evacuations.' },
   { id: 'front', key: 'frontPeople', split: 'front', live: 'front', unit: 'people', group: 'people', cat: 'synthetic',
     line: 'people not yet out when the fire front reached their street',
     counts: 'Synthetic residents still at home when the modeled fire front itself reached their street, or on the road in a car on a burning street. Each person is counted once.',
-    limits: 'A harsher test than embers; still a count of people at that moment, not injuries or deaths. The traffic model clears roads faster than the 2025 Evacuation Time Study, so this count is likely low.' },
+    limits: 'A harsher test than embers; still a count of people at that moment, not injuries or deaths. The traffic model clears roads faster than the 2025 Evacuation Time Study, so this count is likely low. Riders leave the moment the neighbor they ride with leaves, and nobody in the simulator needs help to leave: there are no pickups, paratransit or care-facility evacuations.' },
   { id: 'engine', key: 'engine', live: 'engine', unit: 'people', group: 'engine', cat: 'synthetic',
     line: 'hill residents with no engine route within 5 minutes',
     counts: 'Synthetic residents of Berkeley\'s Fire Zones 2–3 whose street the modeled road network gives no route from one of Berkeley\'s 7 fire stations within the City\'s 5-minute standard, at ignition, past the night\'s parked cars. A home counts at the nearer end of its street segment.',
@@ -45,7 +45,7 @@ export const CARDS = [
   // Added 2026-11-13 with home hardening and Zone 0 (SOURCE_NOTES PH32, PH33).
   { id: 'homes', key: 'homes', live: 'homes', unit: 'buildings', group: 'homes', cat: 'assumption',
     line: 'buildings lost in the hill fire zones',
-    counts: 'Buildings in Berkeley\'s Fire Zones 2–3 (City footprints, some of them garages) that the modeled fire front reached, each counted as lost with a probability set by how close it stands to its nearest neighbor: 85–94% under 50 ft, 27–65% farther apart (homes in the 2018 Camp Fire, Knapp et al. 2021); the figure uses the middle of each range. Home hardening and Zone 0 lower those probabilities, most where whole blocks take part.',
+    counts: 'Buildings in Berkeley\'s Fire Zones 2–3 (City footprints, some of them garages) that the modeled fire front reached, each counted as lost with a probability set by how close it stands to its nearest neighbor: 85–94% under 50 ft, 27–65% farther apart; the figure uses the middle of each range. In the 2018 Camp Fire 94% of homes within 18 m (59 ft) of a destroyed building were lost, and 27–65% of those farther away (Knapp et al. 2021); the model applies the near band under 50 ft, so buildings 50–59 ft apart take the farther range, and the 85% lower end is this project\'s allowance for differences between Paradise and Berkeley. Home hardening and Zone 0 lower those probabilities, most where whole blocks take part.',
     limits: 'The modeled fire does not spread from building to building and does not respond to hardening or Zone 0, so they change only this count, not the fire, the orders or the traffic. Buildings reached only by embers get no loss figure, though embers start many house fires. Not computed outside Fire Zones 2–3. The loss probabilities and what hardening and Zone 0 do are assumption ranges.' },
 ];
 export const cardById = id => CARDS.find(c => c.id === id);
@@ -61,18 +61,22 @@ export const NETWORK_FIRES = { quake: 'The earthquake closes 69 street segments 
 // run's total in mitigations.json (tests/guided.mjs).
 export const SPLIT_PARTS = [
   { id: 'car', short: 'home, car or ride', label: 'At home, with a car or a ride', def: 'At home in a zone ordered to leave (or, before any order, warned, in a household leaving on the warning), with a car or a ride with a neighbor, not yet left.' },
-  { id: 'noCar', short: 'home, no car or ride', label: 'At home, no car and no ride', def: 'At home in a zone ordered to leave (or warned, in a household leaving on the warning), in a household with no car that found no neighbor to ride with (the 2025 Evacuation Time Study: 86.9% of carless households find a ride).' },
+  { id: 'noCar', short: 'home, no car or ride', label: 'At home, no car and no ride', def: 'At home in a zone ordered to leave (or warned, in a household leaving on the warning), in a household with no car that found no neighbor to ride with (the 2025 Evacuation Time Study: 86.9% of people in households without a car ride with someone else).' },
   { id: 'notOrdered', short: 'home, no order', label: 'At home, in zones never ordered to leave', def: 'At home in a zone the scenario never ordered to leave during the run: zones under no order or warning, and zones under a warning only, where the households that did not leave on the warning stay home.' },
   { id: 'road', short: 'on the road', label: 'On the road', def: 'In a car on a street when embers (or the front) reached it, after leaving home; includes people riding with a neighbor and the modeled commuters, visitors and other non-residents.' },
 ];
 
 // Change groups, in the order of the result cards they improve (Eric, 2026-11-10).
 export const GROUPS = [
-  { id: 'people', title: 'Fewer people not yet out when the fire arrives', cards: ['ember', 'front'] },
+  { id: 'people', title: 'Fewer people not yet out when embers or the fire front arrive', cards: ['ember', 'front'] },
   { id: 'engine', title: 'Engines reach more hill residents within 5 minutes', cards: ['engine'] },
   { id: 'cars', title: 'Fewer cars with no open route out', cards: ['cutOff'] },
   { id: 'homes', title: 'Fewer buildings lost', cards: ['homes'] },
-  { id: 'none', title: 'No consistent benefit in our tests', cards: [] },
+  // The rest, in three groups (reviewer subagent, MASTER, 2026-11-23; SOURCE_NOTES GV36): worse on some result in every
+  // run at this pace; no consistent change; and withheld on this fire under P19 (js/presets.js off, LEVER_OFF).
+  { id: 'worse', title: 'Worse in every run', cards: [], rest: true },
+  { id: 'none', title: 'No consistent change', cards: [], rest: true },
+  { id: 'off', title: 'Not offered on this fire', cards: [], rest: true },
 ];
 
 export const median = xs => {
@@ -181,9 +185,10 @@ export function makeGuided(M, SA, presets = [], leverOff = {}) {
   const withheld = (fire, id) => presets.find(p => p.id === id)?.off?.[fire] || leverOff[id]?.[fire] || null;
 
   // The changes view: each change in every group whose card measures it improves on this fire (at the fire pace sev,
-  // or over all 15 runs); the rest, and changes withheld on this fire, under "No consistent benefit".
+  // or over all 15 runs). The rest: "Worse in every run" when some result is worse in every run, "Not offered on this
+  // fire" when withheld here, and "No consistent change" otherwise.
   function groups(fire, sev) {
-    const out = GROUPS.map(g => ({ ...g, items: [] })), none = out.find(g => g.id === 'none');
+    const out = GROUPS.map(g => ({ ...g, items: [] })), none = out.find(g => g.id === 'none'), worseG = out.find(g => g.id === 'worse'), offG = out.find(g => g.id === 'off');
     for (const l of levers) {
       const s = summary(fire, l.id); if (!s) continue;
       const m = key => verdict(fire, l.id, key, sev);
@@ -200,8 +205,8 @@ export function makeGuided(M, SA, presets = [], leverOff = {}) {
         placed = true;
       }
       if (!placed) {
-        const worse = CARDS.filter(c => c.key && harmsAt(m(c.key))).map(c => ({ card: c, worse: m(c.key).worse, n: m(c.key).n }));
-        none.items.push({ lever: l, card: null, gain: null, withheld: why, worse });
+        const worse = why ? [] : CARDS.filter(c => c.key && harmsAt(m(c.key))).map(c => ({ card: c, worse: m(c.key).worse, n: m(c.key).n }));
+        (why ? offG : worse.some(w => w.worse === w.n) ? worseG : none).items.push({ lever: l, card: null, gain: null, withheld: why, worse });
       }
     }
     return out;
