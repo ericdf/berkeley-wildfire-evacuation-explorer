@@ -59,6 +59,12 @@ async function setup() {
   return { data, grid, scen, runFire, cellOf, SEVERITY, TIME_OF_DAY, Evacuation, DEFAULT_PLAN, mit, waiting };
 }
 
+// The people results at another ember threshold: the same fire, plan and seed, with emberShare set (FW20).
+const EMBER_BAND = [0.1, 0.5];
+function altShare(E, j, share) {
+  const sc = E.scen[j.fire], fire = E.runFire(E.grid, sc, { ...E.SEVERITY[j.sev], emberShare: share }, j.seed);
+  return new E.Evacuation(E.data, E.grid, fire, sc, j.sev, { ...E.DEFAULT_PLAN }, j.seed, E.TIME_OF_DAY[TOD], WORLD).runToEnd();
+}
 // Persons per household of household h in this run.
 const persons = (sim, h) => sim.hhPersons ? sim.hhPersons[h] : sim.data.A.demand.personsPerHousehold;
 
@@ -125,6 +131,7 @@ function runOne(E, j) {
     levers[l.id] = { f: at(fire.arrival) <= end ? 1 : 0, m: at(fire.ember) <= end ? 1 : 0 };
   }
   let emberRes = 0, frontRes = 0; for (let e = 0; e < nE; e++) { if (ember[e]) emberRes += pe[e]; if (front[e]) frontRes += pe[e]; }
+  let structCity = 0; for (const list of [data.structures?.structures || [], data.structures?.structuresOther || []]) for (const [c, k] of list) if (grid.inCity[c] && fire.arrival[c] <= sc.durationMin) structCity += k;
   const flat = e => /^BER/.test(data.net.edges[e].evacZone || '') && !(data.net.edges[e].fireZone >= 2);
   let flatsE = 0, flatsF = 0; for (let e = 0; e < nE; e++) if (flat(e)) { if (ember[e]) flatsE += pe[e]; if (front[e]) flatsF += pe[e]; }
   const run = { fire: j.fire, sev: j.sev, seed: j.seed, emberResidents: Math.round(emberRes), frontResidents: Math.round(frontRes),
@@ -148,7 +155,13 @@ function runOne(E, j) {
     flatsReached: { ember: Math.round(flatsE), front: Math.round(flatsF) },
     // People who may need a wheelchair van or ambulance on streets embers reached within 180 min of their zone's order or
     // warning (js/sim.js needsHelp; SOURCE_NOTES NH1–NH6, FL6): [middle, low end, high end].
-    needsHelp: (o => o ? [o.value, ...o.range] : null)(S.needsHelp?.groups?.specialized?.transitDependent) };
+    needsHelp: (o => o ? [o.value, ...o.range] : null)(S.needsHelp?.groups?.specialized?.transitDependent),
+    // Structures inside Berkeley the fire front reached within the run (City footprints in Fire Zones 2–3, OpenStreetMap
+    // outlines elsewhere, data/model/structures.json; the measure of tools/fire-wind-fit.mjs quake, WC8, FW15, FW19).
+    structuresCity: Math.round(structCity),
+    // The people results with the ember threshold (js/fire.js EMBER_SHARE, 0.25, an assumption; FW11) at the ends of
+    // the band EMBER_BAND: [embers, fire front] per share, each from its own run (embers also steer routing; FW20).
+    emberBand: Object.fromEntries(EMBER_BAND.map(share => { const S2 = altShare(E, j, share); return [share, [S2.exposedHome + S2.exposedRoad + S2.exposedNoVehicle + S2.notOrderedExposed, S2.fireFrontHome + S2.fireFrontRoad].map(x => Math.round(x * 10) / 10)]; })) };
   return { j, run, backup, ember: Buffer.from(ember).toString('base64'), front: Buffer.from(front).toString('base64'), pe: Array.from(pe, x => Math.round(x * 100) / 100), areas, levers };
 }
 

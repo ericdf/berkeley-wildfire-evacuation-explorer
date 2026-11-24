@@ -27,7 +27,7 @@ export const CELL = 30;
 // (SOURCE_NOTES FV17) and the proxy fuel follows the 2025 fire zones (FV18). 2026-11-24: the head rate and the
 // ember reach rise with wind speed, high severity never spreads slower than medium, spot fires land mostly near
 // and ember exposure is weighted by distance (SOURCE_NOTES FW1–FW12).
-export const FIRE_MODEL = '2026-11-24';
+export const FIRE_MODEL = '2026-11-24b';
 export const LB_MAX = 3.5;
 
 // Proxy spread factors by area (model rule; see assumptions panel). The zones are the 2025 Fire Code's
@@ -158,10 +158,10 @@ export function windSegments(sc, sev) {
   return list.map((w, k) => {
     if (k && w.fromMin <= list[k - 1].fromMin) throw new Error('windSchedule must be sorted by fromMin');
     const windTo = ((w.windFrom + 180) % 360) * Math.PI / 180; // compass bearing the wind blows toward
-    const wind = w.windMph * sev.windFactor, LB = lengthToBreadth(wind);
-    // head: the head rate's wind factor against the reference wind at the same severity (headWind); reach: ember reach (emberReach)
-    const head = headWind(wind) / headWind(WIND_REF_MPH * sev.windFactor), reach = emberReach(sev, w.windMph);
-    const headU = headWindUrban(wind) / headWindUrban(WIND_REF_MPH * sev.windFactor);
+    const wind = w.windMph, LB = lengthToBreadth(wind); // the scenario's wind at every severity (FW16)
+    // head: the head rate's wind factor against the reference wind (headWind); reach: ember reach (emberReach)
+    const head = headWind(wind) / headWind(WIND_REF_MPH), reach = emberReach(sev, w.windMph);
+    const headU = headWindUrban(wind) / headWindUrban(WIND_REF_MPH);
     // unit downwind vector (x east, y north)
     return { from: w.fromMin, windFrom: w.windFrom, windMph: w.windMph, windTo, dwx: Math.sin(windTo), dwy: Math.cos(windTo), wind, LB, ecc: Math.sqrt(1 - 1 / (LB * LB)), head, headU, reach };
   });
@@ -280,7 +280,11 @@ export function emberExposure(grid, arrival, segs, stop, share = EMBER_SHARE) {
       const w = 1 - d / S.reach; full += w;
       steps.push([Math.round((-S.dwx * d + S.dwy * lat * d) / CELL), Math.round((-S.dwy * d - S.dwx * lat * d) / CELL), w]);
     }
-    const need = share * full - 1e-9; // the tolerance keeps a split into equal wind segments, which sums ties in another order, from flipping a cell at the threshold
+    // A tie counts as reaching the threshold, deliberately (FW18): a reach whose every sample is a burning cell of the
+    // flats sums exactly URBAN_EMBER × full, which equals the threshold at EMBER_SHARE = URBAN_EMBER = 0.25, so the flats
+    // alone expose a cell only once their whole upwind reach is burning. The relative tolerance keeps that tie, and a split
+    // into equal wind segments (which sums in another order), from flipping on floating-point rounding.
+    const need = share * full * (1 - 1e-9);
     for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) {
       const i = r * W + c;
       if (elev[i] < 0.5) continue;
