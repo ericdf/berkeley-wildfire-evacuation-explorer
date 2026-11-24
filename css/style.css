@@ -281,6 +281,10 @@ body.simple #mapwrap { position: absolute; inset: 0; height: auto; min-height: 0
 #g-pace .seg button[aria-pressed="true"] { background: #4b3a2a; color: #fff; border-color: #4b3a2a; }
 #g-pace .g-pace-x { font-size: 17px; padding: 0 4px; text-decoration: none; }
 .rc-p { font-size: 13px; color: var(--muted); margin: -4px 0 6px; }
+/* Lines under a result (SOURCE_NOTES FL1–FL3, FL6) and the west-wind and What-you-can-do notes (FL5, FL7). */
+.rc-x { font-size: 12.5px; line-height: 1.3; margin: 1px 0 3px; }
+.gv-note { font-size: 13.5px; line-height: 1.4; margin: 6px 0 10px; }
+.g-menu-do { margin: 6px 0 0; }
 .sq-x { font-size: inherit; padding: 0; }
 @media (max-width: 360px) { #g-pace { gap: 4px; } #g-pace .seg button { padding: 4px 6px; } #g-pace .g-pace-x { padding: 0 2px; } }
 body.simple #clockbar { top: 8px; left: 8px; }
@@ -450,6 +454,7 @@ header :focus-visible { outline-color: #fbbf24; box-shadow: none; }
 
 /* Find my street, landmark labels, the first-screen line, the street card's place and Explain this leads
    (reviewer round via MASTER, 2026-11-23; SOURCE_NOTES GV41). */
+#g-flats { flex: 0 0 auto; margin: 0; padding: 0 12px 4px; background: var(--panel); font-size: 12.5px; line-height: 1.3; color: #4b3a2a; }
 #g-what { flex: 0 0 auto; margin: 0; padding: 6px 12px 0; background: var(--panel); font-size: 14px; line-height: 1.35; color: #4b3a2a; }
 #g-find-btn { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%; padding: 0; font-size: 22px; line-height: 1; background: #fff; color: #2b2118; border: 1px solid #d6cfc4; font-weight: 700; }
 #g-find { position: absolute; top: 8px; left: 8px; right: 8px; z-index: 7; display: flex; flex-wrap: wrap; gap: 6px; }
@@ -477,7 +482,7 @@ body.simple #g-sheet { font-size: var(--gfs-read); }
 body.simple #g-sheet b { font-size: calc(var(--gfs-read) + 1px); }
 body.simple #g-sheet .g-src p, body.simple #g-sheet .g-src b { font-size: calc(var(--gfs-read) - 2px); }
 /* The first-screen line shows on the map screen only, so Results and Changes keep their height. */
-body.simple:not([data-gscreen="map"]) #g-what { display: none; }
+body.simple:not([data-gscreen="map"]) #g-what, body.simple:not([data-gscreen="map"]) #g-flats { display: none; }
 
 /* Map view findings with Explain this (GV42); the fire-station symbol in the key; chips framed so an unselected one
    stands out on light terrain. */

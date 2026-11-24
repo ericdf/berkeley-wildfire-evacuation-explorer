@@ -125,6 +125,8 @@ function runOne(E, j) {
     levers[l.id] = { f: at(fire.arrival) <= end ? 1 : 0, m: at(fire.ember) <= end ? 1 : 0 };
   }
   let emberRes = 0, frontRes = 0; for (let e = 0; e < nE; e++) { if (ember[e]) emberRes += pe[e]; if (front[e]) frontRes += pe[e]; }
+  const flat = e => /^BER/.test(data.net.edges[e].evacZone || '') && !(data.net.edges[e].fireZone >= 2);
+  let flatsE = 0, flatsF = 0; for (let e = 0; e < nE; e++) if (flat(e)) { if (ember[e]) flatsE += pe[e]; if (front[e]) flatsF += pe[e]; }
   const run = { fire: j.fire, sev: j.sev, seed: j.seed, emberResidents: Math.round(emberRes), frontResidents: Math.round(frontRes),
     cutOff: S.vehiclesNoRoute, engineBeyond5: Math.round(S.engineReachBeyond5People), engineNoRoute: Math.round(S.engineReachUnreachablePeople),
     engineHill: Math.round(S.engineReachHillPeople), engineLiveMeanShare: S.engineReach5ShareLiveMean == null ? null : Math.round(S.engineReach5ShareLiveMean * 1000) / 1000,
@@ -136,7 +138,17 @@ function runOne(E, j) {
       front: [S.fireFrontHome - S.fireFrontNoVehicle - S.fireFrontNotOrdered, S.fireFrontNoVehicle, S.fireFrontNotOrdered, S.fireFrontRoad],
     }).map(([k, v]) => [k, v.map(x => Math.round(x * 10) / 10)])),
     // Of the "never ordered" part, those whose zone was under a warning only (ember, front).
-    splitWarned: [S.notOrderedWarnedExposed, S.fireFrontNotOrderedWarned].map(x => Math.round(x * 10) / 10) };
+    splitWarned: [S.notOrderedWarnedExposed, S.fireFrontNotOrderedWarned].map(x => Math.round(x * 10) / 10),
+    // Where those people live (js/sim.js summary; Guided view, MASTER 2026-11-24; SOURCE_NOTES FL1): [Berkeley's hill
+    // fire zones (Fire Zones 2–3), the rest of Berkeley]; the remainder of each total live in other cities' zones or are
+    // non-residents on the road. Persons, rounded to 0.1.
+    zone: { ember: [S.emberHill, S.emberFlats].map(x => Math.round(x * 10) / 10), front: [S.frontHill, S.frontFlats].map(x => Math.round(x * 10) / 10) },
+    // Synthetic residents of Berkeley streets outside Fire Zones 2–3 that embers or the fire front reached within the run,
+    // whether or not they had left (SOURCE_NOTES FL3).
+    flatsReached: { ember: Math.round(flatsE), front: Math.round(flatsF) },
+    // People who may need a wheelchair van or ambulance on streets embers reached within 180 min of their zone's order or
+    // warning (js/sim.js needsHelp; SOURCE_NOTES NH1–NH6, FL6): [middle, low end, high end].
+    needsHelp: (o => o ? [o.value, ...o.range] : null)(S.needsHelp?.groups?.specialized?.transitDependent) };
   return { j, run, backup, ember: Buffer.from(ember).toString('base64'), front: Buffer.from(front).toString('base64'), pe: Array.from(pe, x => Math.round(x * 100) / 100), areas, levers };
 }
 

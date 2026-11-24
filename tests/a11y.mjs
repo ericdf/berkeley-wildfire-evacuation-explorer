@@ -127,7 +127,7 @@ for (const name of DEVICES) {
   await p.click('#g-explore'); await p.waitForTimeout(200);
   await scan('Results');
   const heads = await p.evaluate(() => [...document.querySelectorAll('#g-panel [role=heading][aria-level="3"]')].map(h => h.textContent.trim()));
-  check(heads.length >= 6 && /^[\d,]+ people not yet out when embers/.test(heads[0]), `${name}: each result card has a heading with its number (${heads.length}; "${heads[0]}")`);
+  check(heads.length >= 5 && /^[\d,]+ people not yet out when the fire or its embers/.test(heads[0]), `${name}: each result card has a heading with its number (${heads.length}; "${heads[0]}")`);
   const opener = p.locator('#g-panel [data-explain] >> nth=0');
   await opener.focus(); await p.keyboard.press('Enter'); await p.waitForTimeout(200);
   await scan('Explain this pop-up');

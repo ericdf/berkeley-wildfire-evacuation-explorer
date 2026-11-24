@@ -22,7 +22,9 @@
     <button data-menu="intro">How to use</button>
     <button data-menu="assumptions">Assumptions &amp; limits</button>
     <button data-menu="sources">Data sources</button>
-    <a href="https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation" target="_blank" rel="noopener">Official City fire weather &amp; evacuation info ↗</a>
+    <p class="small g-menu-do"><b>What you can do now</b> <!-- MASTER, 2026-11-24; SOURCE_NOTES FL7 --></p>
+    <a href="https://public.everbridge.net/sign-up?orgId=453003085612570" target="_blank" rel="noopener">Sign up for AC Alert, Alameda County's emergency alerts ↗</a>
+    <a href="https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation" target="_blank" rel="noopener">Find your evacuation zone: City fire weather &amp; evacuation info ↗</a>
     <button data-menu="expert">Expert view<span class="phone-inline"> (best on a larger screen)</span></button>
     <p class="small">© 2026 Eric Friedman. Code: <a href="https://github.com/ericdf/berkeley-wildfire-evacuation-explorer/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>. Writing: <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>. Map data © OpenStreetMap contributors (ODbL).</p>
   </div>
@@ -37,6 +39,7 @@
 
 <p id="g-what" class="simple-only">How a hills wildfire could spread on Berkeley's streets, and what would help people get out.</p>
 <div id="g-fireline" class="simple-only"><label for="g-fire">Fire:</label> <select id="g-fire"></select><span id="g-pace"></span></div>
+<p id="g-flats" class="simple-only" hidden></p>
 <main>
   <aside id="left">
     <p id="phone-note" class="expert-only phone-only">Expert view is built for a larger screen. On a phone, <button class="linkish" data-mode="simple">Guided view</button> works best.</p>

@@ -968,7 +968,7 @@ function intro() {
     <li><b>Pick a fire</b> above the map. Each starts at a set place, with a set wind, and Berkeley orders out set zones.</li>
     <li><b>Fire pace</b>: Slower, 1923 pace (the default) or 1991 pace. Every result and change below uses the 5 runs at that pace.</li>
     <li><b>Run simulation</b> plays one run of that fire with the status quo: the first evacuation order 10 minutes after ignition, today's street parking, a fall night.</li>
-    <li><b>Explore results</b> gives six results for that fire, each the median of 5 runs at the chosen pace (5 random seeds), with the other paces' medians below it. <b>Explain this</b> says what a result counts, where it comes from and its limits.</li>
+    <li><b>Explore results</b> gives five results for that fire, each the median of 5 runs at the chosen pace (5 random seeds), with the other paces' medians below it. <b>Explain this</b> says what a result counts, where it comes from and its limits.</li>
     <li><b>Explore changes that could help</b> lists the changes tested against the status quo, grouped by the result they improve. Pick up to three, run them, and see each result with and without them.</li>
   </ol>
   <p>People are synthetic households placed from public population counts; the fire is an illustrative model run on Berkeley's real streets and terrain.</p>
