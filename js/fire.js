@@ -123,12 +123,14 @@ export function headWind(mph20) {
   const { C, B, E, rel } = ROTHERMEL_WIND, U = 88 * 0.4 * Math.max(0, mph20);
   return 1 + C * U ** B * rel ** -E;
 }
-// Built-up cells (the proxy's flats, factor below 0.7) take an urban wind law instead (Eric, 2026-11-24; SOURCE_NOTES
+// Built-up cells (the proxy's flats, factor 0.25) take an urban wind law instead (Eric, 2026-11-24; SOURCE_NOTES
 // FW4): Hamada's downwind spread factor 1 + 0.1 V + 0.007 V^2, V the wind in m/s (here the 20 ft wind), normalized at
 // the same reference wind. From 7 to 30 mph it rises about 2.6 times, against about 7.3 times for Rothermel's.
 export function headWindUrban(mph20) { const V = 0.44704 * Math.max(0, mph20); return 1 + 0.1 * V + 0.007 * V * V; }
-// Built-up for the wind law and for ember weight: a burnable cell whose proxy factor is under 0.7 (the flats).
-export const BUILT_MAX = 0.7;
+// Built-up for the wind law and for ember weight: a burnable cell whose proxy factor is under BUILT_MAX (the flats,
+// 0.25). The boundary sits between 0.25 and 0.7 because the grid holds fuel in a Float32Array, where 0.7 is stored as
+// 0.69999999 and a test against 0.7 itself would class hill residential as built-up (Codex review of PR #102; FW15).
+export const BUILT_MAX = 0.5;
 // Ember weight of a cell (Eric, 2026-11-24; FW10): hill residential, wildland interface and wildland 1, built-up flats
 // 0.25 (embers from burning buildings), water 0. Used both for spot-fire starts and for ember exposure.
 export const URBAN_EMBER = 0.25;

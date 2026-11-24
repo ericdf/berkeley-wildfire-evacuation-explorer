@@ -9,9 +9,9 @@ import { CELL, inPoly, bbox, inBB } from './fire.js';
 export const LEAVE_EARLY_ZONES = ['BER-006', 'BER-007', 'BER-008', 'BER-015', 'BER-016', 'BER-017', 'BER-030', 'BER-031', 'BER-057', 'BER-058'];
 
 export const SEVERITY = {
-  low:     { label: 'Low',     rosMpm: 7,  windFactor: 0.75, emberM: 300,  spotProb: 0.004, spotDelayMin: 4 },
-  central: { label: 'Medium', rosMpm: 14, windFactor: 1.0,  emberM: 800,  spotProb: 0.012, spotDelayMin: 3 },
-  high:    { label: 'High',    rosMpm: 28, windFactor: 1.3,  emberM: 1500, spotProb: 0.03,  spotDelayMin: 2, slowAfterMin: 60 },
+  low:     { label: 'Low',     rosMpm: 5.5,  windFactor: 0.75, emberM: 300,  spotProb: 0.004, spotDelayMin: 4 },
+  central: { label: 'Medium', rosMpm: 11, windFactor: 1.0,  emberM: 800,  spotProb: 0.012, spotDelayMin: 3 },
+  high:    { label: 'High',    rosMpm: 30, windFactor: 1.3,  emberM: 1500, spotProb: 0.03,  spotDelayMin: 2, slowAfterMin: 60 },
 };
 // High never crosses a cell slower than medium would on the same crossing, and after its first hour runs at medium's
 // rate (no slowFactor: js/fire.js runFire; Eric, 2026-11-24, SOURCE_NOTES FW6).
@@ -91,7 +91,7 @@ export function quakeIgnitions(data) {
 }
 
 // Spread-rate factor for the earthquake fires, fitted to HayWired's floor area burned in Berkeley (SOURCE_NOTES EQ11).
-export const QUAKE_ROS_FACTOR = 0.8; // 0.37 until 2026-11-04 (wind from 270° at 10 mph); 0.27 until 2026-11-24 (WC8); refitted on the wind-dependent head rate (SOURCE_NOTES FW12)
+export const QUAKE_ROS_FACTOR = 1.2; // 0.37 until 2026-11-04 (wind from 270° at 10 mph); 0.27 until 2026-11-24 (WC8); refitted on the wind-dependent head rate (SOURCE_NOTES FW12)
 
 // Winds for the earthquake fires, from the Oakland North RAWS record by season and hour (tools/wind-climate.mjs,
 // data/model/wind-climate.json; SOURCE_NOTES WC1–WC8). Hours are local standard time (LST); HayWired's quake
