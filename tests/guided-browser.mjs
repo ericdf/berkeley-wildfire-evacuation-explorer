@@ -411,10 +411,11 @@ for (const [di, name] of DEVICES.entries()) {
     await p.click('[data-go="map"] >> nth=0');
     return vals;
   };
-  const q3 = await paceRun('quake', 'high', '1991 pace');
+  // The earthquake fire names its paces Slower, HayWired pace and Faster (js/guided-data.js QUAKE_PACES; SOURCE_NOTES FW14).
+  const q3 = await paceRun('quake', 'high', 'Faster');
   // The earthquake's backups move from run to run, so one line replaces the list (Eric, 2026-11-23, option a; GV25).
   await p.click('#g-explore');
-  check((await p.locator('#g-panel .bk-row').count()) === 0 && /No street backed up in nearly every run of this fire at this pace; backups moved from run to run\./.test(await p.locator('#g-panel .bk').innerText()), `${name}: earthquake at 1991 pace, one line instead of the backups list`);
+  check((await p.locator('#g-panel .bk-row').count()) === 0 && /No street backed up in nearly every run of this fire at this pace; backups moved from run to run\./.test(await p.locator('#g-panel .bk').innerText()), `${name}: earthquake at Faster, one line instead of the backups list`);
   await p.click('[data-go="map"] >> nth=0');
   // Changing the pace on Results starts a new run: the pop-up no longer reports "the run you watched" (Codex, PR #93).
   await p.click('#g-explore'); await p.click('[data-pace="central"]'); await p.waitForTimeout(300);

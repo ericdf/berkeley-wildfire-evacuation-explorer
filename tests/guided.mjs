@@ -27,8 +27,9 @@ check(ids(east, 'cars') === set(['leaveEarly', 'leaveEarlyEFW', 'orderSooner']),
 check(restIds(east) === set(['contraflow-officers', 'contraflow-signs', 'policeControl', 'egressGuidance', 'link-AC-193-N1']), `east wind, no consistent benefit (worse · no consistent change · not offered): ${ids(east, 'worse')} · ${ids(east, 'none')} · ${ids(east, 'off')}`);
 // "Worse in every run": some result worse in every run; at 1923 pace contraflow and police control (reviewer subagent, MASTER, 2026-11-23).
 // From the table (not every contraflow or police change is worse in every run on every fire): east wind, signed contraflow;
-// Panoramic Hill, both contraflow changes; the earthquake, police control; east wind, police control is mixed.
-for (const [f, id, worse] of [['eastWind', 'contraflow-signs', true], ['panoramic', 'contraflow-officers', true], ['panoramic', 'contraflow-signs', true], ['quake', 'policeControl', true], ['eastWind', 'policeControl', false]]) {
+// Panoramic Hill, both contraflow changes; the earthquake, signed contraflow; east wind, police control is mixed. Since the
+// wind-dependent fire model (2026-11-24, SOURCE_NOTES FW14) police control on the earthquake fire is no longer worse in every run.
+for (const [f, id, worse] of [['eastWind', 'contraflow-signs', true], ['panoramic', 'contraflow-officers', true], ['panoramic', 'contraflow-signs', true], ['quake', 'contraflow-signs', true], ['quake', 'policeControl', false], ['eastWind', 'policeControl', false]]) {
   const w = G.groups(f, 'central').find(g => g.id === 'worse').items.some(i => i.lever.id === id && i.worse.some(x => x.worse === x.n));
   check(w === worse, `${f} at 1923 pace: ${id} ${worse ? 'is' : 'is not'} in "Worse in every run"`);
 }

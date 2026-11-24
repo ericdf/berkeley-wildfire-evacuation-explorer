@@ -4,6 +4,7 @@
 //
 //   node tools/fire-validation.mjs fire [seeds=3]           # §2 footprints, §3 ember zones, §4 1923 and 1991 (fire only, a few minutes)
 //   node tools/fire-validation.mjs sim [seeds=3] --workers 1 # §2 resident exposure: full runs, fuel proxy vs LANDFIRE (serial)
+//   FIRES=ref1923,eastWind,panoramic,northHills node tools/fire-validation.mjs fire 3   # only those fires
 //
 // Fuel: 'proxy' is today's fire-zone factor; 'landfire' is the opt-in LANDFIRE FBFM40 setting
 // (js/fire.js withLandfireFuel). Writes data/model/fire-validation.json (merged by section).
@@ -31,7 +32,8 @@ if (!data.fuel40) throw new Error('data/terrain/fbfm40.* missing: run node tools
 const proxy = buildFireGrid(data), FUELS = { proxy, landfire: fireGridFor(proxy, data, 'landfire') };
 const { W, H } = proxy, N = W * H;
 const SEVS = ['low', 'central', 'high'];
-const scen = makeScenarios(data), FIRES = scen.filter(s => s.id !== 'eastWindDay');
+// FIRES=ref1923,eastWind,panoramic,northHills limits the runs to those fires (the four wildfires of FV11 and GV14).
+const scen = makeScenarios(data), FIRES = scen.filter(s => s.id !== 'eastWindDay' && (!process.env.FIRES || process.env.FIRES.split(',').includes(s.id)));
 const med = a => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : null; };
 const rng = a => [Math.min(...a), Math.max(...a)];
 const km2 = c => +(c * CELL * CELL / 1e6).toFixed(3);

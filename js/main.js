@@ -543,7 +543,7 @@ function update(full) {
     <div class="small muted"><span style="color:#b91c1c">■</span> vehicles queued &nbsp; <span style="color:#1d4ed8">■</span> on roads &nbsp; <span style="color:#0e7490">■</span> engine ETA (scaled)</div>
     ${S.bottlenecks.length ? `<h3>Worst queues so far</h3><table>${S.bottlenecks.map(b => `<tr><td>${esc(b.name)}</td><td class="num">${b.max} veh</td><td class="num">t+${fmt(b.at)}m</td></tr>`).join('')}</table>` : ''}
     ${disputedNote(sc, S)}
-    <p class="small muted">Where embers land is illustrative: across runs it does not follow the County's Ember Threat Zones (rank correlation −0.20 at medium severity), though it ranks the City's 2025 fire hazard zones in the City's order (docs/fire-validation.md, finding 4). Structures lost is an assumption range for structures the fire front reached; embers alone get no loss figure, and the fire does not respond to structures. Population outside the modeled street network: ${fmt(S.unplacedPeople)}.</p>`;
+    <p class="small muted">Where embers land is illustrative: across runs it does not follow the County's Ember Threat Zones (rank correlation −0.09 at medium severity, four wildfires, 2026-11-24), though it ranks the City's 2025 fire hazard zones in the City's order (docs/fire-validation.md, finding 4). Structures lost is an assumption range for structures the fire front reached; embers alone get no loss figure, and the fire does not respond to structures. Population outside the modeled street network: ${fmt(S.unplacedPeople)}.</p>`;
   spark(sim);
   $('events').innerHTML = sim.events.map(e => `<li class="k-${e.kind}"><span class="t">t+${hm(e.t)}</span>${esc(e.text)}</li>`).join('');
   if (map.selected) inspect(map.selected, true);

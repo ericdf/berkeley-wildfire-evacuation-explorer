@@ -63,7 +63,7 @@ const meansChange = d => d?.label !== 'consistent' ? MEANS[d?.label] || ''
 const SCOPE = { this: 'this fire', any: 'any wildfire' }; // the earthquake closes streets at the fault, so engine reach differs there (GV36)
 // Where the modeled embers go, against the County's ember map (Eric, 2026-11-23, MASTER session; SOURCE_NOTES FV11, GV14).
 const EMBER_MAP = 'https://berkeley.maps.arcgis.com/apps/mapviewer/index.html?webmap=3c5e1686ebc543ffbdd1eb8698b51fe2';
-const EMBER_NOTE = `The modeled embers follow each fire's start, wind, slope and fuel, not Alameda County's Ember Threat Zones: on four wildfires the two barely agree (rank correlation −0.22 over 7,853 cells, medium severity, measured 2026-11-23). <a href="${EMBER_MAP}" target="_blank" rel="noopener">The County's fire pathways and ember map ↗</a>`;
+const EMBER_NOTE = `The modeled embers follow each fire's start, wind, slope and fuel, not Alameda County's Ember Threat Zones: on four wildfires the two barely agree (rank correlation −0.09 over 7,853 cells, medium severity, measured 2026-11-24). <a href="${EMBER_MAP}" target="_blank" rel="noopener">The County's fire pathways and ember map ↗</a>`;
 
 // Street and landmark names drawn on the Guided map once zoomed in (js/map.js drawLabels; GV41). Landmark points are
 // in the network's meters, placed from its streets: the campus between Oxford St, Gayley Rd, Bancroft Wy and Hearst Av;
