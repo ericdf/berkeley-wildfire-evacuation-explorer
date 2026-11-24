@@ -65,6 +65,22 @@ const SCOPE = { this: 'this fire', any: 'any wildfire' }; // the earthquake clos
 const EMBER_MAP = 'https://berkeley.maps.arcgis.com/apps/mapviewer/index.html?webmap=3c5e1686ebc543ffbdd1eb8698b51fe2';
 const EMBER_NOTE = `The modeled embers follow each fire's start, wind, slope and fuel, not Alameda County's Ember Threat Zones: on four wildfires the two barely agree (rank correlation −0.22 over 7,853 cells, medium severity, measured 2026-11-23). <a href="${EMBER_MAP}" target="_blank" rel="noopener">The County's fire pathways and ember map ↗</a>`;
 
+// Street and landmark names drawn on the Guided map once zoomed in (js/map.js drawLabels; GV41). Landmark points are
+// in the network's meters, placed from its streets: the campus between Oxford St, Gayley Rd, Bancroft Wy and Hearst Av;
+// the stadium inside Stadium Rim Rd.
+const LABELS = {
+  streets: ['SHATTUCK AV', 'SAN PABLO AV', 'TELEGRAPH AV', 'UNIVERSITY AV', 'ASHBY AV', 'GRIZZLY PEAK BL', 'TUNNEL RD', 'COLLEGE AV', 'CLAREMONT AV', 'MARIN AV', 'EUCLID AV', 'PANORAMIC WY', 'DWIGHT WY', 'CEDAR ST', 'SPRUCE ST', 'WILDCAT CANYON RD'],
+  places: [{ text: 'UC Berkeley', x: 6000, y: 3560 }, { text: 'Memorial Stadium', x: 6950, y: 3560 }],
+};
+// Plain lead sentences for each fire pace's Explain this (GV41); the sourced detail is PACES[].explain, under Details.
+const PACE_LEAD = {
+  low: 'Slower is a fire that spreads at half the speed of the 1923 pace, with embers landing about 300 m ahead of it.',
+  central: '1923 pace spreads about as fast as the City\'s present-day repeat of the 1923 Berkeley fire, with embers landing about 800 m ahead of it.',
+  high: '1991 pace spreads twice as fast as the 1923 pace in its first hour, like the 1991 Oakland Hills fire, with embers landing about 1.5 km ahead of it.',
+};
+// The City's fire weather and evacuation page, also in the ⓘ menu (index.html).
+const CITY_EVAC = 'https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation';
+
 export function guidedUI(ctx) {
   const { data, map, state, $, esc, fmt, FIRES, PRESETS, mit, spread, MEASURES, badge } = ctx;
   const stripTags = t => String(t ?? '').replace(/<[^>]*>/g, '');
@@ -119,21 +135,32 @@ export function guidedUI(ctx) {
   // Each pace's Explain this; the other two paces are one tap away inside the pop-up.
   function explainPace(sev) {
     const p = paceOf(sev);
-    ctx.modal(`<div class="gx"><h2>Fire pace: ${p.label}</h2><p>${p.explain}</p>
+    pop(`<div class="gx"><h2>Fire pace: ${p.label}</h2><p>${p.explain}</p>
       <p>The wind's direction and speed are the same at every pace; how strongly the wind pushes the fire is part of the pace. ${badge('model rule')} The illustrative fire model (js/scenarios.js SEVERITY: ${p.sev === 'central' ? 'medium' : p.sev} severity in Expert view). Ember distances and spot-fire chances are illustrative.</p>
-      <p>Every result, change and comparison in Guided view uses the 5 runs at the chosen pace; each result also gives the other paces' medians.</p>
-      <p class="small">Other paces: ${PACES.filter(x => x.sev !== sev).map(x => `<button class="linkish" data-pace-other="${x.sev}">${x.label}</button>`).join(' · ')}</p></div>`, 'gx');
+      <p>Every result, change and comparison in Guided view uses the 5 runs at the chosen pace; each result also gives the other paces' medians.</p></div>`,
+      `${PACE_LEAD[p.sev]} The wind's direction and speed are the same at every pace.`,
+      `<p class="small">Other paces: ${PACES.filter(x => x.sev !== sev).map(x => `<button class="linkish" data-pace-other="${x.sev}">${x.label}</button>`).join(' · ')}</p>`);
     document.querySelectorAll('#modal [data-pace-other]').forEach(b => b.onclick = () => explainPace(b.dataset.paceOther));
   }
   // What the status quo is (GV22).
   function explainSQ() {
-    ctx.modal(`<div class="gx"><h2>Status quo</h2>
+    pop(`<div class="gx"><h2>Status quo</h2>
       <p>Berkeley's first evacuation order 10 minutes after the fire starts, streets parked as they are now, and no new roads or rules. Every change is compared against it.</p>
       <h3>Where it comes from</h3>
       <p><b>The order</b> ${badge('assumption')} 10 minutes after ignition is the simulator's default decision delay; no source gives how fast Berkeley orders. Which zones are ordered or warned is each fire's scenario.</p>
       <p><b>Parking</b> ${badge('assumption')} At night residents park on both sides of most 17–24 ft hill streets, leaving one car's width, a rule resting on one night's count of 11 blocks (2026-11-05). Which blocks are parked is drawn for each run.</p>
       <p><b>Streets</b> ${badge('derived')} County and OpenStreetMap streets as mapped, with no new roads, widenings, contraflow or police at signals.</p>
-      <p>Every run has fall-night households and traffic. The earthquake fire keeps its spring-afternoon wind (the USGS HayWired scenario) and the west-wind fire its afternoon onshore wind; Expert view runs each at its own time of day.</p></div>`, 'gx');
+      <p>Every run has fall-night households and traffic. The earthquake fire keeps its spring-afternoon wind (the USGS HayWired scenario) and the west-wind fire its afternoon onshore wind; Expert view runs each at its own time of day.</p></div>`,
+      'The status quo is how things work today: the first evacuation order 10 minutes after the fire starts, cars parked as they are now, and no new roads. Every change is measured against it.');
+  }
+  // Explain this pop-ups lead with two plain sentences (reviewer round via MASTER, 2026-11-23; SOURCE_NOTES GV41), then
+  // the kinds of numbers (provenance badges) inside, then everything else, unchanged, under a "Details" fold. foot stays
+  // visible below the fold (the pace pop-up's links to the other paces).
+  function pop(html, lead, foot = '') {
+    const m = html.trim().match(/^<div class="gx">(<h2>[\s\S]*?<\/h2>)([\s\S]*)<\/div>$/);
+    if (!m) return ctx.modal(html, 'gx');
+    const cats = [...new Set([...m[2].matchAll(/<span class="badge [^"]*"[^>]*>([^<]*?)(?: ⓘ)?<\/span>/g)].map(x => x[1] === 'no data' ? 'unknown' : x[1]))];
+    ctx.modal(`<div class="gx">${m[1]}<p class="gx-lead">${lead}</p>${cats.length ? `<p class="gx-kinds">Kinds of numbers here: ${cats.map(c => badge(c)).join(' ')}</p>` : ''}<details class="gx-more"><summary>Details</summary>${m[2]}</details>${foot}</div>`, 'gx');
   }
   const sqBtn = (t = 'Status quo') => `<button class="linkish sq-x" data-sq>${t} ⓘ</button>`;
 
@@ -172,14 +199,41 @@ export function guidedUI(ctx) {
     // One line on the map saying what the colors show, visible without opening the key (Eric, 2026-11-12).
     const runs = runsN();
     // A backup street tapped on Results shows before or after a run (the list reads the stored runs; Codex, PR #94).
-    const cap = g.focus ? `${g.focus.street}: where traffic backed up in these runs` : !s ? '' : !d ? 'Red: cars backed up'
-      : g.chip === 'fire' ? `Streets embers reached across ${runs} runs of this fire`
-      : g.chip === 'ways' ? `Ways out the fire front reached across ${runs} runs of this fire`
-      : 'Engine drive time from the nearest station, this run';
-    $('g-caption').hidden = !cap; $('g-caption').textContent = cap;
+    // After a run each map view's caption states its finding, with an Explain this (Eric, 2026-11-24; GV42).
+    const finding = d && !g.focus ? FINDING[g.chip]?.() : null;
+    const cap = g.focus ? g.focus.caption || `${g.focus.street}: where traffic backed up in these runs` : !s ? '' : !d ? 'Red: cars backed up'
+      : finding ? finding.text : '';
+    $('g-caption').hidden = !cap;
+    if (finding) { $('g-caption').innerHTML = `${esc(cap)} <button class="linkish g-cap-x" data-cap-explain="${finding.card}">Explain this</button>`; $('g-caption').querySelector('[data-cap-explain]').onclick = () => finding.cmp ? explainCompare(finding.card) : explain(finding.card); } // a with-changes figure opens its comparison's pop-up (Codex, PR #101)
+    else $('g-caption').textContent = cap;
+    keyOnce();
     if (!d) $('g-sheet').hidden = true;
     mapLayers();
   }
+  // Engine reach on the map, in more detail than its two colors (GV42): hill street segments in the watched run by drive
+  // time from the nearest station at ignition.
+  function engineMapNote() {
+    const T = state.sim?.engineReach0, m = data.A.access.engineServiceMin; if (!T || !done()) return '';
+    let a = 0, b = 0, c = 0, z = 0;
+    data.net.edges.forEach((e, i) => { if (e.mode !== 'vehicle' || !(e.fireZone >= 2)) return; const t = T[i]; if (t == null) return; z++; if (t === Infinity) c++; else if (t > 480) b++; else if (t > m * 60) a++; });
+    return `<h3>On the map</h3><p>Green streets are within ${m} minutes of a station; red, over ${m} minutes; dotted red, no engine route at all. In the run you watched, of ${fmt(z)} hill street segments, ${fmt(a)} are ${m}–8 minutes away, ${fmt(b)} over 8 minutes and ${fmt(c)} have no engine route. ${badge('model rule')}</p>`;
+  }
+  // The finding each map view states after a run, from the same figures as the result cards (GV42).
+  // With changes applied, the figure is the comparison's "with changes" median (the table for one change, the live runs
+  // for two or three); while live runs are still going, the status quo's, labeled as such (Codex, PR #101).
+  function capFig(id, base) {
+    if (!g.applied.length) return { v: base, tag: '' };
+    const r = compareRow(cardById(id));
+    return r ? { v: r.b, tag: ' with your changes', cmp: true } : { v: base, tag: ' in the status quo' };
+  }
+  const FINDING = {
+    fire: () => { const f = capFig('ember', model().baseFigure(state.fire, 'ember', g.pace).value); return { card: 'ember', cmp: f.cmp, text: `Embers reached the dark streets in every run, the amber ones in some: ${n(f.v)} people were not yet out when they arrived${f.tag}.` }; },
+    ways: () => { const o = model().oneWay(data.access, state.fire); if (o.na) return { card: 'oneWay', text: 'Streets with one way out: not computed on the earthquake\'s street network.' }; const f = capFig('oneWay', o.value); return { card: 'oneWay', cmp: f.cmp, text: `Red: one-way-out streets the fire front reached in every run. ${n(f.v)} hill residents live on streets with one way out${f.tag}.` }; },
+    engine: () => { const f = capFig('engine', baseFigure(cardById('engine')).value); return { card: 'engine', cmp: f.cmp, text: `Red: hill streets no engine reaches within ${data.A.access.engineServiceMin} minutes, mostly because parked cars narrow them (${n(f.v)} residents${f.tag}).` }; },
+  };
+  // The key opens by itself the first time each map view is shown in a session, then follows the remembered choice.
+  const keySeen = new Set();
+  function keyOnce() { const v = done() ? g.chip : 'run'; if (keySeen.has(v)) return; keySeen.add(v); if (done()) ctx.keyOpenFor?.(v); }
   $('g-run').onclick = () => { g.focus = null; ctx.play(!state.playing); refresh(); };
   $('g-again').onclick = () => { setup(); frameStart(); ctx.play(true); refresh(); };
   $('g-explore').onclick = () => show('results');
@@ -286,11 +340,65 @@ export function guidedUI(ctx) {
     goTo(need ? grow(s, need[0], need[1], need[2], need[3]) : s, true); g.followSim = state.sim; g.followT = state.sim?.t ?? -Infinity;
   };
 
+  // ---------- find my street (reviewer round via MASTER, 2026-11-23; SOURCE_NOTES GV41) ----------
+  // Street names from network.json (cars' streets). Typing lists matches; choosing one frames the street, draws it
+  // highlighted and, after a run, opens its street card. "Avenue", "Way" and the like match the network's short forms.
+  const ABBR = { avenue: 'av', ave: 'av', street: 'st', road: 'rd', way: 'wy', boulevard: 'bl', blvd: 'bl', drive: 'dr', lane: 'ln', place: 'pl', court: 'ct', terrace: 'te', circle: 'ci' };
+  const norm = q => q.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(Boolean).map(w => ABBR[w] || w);
+  let streetIdx = null;
+  const streets = () => streetIdx ??= [...data.net.edges.reduce((m, e) => { if (e.mode === 'vehicle' && e.name && !/\bI-?80\b|\bON\b.*\bI80\b|\bOFF\b/.test(e.name)) { if (!m.has(e.name)) m.set(e.name, []); m.get(e.name).push(e.id); } return m; }, new Map())]
+    .map(([name, edges]) => ({ name, street: name.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()), words: norm(name), edges }));
+  function matches(q) {
+    const w = norm(q); if (!w.length) return [];
+    const hit = s => w.every((x, i) => s.words.some(y => i === w.length - 1 ? y.startsWith(x) : y === x || y.startsWith(x)));
+    return streets().filter(hit).sort((a, b) => (b.words[0].startsWith(w[0]) - a.words[0].startsWith(w[0])) || b.edges.length - a.edges.length || a.street.localeCompare(b.street)).slice(0, 6);
+  }
+  const findBox = $('g-find'), findIn = $('g-find-in'), findList = $('g-find-list'), findBtn = $('g-find-btn');
+  let findHits = [], findAt = -1;
+  function openFind(on) {
+    if (on && g.screen !== 'map') show('map'); // the search sits over the map, under the Results and Changes panel (Codex, PR #101)
+    findBox.hidden = !on; findBtn.setAttribute('aria-expanded', String(on));
+    if (on) { findIn.value = ''; listFind(); findIn.focus(); } else { findList.hidden = true; findIn.setAttribute('aria-expanded', 'false'); }
+  }
+  function listFind() {
+    findHits = matches(findIn.value); findAt = findHits.length ? 0 : -1;
+    findList.innerHTML = findHits.map((h, i) => `<li role="option" id="g-find-o${i}" aria-selected="${i === findAt}" data-i="${i}">${esc(h.street)}</li>`).join('') || (findIn.value.trim() ? '<li class="g-find-none" role="option" aria-disabled="true">No street by that name</li>' : '');
+    const show = !!findList.innerHTML; findList.hidden = !show; findIn.setAttribute('aria-expanded', String(show));
+    findIn.setAttribute('aria-activedescendant', findAt >= 0 ? `g-find-o${findAt}` : '');
+  }
+  function moveFind(d) {
+    if (!findHits.length) return; findAt = (findAt + d + findHits.length) % findHits.length;
+    findList.querySelectorAll('[role="option"]').forEach((li, i) => li.setAttribute('aria-selected', String(i === findAt)));
+    findIn.setAttribute('aria-activedescendant', `g-find-o${findAt}`);
+  }
+  function chooseFind(h) {
+    if (!h) return;
+    openFind(false); if (g.screen !== 'map') show('map');
+    let b = null; for (const id of h.edges) for (const [x, y] of data.net.edges[id].geom) b = grow(b, x, y);
+    g.focus = { street: h.street, caption: h.street, edges: h.edges, find: true };
+    g.follow = false; goTo(pad(b, 150), true);
+    if (done()) { // the street card for the segment nearest the street's middle
+      const cx = (b[0] + b[2]) / 2, cy = (b[1] + b[3]) / 2, mid = id => data.edgeMid[id], d = id => (mid(id)[0] - cx) ** 2 + (mid(id)[1] - cy) ** 2;
+      const id = h.edges.reduce((a, x) => d(x) < d(a) ? x : a); map.selected = { kind: 'edge', id }; sheet(map.selected);
+    }
+    refresh(); $('map-live').textContent = `Showing ${h.street} on the map.`;
+  }
+  findBtn.onclick = () => openFind(findBox.hidden);
+  $('g-find-x').onclick = () => { openFind(false); findBtn.focus(); };
+  findIn.addEventListener('input', listFind);
+  findIn.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); moveFind(1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); moveFind(-1); }
+    else if (e.key === 'Enter') { e.preventDefault(); chooseFind(findHits[findAt]); }
+    else if (e.key === 'Escape') { openFind(false); findBtn.focus(); }
+  });
+  findList.addEventListener('click', e => { const li = e.target.closest('[data-i]'); if (li) chooseFind(findHits[+li.dataset.i]); });
+
   // ---------- map layers ----------
   const BASE = { terrain: true, contours: true, streets: true, paths: false, evacZones: false, fireZones: false, neighborhoods: false, fire1923: false, cityBoundary: true, stations: false, noParking: false, tightTurns: false, access: false, demand: false, structures: false, fire: false, vehicles: false, queues: false, responder: false };
   function mapLayers() {
     Object.assign(map.layers, BASE);
-    map.edgeClass = null; map.edgePalette = null; map.streetMode = 'class';
+    map.edgeClass = null; map.edgePalette = null; map.streetMode = 'class'; map.noShelters = false;
     if (!done()) { // during the run: fire and traffic only, streets gray (PR #79)
       // Moving-car dots are left out and queues are smoothed, thin and one dark red (GV11), so traffic does not compete with the fire.
       Object.assign(map.layers, { fire: true, queues: true });
@@ -301,7 +409,7 @@ export function guidedUI(ctx) {
     } else if (g.chip === 'ways') {
       map.layers.fire = true;
       if (spread()) { map.streetMode = 'robust'; map.edgeClass = ctx.areaEdgeClasses(data, state.fire, [g.pace]); map.edgePalette = [...ctx.PALETTE.access]; map.edgePalette[0] = '#c8c8c8'; }
-    } else { map.streetMode = 'engineTime'; map.layers.stations = true; }
+    } else { map.streetMode = 'engineReach'; map.layers.stations = true; map.noShelters = true; } // two classes and stations (GV42)
     map.marks = g.applied.map(leverById).filter(Boolean).flatMap(marksOf);
     if (g.focus) for (const id of g.focus.edges) map.marks.push({ geom: data.net.edges[id].geom, kind: 'backup', focus: true });
     map.draw(); ctx.legend();
@@ -328,7 +436,7 @@ export function guidedUI(ctx) {
     if (g.chip === 'fire') { const P = ctx.PALETTE.spread; return `<b>Embers reached the street, in ${runs} runs at ${paceName()}</b>${sl('robust', P[4], 'Reached in every run')}${sl('robust', P[2], 'Reached in some runs, by chance')}${sl('robust', P[1], 'Not reached in any run')}${fireKey}<div class="small muted">${EMBER_NOTE}</div>`; }
     if (g.chip === 'ways') { const P = ctx.PALETTE.access; return `<b>Streets with one way out: did the fire front reach it? In ${runs} runs at ${paceName()}</b>${g.applied.length ? '<div class="small muted">Today\'s street network, without your changes.</div>' : ''}${sl('robust', P[4], 'Reached in every run')}${sl('robust', P[2], 'Reached in some runs, by chance')}${sl('robust', P[1], 'Not reached in any run')}${sl('robust', '#c8c8c8', 'More than one way out')}`; }
     const m = data.A.access.engineServiceMin;
-    return `<b>Engine drive time from the nearest station</b>${sl('engineTime', '#2f8a4a', `Within ${m} min`)}${sl('engineTime', '#e0a21e', `${m}–8 min`)}${sl('engineTime', '#c0262d', 'Over 8 min')}${sl('engineTime', '#7f1d1d', 'No engine route')}<div class="small muted">At ignition, with this run's parked cars.</div>`;
+    return `<b>Can a fire engine get there within ${m} minutes?</b>${sl('engineReach', '#2f8a4a', `Yes, within ${m} min of a station`)}${sl('engineReach', '#c0262d', `No, over ${m} min`)}${sl('engineReach', '#c0262e', 'No engine route at all')}<div><span class="st-sym" aria-hidden="true">2</span>Fire station (its number)</div><div class="small muted">At ignition, with this run's parked cars.</div>`;
   }
 
   // ---------- street card (bottom sheet) ----------
@@ -370,8 +478,15 @@ export function guidedUI(ctx) {
     }
     const res = SA?.residentsPerEdge?.[sel.id];
     if (res) {
-      lines.push(`About ${fmt(res, res < 10 ? 1 : 0)} modeled residents on this block.`);
+      // Whole people (reviewer round, 2026-11-23: "About 9.6 modeled residents" read as an error).
+      const r = Math.round(res);
+      lines.push(r >= 1 ? `About ${fmt(r)} modeled resident${r === 1 ? '' : 's'} on this block.` : 'Fewer than one modeled resident on this block, on average.');
       src.push(['Residents', 'synthetic', 'Synthetic households placed from zone population counts, averaged over the runs; not addresses.']);
+    }
+    // The street's evacuation zone (Genasys, network.json evacZone) and the City's page for looking yours up (GV41).
+    if (e.evacZone) {
+      lines.unshift(`Evacuation zone <b class="g-zone">${esc(e.evacZone)}</b>. <a href="${CITY_EVAC}" target="_blank" rel="noopener">Check your official zone on the City's evacuation page ↗</a>`);
+      src.push(['Evacuation zone', 'sourced', 'The Genasys zone at the middle of this street segment (City of Berkeley GenasysZonesBerkeley layer and the Genasys Protect WFS, 2026-11-01). A long block can cross a zone line; the official lookup is the City\'s.']);
     }
     const why = src.length ? `<details class="g-src"><summary>Where these come from</summary>${src.map(([k, c, t]) => `<p><b>${k}</b> ${badge(c)} ${esc(t)}</p>`).join('')}</details>` : '';
     box.innerHTML = `<button class="g-x" aria-label="Close">✕</button><b>${esc(name)}</b>${lines.map(l => `<p>${l}</p>`).join('')}${why}`;
@@ -427,12 +542,13 @@ export function guidedUI(ctx) {
   }
   function explainBackups() {
     const R = backups() || [];
-    ctx.modal(`<div class="gx"><h2>Where traffic backed up in these runs</h2>
+    pop(`<div class="gx"><h2>Where traffic backed up in these runs</h2>
       <h3>What it counts</h3><p>For each hill street, the people in cars waiting on it, added up over the run, in person-hours: 10 people waiting 6 minutes count 1 person-hour. A car is waiting once it has been on its stretch of street longer than it takes to drive it with no traffic, checked every 30 model seconds. A resident's car carries its household and any carless neighbors riding with it, shared over the household's cars; a car from outside the area carries one person. Next-door stretches of one street are one row; the row's figure is the median over the ${runsN()} runs of ${esc(fireTitle())} at ${paceName()}, status quo, fall night, and rows below one person-hour are not listed.</p>
       <h3>Which streets</h3><p>Streets in Berkeley's Fire Zones 2–3 in zones ordered or warned during the run. Streets in the flats and the I-80 approaches are left out: there the model's queues form at different junctions from those the City's 2025 Evacuation Time Study found (Assumptions &amp; limits, Model performance).</p>
       <h3>In nearly every run, or varies</h3><p>"In nearly every run": the street is among that run's ${BACKUP_TOP} largest backups, with at least one person-hour, in all ${runsN()} runs. "Varies from run to run": in fewer. When most of the top 5 vary, the list is not shown.${R.length ? ` Here ${R.slice(0, 5).filter(r => r.label === 'consistent').length} of the top ${Math.min(5, R.length)} are in nearly every run.` : ''}</p>
       <h3>Where it comes from</h3><p>${badge('synthetic')} Synthetic households and their cars, placed from zone population counts and driven by the traffic model; ${badge('model rule')} the waiting rule and the sampling; ${badge('assumption')} one person in each car from outside the area. Stored table: data/model/spread-access.json backups (tools/spread-access.mjs), built ${esc(spread()?.meta?.built || '')}.</p>
-      <h3>Limits</h3><p>The model's road delays are about a tenth of the 2025 Evacuation Time Study's (median road time 2–7 min against the study's 40–80 min on a 1923 weekday; SOURCE_NOTES CD1, CD19), and its queues form at different junctions from the study's (CD25), so the ranking of hill streets may move where the junctions downstream differ. A person-hour of waiting is time spent in a slow or stopped car, not harm. Where the fire closes a street, cars on it stop counting once they reroute or the run ends.</p></div>`, 'gx');
+      <h3>Limits</h3><p>The model's road delays are about a tenth of the 2025 Evacuation Time Study's (median road time 2–7 min against the study's 40–80 min on a 1923 weekday; SOURCE_NOTES CD1, CD19), and its queues form at different junctions from the study's (CD25), so the ranking of hill streets may move where the junctions downstream differ. A person-hour of waiting is time spent in a slow or stopped car, not harm. Where the fire closes a street, cars on it stop counting once they reroute or the run ends.</p></div>`,
+      'These are the hill streets where simulated cars sat waiting longest during the evacuation, adding up everyone\'s waiting time. A street marked "in nearly every run" backed up in all five runs of this fire.');
   }
   // The other paces' medians under a result (GV21); one way out is the street network, the same in every run.
   function paceLine(c, f) {
@@ -466,22 +582,24 @@ export function guidedUI(ctx) {
   }
   function explain(id) {
     const c = cardById(id), f = baseFigure(c), L = f.label, w = watched(c);
-    if (f.na) return ctx.modal(`<div class="gx"><h2>Not computed for this fire: ${c.line}</h2><p>${esc(f.na)} The figure for today's streets is ${n(model().oneWay(data.access).value)} ${badge('derived')}.</p><h3>What it counts</h3><p>${c.counts}</p></div>`, 'gx');
+    if (f.na) return pop(`<div class="gx"><h2>Not computed for this fire: ${c.line}</h2><p>${esc(f.na)} The figure for today's streets is ${n(model().oneWay(data.access).value)} ${badge('derived')}.</p><h3>What it counts</h3><p>${c.counts}</p></div>`,
+      'This number is not worked out for this fire, because the earthquake closes streets and changes the street map it depends on. The details say which streets.');
     const sev = f.bySev ? `Range at ${paceName()}: ${n(f.min)}–${n(f.max)}. Median at each fire pace: ${PACES.map(p => `${p.label} ${n(f.bySev[p.sev].median)}`).join(', ')}.` : '';
     const label = MEANS[L.label] + (L.bySeverity ? ' Here the low- and high-severity medians differ by more than 25%.' : '') + (L.parking ? ` Under the night parking rule used before the 2026-11-05 count: ${n(f.alt)}.` : '');
     const runs = c.id === 'oneWay' ? `The street network is the same in every run, so this does not change from run to run. ${fmt(f.areas)} hill areas. The Ways out map chip shows which of these ways out the fire reached in the runs of this fire.`
       : c.id === 'engine' ? `${runSet()}. Engine reach is measured at ignition, so it depends on the night's parked cars (one draw per seed)${NETWORK_FIRES[state.fire] ? ' and on the streets the earthquake closes at the fault' : ''} and not on the fire. ${sev}`
       : `${runSet()}. ${sev}`;
     const cat = provenance(c);
-    ctx.modal(`<div class="gx"><h2>${n(f.value)} ${c.line}</h2>
+    pop(`<div class="gx"><h2>${n(f.value)} ${c.line}</h2>
       <h3>What it counts</h3><p>${c.counts}</p>
       <h3>The runs behind it</h3><p>${runs}</p>
       <h3>${chipHTML(L, c.id === 'oneWay' ? 'network' : 'result')}</h3><p>${label}</p>
       ${splitExplain(c)}
       <h3>Where it comes from</h3><p>${cat}</p>
       ${c.id === 'ember' ? `<h3>Where the embers go</h3><p>${EMBER_NOTE}</p>` : ''}
+      ${c.id === 'engine' ? engineMapNote() : ''}
       <h3>Limits</h3><p>${c.id === 'engine' && NETWORK_FIRES[state.fire] ? c.limits.replace(' The same on every fire.', ' Here it differs from the other fires: the earthquake closes the streets that cross the fault to engines.') : c.limits}</p>
-      ${w != null ? `<h3>The run you watched</h3><p>${n(w)} (${paceName()}, seed 1)${g.applied.length ? ', with your changes' : ''}.</p>` : ''}</div>`, 'gx');
+      ${w != null ? `<h3>The run you watched</h3><p>${n(w)} (${paceName()}, seed 1)${g.applied.length ? ', with your changes' : ''}.</p>` : ''}</div>`, c.plain);
   }
   // Explain this, the four parts: what each counts, its median by severity, and the on-road limit (GV13).
   function splitExplain(c, title = 'Who they are') {
@@ -582,14 +700,15 @@ export function guidedUI(ctx) {
   // How the Changes view's gains, groups and labels are made (SOURCE_NOTES GV6).
   function aboutGains() {
     const M = mit(), runs = runsN();
-    ctx.modal(`<div class="gx"><h2>About these gains</h2>
+    pop(`<div class="gx"><h2>About these gains</h2>
       <h3>What a gain is</h3><p>Each change was run against the status quo on ${runs} paired runs of ${esc(fireTitle())} at ${paceName()} (random seeds ${M.meta.seeds[0]}–${M.meta.seeds.at(-1)}, a fall night): the same fire, households and parked cars with and without the change. The gain is the median of the ${runs} differences. Changing the fire pace changes the gains and can move a change between groups.</p>
       <h3>Where it comes from</h3><p>${badge('synthetic')} Synthetic households placed from zone population counts, on an illustrative ${badge('model rule')} fire. Stored table: data/model/mitigations.json, built ${esc(M.meta.built)}.</p>
       <h3>Groups</h3><p>${badge('model rule')} A change joins a group when it does better on that result in all 5 runs at this pace, or in 4 with the fifth exactly the same, and is worse in no run on any of the group's results. A change can sit in more than one group. The rest are folded under "Other changes tested": worse on some result in every run ("Worse in every run"), withheld on this fire ("Not offered on this fire"; these cannot be picked here), or neither ("No consistent change").</p>
       <h3>Fewer buildings lost: the order</h3><p>Zone 0 ranks above home hardening here because the model leaves out embers lighting the first house, which hardening is meant to prevent; it counts only losses where the fire front reaches a building. The order is not a ranking of effectiveness.</p>
       <h3>This fire or any wildfire</h3><p>Engine reach is measured at ignition, so its gain is the same on every fire except the earthquake, which closes streets at the fault. People and cars depend on the fire.</p>
       <h3>Labels</h3><p><b>Better in all 5 runs</b>: better in each of the 5 paired runs at this pace (the rule is at least 90% of the runs, which of 5 is all 5). <b>Varies from run to run</b>: ${MEANS.mixed} Any difference counts, as in the stored table.</p>
-      <h3>Costs</h3><p>Tap a cost for its source and category.</p></div>`, 'gx');
+      <h3>Costs</h3><p>Tap a cost for its source and category.</p></div>`,
+      'Each change was tried against the status quo on the same five simulated fires, with the same households and parked cars. The gain is the typical difference it made, and a change is listed under a result only when it helped in nearly every run.');
   }
 
   // A change's cost and where it comes from (lever.cost; js/mitigate.js costBadge): a screening range built from sourced
@@ -597,11 +716,12 @@ export function guidedUI(ctx) {
   function explainCost(l) {
     const c = l?.cost; if (!l) return;
     const cat = c?.capital ? 'derived' : /^Little capital/.test(c?.note || '') ? 'assumption' : null;
-    ctx.modal(`<div class="gx"><h2>${esc(l.title)}: ${esc(costLine(c))}</h2>
+    pop(`<div class="gx"><h2>${esc(l.title)}: ${esc(costLine(c))}</h2>
       <h3>Where it comes from</h3><p>${cat ? badge(cat) : badge('unknown')} ${c?.capital ? 'A screening range, not a project budget or appraisal.' : cat ? 'This project\'s judgment that the change needs little capital spending; its other costs are not priced.' : 'No cost estimate in this table.'}</p>
       ${c?.note ? `<h3>Notes</h3><p>${esc(sq(c.note))}</p>` : ''}
       ${c?.source ? `<h3>Source</h3><p>${esc(c.source)}</p>` : ''}
-      ${l.cannotMeasure ? `<h3>What the simulator can't tell you</h3><p>${esc(sq(l.cannotMeasure))}</p>` : ''}</div>`, 'gx');
+      ${l.cannotMeasure ? `<h3>What the simulator can't tell you</h3><p>${esc(sq(l.cannotMeasure))}</p>` : ''}</div>`,
+      c?.capital ? 'This is a rough range for what the change could cost to build, meant for comparing changes with each other. It is not a budget.' : cat ? 'This change needs little spending on construction; its other costs, such as staff time or people\'s time, are not priced. The details say what the simulator cannot tell you about it.' : 'There is no cost estimate for this change. The details say what the simulator cannot tell you about it.');
   }
 
   // ---------- comparison ----------
@@ -640,14 +760,15 @@ export function guidedUI(ctx) {
     const w = watched(c), src = g.applied.length === 1 ? `From the stored table (data/model/mitigations.json), built ${esc(mit().meta.built)}.` : 'Run live in your browser.';
     const passes = r.network ? (r.gain ? `New roads give about ${fmt(round10(r.gain))}${r.atLeast ? ' or more' : ''} hill residents a second way out ${badge('derived')} (data/model/egress-candidates.json, network analysis of 2026-11-01).${r.atLeast ? ' Two of your roads give a second way out to some of the same areas, so the larger single figure is shown as a floor.' : ''} Buyouts remove households but are not subtracted here.` : 'None of your changes adds a road, so the street network\'s single ways out stay as they are.')
       : `${runSet()}, each run with and without the changes. Better in ${r.d.better}, worse in ${r.d.worse}, the same in ${r.d.same} of ${r.d.n}. ${src}`;
-    ctx.modal(`<div class="gx"><h2>${cap(c.line)}: ${n(r.a)} → ${n(r.b)}</h2>
+    pop(`<div class="gx"><h2>${cap(c.line)}: ${n(r.a)} → ${n(r.b)}</h2>
       <h3>What it counts</h3><p>${c.counts}</p>
       <h3>The runs behind it</h3><p>${passes}</p>
       ${splitExplain(c, 'Who they are, status quo')}
       <h3>Where it comes from</h3><p>${provenance(c)}${r.network && r.gain ? ` Second ways out from new roads ${badge('derived')}: data/model/egress-candidates.json.` : ''}</p>
       <h3>${chipHTML(r.d, r.network ? 'networkChange' : 'change')}</h3><p>${r.network ? '' : `${meansChange(r.d)} Any difference counts as better or worse; the label says whether it holds across the runs. The median change (${r.gain > 0 ? '−' : '+'}${n(Math.abs(r.gain))}) is the median of the paired differences, not the difference of the two medians.`}</p>
       <h3>Limits</h3><p>${c.limits}</p>
-      ${w != null ? `<h3>The run you watched</h3><p>${n(w)} with your changes (${paceName()}, seed 1).</p>` : ''}</div>`, 'gx');
+      ${w != null ? `<h3>The run you watched</h3><p>${n(w)} with your changes (${paceName()}, seed 1).</p>` : ''}</div>`,
+      'This compares the same simulated fires with and without your changes, run by run. The difference is the typical change; green means fewer, amber means more.');
   }
 
   // ---------- live comparison (two or three changes) ----------
@@ -655,7 +776,7 @@ export function guidedUI(ctx) {
   function startLive() {
     cancelLive();
     if (g.applied.length < 2) return;
-    g.live = ctx.runLive(g.applied.map(leverById), g.pace, () => { if (g.screen === 'results') { const y = $('g-panel').scrollTop; $('g-panel').innerHTML = compareHTML(); $('g-panel').scrollTop = y; wirePanel(); } });
+    g.live = ctx.runLive(g.applied.map(leverById), g.pace, () => { if (g.screen === 'results') { const y = $('g-panel').scrollTop; $('g-panel').innerHTML = compareHTML(); $('g-panel').scrollTop = y; wirePanel(); } else if (g.live?.done) refresh(); }); // the map caption's figure, once the live runs finish
   }
 
   // ---------- panel events ----------
@@ -686,9 +807,10 @@ export function guidedUI(ctx) {
   function rerender() { const y = $('g-panel').scrollTop; show(g.screen); $('g-panel').scrollTop = y; }
 
   return {
-    enter() { G = null; map.barriers = false; map.queueSmooth = true; setup(); if (done()) frameSummary(); else frameStart(); show(g.screen === 'map' ? 'map' : g.screen); },
-    leave() { map.barriers = true; map.queueSmooth = false; map.marks = []; },
+    enter() { G = null; map.barriers = false; map.queueSmooth = true; map.labels = LABELS; setup(); if (done()) frameSummary(); else frameStart(); show(g.screen === 'map' ? 'map' : g.screen); },
+    leave() { map.barriers = true; map.queueSmooth = false; map.marks = []; map.labels = null; map.noShelters = false; openFind(false); }, // Expert's shelters draw again (Codex, PR #101)
     refresh, legendHTML, sheet, pickFire,
+    keyView: () => done() ? g.chip : 'run',
     title: () => `${fireTitle()}, ${paceName()}`,
     onRunEnd() { g.chip = 'fire'; refresh(); if (g.follow) frameSummary(true); },
     tick,
