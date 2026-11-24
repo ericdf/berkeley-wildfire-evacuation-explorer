@@ -229,7 +229,8 @@ wind), on three winds measured at the Oakland North weather station: a spring af
 4:18 p.m. (from 205°, 7.0 mph easing to 5.4 mph), a winter day with a north wind (0°, 5.9 to 9.2 mph)
 and the rare dry east wind (45° at 30 mph), which reaches the most structures of the three; that
 count extrapolates Hamada's urban wind term beyond the 7 mph breeze the rate was fitted in (FW21). Guided
-view names its paces Slower, HayWired pace and Faster. Fault closures and dark signals come with
+view names its paces Slower, HayWired pace and Faster: half and twice the HayWired rate, without the
+1991 pace's first-hour burst (FW24). Fault closures and dark signals come with
 them. HayWired's burned estimate already allows for broken water mains and too few engines, so the fitted
 rate includes both; not modeled: HayWired's block-to-block spread across streets and firebreaks (FW21).
 

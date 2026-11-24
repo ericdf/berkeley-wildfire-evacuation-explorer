@@ -84,7 +84,7 @@ const PACE_LEAD = {
 const QUAKE_PACE_LEAD = {
   low: 'Slower is a fire that spreads at half the speed of the HayWired pace.',
   central: 'HayWired pace burns about as many buildings in Berkeley in 6 hours as the USGS HayWired earthquake scenario does, in the ordinary spring breeze.',
-  high: 'Faster reaches about 1,070 buildings in Berkeley in its first hour, against about 130 at the HayWired pace, then spreads at the HayWired pace.',
+  high: 'Faster is a fire that spreads at twice the speed of the HayWired pace.',
 };
 // The City's fire weather and evacuation page, also in the ⓘ menu (index.html).
 const CITY_EVAC = 'https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation';

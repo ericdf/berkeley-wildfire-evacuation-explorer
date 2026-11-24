@@ -169,6 +169,9 @@ export function windSegments(sc, sev) {
 
 // Run the overlay. Returns arrival and ember-exposure times in minutes (Infinity = never).
 export function runFire(grid, sc, sev, seed) {
+  // A scenario may run a severity its own way (sc.paceFor): the earthquake fires' Faster pace is twice the HayWired rate
+  // with no first-hour burst (js/scenarios.js; SOURCE_NOTES FW24).
+  if (sc.paceFor) sev = sc.paceFor(sev);
   const { W, H, elev, fuel } = grid;
   const spot = grid.spotFuel ?? fuel; // the proxy factor; only the LANDFIRE setting (withLandfireFuel) gives a separate one
   const N = W * H;

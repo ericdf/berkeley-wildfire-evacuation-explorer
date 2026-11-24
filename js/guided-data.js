@@ -22,7 +22,7 @@ const QUAKE_LIMIT = 'HayWired\'s burned area already allows for water mains brok
 export const QUAKE_PACES = [
   { sev: 'low', label: 'Slower', explain: `Half the HayWired pace's head spread rate, with fewer spot fires. No source anchors it; it is a slower case, not a floor. ${QUAKE_LIMIT}` },
   { sev: 'central', label: 'HayWired pace', explain: `The head spread rate is fitted so the spring-afternoon fire reaches about as many structures in Berkeley in 6 hours as the USGS HayWired scenario burns there (about 2,270 single-family-home equivalents of floor area; SOURCE_NOTES EQ11, FW12). The wind and the fire zones then set how fast each part burns. The default pace. ${QUAKE_LIMIT}` },
-  { sev: 'high', label: 'Faster', explain: `Faster than the HayWired pace for the first hour, then at the HayWired pace, never slower: the 1991 pace's rule applied to the earthquake's rate (SOURCE_NOTES FW6). No source anchors it. ${QUAKE_LIMIT}` },
+  { sev: 'high', label: 'Faster', explain: `Twice the HayWired pace's head spread rate for the whole run, with the same spot fires, as Slower is half of it. No source anchors it. It does not take the 1991 pace's first-hour burst, which comes from one wildfire's run in a Diablo wind (SOURCE_NOTES FW24). ${QUAKE_LIMIT}` },
 ];
 export const pacesFor = fire => (/^quake/.test(fire || '') ? QUAKE_PACES : PACES);
 export const paceOf = (sev, fire) => { const P = pacesFor(fire); return P.find(p => p.sev === sev) || P[1]; };
