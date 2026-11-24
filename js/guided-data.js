@@ -228,7 +228,7 @@ export function makeGuided(M, SA, presets = [], leverOff = {}) {
 // Cost line and sort key (lever.cost; js/mitigate.js costText): a screening range, little capital cost, or not priced.
 const money = v => v >= 1e9 ? `$${(v / 1e9).toFixed(1)}B` : v >= 1e6 ? `$${(v / 1e6).toFixed(v < 1e7 ? 1 : 0)}M` : v >= 1e3 ? `$${Math.round(v / 1e3)}k` : `$${Math.round(v)}`;
 const little = c => /^Little capital/.test(c?.note || '');
-export const costLine = c => c?.capital ? `${money(c.capital[0])}–${money(c.capital[1])}` : little(c) ? 'Little capital cost' : 'No cost estimate';
+export const costLine = c => c?.capital ? `${money(c.capital[0])}–${money(c.capital[1])}` : little(c) ? 'Little capital cost' : 'Not priced';
 export const costKey = c => c?.capital ? c.capital[0] : little(c) ? 0 : Infinity;
 
 // Sort a group's items: by gain (largest first) or by cost (cheapest first); unpriced last either way when sorting by cost.

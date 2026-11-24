@@ -495,13 +495,14 @@ export function guidedUI(ctx) {
   // A shorter name in the Changes rows where the table's title runs to three lines on a phone (Eric, 2026-11-23); the
   // full title stays in the cost pop-up, the comparison and the map tag.
   const SHORT = { leaveEarlyEFW: 'Leave on Extreme Fire Weather (10 zones)',
-    // The Red Flag change is this project's hypothetical (half of hill households leave); the City's policy is the
-    // Extreme Fire Weather change, listed before it (reviewer subagent, MASTER, 2026-11-23; SOURCE_NOTES GV36).
-    leaveEarly: 'Leave early on a Red Flag day (hypothetical: half leave)' };
+  };
   // A line on the row itself for changes whose gain is easy to misread (GV36).
-  const BUYOUT = 'Not a proposal. Its gain comes partly from bought-out households no longer being counted.';
+  // The Red Flag change is this project's hypothetical; the City's policy is the Extreme Fire Weather change, listed
+  // before it (reviewer subagent, MASTER, 2026-11-23; SOURCE_NOTES GV36).
+  const BUYOUT = 'Not a proposal; gains partly because bought-out households are no longer counted.';
   const NOTES = { 'retreat-footBlock': BUYOUT, 'retreat-top100': BUYOUT, 'retreat-panoramicUpper': BUYOUT,
-    parkingOneSide: 'Engine access only; does not change who gets out. Rests on one night\'s count of 11 blocks (2026-11-05).' };
+    leaveEarly: 'Hypothetical: half of hill households leave.',
+    parkingOneSide: 'Engine access only, not who gets out. From one night\'s count of 11 blocks.' };
   // The City's policy before the hypothetical Red Flag change when both are listed.
   const policyFirst = items => {
     const i = items.findIndex(it => it.lever.id === 'leaveEarly'), j = items.findIndex(it => it.lever.id === 'leaveEarlyEFW');
@@ -556,7 +557,7 @@ export function guidedUI(ctx) {
       return banded(shown, it => row(it, gr.id)) + ctl;
     };
     // Zone 0 ranks above hardening because the model leaves out embers igniting the first house (GV36).
-    const GROUP_NOTE = { homes: 'The order is not a ranking of effectiveness: the model leaves out embers igniting the first house, which hardening is meant to prevent.' };
+    const GROUP_NOTE = { homes: 'The order is not a ranking of effectiveness (About these gains).' };
     // The changes that help no result (worse in every run, no consistent change, not offered here) come last, in one
     // fold, unless one of them is picked.
     // A change designed but not simulated (docs/design/assisted-evacuation.md, option B; GV38).
@@ -585,6 +586,7 @@ export function guidedUI(ctx) {
       <h3>What a gain is</h3><p>Each change was run against the status quo on ${runs} paired runs of ${esc(fireTitle())} at ${paceName()} (random seeds ${M.meta.seeds[0]}–${M.meta.seeds.at(-1)}, a fall night): the same fire, households and parked cars with and without the change. The gain is the median of the ${runs} differences. Changing the fire pace changes the gains and can move a change between groups.</p>
       <h3>Where it comes from</h3><p>${badge('synthetic')} Synthetic households placed from zone population counts, on an illustrative ${badge('model rule')} fire. Stored table: data/model/mitigations.json, built ${esc(M.meta.built)}.</p>
       <h3>Groups</h3><p>${badge('model rule')} A change joins a group when it does better on that result in all 5 runs at this pace, or in 4 with the fifth exactly the same, and is worse in no run on any of the group's results. A change can sit in more than one group. The rest are folded under "Other changes tested": worse on some result in every run ("Worse in every run"), withheld on this fire ("Not offered on this fire"; these cannot be picked here), or neither ("No consistent change").</p>
+      <h3>Fewer buildings lost: the order</h3><p>Zone 0 ranks above home hardening here because the model leaves out embers lighting the first house, which hardening is meant to prevent; it counts only losses where the fire front reaches a building. The order is not a ranking of effectiveness.</p>
       <h3>This fire or any wildfire</h3><p>Engine reach is measured at ignition, so its gain is the same on every fire except the earthquake, which closes streets at the fault. People and cars depend on the fire.</p>
       <h3>Labels</h3><p><b>Better in all 5 runs</b>: better in each of the 5 paired runs at this pace (the rule is at least 90% of the runs, which of 5 is all 5). <b>Varies from run to run</b>: ${MEANS.mixed} Any difference counts, as in the stored table.</p>
       <h3>Costs</h3><p>Tap a cost for its source and category.</p></div>`, 'gx');
@@ -630,7 +632,7 @@ export function guidedUI(ctx) {
         <div class="rc-f">${r ? chipHTML(r.d, r.network ? 'networkChange' : 'change') : ''}<button class="linkish" data-explain-cmp="${c.id}"${r ? '' : ' disabled'} aria-label="Explain this: ${esc(stripTags(c.line))}">Explain this</button></div></section>`;
     }).join('');
     const title = ls.length === 1 ? `With ${esc(ls[0].title.charAt(0).toLowerCase() + ls[0].title.slice(1))}` : `With ${ls.length} changes`;
-    const sub = `${ls.length > 1 ? `${ls.map(l => esc(l.title)).join('; ')}. ` : ''}${esc(fireTitle())} · ${runs} paired runs at ${paceName()}: same fire, households and parked cars with and without. Against the ${sqBtn('status quo')}. The median change is the median of the ${runs} paired differences, so it need not equal the difference of the two medians`;
+    const sub = `${ls.length > 1 ? `${ls.map(l => esc(l.title)).join('; ')}. ` : ''}${esc(fireTitle())} · ${runs} paired runs at ${paceName()}: same fire, households and parked cars with and without. Against the ${sqBtn('status quo')}. Median change: the median of the ${runs} paired differences`;
     return `${head(title, sub)}${prog}${cards}${footHTML('compare')}`;
   }
   function explainCompare(id) {
