@@ -470,11 +470,7 @@ header :focus-visible { outline-color: #fbbf24; box-shadow: none; }
 /* Guided text size (reviewer round via MASTER, 2026-11-23; GV41): base text --gfs, secondary lines 2 px smaller. */
 /* --gfs-read: Explain this pop-ups and the street card at 16 px (MASTER, 2026-11-24). The Results and Changes lists keep
    their sizes: at 14 px iPhone SE Changes reached 2.71–2.76 screens on three fires, over MASTER's 2.6 limit. */
-body.simple { --gfs-read: 16px; --gfs: 14px; }
-body.simple .gv-head p, body.simple .rc-p, body.simple .bk-sub, body.simple .bk-note { font-size: calc(var(--gfs) - 1px); }
-body.simple .rc-l { font-size: calc(var(--gfs) + 1px); }
-body.simple .cr-t, body.simple .bk-row { font-size: var(--gfs); }
-body.simple .cr-s, body.simple .bk-v, body.simple .sp-key { font-size: calc(var(--gfs) - 1px); }
+body.simple { --gfs-read: 16px; } /* lists keep their sizes: after main's #100, SE Changes is 2.67–2.80 even at the old sizes */
 body.simple .gx p, body.simple .gx li, body.simple .gx-lead { font-size: var(--gfs-read); }
 body.simple .gx h3 { font-size: var(--gfs-read); }
 body.simple #g-sheet { font-size: var(--gfs-read); }
