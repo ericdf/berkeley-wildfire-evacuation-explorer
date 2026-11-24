@@ -155,6 +155,10 @@ for (const [di, name] of DEVICES.entries()) {
   await p.click('#g-find-btn'); await p.keyboard.type('telegraph av');
   await p.locator('#g-find-list [role="option"]', { hasText: 'Telegraph Av' }).first().click(); await p.waitForTimeout(900);
   check((await p.locator('#g-caption').innerText()) === 'Telegraph Av' && /Telegraph Av/.test(await p.locator('#g-sheet').innerText()), `${name}: search finds Telegraph Av and opens its card`);
+  // From Results the search returns to the map so the box can be used (Codex, PR #101).
+  await p.click('#g-explore'); await p.click('#g-find-btn');
+  check(!(await visible('#g-panel')) && await p.locator('#g-find-in').isVisible(), `${name}: opening the search from Results goes back to the map`);
+  await p.keyboard.press('Escape');
   await p.click('#g-find-btn'); await p.keyboard.type('zzqq');
   check(/No street by that name/.test(await p.locator('#g-find-list').innerText()), `${name}: an unknown name says so`);
   await p.keyboard.press('Escape');

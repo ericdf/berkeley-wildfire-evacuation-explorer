@@ -356,6 +356,7 @@ export function guidedUI(ctx) {
   const findBox = $('g-find'), findIn = $('g-find-in'), findList = $('g-find-list'), findBtn = $('g-find-btn');
   let findHits = [], findAt = -1;
   function openFind(on) {
+    if (on && g.screen !== 'map') show('map'); // the search sits over the map, under the Results and Changes panel (Codex, PR #101)
     findBox.hidden = !on; findBtn.setAttribute('aria-expanded', String(on));
     if (on) { findIn.value = ''; listFind(); findIn.focus(); } else { findList.hidden = true; findIn.setAttribute('aria-expanded', 'false'); }
   }
