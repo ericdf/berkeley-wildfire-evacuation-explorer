@@ -9,7 +9,7 @@
 // Figures come from data/model/mitigations.json and spread-access.json through js/guided-data.js. "Status quo" was
 // "today's plan" until 2026-11-23, and the fire pace (Slower, 1923 pace, 1991 pace: low, medium and high severity)
 // came back to Guided view then (Eric, MASTER session; SOURCE_NOTES GV21, GV22).
-import { CARDS, GROUPS, cardById, makeGuided, sortItems, costLine, costKey, streetsOf, round10, SEVS, median, NETWORK_FIRES, PACES, pacesFor, paceOf, DEFAULT_PACE, backupRows, blockRange, BACKUP_TOP, BACKUP_ROW_MIN } from './guided-data.js';
+import { CARDS, GROUPS, cardById, makeGuided, sortItems, costLine, costKey, streetsOf, round10, SEVS, median, NETWORK_FIRES, PACES, pacesFor, paceOf, DEFAULT_PACE, backupRows, blockRange, blocksOf, BACKUP_TOP, BACKUP_ROW_MIN } from './guided-data.js';
 import { presence, direction, assumption } from './robust.js';
 import { CELL } from './fire.js';
 import { swatch } from './map.js';
@@ -63,7 +63,9 @@ const meansChange = d => d?.label !== 'consistent' ? MEANS[d?.label] || ''
 const SCOPE = { this: 'this fire', any: 'any wildfire' }; // the earthquake closes streets at the fault, so engine reach differs there (GV36)
 // Where the modeled embers go, against the County's ember map (Eric, 2026-11-23, MASTER session; SOURCE_NOTES FV11, GV14).
 const EMBER_MAP = 'https://berkeley.maps.arcgis.com/apps/mapviewer/index.html?webmap=3c5e1686ebc543ffbdd1eb8698b51fe2';
-const EMBER_NOTE = `The modeled embers follow each fire's start, wind, slope and fuel, not Alameda County's Ember Threat Zones: on four wildfires the two barely agree (rank correlation −0.09 over 7,853 cells, medium severity, measured 2026-11-24). <a href="${EMBER_MAP}" target="_blank" rel="noopener">The County's fire pathways and ember map ↗</a>`;
+const EMBER_NOTE = `Where the modeled embers land follows each fire's start, wind, slope and fuel; it does not follow Alameda County's Ember Threat Zones. <a href="${EMBER_MAP}" target="_blank" rel="noopener">The County's fire pathways and ember map ↗</a>`;
+// The figure behind it, in the embers card's Details only (reviewer subagents round 2 via MASTER, 2026-11-24; GV43).
+const EMBER_FIG = 'Across four wildfires at medium severity, the modeled ember reach and the County zones rank 7,853 cells with a rank correlation of −0.09, close to none (measured 2026-11-24; docs/fire-validation.md).';
 
 // Street and landmark names drawn on the Guided map once zoomed in (js/map.js drawLabels; GV41). Landmark points are
 // in the network's meters, placed from its streets: the campus between Oxford St, Gayley Rd, Bancroft Wy and Hearst Av;
@@ -87,7 +89,7 @@ const QUAKE_PACE_LEAD = {
 // The City's fire weather and evacuation page, also in the ⓘ menu (index.html).
 const CITY_EVAC = 'https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation';
 // Short fire names for the flats line under the fire picker (FL4).
-const SHORT_FIRE = { eastWind: 'the east wind', ref1923: 'the 1923 repeat', panoramic: 'Panoramic Hill', northHills: 'the north hills', quake: 'the earthquake', westWind: 'the west wind' };
+const SHORT_FIRE = { eastWind: 'east-wind', ref1923: '1923 repeat', panoramic: 'Panoramic Hill', northHills: 'north hills', quake: 'earthquake', westWind: 'west-wind' };
 
 export function guidedUI(ctx) {
   const { data, map, state, $, esc, fmt, FIRES, PRESETS, mit, spread, MEASURES, badge } = ctx;
@@ -191,9 +193,9 @@ export function guidedUI(ctx) {
     const names = f => f.map(x => SHORT_FIRE[x] || x), list = xs => xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs.at(-1)}`;
     const out = all.filter(f => !F.includes(f));
     el.textContent = !F.length ? 'At this pace, no fire\'s embers reach streets in Berkeley\'s flats in a typical run.'
-      : out.length === 1 ? `At this pace, embers reach streets in Berkeley's flats on every fire but ${names(out)[0]}.`
-      : !out.length ? 'At this pace, embers reach streets in Berkeley\'s flats on every fire.'
-      : `At this pace, embers reach streets in Berkeley's flats on ${list(names(F))}.`;
+      : out.length === 1 ? `At this pace, embers reach streets in Berkeley's flats in every fire but the ${names(out)[0]} fire.`
+      : !out.length ? 'At this pace, embers reach streets in Berkeley\'s flats in every fire.'
+      : `At this pace, embers reach streets in Berkeley's flats in the ${list(names(F))} fire${F.length > 1 ? 's' : ''}.`;
     el.hidden = false;
   }
 
@@ -225,12 +227,12 @@ export function guidedUI(ctx) {
     // A backup street tapped on Results shows before or after a run (the list reads the stored runs; Codex, PR #94).
     // After a run each map view's caption states its finding, with an Explain this (Eric, 2026-11-24; GV42).
     const finding = d && !g.focus ? FINDING[g.chip]?.() : null;
-    const cap = g.focus ? g.focus.caption || `${g.focus.street}: where traffic backed up in these runs` : !s ? '' : !d ? 'Red: cars backed up'
+    const cap = g.focus ? g.focus.find ? findCaption(g.focus) : g.focus.caption || `${g.focus.street}: where traffic backed up in these runs` : !s ? '' : !d ? 'Blue: cars backed up'
       : finding ? finding.text : '';
     $('g-caption').hidden = !cap;
     if (finding) { $('g-caption').innerHTML = `${esc(cap)} <button class="linkish g-cap-x" data-cap-explain="${finding.card}">Explain this</button>`; $('g-caption').querySelector('[data-cap-explain]').onclick = () => finding.cmp ? explainCompare(finding.card) : explain(finding.card); } // a with-changes figure opens its comparison's pop-up (Codex, PR #101)
+    else if (g.focus?.find && findCount(g.focus)) { $('g-caption').innerHTML = `${esc(cap)} <button class="linkish g-cap-x" data-find-explain>Explain this</button>`; $('g-caption').querySelector('[data-find-explain]').onclick = findExplain; }
     else $('g-caption').textContent = cap;
-    keyOnce();
     if (!d) $('g-sheet').hidden = true;
     mapLayers();
   }
@@ -255,13 +257,14 @@ export function guidedUI(ctx) {
     ways: () => { const o = model().oneWay(data.access, state.fire); if (o.na) return { card: 'oneWay', text: 'Streets with one way out: not computed on the earthquake\'s street network.' }; const f = capFig('oneWay', o.value); return { card: 'oneWay', cmp: f.cmp, text: `Red: one-way-out streets the fire front reached in every run. ${n(f.v)} hill residents live on streets with one way out${f.tag}.` }; },
     engine: () => { const f = capFig('engine', baseFigure(cardById('engine')).value); return { card: 'engine', cmp: f.cmp, text: `Red: hill streets no engine reaches within ${data.A.access.engineServiceMin} minutes, mostly because parked cars narrow them (${n(f.v)} residents${f.tag}).` }; },
   };
-  // The key opens by itself the first time each map view is shown in a session, then follows the remembered choice.
   const keySeen = new Set();
-  function keyOnce() { const v = done() ? g.chip : 'run'; if (keySeen.has(v)) return; keySeen.add(v); if (done()) ctx.keyOpenFor?.(v); }
+  // The key opens by itself the first time each map chip is chosen, not when a run ends (reviewer subagents round 2 via
+  // MASTER, 2026-11-24; GV43): the finding caption already says what the colors show.
+  function keyOnce() { if (!done() || keySeen.has(g.chip)) return; keySeen.add(g.chip); ctx.keyOpenFor?.(g.chip); }
   $('g-run').onclick = () => { g.focus = null; if (!started() && g.follow) frameFire(true); ctx.play(!state.playing); refresh(); };
   $('g-again').onclick = () => { setup(); frameFire(); ctx.play(true); refresh(); };
   $('g-explore').onclick = () => show('results');
-  $('g-chips').addEventListener('click', e => { const b = e.target.closest('[data-chip]'); if (!b) return; g.chip = b.dataset.chip; g.focus = null; refresh(); // a chip clears a backup street's highlight (Codex, PR #94)
+  $('g-chips').addEventListener('click', e => { const b = e.target.closest('[data-chip]'); if (!b) return; g.chip = b.dataset.chip; g.focus = null; refresh(); keyOnce(); // a chip clears a backup street's highlight (Codex, PR #94)
     if (g.sel) sheet(g.sel); });
 
   // ---------- map view: framing and auto-zoom (MASTER, 2026-11-23; SOURCE_NOTES GV18) ----------
@@ -404,13 +407,37 @@ export function guidedUI(ctx) {
     if (!h) return;
     openFind(false); if (g.screen !== 'map') show('map');
     let b = null; for (const id of h.edges) for (const [x, y] of data.net.edges[id].geom) b = grow(b, x, y);
-    g.focus = { street: h.street, caption: h.street, edges: h.edges, find: true };
+    g.focus = { street: h.street, edges: h.edges, find: true };
     g.follow = false; goTo(pad(b, 150), true);
     if (done()) { // the street card for the segment nearest the street's middle
       const cx = (b[0] + b[2]) / 2, cy = (b[1] + b[3]) / 2, mid = id => data.edgeMid[id], d = id => (mid(id)[0] - cx) ** 2 + (mid(id)[1] - cy) ** 2;
-      const id = h.edges.reduce((a, x) => d(x) < d(a) ? x : a); map.selected = { kind: 'edge', id }; sheet(map.selected);
+      const id = h.edges.reduce((a, x) => d(x) < d(a) ? x : a); g.focus.mid = id; map.selected = { kind: 'edge', id }; sheet(map.selected);
     }
     refresh(); $('map-live').textContent = `Showing ${h.street} on the map.`;
+  }
+  // A street chosen by name: how many of its blocks embers reached in at least one run at the pace, from the stored
+  // runs (spread-access.json; reviewer subagents round 2 via MASTER, 2026-11-24; SOURCE_NOTES GV43).
+  function findCount(f) {
+    const SA = spread(), C = SA && ctx.edgeClasses(state.fire, 'ember', [g.pace]);
+    const ids = SA ? f.edges.filter(id => id < SA.meta.edges) : [];
+    if (!C || !ids.length) return null;
+    const B = f.blocks ||= blocksOf(ids, data.net, data.nodeEdges); // a block counts once, reached if any of its pieces is
+    return [B.filter(b => b.some(id => (C.levels(id)[g.pace]?.[0] || 0) > 0)).length, B.length];
+  }
+  function findCaption(f) {
+    const k = findCount(f); if (!k) return f.street;
+    return `Embers reached ${k[0]} of ${k[1]} block${k[1] === 1 ? '' : 's'} of ${f.street} in at least one run at this pace`;
+  }
+  // Where the searched street's count comes from (Codex review of PR #104): the same text in the caption's Explain
+  // this and in the street card's sources.
+  const FIND_SRC = () => `The illustrative fire model run on this fire's ignition and wind at ${paceName()}, random seeds 1–5 (data/model/spread-access.json); a street segment counts when embers reach the 30 m cell at its middle in at least one of the runs. Segments are grouped into blocks: pieces of the street join where no other named street meets them, and County pieces of one segment always join; a block counts if embers reached any piece. The fire does not depend on the plan.`;
+  function findExplain() {
+    const k = findCount(g.focus); if (!k) return;
+    pop(`<div class="gx"><h2>${k[0]} of ${k[1]} blocks of ${esc(g.focus.street)}</h2>
+      <h3>What it counts</h3><p>Blocks of ${esc(g.focus.street)} that embers reached in at least one of ${runsN()} runs of ${esc(fireTitle())} at ${paceName()}, out of the street's blocks on the modeled street network.</p>
+      <h3>Where it comes from</h3><p>${badge('model rule')} ${esc(FIND_SRC())}</p>
+      <h3>Limits</h3><p>${EMBER_NOTE}</p></div>`,
+      'How many of this street\'s blocks the modeled embers reached in at least one run of this fire at this pace. Tap a block for its own count.');
   }
   findBtn.onclick = () => openFind(findBox.hidden);
   $('g-find-x').onclick = () => { openFind(false); findBtn.focus(); };
@@ -429,7 +456,7 @@ export function guidedUI(ctx) {
     Object.assign(map.layers, BASE);
     map.edgeClass = null; map.edgePalette = null; map.streetMode = 'class'; map.noShelters = false;
     if (!done()) { // during the run: fire and traffic only, streets gray (PR #79)
-      // Moving-car dots are left out and queues are smoothed, thin and one dark red (GV11), so traffic does not compete with the fire.
+      // Moving-car dots are left out and queues are smoothed, thin and one blue (GV11; blue since PR #100), so traffic does not compete with the fire.
       Object.assign(map.layers, { fire: true, queues: true });
       map.streetMode = 'robust'; map.edgeClass = {}; map.edgePalette = ['#a9a9a9'];
     } else if (g.chip === 'fire') {
@@ -517,11 +544,35 @@ export function guidedUI(ctx) {
       lines.unshift(`Evacuation zone <b class="g-zone">${esc(e.evacZone)}</b>. <a href="${CITY_EVAC}" target="_blank" rel="noopener">Check your official zone on the City's evacuation page ↗</a>`);
       src.push(['Evacuation zone', 'sourced', 'The Genasys zone at the middle of this street segment (City of Berkeley GenasysZonesBerkeley layer and the Genasys Protect WFS, 2026-11-01). A long block can cross a zone line; the official lookup is the City\'s.']);
     }
+    // A street chosen by name opens on the block nearest its middle: say which, and ask for the reader's own (GV43).
+    if (g.focus?.find && g.focus.mid === sel.id) {
+      const range = blockRange({ edges: [sel.id], name: e.name }, net, data.nodeEdges);
+      const k = findCount(g.focus);
+      if (k) src.unshift(['Blocks embers reached', 'model rule', FIND_SRC()]);
+      lines.unshift(`${k ? `<b>Embers reached ${k[0]} of ${k[1]} block${k[1] === 1 ? '' : 's'}</b> of this street in at least one run at this pace. ` : ''}This card: the block ${range ? (range.startsWith('near') ? esc(range) : `from ${esc(range)}`) : 'nearest the middle'}. Tap your own block on the map.`);
+    }
     const why = src.length ? `<details class="g-src"><summary>Where these come from</summary>${src.map(([k, c, t]) => `<p><b>${k}</b> ${badge(c)} ${esc(t)}</p>`).join('')}</details>` : '';
     box.innerHTML = `<button class="g-x" aria-label="Close">✕</button><b>${esc(name)}</b>${lines.map(l => `<p>${l}</p>`).join('')}${why}`;
-    box.hidden = false;
+    box.hidden = false; fitSheet();
     box.querySelector('.g-x').onclick = () => { box.hidden = true; map.selected = null; g.sel = null; map.draw(); };
   }
+
+  // A street card never covers an open key (reviewer subagents round 2 via MASTER, 2026-11-24; GV43): the card stops
+  // short of it and scrolls; with too little room the key scrolls in a shorter box too; with less still (iPhone SE) the
+  // key folds to its button for this view, without saving that choice, and opening it again shortens the card.
+  function fitSheet() {
+    const box = $('g-sheet'), K = $('legend'); box.style.maxHeight = ''; K.style.maxHeight = '';
+    if (box.hidden || K.hidden) return;
+    const L = K.getBoundingClientRect(), S = box.getBoundingClientRect();
+    if (!(L.bottom > S.top - 8 && L.left < S.right && L.right > S.left)) return;
+    if (!K.querySelector(':scope > div')) { box.style.maxHeight = `${Math.max(60, S.bottom - L.bottom - 8)}px`; return; } // the key's button
+    const room = S.bottom - L.top - 8; // for the key and the card together
+    let card = Math.min(S.height, Math.max(150, S.bottom - L.bottom - 8));
+    if (room - card < 100 && g.keyFolded !== g.sel) { g.keyFolded = g.sel; ctx.keyShutFor?.(done() ? g.chip : 'run'); return; }
+    if (room - card < 100) card = Math.max(60, room - Math.max(100, Math.round(room / 2))); // the key reopened by hand
+    box.style.maxHeight = `${card}px`; K.style.maxHeight = `${room - card}px`;
+  }
+  new MutationObserver(fitSheet).observe($('legend'), { childList: true });
 
   // ---------- results ----------
   function baseFigure(card) {
@@ -536,7 +587,7 @@ export function guidedUI(ctx) {
   const head = (title, sub) => `<div class="gv-head"><h2>${title}</h2><p>${sub}</p></div>`;
   function resultsHTML() {
     if (!mit() || !spread()) return `${head('Results', esc(fireTitle()))}<p>The run-set tables did not load.</p>${footHTML('results')}`;
-    const cards = CARDS.filter(c => !c.sub).map(c => { const f = baseFigure(c); const num = f.na ? 'Not computed' : n(f.value); return `<section class="rc" aria-labelledby="rc-h-${c.id}"><div class="rc-n" aria-hidden="true">${num}</div><div class="rc-l" role="heading" aria-level="3" id="rc-h-${c.id}"><span class="sr-only">${num}${f.na ? ': ' : ' '}</span>${c.line}</div>${paceLine(c, f)}${splitHTML(c)}${c.id === 'ember' ? peopleLines(f) : c.id === 'homes' ? flatsHomesLine() : ''}<div class="rc-f">${chipHTML(f.label, c.id === 'oneWay' ? 'network' : 'result')}<button class="linkish" data-explain="${c.id}" aria-label="Explain this: ${esc(stripTags(c.line))}">Explain this</button></div></section>`; }).join('');
+    const cards = CARDS.filter(c => !c.sub).map(c => { const f = baseFigure(c); const num = f.na ? 'Not computed' : n(f.value); return `<section class="rc" aria-labelledby="rc-h-${c.id}"><div class="rc-n" aria-hidden="true">${num}</div><div class="rc-l" role="heading" aria-level="3" id="rc-h-${c.id}"><span class="sr-only">${num}${f.na ? ': ' : ' '}</span>${c.line}</div>${paceLine(c, f)}${splitHTML(c)}${c.id === 'ember' ? peopleLines(f) + ordersLine() : c.id === 'homes' ? flatsHomesLine() : ''}<div class="rc-f">${chipHTML(f.label, c.id === 'oneWay' ? 'network' : 'result')}<button class="linkish" data-explain="${c.id}" aria-label="Explain this: ${esc(stripTags(c.line))}">Explain this</button></div></section>`; }).join('');
     return `${head(`Results: ${esc(fireTitle())}`, `${sqBtn()}, median of ${runsN()} runs at ${paceName()}`)}${state.fire === 'westWind' ? WEST_NOTE() : ''}${cards}${backupsHTML()}${footHTML('results')}`;
   }
   // Under the merged people card (MASTER, 2026-11-24; SOURCE_NOTES FL1, FL2, FL6): the fire front's share, where the
@@ -545,14 +596,26 @@ export function guidedUI(ctx) {
     if (!(f.value > 0)) return '';
     const Z = model().zoneFigure(state.fire, g.pace), fr = model().baseFigure(state.fire, 'frontPeople', g.pace).value, eo = model().emberOnly(state.fire, g.pace);
     const out = [`<div class="rc-x">Fire front reached ${n(fr)} · embers only ${n(eo)}</div>`];
-    if (Z) out.push(`<div class="rc-x">In hill fire zones ${n(Z.ember[0])} · rest of Berkeley ${n(Z.ember[1])}</div>`);
+    // Most of them live outside Berkeley or were on the road (the west-wind fire at the 1991 pace): say so on the line.
+    if (Z) out.push(`<div class="rc-x">In hill fire zones ${n(Z.ember[0])} · flats ${n(Z.ember[1])}${Z.ember[0] + Z.ember[1] < f.value / 2 ? ' · most from other cities or on the road' : ''}</div>`);
     if (Z?.needsHelp && Z.needsHelp[1] > 0) out.push(`<div class="rc-x">${n(Z.needsHelp[0])}–${n(Z.needsHelp[1])} may need a wheelchair van or ambulance (streets embers reached within 3 h of the order)</div>`);
     return out.join('');
+  }
+  // Who is ordered to leave, under the people card where "home, no order" appears (reviewer subagents round 2 via
+  // MASTER, 2026-11-24; SOURCE_NOTES GV43): a wildfire's orders are the City's pre-set region and do not grow with the
+  // fire; the earthquake fire and other cities' zones order by distance (js/sim.js; EQ11, FO1).
+  const ORDER_REGION = { ref1923: ['R02', '1923 Fire'], eastWind: ['R05', 'Fire Zones 2 &amp; 3'], panoramic: ['R04', 'Panoramic Hill'], northHills: ['R09', 'North Berkeley Hills'], westWind: ['R10', 'South Berkeley Hills'] };
+  const ordersLine = () => `<div class="rc-x">${NETWORK_FIRES[state.fire] ? 'Orders: zones within 300 m of the fire (Oakland: 1 km)' : 'Orders: a pre-set region that does not grow with the fire'}</div>`;
+  function ordersExplain() {
+    const r = ORDER_REGION[state.fire];
+    return `<h3>Who is ordered to leave</h3><p>${NETWORK_FIRES[state.fire]
+      ? `The earthquake fire has no pre-set region: each Berkeley zone is ordered the plan's decision delay after the fire first comes within 300 m of it ${badge('assumption')} (SOURCE_NOTES EQ11).`
+      : `In the status quo the City orders the region its 2025 Evacuation Time Study set for this fire${r ? `, ${r[0]} "${r[1]}"` : ''} ${badge('sourced')}, all at once, after the plan's decision delay. The order does not grow as the fire spreads, so zones the fire reaches outside the region stay under no order or only a warning and count as "home, no order".`} Zones in Oakland and other cities are ordered once the fire comes within 1 km of them ${badge('assumption')} (SOURCE_NOTES FO1). Changes such as ordering by distance add zones to the order.</p>`;
   }
   // Under the buildings card: the flats are not measured, so say how many people live on flats streets the front reached (FL3).
   function flatsHomesLine() {
     const Z = model().zoneFigure(state.fire, g.pace); if (!Z) return '';
-    return `<div class="rc-x">${Z.flats.front > 0 ? `Flats: the front reached streets where ${n(Z.flats.front)} people live` : 'Flats: the front reached no street in a typical run'}</div>`;
+    return `<div class="rc-x">${Z.flats.front > 0 ? `Flats: the front reached streets where ${n(Z.flats.front)} people live, whether or not they had left` : 'Flats: the front reached no street in a typical run'}</div>`;
   }
   // The west-wind fire's results lead with the record (MASTER, 2026-11-24; SOURCE_NOTES FF8, FF23, FL5).
   // Its provenance sits in its Explain this, as for every Guided figure (Codex, PR #103).
@@ -651,7 +714,7 @@ export function guidedUI(ctx) {
       ${splitExplain(c)}
       ${c.id === 'ember' ? peopleExplain() : c.id === 'homes' ? flatsHomesExplain() : ''}
       <h3>Where it comes from</h3><p>${cat}</p>
-      ${c.id === 'ember' ? `<h3>Where the embers go</h3><p>${EMBER_NOTE}</p>` : ''}
+      ${c.id === 'ember' ? `<h3>Where the embers go</h3><p>${EMBER_NOTE}</p><p>${EMBER_FIG}</p>` : ''}
       ${c.id === 'engine' ? engineMapNote() : ''}
       <h3>Limits</h3><p>${c.id === 'engine' && NETWORK_FIRES[state.fire] ? c.limits.replace(' The same on every fire.', ' Here it differs from the other fires: the earthquake closes the streets that cross the fault to engines.') : c.limits}</p>
       ${w != null ? `<h3>The run you watched</h3><p>${n(w)} (${paceName()}, seed 1)${g.applied.length ? ', with your changes' : ''}.</p>` : ''}</div>`, c.plain);
@@ -661,12 +724,13 @@ export function guidedUI(ctx) {
     const fc = cardById('front'), fr = model().baseFigure(state.fire, fc.key, g.pace), eo = model().emberOnly(state.fire, g.pace), Z = model().zoneFigure(state.fire, g.pace);
     return `<h3>When the fire front itself arrived</h3><p>${n(fr.value)} were still there when the fire front reached their street (range ${n(fr.min)}–${n(fr.max)}; ${otherPaces(Object.fromEntries(SEVS.map(s => [s, fr.bySev[s].median])))}). ${fc.counts} A harsher test than embers. Embers only: a median of ${n(eo)} per run were reached by embers but not by the front before they left. ${badge('synthetic')}</p>
       ${splitExplain(fc, 'Who they are, fire front')}
-      ${Z ? `<h3>Where they live</h3><p>Medians of the ${Z.n} runs: ${n(Z.ember[0])} live in Berkeley's hill fire zones (a home street in Fire Zones 2–3) and ${n(Z.ember[1])} elsewhere in Berkeley; the rest live in Oakland's or other cities' zones, or are commuters and visitors on the road. Of those the fire front reached: ${n(Z.front[0])} in the hill fire zones and ${n(Z.front[1])} elsewhere in Berkeley. Each part is its own median, so the parts need not add up to the total. ${badge('synthetic')} The zones: the City's 2013 Fire Zones map ${badge('sourced')} (Assumptions &amp; limits).</p>` : ''}
+      ${Z ? `<h3>Where they live</h3><p>Medians of the ${Z.n} runs: ${n(Z.ember[0])} live in Berkeley's hill fire zones (a home street in Fire Zones 2–3) and ${n(Z.ember[1])} in the flats (outside Fire Zones 2–3); the rest live in Oakland's or other cities' zones, or are commuters and visitors on the road. Of those the fire front reached: ${n(Z.front[0])} in the hill fire zones and ${n(Z.front[1])} in the flats. Each part is its own median, so the parts need not add up to the total. ${badge('synthetic')} The zones: the City's 2013 Fire Zones map ${badge('sourced')} (Assumptions &amp; limits).</p>` : ''}
+      ${ordersExplain()}
       ${Z?.needsHelp ? `<h3>Who may need help</h3><p>${n(Z.needsHelp[0])}–${n(Z.needsHelp[1])} people who may need a wheelchair van or ambulance live on streets embers reached within 3 hours of their zone's order or warning, the 2025 Evacuation Time Study's planned pickup time for transit-dependent routes ${badge('derived')}. A range, not an estimate: the low end applies the City's emPOWER count (348 Medicare beneficiaries using electricity-dependent equipment) as a share of residents, the high end the Time Study survey's 1.6% wheelchair van and 0.2% ambulance; the sources disagree, so both are shown (SOURCE_NOTES NH2). Medians of each end over the ${Z.n} runs. Everyone counted here is also among the synthetic households, which leave on the survey's timing as if they needed no help. Expert view's "Who may need help" table gives more groups.</p>` : ''}`;
   }
   function flatsHomesExplain() {
     const Z = model().zoneFigure(state.fire, g.pace); if (!Z) return '';
-    return `<h3>The flats</h3><p>Building losses are computed only in Fire Zones 2–3, where the City's footprints and the loss rule apply. In the median run at ${paceName()} the fire front reached Berkeley streets outside those zones where about ${n(Z.flats.front)} people live, and embers reached streets where about ${n(Z.flats.ember)} live ${badge('synthetic')}, whether or not they had left. A street counts when the front or embers reach the 30 m cell at its middle.</p>`;
+    return `<h3>The flats</h3><p>Building losses are computed only in Fire Zones 2–3, where the City's footprints and the loss rule apply. In the median run at ${paceName()} the fire front reached streets in the flats (outside Fire Zones 2–3) where about ${n(Z.flats.front)} people live, and embers reached streets where about ${n(Z.flats.ember)} live ${badge('synthetic')}, whether or not they had left. A street counts when the front or embers reach the 30 m cell at its middle.</p>`;
   }
   // Explain this, the four parts: what each counts, its median by severity, and the on-road limit (GV13).
   function splitExplain(c, title = 'Who they are') {
@@ -744,7 +808,7 @@ export function guidedUI(ctx) {
       return banded(shown, it => row(it, gr.id)) + ctl;
     };
     // Zone 0 ranks above hardening because the model leaves out embers igniting the first house (GV36).
-    const GROUP_NOTE = { homes: 'The order is not a ranking of effectiveness (About these gains).' };
+    const GROUP_NOTE = { homes: 'Not a ranking: the model counts no ember ignitions, which hardening targets.' };
     // The changes that help no result (worse in every run, no consistent change, not offered here) come last, in one
     // fold, unless one of them is picked.
     // A change designed but not simulated (docs/design/assisted-evacuation.md, option B; GV38).
