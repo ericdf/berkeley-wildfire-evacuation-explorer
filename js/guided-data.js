@@ -16,7 +16,7 @@ export const PACES = [
   { sev: 'central', label: '1923 pace', explain: 'The head spread rate is calibrated to the City StoryMap\'s present-day repeat of the 1923 fire, about 5 hours from the eastern edge of the city to Shattuck Avenue in a 32 mph wind (SOURCE_NOTES S11). In a weaker wind the head spreads more slowly, in a stronger one faster (FW2). Embers reach up to about 800 m downwind at 32 mph, in proportion to the wind speed, and most land much nearer (FW8, FW9). The default pace; no source says it is the most likely fire.' },
   { sev: 'high', label: '1991 pace', explain: 'For its first hour the head spreads faster than the 1923 pace, fitted to the 1991 fire, which ran more than a mile downwind in its first 64 minutes; after that it spreads at the 1923 pace, never slower (Eric, 2026-11-24; SOURCE_NOTES FV17, FW6, FW7, S19). The 1991 head nearly stalled after its first hour as the wind eased and firefighters arrived; the model includes neither, so this pace burns more than 1991 did after the first hours. Embers reach up to about 1.5 km downwind at 32 mph, in proportion to the wind speed, and most land much nearer.' },
 ];
-// The earthquake fire's paces (FW13): its medium rate is fitted to the USGS HayWired scenario's floor area burned in
+// The earthquake fire's paces (FW12, FW15): its medium rate is fitted to the USGS HayWired scenario's floor area burned in
 // Berkeley, not to the 1923 fire, so it has its own names and Explain text.
 const QUAKE_LIMIT = 'The model does not include the water system failing after the earthquake, or fire passing from building to building on its own: buildings burn as fuel at the rate of the fire zone they stand in, and do not change how the fire spreads.';
 export const QUAKE_PACES = [

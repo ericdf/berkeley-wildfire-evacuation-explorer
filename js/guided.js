@@ -76,13 +76,13 @@ const LABELS = {
 const PACE_LEAD = {
   low: 'Slower is a fire that spreads at half the speed of the 1923 pace. In a 32 mph wind three quarters of its spot-fire embers land within about 150 m of it, and none beyond about 300 m.',
   central: '1923 pace spreads about as fast as the City\'s present-day repeat of the 1923 Berkeley fire, faster in a stronger wind and slower in a weaker one. In a 32 mph wind three quarters of its spot-fire embers land within about 400 m of it, and none beyond about 800 m.',
-  high: '1991 pace spreads twice as fast as the 1923 pace in its first hour, like the 1991 Oakland Hills fire, then at the 1923 pace. In a 32 mph wind three quarters of its spot-fire embers land within about 750 m of it, and none beyond about 1.5 km.',
+  high: '1991 pace spreads nearly three times as fast as the 1923 pace in its first hour, like the 1991 Oakland Hills fire, then at the 1923 pace. In a 32 mph wind three quarters of its spot-fire embers land within about 750 m of it, and none beyond about 1.5 km.',
 };
 // The earthquake fire's leads (QUAKE_PACES in js/guided-data.js): its medium pace is fitted to the USGS HayWired scenario.
 const QUAKE_PACE_LEAD = {
   low: 'Slower is a fire that spreads at half the speed of the HayWired pace.',
   central: 'HayWired pace burns about as many buildings in Berkeley in 6 hours as the USGS HayWired earthquake scenario does, in the ordinary spring breeze.',
-  high: 'Faster spreads twice as fast as the HayWired pace in its first hour, then at the HayWired pace.',
+  high: 'Faster spreads nearly three times as fast as the HayWired pace in its first hour, then at the HayWired pace.',
 };
 // The City's fire weather and evacuation page, also in the ⓘ menu (index.html).
 const CITY_EVAC = 'https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation';

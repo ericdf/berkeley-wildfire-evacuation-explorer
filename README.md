@@ -213,15 +213,15 @@ flats throw at a quarter of the hills' rate. Random spot fires mean different se
 footprints. A cell is ember-exposed once the cells burning upwind of it, each weighted by its
 nearness and its ember weight, add up to a quarter of what a fully burning upwind reach would send;
 a broad front gets there at half the reach. The calibration and every rule are in SOURCE_NOTES
-FW1–FW14; `node tools/fire-wind-fit.mjs` prints the checks. The overlay puts plausible, comparable
+FW1–FW15; `node tools/fire-wind-fit.mjs` prints the checks. The overlay puts plausible, comparable
 pressure on the evacuation; it does not predict how a real fire would behave. A scenario may carry a wind schedule
 (`windSchedule`: `{ fromMin, windFrom, windMph }` entries): each crossing, spot throw and ember
 reach uses the wind in force when it starts, and a burning cell may start a crossing again at
 each wind change, which keeps the shortest-time search valid. Only the earthquake scenarios use
 one; every other fire runs exactly as before (`node tests/wind-schedule.mjs`).
 
-**Earthquake fires** (the spring-afternoon fire is also in Guided view since 2026-11-13, FF27; SOURCE_NOTES EQ11, WC1–WC9, FW12; `docs/wind-climate.md`).
-About 20 starts in buildings drawn from the USGS HayWired model, spread at 0.8 of medium
+**Earthquake fires** (the spring-afternoon fire is also in Guided view since 2026-11-13, FF27; SOURCE_NOTES EQ11, WC1–WC9, FW12, FW15; `docs/wind-climate.md`).
+About 20 starts in buildings drawn from the USGS HayWired model, spread at 1.2 times medium
 severity's rate in a 32 mph wind (fitted to HayWired's burned floor area in Berkeley on the spring
 wind), on three winds measured at the Oakland North weather station: a spring afternoon at HayWired's
 4:18 p.m. (from 205°, 7.0 mph easing to 5.4 mph), a winter day with a north wind (0°, 5.9 to 9.2 mph)
