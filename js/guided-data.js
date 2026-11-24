@@ -12,7 +12,7 @@ export const SEVS = ['low', 'central', 'high'];
 // Fire pace in Guided view (Eric, 2026-11-23, MASTER session; SOURCE_NOTES GV21): the three severities of js/scenarios.js
 // SEVERITY under plain names, 1923 pace by default. Each pace's Explain this: what sets it and what anchors it.
 export const PACES = [
-  { sev: 'low', label: 'Slower', explain: 'Half the 1923 pace\'s head spread rate. Embers reach up to about 300 m downwind in the 32 mph wind of the 1923 repeat, farther in a stronger wind and less far in a weaker one, and most land much nearer; spot fires are rarer. No historical fire anchors it; it is a lower bound.' },
+  { sev: 'low', label: 'Slower', explain: 'Half the 1923 pace\'s head spread rate. Embers reach up to about 300 m downwind in the 32 mph wind of the 1923 repeat, farther in a stronger wind and less far in a weaker one, and most land much nearer; spot fires are rarer. No historical fire anchors it; it is a slower case, not a floor.' },
   { sev: 'central', label: '1923 pace', explain: 'The head spread rate is calibrated to the City StoryMap\'s present-day repeat of the 1923 fire, about 5 hours from the eastern edge of the city to Shattuck Avenue in a 32 mph wind (SOURCE_NOTES S11). In a weaker wind the head spreads more slowly, in a stronger one faster (FW2). Embers reach up to about 800 m downwind at 32 mph, in proportion to the wind speed, and most land much nearer (FW8, FW9). The default pace; no source says it is the most likely fire.' },
   { sev: 'high', label: '1991 pace', explain: 'For its first hour the head spreads faster than the 1923 pace, fitted to the 1991 fire, which ran more than a mile downwind in its first 64 minutes; after that it spreads at the 1923 pace, never slower (Eric, 2026-11-24; SOURCE_NOTES FV17, FW6, FW7, S19). The 1991 head nearly stalled after its first hour as the wind eased and firefighters arrived; the model includes neither, so this pace burns more than 1991 did after the first hours. Embers reach up to about 1.5 km downwind at 32 mph, in proportion to the wind speed, and most land much nearer.' },
 ];
@@ -20,7 +20,7 @@ export const PACES = [
 // Berkeley, not to the 1923 fire, so it has its own names and Explain text.
 const QUAKE_LIMIT = 'The model does not include the water system failing after the earthquake, or fire passing from building to building on its own: buildings burn as fuel at the rate of the fire zone they stand in, and do not change how the fire spreads.';
 export const QUAKE_PACES = [
-  { sev: 'low', label: 'Slower', explain: `Half the HayWired pace's head spread rate, with fewer spot fires. No source anchors it; it is a lower bound. ${QUAKE_LIMIT}` },
+  { sev: 'low', label: 'Slower', explain: `Half the HayWired pace's head spread rate, with fewer spot fires. No source anchors it; it is a slower case, not a floor. ${QUAKE_LIMIT}` },
   { sev: 'central', label: 'HayWired pace', explain: `The head spread rate is fitted so the spring-afternoon fire reaches about as many structures in Berkeley in 6 hours as the USGS HayWired scenario burns there (about 2,270 single-family-home equivalents of floor area; SOURCE_NOTES EQ11, FW12). The wind and the fire zones then set how fast each part burns. The default pace. ${QUAKE_LIMIT}` },
   { sev: 'high', label: 'Faster', explain: `Faster than the HayWired pace for the first hour, then at the HayWired pace, never slower: the 1991 pace's rule applied to the earthquake's rate (SOURCE_NOTES FW6). No source anchors it. ${QUAKE_LIMIT}` },
 ];
@@ -62,7 +62,7 @@ export const CARDS = [
     plain: 'How many buildings in the hill fire zones the fire reached and would likely be lost, judged by how close each stands to its neighbors. Hardening homes and clearing the 5 feet around them (Zone 0) lowers this count.', live: 'homes', unit: 'buildings', group: 'homes', cat: 'assumption',
     line: 'buildings lost in the hill fire zones (not computed in the flats)',
     counts: 'Buildings in Berkeley\'s Fire Zones 2–3 (City footprints, some of them garages) that the modeled fire front reached, each counted as lost with a probability set by how close it stands to its nearest neighbor: 85–94% under 50 ft, 27–65% farther apart; the figure uses the middle of each range. In the 2018 Camp Fire 94% of homes within 18 m (59 ft) of a destroyed building were lost, and 27–65% of those farther away (Knapp et al. 2021); the model applies the near band under 50 ft, so buildings 50–59 ft apart take the farther range, and the 85% lower end is this project\'s allowance for differences between Paradise and Berkeley. Home hardening and Zone 0 lower those probabilities, most where whole blocks take part.',
-    limits: 'The modeled fire does not spread from building to building and does not respond to hardening or Zone 0, so they change only this count, not the fire, the orders or the traffic. Buildings reached only by embers get no loss figure, though embers start many house fires. Not computed outside Fire Zones 2–3. The loss probabilities and what hardening and Zone 0 do are assumption ranges.' },
+    limits: 'The modeled fire spreads through built-up blocks as an area, at the urban spread rate, not house by house, and does not respond to hardening or Zone 0, so they change only this count, not the fire, the orders or the traffic. Buildings reached only by embers get no loss figure, though embers start many house fires. Not computed outside Fire Zones 2–3. The loss probabilities and what hardening and Zone 0 do are assumption ranges.' },
 ];
 export const cardById = id => CARDS.find(c => c.id === id);
 // Fires that change the street network itself: the Hayward Fault earthquake closes the segments crossing the mapped
@@ -239,7 +239,7 @@ export function makeGuided(M, SA, presets = [], leverOff = {}) {
   }
 
   // Where the people of the merged card live (spread-access.json runs[].zone; SOURCE_NOTES FL1): medians over the runs at
-  // the pace of those in Berkeley's hill fire zones and elsewhere in Berkeley; the rest live in other cities' zones or are
+  // the pace of those in Berkeley's hill fire zones and in the flats (outside Fire Zones 2–3); the rest live in other cities' zones or are
   // non-residents on the road. flats: residents of Berkeley streets outside Fire Zones 2–3 that embers or the front
   // reached, left or not (FL3). needsHelp: people who may need a wheelchair van or ambulance on streets embers reached
   // within 180 min of their zone's order or warning, the medians of the low and high ends (FL6).

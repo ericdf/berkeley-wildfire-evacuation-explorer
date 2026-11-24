@@ -3,7 +3,7 @@
 // waiting over model time, so a jam builds and drains on the map instead of blinking on and off at 15 model min/s.
 //   waiting   cars on the link that have been there longer than its free-flow time (the unsmoothed layer's count)
 //   smoothed  exponential average of waiting with a time constant of QUEUE_TAU_S model seconds
-//   shown     a link turns red at QUEUE_ON smoothed cars and stays red until it falls under QUEUE_OFF (hysteresis)
+//   shown     a link is drawn (blue in Guided view since PR #100) at QUEUE_ON smoothed cars and stays drawn until it falls under QUEUE_OFF (hysteresis)
 export const QUEUE_TAU_S = 420; // 7 model minutes (display rule)
 export const QUEUE_ON = 3, QUEUE_OFF = 2; // cars waiting; 3 is the unsmoothed layer's threshold (js/map.js drawQueues)
 
