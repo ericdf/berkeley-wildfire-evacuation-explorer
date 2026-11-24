@@ -1030,6 +1030,11 @@ export class Evacuation {
     const { hh, v, t, data } = this, pphAll = data.A.demand.personsPerHousehold, pph = pphAll;
     const S = { quake: this.quake.option, quakeSegments: this.quake.segments, orderedPeople: 0, warnedLeaving: 0, shadowLeaving: 0, leftEarly: 0, reachedSafety: 0, onRoad: 0, notLeft: 0, noVehicle: 0, riders: 0,
       notOrderedExposed: 0, otherCityOrderedPeople: 0, exposedHome: 0, exposedRoad: 0, exposedNoVehicle: 0, fireFrontHome: 0, fireFrontRoad: 0, fireFrontNoVehicle: 0, fireFrontNotOrdered: 0, notOrderedWarnedExposed: 0, fireFrontNotOrderedWarned: 0, waitingToEnter: this.waiting.length };
+    // Where the people counted below live (Guided view's split by zone, MASTER 2026-11-24; SOURCE_NOTES FL1): Berkeley's
+    // hill fire zones (a household whose street is in Fire Zones 2–3), the rest of Berkeley (the flats), and the rest, who
+    // live in other cities' zones or are non-residents on the road. Berkeley: evacuation zones whose id starts BER.
+    const hz = this._hhHome ??= Uint8Array.from({ length: hh.n }, (_, h) => !/^BER/.test(data.layers.evacZones[hh.zone[h]]?.id || '') ? 0 : data.net.edges[hh.edge[h]]?.fireZone >= 2 ? 1 : 2);
+    S.emberHill = 0; S.emberFlats = 0; S.frontHill = 0; S.frontFlats = 0;
     // People still there when embers (or the fire front) arrived: each person counted once, where they
     // were when embers first reached them (SOURCE_NOTES FO7). A household still at home then counts at
     // home (ordered, no order, or no car); otherwise it counts on the road if any car of its trip (its
@@ -1063,6 +1068,8 @@ export class Evacuation {
       // *Warned fields count those whose zone was under a warning only, where households that did not leave stay kind 0.
       if (tf <= t && hh.leftHome[e] > tf && !hh.early[h]) { whereFire[h] = 1; S.fireFrontHome += pph; if (!told) { S.fireFrontNotOrdered += pph; if (this.warnT[z] <= t) S.fireFrontNotOrderedWarned += pph; } else if (!hh.veh[h] && hh.ride[h] < 0) S.fireFrontNoVehicle += pph; }
       else if (!hh.early[h] && (roadFire[h] || roadFire[e])) { whereFire[h] = 2; S.fireFrontRoad += pph; }
+      if (where[h]) { if (hz[h] === 1) S.emberHill += pph; else if (hz[h] === 2) S.emberFlats += pph; }
+      if (whereFire[h]) { if (hz[h] === 1) S.frontHill += pph; else if (hz[h] === 2) S.frontFlats += pph; }
       if (k === 3 && hh.leftHome[h] <= t) S.shadowLeaving += pph;
       if (!told) continue;
       // a household that left on a warning counts as ordered once its zone's order is out

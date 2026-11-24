@@ -32,15 +32,16 @@ export const DEFAULT_PACE = 'central';
 // comparison (js/mitigate.js MEASURES: ember, front, engine, cutOff); oneWay is a property of the street network.
 export const CARDS = [
   { id: 'ember', key: 'ember',
-    plain: 'How many people were still at home, or still driving out, when embers from the fire first reached their street. The people are simulated households placed where Berkeley residents live, and the number is the middle of five runs of this fire.', split: 'ember', live: 'ember', unit: 'people', group: 'people', cat: 'synthetic',
-    line: 'people not yet out when embers reached their street',
-    counts: 'Synthetic residents still at home when modeled embers first reached their street, or on the road in a car on a street under embers after leaving. Each person is counted once.',
-    limits: 'It counts people at that moment, not injuries or deaths: many would shelter or come through unharmed. Departure times come from the 2025 Evacuation Time Study survey; the traffic model clears roads faster than that study, so this count is likely low. Riders leave the moment the neighbor they ride with leaves, and nobody in the simulator needs help to leave: there are no pickups, paratransit or care-facility evacuations.' },
-  { id: 'front', key: 'frontPeople',
+    plain: 'How many people were still at home, or still driving out, when the fire or its embers first reached their street. Embers always arrive first, or with the fire front, so this counts everyone the front reached too. The people are simulated households placed where Berkeley residents live, and the number is the middle of five runs of this fire.', split: 'ember', live: 'ember', unit: 'people', group: 'people', cat: 'synthetic',
+    // One card for embers and the fire front since 2026-11-24 (MASTER; SOURCE_NOTES FL2): the front's count is a subset.
+    line: 'people not yet out when the fire or its embers reached their street',
+    counts: 'Synthetic residents still at home when modeled embers or the fire front first reached their street, or on the road in a car on a street under embers after leaving. Embers reach a street no later than the front (js/fire.js emberExposure starts from the front\'s arrival), so this includes everyone the front reached. Each person is counted once.',
+    limits: 'It counts people at that moment, not injuries or deaths: many would shelter or come through unharmed. Departure times come from the 2025 Evacuation Time Study survey; the traffic model clears roads faster than that study, so this count is likely low. Riders leave the moment the neighbor they ride with leaves, and nobody in the simulator needs help to leave: there are no pickups, paratransit or care-facility evacuations. Leaving on foot is not modeled: every household leaves by car or rides with a neighbor, including people in the flats, who could often walk away from a fire coming down from the hills.' },
+  { id: 'front', sub: 'ember', key: 'frontPeople',
     plain: 'How many people were still at home, or still driving out, when the fire itself reached their street. The people are simulated households placed where Berkeley residents live, and the number is the middle of five runs of this fire.', split: 'front', live: 'front', unit: 'people', group: 'people', cat: 'synthetic',
     line: 'people not yet out when the fire front reached their street',
     counts: 'Synthetic residents still at home when the modeled fire front itself reached their street, or on the road in a car on a burning street. Each person is counted once.',
-    limits: 'A harsher test than embers; still a count of people at that moment, not injuries or deaths. The traffic model clears roads faster than the 2025 Evacuation Time Study, so this count is likely low. Riders leave the moment the neighbor they ride with leaves, and nobody in the simulator needs help to leave: there are no pickups, paratransit or care-facility evacuations.' },
+    limits: 'A harsher test than embers; still a count of people at that moment, not injuries or deaths. The traffic model clears roads faster than the 2025 Evacuation Time Study, so this count is likely low. Riders leave the moment the neighbor they ride with leaves, and nobody in the simulator needs help to leave: there are no pickups, paratransit or care-facility evacuations. Leaving on foot is not modeled: every household leaves by car or rides with a neighbor, including people in the flats, who could often walk away from a fire coming down from the hills.' },
   { id: 'engine', key: 'engine',
     plain: 'How many hill residents live on streets a fire engine could not reach within 5 minutes of a Berkeley fire station, mostly because parked cars narrow the street. It is measured when the fire starts, so it does not depend on how the fire burns.', live: 'engine', unit: 'people', group: 'engine', cat: 'synthetic',
     line: 'hill residents with no engine route within 5 minutes',
@@ -59,7 +60,7 @@ export const CARDS = [
   // Added 2026-11-13 with home hardening and Zone 0 (SOURCE_NOTES PH32, PH33).
   { id: 'homes', key: 'homes',
     plain: 'How many buildings in the hill fire zones the fire reached and would likely be lost, judged by how close each stands to its neighbors. Hardening homes and clearing the 5 feet around them (Zone 0) lowers this count.', live: 'homes', unit: 'buildings', group: 'homes', cat: 'assumption',
-    line: 'buildings lost in the hill fire zones',
+    line: 'buildings lost in the hill fire zones (not computed in the flats)',
     counts: 'Buildings in Berkeley\'s Fire Zones 2–3 (City footprints, some of them garages) that the modeled fire front reached, each counted as lost with a probability set by how close it stands to its nearest neighbor: 85–94% under 50 ft, 27–65% farther apart; the figure uses the middle of each range. In the 2018 Camp Fire 94% of homes within 18 m (59 ft) of a destroyed building were lost, and 27–65% of those farther away (Knapp et al. 2021); the model applies the near band under 50 ft, so buildings 50–59 ft apart take the farther range, and the 85% lower end is this project\'s allowance for differences between Paradise and Berkeley. Home hardening and Zone 0 lower those probabilities, most where whole blocks take part.',
     limits: 'The modeled fire does not spread from building to building and does not respond to hardening or Zone 0, so they change only this count, not the fire, the orders or the traffic. Buildings reached only by embers get no loss figure, though embers start many house fires. Not computed outside Fire Zones 2–3. The loss probabilities and what hardening and Zone 0 do are assumption ranges.' },
 ];
@@ -237,7 +238,27 @@ export function makeGuided(M, SA, presets = [], leverOff = {}) {
       bySev: Object.fromEntries(SEVS.map(s => [s, median(all.filter(r => r.sev === s).map(r => r.split[which][i]))])) })) };
   }
 
-  return { splitFigure, levers, leverById, runsOf, baseFigure, oneWay, freed, tableCompare, tallyBySev, groups, anyFire, withheld, seeds: M?.meta?.seeds || [], severities: M?.meta?.severities || SEVS };
+  // Where the people of the merged card live (spread-access.json runs[].zone; SOURCE_NOTES FL1): medians over the runs at
+  // the pace of those in Berkeley's hill fire zones and elsewhere in Berkeley; the rest live in other cities' zones or are
+  // non-residents on the road. flats: residents of Berkeley streets outside Fire Zones 2–3 that embers or the front
+  // reached, left or not (FL3). needsHelp: people who may need a wheelchair van or ambulance on streets embers reached
+  // within 180 min of their zone's order or warning, the medians of the low and high ends (FL6).
+  function zoneFigure(fire, sev) {
+    const rs = (SA?.runs || []).filter(r => r.fire === fire && r.sev === sev && r.zone); if (!rs.length) return null;
+    const m = f => median(rs.map(f));
+    return { n: rs.length, ember: [m(r => r.zone.ember[0]), m(r => r.zone.ember[1])], front: [m(r => r.zone.front[0]), m(r => r.zone.front[1])],
+      flats: { ember: m(r => r.flatsReached.ember), front: m(r => r.flatsReached.front) },
+      needsHelp: rs.every(r => r.needsHelp) ? [m(r => r.needsHelp[1]), m(r => r.needsHelp[2])] : null };
+  }
+  // The fires whose embers reach streets in Berkeley's flats in the median run at a pace (FL4).
+  const flatsFires = sev => (SA?.meta?.fires || []).filter(f => (zoneFigure(f, sev)?.flats.ember || 0) > 0);
+  // Per run, those the embers reached whose street the front had not reached before they left: ember minus front (FL2).
+  function emberOnly(fire, sev) {
+    const rs = runsOf('baseline', fire).filter(r => r.sev === sev); if (!rs.length) return null;
+    return median(rs.map(r => r.m.ember - r.m.frontPeople));
+  }
+
+  return { splitFigure, zoneFigure, flatsFires, emberOnly, levers, leverById, runsOf, baseFigure, oneWay, freed, tableCompare, tallyBySev, groups, anyFire, withheld, seeds: M?.meta?.seeds || [], severities: M?.meta?.severities || SEVS };
 }
 
 // Cost line and sort key (lever.cost; js/mitigate.js costText): a screening range, little capital cost, or not priced.

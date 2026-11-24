@@ -61,12 +61,14 @@ for (const [di, name] of DEVICES.entries()) {
   await p.click('#intro-ok');
   await p.reload(); await p.waitForSelector('#loading', { state: 'detached', timeout: 120000 }); await p.waitForTimeout(400);
   check(!(await p.locator('#modal[open]').count()), `${name}: How to use does not open again`);
-  check(await visible('#g-what') && /hills wildfire/.test(await p.locator('#g-what').innerText()), `${name}: one plain line on the first screen says what this is`);
+  check(await visible('#g-what') && /^How a wildfire could spread on Berkeley's streets/.test(await p.locator('#g-what').innerText()), `${name}: one plain line on the first screen says what this is`);
   check(await p.evaluate(() => document.body.classList.contains('simple')), `${name}: opens in Guided view`);
   check(await visible('#g-run') && !(await visible('#g-chips')) && !(await visible('#g-after')), `${name}: map screen shows Run simulation only`);
   // Status and official alerts link under the title; the status also tops the menu (Eric, 2026-11-23; SOURCE_NOTES GV15, GV16).
   check(await visible('#g-status') && /Pending Berkeley Fire Department review/.test(await p.locator('#g-status').innerText()) && /everbridge\.net\/sign-up/.test(await p.locator('#g-status a').getAttribute('href')), `${name}: status and AC Alert link on the map screen`);
   await p.click('#g-info'); check(/Status: pending Berkeley Fire Department review/.test(await p.locator('#g-menu').innerText()), `${name}: status line in the menu`);
+  // What you can do now (MASTER, 2026-11-24; SOURCE_NOTES FL7): AC Alert and the City's evacuation page in the menu.
+  check(/What you can do now/.test(await p.locator('#g-menu').innerText()) && await p.locator('#g-menu a[href*="everbridge.net/sign-up"]').count() === 1 && await p.locator('#g-menu a[href*="fire-weather-and-evacuation"]').count() === 1, `${name}: the menu lists what you can do now`);
   // The Guided/Expert switch lives in this menu; on a phone it says Expert view is best on a larger screen (SOURCE_NOTES GV29).
   { const t = (await p.locator('[data-menu="expert"]').innerText()).trim(), phone = (dev.viewport?.width ?? 1280) <= 760;
     check(t === (phone ? 'Expert view (best on a larger screen)' : 'Expert view'), `${name}: menu item "${t}"`); }
@@ -86,9 +88,13 @@ for (const [di, name] of DEVICES.entries()) {
   }
 
   // Run. Auto-zoom (MASTER, 2026-11-23; SOURCE_NOTES GV18): while the run plays the view only widens.
+  // Before a run the map shows the whole city (FL4); Run frames the fire's starts, then the follow only widens.
+  const v0 = await p.evaluate(() => JSON.parse(document.getElementById('map').dataset.view));
+  check(v0[0] <= 1600 && v0[1] <= 1300 && v0[2] >= 10200 && v0[3] >= 7500, `${name}: before a run the map shows the whole city (${v0.slice(0, 4).map(Math.round).join(', ')})`);
+  check(/^At this pace, embers reach streets in Berkeley's flats on /.test(await p.locator('#g-flats').innerText()), `${name}: the line under the fire picker names the fires reaching the flats`);
+  await p.click('#g-run'); await p.waitForTimeout(700); // the eased zoom to the fire (0.5 s)
   await p.evaluate(() => { const c = document.getElementById('map'); window.__views = []; window.__vt = setInterval(() => { if (document.getElementById('g-after').hidden) window.__views.push(JSON.parse(c.dataset.view)); }, 100); });
-  await p.click('#g-run');
-  await p.waitForTimeout(2500);
+  await p.waitForTimeout(1800);
   check(await visible('#clock'), `${name}: clock over the map while running`);
   check(await visible('#g-caption') && (await p.locator('#g-caption').innerText()) === 'Red: cars backed up', `${name}: caption "Red: cars backed up" while running`);
   await noScroll('while running');
@@ -167,25 +173,34 @@ for (const [di, name] of DEVICES.entries()) {
 
   // Results
   await p.click('#g-explore');
-  check(await visible('#g-panel') && (await p.locator('.rc').count()) === 6, `${name}: results view with 6 cards`);
+  // One people card for embers and the fire front since 2026-11-24 (MASTER; SOURCE_NOTES FL2): five cards.
+  check(await visible('#g-panel') && (await p.locator('.rc').count()) === 5, `${name}: results view with 5 cards`);
   const order = await p.locator('.rc .rc-l').allTextContents();
-  check(/embers/.test(order[0]) && /fire front/.test(order[1]) && /engine/.test(order[2]) && /one way out/.test(order[3]) && /no open route/.test(order[4]) && /buildings lost/.test(order[5]), `${name}: results in the agreed order`);
+  check(/fire or its embers/.test(order[0]) && /engine/.test(order[1]) && /one way out/.test(order[2]) && /no open route/.test(order[3]) && /buildings lost in the hill fire zones \(not computed in the flats\)/.test(order[4]), `${name}: results in the agreed order`);
+  // Under the people card: the front's share, where they live, who may need help; under buildings, the flats (FL1–FL3, FL6).
+  const px = await p.locator('#g-panel .rc').first().locator('.rc-x').allTextContents();
+  check(px.length === 3 && /^Fire front reached [\d,]+ · embers only [\d,]+$/.test(px[0]) && /^In hill fire zones [\d,]+ · rest of Berkeley [\d,]+$/.test(px[1]) && /^[\d,]+–[\d,]+ may need a wheelchair van or ambulance/.test(px[2]), `${name}: people card lines (${px.join(' | ')})`);
+  check(/^Flats: the front reached /.test(await p.locator('#g-panel .rc').nth(4).locator('.rc-x').innerText()), `${name}: buildings card says what the front reached in the flats`);
   await noScroll('on results'); const hr = await panelHeight('Results view');
   await shot('07-results');
-  // The four-way split under the two people cards (GV13).
-  const splits = await p.locator('#g-panel .rc .sp').count(), keys = await p.locator('#g-panel .rc:nth-of-type(1) .sp-key span, #g-panel .rc .sp-key span').count();
-  check(splits === 2 && keys === 8, `${name}: the two people cards each split four ways (${splits} splits, ${keys} parts)`);
+  // The four-way split under the people card (GV13); the fire front's split is in its Explain this (FL2).
+  const splits = await p.locator('#g-panel .rc .sp').count(), keys = await p.locator('#g-panel .rc .sp-key span').count();
+  check(splits === 1 && keys === 4, `${name}: the people card splits four ways (${splits} split, ${keys} parts)`);
+  await p.click('[data-explain="ember"]');
+  const pex = await gxText();
+  check(/When the fire front itself arrived/.test(pex) && /Who they are, fire front/.test(pex) && /Where they live/.test(pex) && /Who may need help/.test(pex) && /Leaving on foot is not modeled/.test(pex), `${name}: the people card's Explain this covers the front, where they live, who may need help and walking`);
+  await p.locator('#modal .close').click();
   // No part's label is cut off (MASTER, 2026-11-23: truncated at 320 px on iPhone SE).
   const cut = await p.locator('#g-panel .sp-key span').evaluateAll(ss => ss.filter(s => s.scrollWidth > s.clientWidth + 1 || getComputedStyle(s).textOverflow === 'ellipsis').map(s => s.textContent));
   check(!cut.length, `${name}: the four-part key shows every label in full${cut.length ? ` (cut: ${cut.join('; ')})` : ''}`);
   // Plain-language labels (GV12): none of the old three words in Guided view's results.
   const chips = await p.locator('#g-panel .rc .robust').allTextContents();
-  check(chips.length === 6 && chips.every(t => /nearly every run|Depends on the night parking rule|Varies from run to run|Same in every run|None in nearly/.test(t)) && !chips.some(t => /^(Consistent|Sensitive|Mixed)$/.test(t) || /fire strength/.test(t)), `${name}: plain labels on results, none by fire strength within one pace (${chips.join(' | ')})`);
+  check(chips.length === 5 && chips.every(t => /nearly every run|Depends on the night parking rule|Varies from run to run|Same in every run|None in nearly/.test(t)) && !chips.some(t => /^(Consistent|Sensitive|Mixed)$/.test(t) || /fire strength/.test(t)), `${name}: plain labels on results, none by fire strength within one pace (${chips.join(' | ')})`);
   // Status quo, the pace and the other paces' medians (GV21, GV22).
   const rtext = await p.locator('#g-panel').innerText();
   check(/Status quo ⓘ, median of 5 runs at 1923 pace/.test(rtext) && !/today's plan/i.test(rtext), `${name}: results say "Status quo", 5 runs at 1923 pace`);
   const plines = await p.locator('#g-panel .rc-p').allTextContents();
-  check(plines.length === 5 && plines.every(t => /^(Slower: .+ · 1991 pace: .+|The same at every fire pace)$/.test(t)), `${name}: each result gives the other paces' medians (${plines.join(' | ')})`);
+  check(plines.length === 4 && plines.every(t => /^(Slower: .+ · 1991 pace: .+|The same at every fire pace)$/.test(t)), `${name}: each result gives the other paces' medians (${plines.join(' | ')})`);
   await p.click('#g-panel [data-sq]');
   const sqt = await gxText();
   check(/10 minutes after the fire starts/.test(sqt) && /no new roads or rules/.test(sqt) && /assumption/.test(sqt), `${name}: Status quo has its Explain this`);
@@ -268,8 +283,8 @@ for (const [di, name] of DEVICES.entries()) {
   await p.click('[data-chip="fire"]'); await p.waitForTimeout(200);
   await p.click('#g-explore');
   const cmp1 = await p.locator('.rc.cmp').count();
-  const diff = await p.locator('.rc.cmp').nth(2).locator('.cmpgrid b').nth(2).innerText();
-  check(cmp1 === 6 && /^−/.test(diff), `${name}: one-change comparison from the table, engine row ${diff}`);
+  const diff1 = await p.locator('.rc.cmp').nth(1).locator('.cmpgrid b').nth(2).innerText();
+  check(cmp1 === 5 && /^−/.test(diff1) && /^Fire front reached [\d,—]+ → [\d,—]+$/.test(await p.locator('.rc.cmp').first().locator('.rc-x').innerText()), `${name}: one-change comparison from the table, engine row ${diff1}, the front as a line in the people card`);
   const heads3 = await p.locator('.rc.cmp').first().locator('.cmpgrid small').allTextContents();
   check(heads3.join('|') === 'Status quo|With changes|Median change' && (await p.locator('.rc.cmp .rc-p').count()) === 0, `${name}: comparison columns ${heads3.join(' / ')}, no other-paces line`);
   // Difference colors: improvement green, worse amber, no change gray.
@@ -277,7 +292,7 @@ for (const [di, name] of DEVICES.entries()) {
   check(cls.every(([t, c]) => t === 'No change' ? c === 'same' : t.startsWith('−') ? c === 'good' : t.startsWith('+') ? c === 'worse' : true), `${name}: difference colors (${cls.map(([t, c]) => `${t}:${c}`).join(' ')})`);
   const hcmp = await panelHeight('Comparison (one change)');
   await shot('13-compare-1');
-  for (const id of ['ember', 'front', 'engine', 'oneWay', 'cutOff']) {
+  for (const id of ['ember', 'engine', 'oneWay', 'cutOff']) {
     await p.locator(`[data-explain-cmp="${id}"]`).click();
     const t = await gxText();
     check(/Where it comes from/.test(t) && /(synthetic|derived)/.test(t), `${name}: comparison Explain this for ${id} gives provenance`);
@@ -335,7 +350,10 @@ for (const [di, name] of DEVICES.entries()) {
   const framed = await p.evaluate(() => { const c = document.getElementById('map'), r = c.getBoundingClientRect(), s = JSON.parse(c.dataset.starts || '[]');
     return { n: s.length, ok: s.every(([x, y]) => x >= 20 && y >= 20 && x <= r.width - 20 && y <= r.height - 20), s, w: Math.round(r.width), h: Math.round(r.height) }; });
   const view = await p.evaluate(() => JSON.parse(document.getElementById('map').dataset.view || 'null'));
-  check(view && view[0] >= -1 && view[1] >= -1 && (view[2] <= view[4] + 1 || view[0] <= 1) && (view[3] <= view[5] + 1 || view[1] <= 1), `${name}: framed view stays on the terrain grid (${JSON.stringify(view)})`);
+  // On the grid in each direction, or, where the view is larger than the grid (the whole city on a portrait phone before
+  // a run, FL4), centered on it.
+  const onGrid = (lo, hi, max) => (lo >= -1 && (hi <= max + 1 || lo <= 1)) || (hi - lo >= max && Math.abs(lo + hi - max) <= 2);
+  check(view && onGrid(view[0], view[2], view[4]) && onGrid(view[1], view[3], view[5]), `${name}: framed view stays on the terrain grid (${JSON.stringify(view)})`);
   check(framed.n > 0 && framed.ok, `${name}: west-wind fire's start inside the map (${JSON.stringify(framed.s)} in ${framed.w}×${framed.h})`);
   // A drag stops the follow for the run and shows Fit; Fit brings the starts back into view and follows again.
   await p.click('#g-run'); await p.waitForTimeout(1500);
@@ -359,7 +377,12 @@ for (const [di, name] of DEVICES.entries()) {
   const wwMax = await p.evaluate(() => { clearInterval(window.__wt); return Math.round(window.__ww); });
   check(wwMax > 0 && wwMax <= 7000, `${name}: west-wind follow stays near the fire (shorter side of the view at most ${wwMax} m, limit 7,000)`);
   await p.click('#g-explore');
-  check((await p.locator('.rc').count()) === 6 && /West wind, Claremont Canyon/.test(await p.locator('#g-panel').innerText()), `${name}: west-wind fire results, 6 cards`);
+  const wwt = await p.locator('#g-panel').innerText();
+  check((await p.locator('.rc').count()) === 5 && /West wind, Claremont Canyon/.test(wwt) && /6 of the 15 major Oakland–Berkeley hills fires since 1923 burned in a west wind/.test(wwt), `${name}: west-wind fire results, 5 cards, led by the record (FL5)`);
+  await p.click('[data-explain-west]');
+  const wx = await gxText();
+  check(/Hills Emergency Forum/.test(wx) && /sourced/.test(wx) && /model rule/.test(wx), `${name}: the west-wind note's Explain this gives its sources and categories`);
+  await p.locator('#modal .close').click();
   await noScroll('on west-wind results'); await shot('20-west-results');
   await p.click('[data-go="changes"] >> nth=0');
   await p.locator('details.cg-none summary').click();
@@ -385,7 +408,7 @@ for (const [di, name] of DEVICES.entries()) {
   await p.selectOption('#g-fire', 'quake'); await p.waitForTimeout(300);
   await p.click('#g-run'); await waitRunEnd(); await p.click('#g-explore');
   const qn = await p.locator('.rc .rc-n').allTextContents();
-  check(qn.length === 6 && qn[3] === 'Not computed' && qn.filter(t => t === 'Not computed').length === 1, `${name}: earthquake results, single ways out not computed (${qn.join(' | ')})`);
+  check(qn.length === 5 && qn[2] === 'Not computed' && qn.filter(t => t === 'Not computed').length === 1, `${name}: earthquake results, single ways out not computed (${qn.join(' | ')})`);
   await p.locator('[data-explain="oneWay"]').click();
   check(/Hayward Fault/.test(await gxText()), `${name}: earthquake, Explain this says why single ways out is not computed`);
   await shot('22-quake-results');
@@ -402,7 +425,7 @@ for (const [di, name] of DEVICES.entries()) {
     await p.click('#g-run'); await waitRunEnd();
     await p.click('#g-explore');
     const t = await p.locator('#g-panel').innerText(), vals = await p.locator('.rc .rc-n').allTextContents();
-    check(new RegExp(`median of 5 runs at ${word}`).test(t) && vals.length === 6, `${name}: ${fire} at ${word}, results (${vals.join(' | ')})`);
+    check(new RegExp(`median of 5 runs at ${word}`).test(t) && vals.length === 5, `${name}: ${fire} at ${word}, results (${vals.join(' | ')})`);
     await p.locator('[data-explain="ember"]').click();
     check(new RegExp(`\\(${word}, seed 1\\)`).test(await gxText()), `${name}: ${fire} at ${word}, the watched run is at that pace`);
     await p.locator('#modal .close').click();
