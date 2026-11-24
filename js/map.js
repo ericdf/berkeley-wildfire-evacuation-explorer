@@ -36,6 +36,9 @@ const DASH_BY_COLOR = {
   // never reached stay thin and light (the Fire chip), or dotted where they have one way out (the Ways out chip).
   robust: { '#b45309': 'solid', '#b91c1c': 'solid', '#f59e0b': 'long', '#a855f7': 'dashdot', '#60a5fa': 'dot' },
   engineTime: { '#2f8a4a': 'solid', '#e0a21e': 'long', '#c0262d': 'short', '#7f1d1d': 'dot' },
+  // Guided view's engine reach (GV42): within 5 min green, over 5 min red, no engine route the same red dotted.
+  // '#c0262e' is that red under its own key, so it can carry its own pattern.
+  engineReach: { '#2f8a4a': 'solid', '#c0262d': 'long', '#c0262e': 'dot' },
   clearWidth: { '#2f8a4a': 'solid', '#9cc65a': 'long', '#e8c21e': 'dashdot', '#e07a1e': 'short', '#c0262d': 'dot' },
   engine: { '#2f8a4a': 'solid', '#e08a1e': 'long', '#c0262d': 'dot' },
   grade: { '#4f7f9b': 'solid', '#8fae4a': 'long', '#e0b21e': 'dashdot', '#e07a1e': 'short', '#c0262d': 'dot' },
@@ -210,7 +213,36 @@ export class MapView {
     if (this.sim) this.drawIgnition();
     this.drawMarks();
     this.drawSelection();
+    if (this.labels) this.drawLabels();
     this.drawScaleNorth();
+  }
+
+  // A few street and landmark names, drawn in Guided view once zoomed in (reviewer round via MASTER, 2026-11-23;
+  // SOURCE_NOTES GV41). this.labels = { streets: [network names], places: [{ text, x, y }] }. A street's name goes at the
+  // middle of its longest segment inside the view; streets show from about 4 km across, places from about 6 km.
+  drawLabels() {
+    const { ctx } = this, across = this.w / this.scale, E = this.data.net.edges;
+    if (across > 6000) return;
+    this._labelIdx ??= (() => { const m = new Map(); for (const e of E) if (e.mode === 'vehicle' && this.labels.streets.includes(e.name)) { if (!m.has(e.name)) m.set(e.name, []); m.get(e.name).push(e); } return m; })();
+    const x0 = this.wx(0), x1 = this.wx(this.w), y0 = this.wy(this.h), y1 = this.wy(0), inView = ([x, y]) => x > x0 && x < x1 && y > y0 && y < y1;
+    const title = s => s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+    const items = [];
+    if (across <= 4000) for (const [name, es] of this._labelIdx) {
+      let best = null; for (const e of es) { const m = this.data.edgeMid[e.id]; if (m && inView(m) && (!best || e.len > best.len)) best = e; }
+      if (best) items.push({ text: title(name), x: this.data.edgeMid[best.id][0], y: this.data.edgeMid[best.id][1], street: true });
+    }
+    for (const p of this.labels.places || []) if (inView([p.x, p.y])) items.push(p);
+    ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+    const boxes = [];
+    for (const it of items) {
+      ctx.font = it.street ? '600 12px system-ui, sans-serif' : 'italic 700 13px system-ui, sans-serif';
+      const sx = this.sx(it.x), sy = this.sy(it.y), w = ctx.measureText(it.text).width, b = [sx - w / 2 - 3, sy - 9, sx + w / 2 + 3, sy + 9];
+      if (boxes.some(o => b[0] < o[2] && b[2] > o[0] && b[1] < o[3] && b[3] > o[1])) continue; // no overlapping labels
+      boxes.push(b);
+      ctx.strokeStyle = 'rgba(255,255,255,.92)'; ctx.lineWidth = 4; ctx.strokeText(it.text, sx, sy);
+      ctx.fillStyle = it.street ? '#3a2d22' : '#1e3a5f'; ctx.fillText(it.text, sx, sy);
+    }
+    ctx.restore();
   }
 
   // The streets a picked change touches: a red curb or widening (green), a new road (dashed green),
@@ -279,6 +311,7 @@ export class MapView {
     else if (m === 'engine') { const ok = sim ? sim.engineOK[e.id] : !e.engineBlocked; const eff = sim ? sim.eff[e.id] : e.effLanes; c = !ok ? '#c0262d' : eff === 1 || eff === 0 ? '#e08a1e' : eff === 2 ? '#2f8a4a' : '#aaa'; }
     else if (m === 'engineTime') { // minutes at ignition, no traffic (sim.engineReach0; SOURCE_NOTES ER1)
       const t = sim?.engineReach0?.[e.id]; c = t == null ? '#aaa' : t === Infinity ? '#7f1d1d' : t <= 300 ? '#2f8a4a' : t <= 480 ? '#e0a21e' : '#c0262d'; }
+    else if (m === 'engineReach') { const t = sim?.engineReach0?.[e.id], lim = this.data.A.access.engineServiceMin * 60; c = t == null ? '#aaa' : t === Infinity ? '#c0262e' : t <= lim ? '#2f8a4a' : '#c0262d'; }
     else if (m === 'grade') { const g = e.gradeReliable ? e.gradeMax : null; c = g == null ? '#aaa' : g < 5 ? '#4f7f9b' : g < 10 ? '#8fae4a' : g < 15 ? '#e0b21e' : g < 20 ? '#e07a1e' : '#c0262d'; }
     else if (m === 'widthSource') c = e.widthSrc === 'unknown' ? '#aaa' : e.narrow ? '#8a3fb8' : '#2b6cb0';
     else if (m === 'oneway') c = e.trav === 'FT' || e.trav === 'TF' ? '#d1495b' : e.trav === 'NT' ? '#aaa' : '#666';
@@ -478,6 +511,7 @@ export class MapView {
       const x = this.sx(s.pt[0]), y = this.sy(s.pt[1]);
       ctx.fillStyle = '#b91c1c'; ctx.fillRect(x - 8, y - 7, 16, 14); ctx.fillStyle = '#fff'; ctx.fillText(s.name.replace(/\D+/g, '') || 'FS', x, y + 0.5);
     }
+    if (this.noShelters) { ctx.textBaseline = 'alphabetic'; return; } // Guided view's engine reach shows stations only (GV42)
     for (const s of this.data.layers.shelters) {
       const x = this.sx(s.pt[0]), y = this.sy(s.pt[1]);
       ctx.fillStyle = '#15803d'; ctx.beginPath(); ctx.arc(x, y, 6, 0, 7); ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillText('S', x, y + 0.5);

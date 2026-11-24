@@ -24,6 +24,7 @@ p.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 // Hold the deferred files (fuel, workplaces, walk access, contours) until released.
 let release; const gate = new Promise(r => { release = r; });
 await p.route(/(fbfm40\.(json|u8)|workplaces\.json|walk-access\.json|contours\.i16)$/, async route => { await gate; await route.continue(); });
+await p.addInitScript(() => { try { localStorage.setItem('bhe-intro-seen', '1'); } catch {} }); // How to use opens on a first visit (GV41)
 await p.goto(URL);
 await p.waitForSelector('#loading', { state: 'detached', timeout: 120000 });
 await p.click('#g-info'); await p.click('[data-menu="expert"]');
@@ -46,6 +47,7 @@ check(!errors.length, `no errors after the data arrive${errors.length ? `: ${err
   p2.on('pageerror', e => errs.push(String(e)));
   let rel; const g2 = new Promise(r => { rel = r; });
   await p2.route(/(fbfm40\.(json|u8)|workplaces\.json|walk-access\.json|contours\.i16)$/, async route => { await g2; await route.continue(); });
+  await p2.addInitScript(() => { try { localStorage.setItem('bhe-intro-seen', '1'); } catch {} });
   await p2.goto(URL);
   await p2.waitForSelector('#loading', { state: 'detached', timeout: 120000 });
   await p2.click('#g-info'); await p2.click('[data-menu="expert"]');

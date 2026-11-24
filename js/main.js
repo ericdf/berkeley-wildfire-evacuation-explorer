@@ -396,7 +396,7 @@ function runLive(levers, sev, onProgress) {
   return L;
 }
 const guided = guidedUI({ data, map, state, $, esc, fmt, badge, FIRES, PRESETS, mit, spread, MEASURES, conflict, edgeClasses, areaEdgeClasses, PALETTE, store,
-  setupRun: guidedRun, play, runLive, cancelLive, legend: () => legend(), modal: (h, c) => modal(h, c),
+  setupRun: guidedRun, play, runLive, cancelLive, legend: () => legend(), keyOpenFor: v => { state.keyOverride = v; legend(); }, modal: (h, c) => modal(h, c),
   openIntro: () => intro(), openAssumptions: () => $('btn-assumptions').click(), openSources: () => $('btn-sources').click(), setMode: m => setMode(m) });
 
 function setMode(m) {
@@ -772,7 +772,9 @@ function legend() {
     + (map.layers.structures && data.structures ? `<div><span class="dot" style="background:rgb(60,30,100)"></span>30 m square with structures (Fire Zones 2–3): darker where more stand under 25 ft apart; more opaque with more structures</div>` : '');
   const access = map.layers.access && data.access ? accessLegend() : '';
   let saved = null; try { saved = localStorage.getItem('bhe-key'); } catch {}
-  const open = saved ? saved !== 'hidden' : !matchMedia('(max-width: 760px)').matches; // on a phone the key starts closed: open, it covers half the map
+  // Guided view opens the key the first time each map view is shown in a session (GV42), then follows the saved choice.
+  const forced = state.keyOverride && document.body.classList.contains('simple') && state.keyOverride === guided?.keyView?.();
+  const open = forced || (saved ? saved !== 'hidden' : !matchMedia('(max-width: 760px)').matches); // on a phone the key starts closed: open, it covers half the map
   const keyHTML = document.body.classList.contains('simple') ? guided.legendHTML() : `<b>${STREET_MODES[m]}</b>${L}${extra}${access}`;
   $('legend').innerHTML = `<button class="key-toggle" aria-expanded="${open}" title="${open ? 'Hide' : 'Show'} the map key">${document.body.classList.contains('simple') ? (open ? 'Key ▾' : 'Key ▸') : open ? 'Hide key ▾' : 'Show key ▸'}</button>${open ? `<div>${keyHTML}</div>` : ''}`;
   // The key in words for the map's text description, whether or not the key is open (GV32).
@@ -780,7 +782,7 @@ function legend() {
   const keyText = box.textContent.replace(/\s+/g, ' ').replace(/(\. )+/g, '. ').replace(/\.\s*\./g, '.').trim();
   if (state.keyText && keyText !== state.keyText) say(`Map shows: ${keyText.split('. ')[0]}.`);
   state.keyText = keyText; describeMap();
-  $('legend').querySelector('.key-toggle').onclick = () => { try { localStorage.setItem('bhe-key', open ? 'hidden' : 'shown'); } catch {} legend(); };
+  $('legend').querySelector('.key-toggle').onclick = () => { state.keyOverride = null; try { localStorage.setItem('bhe-key', open ? 'hidden' : 'shown'); } catch {} legend(); };
 }
 
 // ---------- comparison ----------
@@ -952,7 +954,7 @@ function modal(html, cls = '') {
 // Tab and Shift+Tab cycle inside the open pop-up instead of leaving it for the browser's own controls.
 $('modal').addEventListener('keydown', e => {
   if (e.key !== 'Tab') return;
-  const F = [...$('modal').querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter(x => !x.disabled && x.offsetParent !== null);
+  const F = [...$('modal').querySelectorAll('button, [href], input, select, textarea, summary, [tabindex]:not([tabindex="-1"])')].filter(x => !x.disabled && (x.checkVisibility ? x.checkVisibility() : x.offsetParent !== null)); // checkVisibility: links inside a closed Details fold are not visible (GV41)
   if (!F.length) return;
   const first = F[0], last = F[F.length - 1];
   if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
@@ -1085,3 +1087,5 @@ growthNote(); shutoffNote(); quakeNote(); visibilityNote(); signalNote(); fuelNo
 data.deferred.then(() => { fuelNote(); walkNote(); placementNote(); }); // their data load after the page is up (js/data.js)
 setMode(store.get('bhe-mode') === 'expert' ? 'expert' : 'simple');
 requestAnimationFrame(loop);
+// How to use opens by itself on the first visit only, in Guided view (reviewer round via MASTER, 2026-11-23; GV41).
+if (store.get('bhe-mode') !== 'expert' && !store.get('bhe-intro-seen')) { store.set('bhe-intro-seen', '1'); intro(); }

@@ -115,6 +115,15 @@ for (const name of DEVICES) {
   check(/Run complete/.test(await p.locator('#map-live').textContent()), `${name}: the end of the run is announced ("${await p.locator('#map-live').textContent()}")`);
   for (const chip of ['fire', 'ways', 'engine']) { await p.click(`[data-chip="${chip}"]`); await p.waitForTimeout(200); await keyPatterns(`${chip} chip`); await overlayContrast(`${chip} chip`); await cvdShots(`chip-${chip}`); }
   await p.click('[data-chip="fire"]');
+  // Find my street (SOURCE_NOTES GV41): a labeled button and combobox, operable from the keyboard alone.
+  await p.locator('#g-find-btn').focus(); await p.keyboard.press('Enter'); await p.waitForTimeout(150);
+  const fl = await p.evaluate(() => { const i = document.getElementById('g-find-in'); return { focus: document.activeElement === i, label: document.querySelector('label[for="g-find-in"]')?.textContent, role: i.getAttribute('role'), btn: document.getElementById('g-find-btn').getAttribute('aria-label') }; });
+  await p.keyboard.type('telegr'); await p.keyboard.press('ArrowDown'); await p.keyboard.press('ArrowUp');
+  await scan('Street search');
+  const act = await p.evaluate(() => document.getElementById('g-find-in').getAttribute('aria-activedescendant'));
+  await p.keyboard.press('Enter'); await p.waitForTimeout(800);
+  check(fl.focus && fl.label === 'Find my street' && fl.role === 'combobox' && fl.btn === 'Find my street' && !!act && /Telegraph/.test(await p.locator('#g-caption').textContent()), `${name}: the street search is labeled and works from the keyboard (Enter, type, arrows, Enter)`);
+  await p.locator('#g-sheet .g-x').click().catch(() => {});
   await p.click('#g-explore'); await p.waitForTimeout(200);
   await scan('Results');
   const heads = await p.evaluate(() => [...document.querySelectorAll('#g-panel [role=heading][aria-level="3"]')].map(h => h.textContent.trim()));
