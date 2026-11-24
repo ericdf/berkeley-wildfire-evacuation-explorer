@@ -379,6 +379,10 @@ for (const [di, name] of DEVICES.entries()) {
   await p.click('#g-explore');
   const wwt = await p.locator('#g-panel').innerText();
   check((await p.locator('.rc').count()) === 5 && /West wind, Claremont Canyon/.test(wwt) && /6 of the 15 major Oakland–Berkeley hills fires since 1923 burned in a west wind/.test(wwt), `${name}: west-wind fire results, 5 cards, led by the record (FL5)`);
+  await p.click('[data-explain-west]');
+  const wx = await gxText();
+  check(/Hills Emergency Forum/.test(wx) && /sourced/.test(wx) && /model rule/.test(wx), `${name}: the west-wind note's Explain this gives its sources and categories`);
+  await p.locator('#modal .close').click();
   await noScroll('on west-wind results'); await shot('20-west-results');
   await p.click('[data-go="changes"] >> nth=0');
   await p.locator('details.cg-none summary').click();

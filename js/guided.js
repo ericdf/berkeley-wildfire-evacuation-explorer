@@ -555,7 +555,15 @@ export function guidedUI(ctx) {
     return `<div class="rc-x">${Z.flats.front > 0 ? `Flats: the front reached streets where ${n(Z.flats.front)} people live` : 'Flats: the front reached no street in a typical run'}</div>`;
   }
   // The west-wind fire's results lead with the record (MASTER, 2026-11-24; SOURCE_NOTES FF8, FF23, FL5).
-  const WEST_NOTE = () => `<p class="gv-note">West-wind fires have done far less damage here: 6 of the 15 major Oakland–Berkeley hills fires since 1923 burned in a west wind, and together they destroyed 4 homes ${badge('sourced', 'Hills Emergency Forum, "Fires in the Oakland - Berkeley Hills", rev. 02/28/05, p. 1 (SOURCE_NOTES FF8, FF23).')}. The model agrees: in its 15 mph wind this fire reaches almost no one.</p>`;
+  // Its provenance sits in its Explain this, as for every Guided figure (Codex, PR #103).
+  const WEST_NOTE = () => `<p class="gv-note">West-wind fires have done far less damage here: 6 of the 15 major Oakland–Berkeley hills fires since 1923 burned in a west wind, and together they destroyed 4 homes. The model agrees: in its 15 mph wind this fire reaches almost no one. <button class="linkish" data-explain-west>Explain this</button></p>`;
+  function explainWest() {
+    const f = model().baseFigure(state.fire, 'ember', g.pace);
+    pop(`<div class="gx"><h2>West-wind fires in the record</h2>
+      <h3>The record</h3><p>${badge('sourced')} The Hills Emergency Forum's list of major fires in the Oakland–Berkeley hills counts 15 since the first documented in 1923; 6 burned in a west wind (1929, 1937, 1940, 1955, 1968, 1990), and together they destroyed 4 homes, all in the 1937 Broadway Terrace fire. The 8 fires in a dry east (Diablo) wind destroyed 584 homes in 1923 and 3,354 in 1991. Source: Hills Emergency Forum, "Fires in the Oakland - Berkeley Hills", rev. 02/28/05, p. 1 (SOURCE_NOTES FF8, FF23).</p>
+      <h3>The model</h3><p>${badge('model rule')} This fire's head spreads in a 15 mph onshore wind, about a third as fast as in the 32 mph wind the paces are set for (SOURCE_NOTES FW2). ${badge('synthetic')} People not yet out when the fire or its embers reached their street: ${n(f.value)} at ${paceName()} (median of ${runsN()} runs; ${otherPaces(Object.fromEntries(SEVS.map(s => [s, f.bySev[s].median])))}).</p></div>`,
+      'West-wind fires in the Berkeley hills have burned far fewer homes than fires driven by the dry east wind. In the model this fire reaches almost no one before they leave.');
+  }
 
   // ---------- where traffic backed up (Eric, 2026-11-23; SOURCE_NOTES GV25) ----------
   // Hill streets only, from spread-access.json backups (js/guided-data.js backupRows): the top 5 rows, "Show more" for up
@@ -850,6 +858,7 @@ export function guidedUI(ctx) {
     P.querySelectorAll('[data-backup]').forEach(b => b.onclick = () => focusBackup(+b.dataset.backup));
     P.querySelector('[data-bk-more]')?.addEventListener('click', () => { const R = backups() || [], lvl = g.bkOpen || 0, shownN = lvl === 0 ? 3 : lvl === 1 ? 5 : R.length; g.bkOpen = shownN >= Math.min(R.length, BACKUP_LIST) ? 0 : lvl + 1; rerender(); });
     P.querySelector('[data-explain-backups]')?.addEventListener('click', explainBackups);
+    P.querySelector('[data-explain-west]')?.addEventListener('click', explainWest);
     P.querySelectorAll('[data-explain-cmp]').forEach(b => b.onclick = () => explainCompare(b.dataset.explainCmp));
     P.querySelectorAll('[data-sort]').forEach(b => b.onclick = () => { g.sort = b.dataset.sort; rerender(); });
     P.querySelectorAll('[data-more]').forEach(b => b.onclick = () => { g.more[b.dataset.more] = !g.more[b.dataset.more]; rerender(); });
