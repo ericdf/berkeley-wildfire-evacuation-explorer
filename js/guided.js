@@ -9,7 +9,7 @@
 // Figures come from data/model/mitigations.json and spread-access.json through js/guided-data.js. "Status quo" was
 // "today's plan" until 2026-11-23, and the fire pace (Slower, 1923 pace, 1991 pace: low, medium and high severity)
 // came back to Guided view then (Eric, MASTER session; SOURCE_NOTES GV21, GV22).
-import { CARDS, GROUPS, cardById, makeGuided, sortItems, costLine, costKey, streetsOf, round10, SEVS, median, NETWORK_FIRES, PACES, pacesFor, paceOf, DEFAULT_PACE, backupRows, blockRange, BACKUP_TOP, BACKUP_ROW_MIN } from './guided-data.js';
+import { CARDS, GROUPS, cardById, makeGuided, sortItems, costLine, costKey, streetsOf, round10, SEVS, median, NETWORK_FIRES, PACES, pacesFor, paceOf, DEFAULT_PACE, backupRows, blockRange, blocksOf, BACKUP_TOP, BACKUP_ROW_MIN } from './guided-data.js';
 import { presence, direction, assumption } from './robust.js';
 import { CELL } from './fire.js';
 import { swatch } from './map.js';
@@ -419,7 +419,9 @@ export function guidedUI(ctx) {
   function findCount(f) {
     const SA = spread(), C = SA && ctx.edgeClasses(state.fire, 'ember', [g.pace]);
     const ids = SA ? f.edges.filter(id => id < SA.meta.edges) : [];
-    return C && ids.length ? [ids.filter(id => (C.levels(id)[g.pace]?.[0] || 0) > 0).length, ids.length] : null;
+    if (!C || !ids.length) return null;
+    const B = f.blocks ||= blocksOf(ids, data.net, data.nodeEdges); // a block counts once, reached if any of its pieces is
+    return [B.filter(b => b.some(id => (C.levels(id)[g.pace]?.[0] || 0) > 0)).length, B.length];
   }
   function findCaption(f) {
     const k = findCount(f); if (!k) return f.street;

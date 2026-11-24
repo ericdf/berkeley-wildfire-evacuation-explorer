@@ -314,6 +314,25 @@ export function backupRows(SA, net, fire, sev) {
 }
 // The cross streets at a row's two ends ("from … to …"): at each end node of the joined segments, the first other named
 // street for cars. nodeEdges: data.nodeEdges (js/data.js).
+// A street's modeled segments grouped into physical blocks (Codex review of PR #104; SOURCE_NOTES GV43). The network
+// splits a block at traffic-control devices and barrier connectors (tools/build-network.mjs), so two segments of the
+// street join where they meet at a node no other named street reaches, and County pieces sharing a SEGID always join.
+export function blocksOf(edges, net, nodeEdges) {
+  const E = net.edges, up = new Map(edges.map(e => [e, e]));
+  const find = e => { while (up.get(e) !== e) { up.set(e, up.get(up.get(e))); e = up.get(e); } return e; };
+  const join = (a, b) => up.set(find(a), find(b));
+  const name = E[edges[0]]?.name, at = new Map(), seg = new Map();
+  for (const e of edges) {
+    for (const n of [E[e].a, E[e].b]) { if (!at.has(n)) at.set(n, []); at.get(n).push(e); }
+    const k = E[e].src?.SEGID; if (k != null) { if (seg.has(k)) join(e, seg.get(k)); else seg.set(k, e); }
+  }
+  for (const [n, es] of at) {
+    const cross = (nodeEdges[n] || []).some(id => { const x = E[id]; return x && x.mode === 'vehicle' && x.name && x.name !== name; });
+    if (!cross) for (let i = 1; i < es.length; i++) join(es[0], es[i]);
+  }
+  const out = new Map(); for (const e of edges) { const r = find(e); if (!out.has(r)) out.set(r, []); out.get(r).push(e); }
+  return [...out.values()];
+}
 export function blockRange(row, net, nodeEdges) {
   const E = net.edges, deg = new Map();
   for (const e of row.edges) for (const n of [E[e].a, E[e].b]) deg.set(n, (deg.get(n) || 0) + 1);

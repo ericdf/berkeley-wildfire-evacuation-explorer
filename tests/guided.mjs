@@ -5,7 +5,7 @@
 // "any fire" and people measures as "this fire"; result figures are medians of today's plan's 15 runs; one-change
 // comparisons pair the same seeds; new roads that free the same areas give a floor, not a sum.
 import fs from 'node:fs';
-import { makeGuided, CARDS, median, sortItems, costLine, SEVS, backupRows, BACKUP_ROW_MIN } from '../js/guided-data.js';
+import { makeGuided, CARDS, median, sortItems, costLine, SEVS, backupRows, BACKUP_ROW_MIN, blocksOf } from '../js/guided-data.js';
 import { PRESETS, LEVER_OFF } from '../js/presets.js';
 import { plainLabel } from '../js/guided.js';
 
@@ -201,6 +201,17 @@ if (SA.backups) {
   check(rowsN > 0, `backup rows derive from spread-access.json (${rowsN} rows over ${M.meta.fires.length} fires × 3 paces), hill streets only, ranked by median, labels by the 5-of-5 rule`);
   const e19 = backupRows(SA, net, 'eastWind', 'central').slice(0, 3).map(r => r.street).sort().join(',');
   check(e19 === 'Arlington Av,Boynton Av,Vassar Av', `east wind at 1923 pace, top 3: ${e19}`);
+}
+
+// Street search counts physical blocks, not modeled segments (Codex review of PR #104; SOURCE_NOTES GV43): Milvia St's
+// County segment 181028410 is two edges (2897 and a 3 m barrier connector, 6706) and counts as one block.
+{
+  const net = JSON.parse(fs.readFileSync(R + 'data/model/network.json'));
+  const nodeEdges = Array.from({ length: net.nodes.length }, () => []);
+  for (const e of net.edges) { nodeEdges[e.a].push(e.id); if (e.b !== e.a) nodeEdges[e.b].push(e.id); }
+  const milvia = net.edges.filter(e => e.name === 'MILVIA ST' && e.mode === 'vehicle').map(e => e.id);
+  const B = blocksOf(milvia, net, nodeEdges), home = B.find(b => b.includes(2897));
+  check(home?.includes(6706) && B.length < milvia.length && B.flat().length === milvia.length, `Milvia St: ${milvia.length} segments make ${B.length} blocks; edges 2897 and 6706 are one block`);
 }
 
 console.log(fail ? `\n${fail} check(s) failed` : '\nall checks passed');
