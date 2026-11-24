@@ -172,6 +172,12 @@ for (const [di, name] of DEVICES.entries()) {
   check(/^Embers reached \d+ of \d+ blocks? of Panoramic Wy in at least one run at this pace$/.test(findCap) && await visible('#g-sheet'), `${name}: choosing Panoramic Wy frames it, counts its blocks embers reached and opens its card (${findCap})`);
   const card = await p.locator('#g-sheet').innerText();
   check(apart(await rect('#g-sheet'), await rect('#legend')), `${name}: the street card does not cover the key`);
+  // The count's provenance: in the card's sources and behind the caption's Explain this (Codex review of PR #104).
+  check(/Blocks embers reached model rule/.test(await p.locator('#g-sheet .g-src').textContent()), `${name}: the card's sources give the block count's category`);
+  await p.evaluate(() => document.querySelector('#g-caption [data-find-explain]').click());
+  const fx = await gxText();
+  check(/blocks of Panoramic Wy/.test(fx) && /model rule/.test(fx) && /spread-access\.json/.test(fx) && /no other named street/.test(fx), `${name}: the searched street's count has an Explain this with its category, runs and block rule`);
+  await p.keyboard.press('Escape'); await p.waitForTimeout(200);
   check(/^Embers reached \d+ of \d+ blocks? of this street in at least one run at this pace\. This card: the block (from .+ to .+|near .+|nearest the middle)\. Tap your own block on the map\.$/m.test(card), `${name}: the card counts the street's blocks embers reached, names the block it shows and asks for the reader's own`);
   check(/Evacuation zone [A-Z]{3}-\d{3}/.test(card) && await p.locator('#g-sheet a[href*="fire-weather-and-evacuation"]').count() === 1, `${name}: the card shows the street's evacuation zone and the City's lookup (${(card.match(/Evacuation zone \S+/) || [''])[0]})`);
   check(!/\d\.\d modeled resident/.test(card), `${name}: modeled residents in whole people`);

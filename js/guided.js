@@ -231,6 +231,7 @@ export function guidedUI(ctx) {
       : finding ? finding.text : '';
     $('g-caption').hidden = !cap;
     if (finding) { $('g-caption').innerHTML = `${esc(cap)} <button class="linkish g-cap-x" data-cap-explain="${finding.card}">Explain this</button>`; $('g-caption').querySelector('[data-cap-explain]').onclick = () => finding.cmp ? explainCompare(finding.card) : explain(finding.card); } // a with-changes figure opens its comparison's pop-up (Codex, PR #101)
+    else if (g.focus?.find && findCount(g.focus)) { $('g-caption').innerHTML = `${esc(cap)} <button class="linkish g-cap-x" data-find-explain>Explain this</button>`; $('g-caption').querySelector('[data-find-explain]').onclick = findExplain; }
     else $('g-caption').textContent = cap;
     if (!d) $('g-sheet').hidden = true;
     mapLayers();
@@ -427,6 +428,17 @@ export function guidedUI(ctx) {
     const k = findCount(f); if (!k) return f.street;
     return `Embers reached ${k[0]} of ${k[1]} block${k[1] === 1 ? '' : 's'} of ${f.street} in at least one run at this pace`;
   }
+  // Where the searched street's count comes from (Codex review of PR #104): the same text in the caption's Explain
+  // this and in the street card's sources.
+  const FIND_SRC = () => `The illustrative fire model run on this fire's ignition and wind at ${paceName()}, random seeds 1–5 (data/model/spread-access.json); a street segment counts when embers reach the 30 m cell at its middle in at least one of the runs. Segments are grouped into blocks: pieces of the street join where no other named street meets them, and County pieces of one segment always join; a block counts if embers reached any piece. The fire does not depend on the plan.`;
+  function findExplain() {
+    const k = findCount(g.focus); if (!k) return;
+    pop(`<div class="gx"><h2>${k[0]} of ${k[1]} blocks of ${esc(g.focus.street)}</h2>
+      <h3>What it counts</h3><p>Blocks of ${esc(g.focus.street)} that embers reached in at least one of ${runsN()} runs of ${esc(fireTitle())} at ${paceName()}, out of the street's blocks on the modeled street network.</p>
+      <h3>Where it comes from</h3><p>${badge('model rule')} ${esc(FIND_SRC())}</p>
+      <h3>Limits</h3><p>${EMBER_NOTE}</p></div>`,
+      'How many of this street\'s blocks the modeled embers reached in at least one run of this fire at this pace. Tap a block for its own count.');
+  }
   findBtn.onclick = () => openFind(findBox.hidden);
   $('g-find-x').onclick = () => { openFind(false); findBtn.focus(); };
   findIn.addEventListener('input', listFind);
@@ -536,6 +548,7 @@ export function guidedUI(ctx) {
     if (g.focus?.find && g.focus.mid === sel.id) {
       const range = blockRange({ edges: [sel.id], name: e.name }, net, data.nodeEdges);
       const k = findCount(g.focus);
+      if (k) src.unshift(['Blocks embers reached', 'model rule', FIND_SRC()]);
       lines.unshift(`${k ? `<b>Embers reached ${k[0]} of ${k[1]} block${k[1] === 1 ? '' : 's'}</b> of this street in at least one run at this pace. ` : ''}This card: the block ${range ? (range.startsWith('near') ? esc(range) : `from ${esc(range)}`) : 'nearest the middle'}. Tap your own block on the map.`);
     }
     const why = src.length ? `<details class="g-src"><summary>Where these come from</summary>${src.map(([k, c, t]) => `<p><b>${k}</b> ${badge(c)} ${esc(t)}</p>`).join('')}</details>` : '';
