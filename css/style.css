@@ -447,3 +447,36 @@ header :focus-visible { outline-color: #fbbf24; box-shadow: none; }
 #events:focus-visible, #map:focus-visible { outline-offset: -3px; }
 /* Notes in the map key sit on a 92% white box over the map: darker than --muted so they keep 4.5:1 over a dark map. */
 #legend .muted { color: #4a4f57; }
+
+/* Find my street, landmark labels, the first-screen line, the street card's place and Explain this leads
+   (reviewer round via MASTER, 2026-11-23; SOURCE_NOTES GV36). */
+#g-what { flex: 0 0 auto; margin: 0; padding: 6px 12px 0; background: var(--panel); font-size: 14px; line-height: 1.35; color: #4b3a2a; }
+#g-find-btn { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%; padding: 0; font-size: 22px; line-height: 1; background: #fff; color: #2b2118; border: 1px solid #d6cfc4; font-weight: 700; }
+#g-find { position: absolute; top: 8px; left: 8px; right: 8px; z-index: 7; display: flex; flex-wrap: wrap; gap: 6px; }
+#g-find[hidden] { display: none; }
+#g-find input { flex: 1 1 auto; min-width: 0; font-size: 16px; padding: 8px 10px; border: 1px solid #b8ad9e; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+#g-find-x { flex: 0 0 auto; border-radius: 10px; padding: 0 12px; font-size: 16px; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+#g-find-list { flex: 1 1 100%; list-style: none; margin: 0; padding: 4px 0; background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 4px 14px rgba(0,0,0,.2); max-height: 50vh; overflow: auto; }
+#g-find-list[hidden] { display: none; }
+#g-find-list li { padding: 9px 12px; font-size: 16px; cursor: pointer; }
+#g-find-list li[aria-selected="true"] { background: #fde68a; }
+#g-find-list li.g-find-none { color: var(--muted); cursor: default; }
+/* The street card sits above Run again / Explore results, never over them. */
+#g-sheet { bottom: 96px; left: 8px; right: 8px; border-radius: 14px; max-height: calc(100% - 160px); box-shadow: 0 4px 16px rgba(0,0,0,.25); }
+#g-sheet a { color: var(--accent); }
+.gx-lead { font-size: 16px; line-height: 1.45; margin: 4px 0 8px; }
+.gx-kinds { font-size: 13px; color: var(--muted); margin: 0 0 8px; }
+.gx-more > summary { cursor: pointer; color: var(--accent); font-weight: 600; margin: 4px 0; }
+/* Guided text size (reviewer round via MASTER, 2026-11-23; GV36): base text --gfs, secondary lines 2 px smaller. */
+/* --gfs-read: Explain this pop-ups and the street card; --gfs: the Results and Changes lists and the first-screen line. */
+body.simple { --gfs: 16px; --gfs-read: 16px; }
+body.simple .gx p, body.simple .gx li, body.simple .gx-lead { font-size: var(--gfs-read); }
+body.simple .gx h3 { font-size: var(--gfs-read); }
+body.simple #g-sheet { font-size: var(--gfs-read); }
+body.simple #g-sheet b { font-size: calc(var(--gfs-read) + 1px); }
+body.simple #g-sheet .g-src p, body.simple #g-sheet .g-src b { font-size: calc(var(--gfs-read) - 2px); }
+body.simple .gv-head p, body.simple .rc-p, body.simple .bk-sub, body.simple .bk-note, body.simple #g-what { font-size: calc(var(--gfs) - 2px); }
+body.simple .rc-l { font-size: calc(var(--gfs) + 1px); }
+body.simple .cr-t { font-size: var(--gfs); }
+body.simple .cr-s, body.simple .bk-v, body.simple .sp-key { font-size: calc(var(--gfs) - 2px); }
+body.simple .bk-row { font-size: var(--gfs); }

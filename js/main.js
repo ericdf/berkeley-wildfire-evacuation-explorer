@@ -952,7 +952,7 @@ function modal(html, cls = '') {
 // Tab and Shift+Tab cycle inside the open pop-up instead of leaving it for the browser's own controls.
 $('modal').addEventListener('keydown', e => {
   if (e.key !== 'Tab') return;
-  const F = [...$('modal').querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter(x => !x.disabled && x.offsetParent !== null);
+  const F = [...$('modal').querySelectorAll('button, [href], input, select, textarea, summary, [tabindex]:not([tabindex="-1"])')].filter(x => !x.disabled && (x.checkVisibility ? x.checkVisibility() : x.offsetParent !== null)); // checkVisibility: links inside a closed Details fold are not visible (GV36)
   if (!F.length) return;
   const first = F[0], last = F[F.length - 1];
   if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
@@ -1085,3 +1085,5 @@ growthNote(); shutoffNote(); quakeNote(); visibilityNote(); signalNote(); fuelNo
 data.deferred.then(() => { fuelNote(); walkNote(); placementNote(); }); // their data load after the page is up (js/data.js)
 setMode(store.get('bhe-mode') === 'expert' ? 'expert' : 'simple');
 requestAnimationFrame(loop);
+// How to use opens by itself on the first visit only, in Guided view (reviewer round via MASTER, 2026-11-23; GV36).
+if (store.get('bhe-mode') !== 'expert' && !store.get('bhe-intro-seen')) { store.set('bhe-intro-seen', '1'); intro(); }

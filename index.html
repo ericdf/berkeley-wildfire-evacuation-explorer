@@ -15,6 +15,7 @@
     <div id="g-status" class="simple-only">Pending Berkeley Fire Department review · <a href="https://public.everbridge.net/sign-up?orgId=453003085612570" target="_blank" rel="noopener">Get alerts: AC Alert ↗</a></div>
     <div class="welcome expert-only">Explore how different wildfire scenarios could affect Berkeley's neighborhoods and routes, and see which access vulnerabilities and possible mitigations recur across scenarios.</div>
   </div>
+  <button id="g-find-btn" class="simple-only" aria-label="Find my street" aria-expanded="false" aria-controls="g-find">⌕</button>
   <button id="g-info" class="simple-only" aria-label="Menu: how to use, assumptions, sources" aria-expanded="false" aria-controls="g-menu">ⓘ</button>
   <div id="g-menu" class="simple-only" hidden>
     <p class="small g-menu-status">Status: pending Berkeley Fire Department review</p>
@@ -34,6 +35,7 @@
   </nav>
 </header>
 
+<p id="g-what" class="simple-only">How a hills wildfire could spread on Berkeley's streets, and what would help people get out.</p>
 <div id="g-fireline" class="simple-only"><label for="g-fire">Fire:</label> <select id="g-fire"></select><span id="g-pace"></span></div>
 <main>
   <aside id="left">
@@ -173,6 +175,7 @@
     <button id="g-fit" class="simple-only" hidden title="Frame the fire again and follow it">Fit</button>
     <div id="g-ctrl" class="simple-only"><button id="g-run" class="primary">Run simulation</button><div id="g-after" hidden><button id="g-explore" class="primary">Explore results</button><button id="g-again">Run again</button></div></div>
     <div id="g-sheet" class="simple-only" hidden></div>
+    <div id="g-find" class="simple-only" hidden><label for="g-find-in" class="sr-only">Find my street</label><input id="g-find-in" type="search" placeholder="Find my street, e.g. Panoramic Way" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="g-find-list"><button id="g-find-x" aria-label="Close street search">✕</button><ul id="g-find-list" role="listbox" aria-label="Streets" hidden></ul></div>
     <div id="loading">Loading street network, terrain and City layers…</div>
   </div>
 

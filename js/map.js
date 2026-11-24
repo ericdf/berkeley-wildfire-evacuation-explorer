@@ -210,7 +210,36 @@ export class MapView {
     if (this.sim) this.drawIgnition();
     this.drawMarks();
     this.drawSelection();
+    if (this.labels) this.drawLabels();
     this.drawScaleNorth();
+  }
+
+  // A few street and landmark names, drawn in Guided view once zoomed in (reviewer round via MASTER, 2026-11-23;
+  // SOURCE_NOTES GV36). this.labels = { streets: [network names], places: [{ text, x, y }] }. A street's name goes at the
+  // middle of its longest segment inside the view; streets show from about 4 km across, places from about 6 km.
+  drawLabels() {
+    const { ctx } = this, across = this.w / this.scale, E = this.data.net.edges;
+    if (across > 6000) return;
+    this._labelIdx ??= (() => { const m = new Map(); for (const e of E) if (e.mode === 'vehicle' && this.labels.streets.includes(e.name)) { if (!m.has(e.name)) m.set(e.name, []); m.get(e.name).push(e); } return m; })();
+    const x0 = this.wx(0), x1 = this.wx(this.w), y0 = this.wy(this.h), y1 = this.wy(0), inView = ([x, y]) => x > x0 && x < x1 && y > y0 && y < y1;
+    const title = s => s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+    const items = [];
+    if (across <= 4000) for (const [name, es] of this._labelIdx) {
+      let best = null; for (const e of es) { const m = this.data.edgeMid[e.id]; if (m && inView(m) && (!best || e.len > best.len)) best = e; }
+      if (best) items.push({ text: title(name), x: this.data.edgeMid[best.id][0], y: this.data.edgeMid[best.id][1], street: true });
+    }
+    for (const p of this.labels.places || []) if (inView([p.x, p.y])) items.push(p);
+    ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+    const boxes = [];
+    for (const it of items) {
+      ctx.font = it.street ? '600 12px system-ui, sans-serif' : 'italic 700 13px system-ui, sans-serif';
+      const sx = this.sx(it.x), sy = this.sy(it.y), w = ctx.measureText(it.text).width, b = [sx - w / 2 - 3, sy - 9, sx + w / 2 + 3, sy + 9];
+      if (boxes.some(o => b[0] < o[2] && b[2] > o[0] && b[1] < o[3] && b[3] > o[1])) continue; // no overlapping labels
+      boxes.push(b);
+      ctx.strokeStyle = 'rgba(255,255,255,.92)'; ctx.lineWidth = 4; ctx.strokeText(it.text, sx, sy);
+      ctx.fillStyle = it.street ? '#3a2d22' : '#1e3a5f'; ctx.fillText(it.text, sx, sy);
+    }
+    ctx.restore();
   }
 
   // The streets a picked change touches: a red curb or widening (green), a new road (dashed green),

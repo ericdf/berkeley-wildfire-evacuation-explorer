@@ -45,6 +45,8 @@ for (const [di, name] of DEVICES.entries()) {
     return h;
   };
   const visible = sel => p.locator(sel).isVisible();
+  // Explain this pop-ups fold their detail under "Details" (SOURCE_NOTES GV36): open it before reading the text.
+  const gxText = async () => { await p.evaluate(() => document.querySelectorAll('#modal details').forEach(d => { d.open = true; })); return p.locator('#modal .gx').innerText(); };
   const waitRunEnd = () => p.waitForSelector('#g-after:not([hidden])', { timeout: 180000 });
 
   console.log(`\n== ${name}`);
@@ -54,6 +56,12 @@ for (const [di, name] of DEVICES.entries()) {
   await p.reload();
   await p.waitForSelector('#loading', { state: 'detached', timeout: 120000 });
   await p.waitForTimeout(500);
+  // How to use opens by itself on the first visit only (SOURCE_NOTES GV36).
+  check(await p.locator('#modal[open] .intro').isVisible(), `${name}: How to use opens on the first visit`);
+  await p.click('#intro-ok');
+  await p.reload(); await p.waitForSelector('#loading', { state: 'detached', timeout: 120000 }); await p.waitForTimeout(400);
+  check(!(await p.locator('#modal[open]').count()), `${name}: How to use does not open again`);
+  check(await visible('#g-what') && /hills wildfire/.test(await p.locator('#g-what').innerText()), `${name}: one plain line on the first screen says what this is`);
   check(await p.evaluate(() => document.body.classList.contains('simple')), `${name}: opens in Guided view`);
   check(await visible('#g-run') && !(await visible('#g-chips')) && !(await visible('#g-after')), `${name}: map screen shows Run simulation only`);
   // Status and official alerts link under the title; the status also tops the menu (Eric, 2026-11-23; SOURCE_NOTES GV15, GV16).
@@ -72,7 +80,7 @@ for (const [di, name] of DEVICES.entries()) {
   for (const [sev, word] of [['low', 'Slower'], ['central', '1923 pace'], ['high', '1991 pace']]) {
     await p.click('[data-pace-explain]');
     if (sev !== 'central') await p.click(`#modal [data-pace-other="${sev}"]`);
-    const t = await p.locator('#modal .gx').innerText();
+    const t = await gxText();
     check(new RegExp(`Fire pace: ${word}`).test(t) && /model rule/.test(t) && (sev !== 'central' || /S11/.test(t)) && (sev !== 'high' || /FV17/.test(t)) && (sev !== 'low' || /lower bound/.test(t)), `${name}: ${word} has its own Explain this`);
     await p.locator('#modal .close').click();
   }
@@ -115,6 +123,28 @@ for (const [di, name] of DEVICES.entries()) {
     check(/model rule/.test(src) && (!/ft of pavement/.test(src) || /(sourced|derived|assumption)/.test(src) && /synthetic/.test(src)), `${name}: the street card gives each figure's provenance`);
     await shot('06-street-card'); await p.click('#g-sheet .g-x');
   }
+  // Find my street (SOURCE_NOTES GV36): the search finds Panoramic Way and Telegraph Av; after a run it opens the
+  // street card, which names the evacuation zone, links the City's page, rounds residents and clears Explore results.
+  await p.click('#g-find-btn');
+  check(await p.locator('#g-find-in').isVisible() && await p.locator('#g-find-in').evaluate(e => document.activeElement === e), `${name}: the street search opens with focus in its box`);
+  await p.keyboard.type('panoramic way');
+  check((await p.locator('#g-find-list [role="option"]').first().innerText()) === 'Panoramic Wy', `${name}: search lists Panoramic Wy for "panoramic way"`);
+  await p.keyboard.press('Enter'); await p.waitForTimeout(900);
+  check((await p.locator('#g-caption').innerText()) === 'Panoramic Wy' && await visible('#g-sheet'), `${name}: choosing Panoramic Wy frames it and opens its card`);
+  const card = await p.locator('#g-sheet').innerText();
+  check(/Evacuation zone [A-Z]{3}-\d{3}/.test(card) && await p.locator('#g-sheet a[href*="fire-weather-and-evacuation"]').count() === 1, `${name}: the card shows the street's evacuation zone and the City's lookup (${(card.match(/Evacuation zone \S+/) || [''])[0]})`);
+  check(!/\d\.\d modeled resident/.test(card), `${name}: modeled residents in whole people`);
+  const clear = await p.evaluate(() => { const a = document.getElementById('g-explore').getBoundingClientRect(), b = document.getElementById('g-again').getBoundingClientRect(), s = document.getElementById('g-sheet').getBoundingClientRect(); return s.bottom <= Math.min(a.top, b.top) + 0.5; });
+  check(clear, `${name}: the street card sits above Explore results and Run again`);
+  await noScroll('with the street card open'); await shot('06b-find-panoramic');
+  await p.click('#g-find-btn'); await p.keyboard.type('telegraph av');
+  await p.locator('#g-find-list [role="option"]', { hasText: 'Telegraph Av' }).first().click(); await p.waitForTimeout(900);
+  check((await p.locator('#g-caption').innerText()) === 'Telegraph Av' && /Telegraph Av/.test(await p.locator('#g-sheet').innerText()), `${name}: search finds Telegraph Av and opens its card`);
+  await p.click('#g-find-btn'); await p.keyboard.type('zzqq');
+  check(/No street by that name/.test(await p.locator('#g-find-list').innerText()), `${name}: an unknown name says so`);
+  await p.keyboard.press('Escape');
+  check(!(await visible('#g-find')), `${name}: Escape closes the search`);
+  await p.click('#g-sheet .g-x'); await p.click('[data-chip="fire"]'); await p.waitForTimeout(200);
 
   // Results
   await p.click('#g-explore');
@@ -138,7 +168,7 @@ for (const [di, name] of DEVICES.entries()) {
   const plines = await p.locator('#g-panel .rc-p').allTextContents();
   check(plines.length === 5 && plines.every(t => /^(Slower: .+ · 1991 pace: .+|The same at every fire pace)$/.test(t)), `${name}: each result gives the other paces' medians (${plines.join(' | ')})`);
   await p.click('#g-panel [data-sq]');
-  const sqt = await p.locator('#modal .gx').innerText();
+  const sqt = await gxText();
   check(/10 minutes after the fire starts/.test(sqt) && /no new roads or rules/.test(sqt) && /assumption/.test(sqt), `${name}: Status quo has its Explain this`);
   await p.locator('#modal .close').click();
   // Where traffic backed up (SOURCE_NOTES GV25): one compact card after the six result cards: top 3 streets, then 2 more,
@@ -148,7 +178,7 @@ for (const [di, name] of DEVICES.entries()) {
   const bkH = async () => p.evaluate(() => Math.round(document.querySelector('#g-panel .bk').getBoundingClientRect().height));
   const h3 = await bkH(), panelH = await p.evaluate(() => document.getElementById('g-panel').clientHeight);
   await p.click('#g-panel [data-explain-backups]');
-  const bkx = await p.locator('#modal .gx').innerText();
+  const bkx = await gxText();
   check(/What it counts/.test(bkx) && /synthetic/.test(bkx) && /model rule/.test(bkx) && /assumption/.test(bkx) && /Limits/.test(bkx), `${name}: backups Explain this gives what it counts, provenance and limits`);
   await p.locator('#modal .close').click();
   await p.click('#g-panel [data-bk-more]'); const n5 = await p.locator('#g-panel .bk-row').count(), h5 = await bkH();
@@ -166,9 +196,9 @@ for (const [di, name] of DEVICES.entries()) {
   await p.click('[data-chip="fire"]'); await p.waitForTimeout(200);
   await p.click('#g-explore');
   await p.locator('[data-explain="ember"]').click();
-  check(/Ember Threat Zones/.test(await p.locator('#modal .gx').innerText()) && await p.locator('#modal .gx a[href*="3c5e1686ebc543ffbdd1eb8698b51fe2"]').count() === 1, `${name}: embers Explain this notes the County's ember map`);
+  check(/Ember Threat Zones/.test(await gxText()) && await p.locator('#modal .gx a[href*="3c5e1686ebc543ffbdd1eb8698b51fe2"]').count() === 1, `${name}: embers Explain this notes the County's ember map`);
   check(await p.locator('#modal[open] .gx').isVisible(), `${name}: Explain this opens a pop-up`);
-  const ex = await p.locator('#modal .gx').innerText();
+  const ex = await gxText();
   check(/What it counts/.test(ex) && /runs behind it/.test(ex) && /synthetic/.test(ex) && /Limits/.test(ex) && /run you watched/.test(ex), `${name}: the pop-up gives counts, runs, provenance, limits and the watched run`);
   await shot('08-explain');
   await p.locator('#modal .close').click();
@@ -178,7 +208,7 @@ for (const [di, name] of DEVICES.entries()) {
   const heads = await p.locator('h3.cg').allTextContents();
   check(heads[0]?.startsWith('Fewer people') && heads.includes('No consistent benefit in our tests'), `${name}: changes grouped by result (${heads.join(' | ')})`);
   await p.click('[data-about-gains]');
-  check(/Where it comes from/.test(await p.locator('#modal .gx').innerText()), `${name}: About these gains gives provenance`);
+  check(/Where it comes from/.test(await gxText()), `${name}: About these gains gives provenance`);
   await p.locator('#modal .close').click();
   // Top 3 per group, the rest behind "Show N more".
   const perGroup = await p.locator('#g-panel').evaluate(P => [...P.querySelectorAll('h3.cg')].filter(h => !h.closest('details')).map(h => { let n = 0; for (let e = h.nextElementSibling; e && !e.matches('h3, details'); e = e.nextElementSibling) if (e.matches('.cr')) n++; return n; }));
@@ -221,7 +251,7 @@ for (const [di, name] of DEVICES.entries()) {
   await shot('13-compare-1');
   for (const id of ['ember', 'front', 'engine', 'oneWay', 'cutOff']) {
     await p.locator(`[data-explain-cmp="${id}"]`).click();
-    const t = await p.locator('#modal .gx').innerText();
+    const t = await gxText();
     check(/Where it comes from/.test(t) && /(synthetic|derived)/.test(t), `${name}: comparison Explain this for ${id} gives provenance`);
     if (id === 'engine') await shot('14-explain-compare');
     await p.locator('#modal .close').click();
@@ -241,7 +271,7 @@ for (const [di, name] of DEVICES.entries()) {
   check(warn.some(w => /Panoramic/.test(w)), `${name}: overlap warning on the same street (${warn[0] || 'none'})`);
   await shot('15-pick-3');
   await p.locator('[data-cost="redCurbFoot"]').first().click();
-  const costText = await p.locator('#modal .gx').innerText();
+  const costText = await gxText();
   check(/Where it comes from/.test(costText) && /derived/.test(costText) && /Source/.test(costText), `${name}: the cost opens its provenance`);
   await shot('15b-cost'); await p.locator('#modal .close').click();
   if (di === 0 && !quick) {
@@ -329,7 +359,7 @@ for (const [di, name] of DEVICES.entries()) {
   const qn = await p.locator('.rc .rc-n').allTextContents();
   check(qn.length === 6 && qn[3] === 'Not computed' && qn.filter(t => t === 'Not computed').length === 1, `${name}: earthquake results, single ways out not computed (${qn.join(' | ')})`);
   await p.locator('[data-explain="oneWay"]').click();
-  check(/Hayward Fault/.test(await p.locator('#modal .gx').innerText()), `${name}: earthquake, Explain this says why single ways out is not computed`);
+  check(/Hayward Fault/.test(await gxText()), `${name}: earthquake, Explain this says why single ways out is not computed`);
   await shot('22-quake-results');
   await p.locator('#modal .close').click();
   await p.click('[data-go="map"] >> nth=-1');
@@ -346,7 +376,7 @@ for (const [di, name] of DEVICES.entries()) {
     const t = await p.locator('#g-panel').innerText(), vals = await p.locator('.rc .rc-n').allTextContents();
     check(new RegExp(`median of 5 runs at ${word}`).test(t) && vals.length === 6, `${name}: ${fire} at ${word}, results (${vals.join(' | ')})`);
     await p.locator('[data-explain="ember"]').click();
-    check(new RegExp(`\\(${word}, seed 1\\)`).test(await p.locator('#modal .gx').innerText()), `${name}: ${fire} at ${word}, the watched run is at that pace`);
+    check(new RegExp(`\\(${word}, seed 1\\)`).test(await gxText()), `${name}: ${fire} at ${word}, the watched run is at that pace`);
     await p.locator('#modal .close').click();
     await p.click('[data-go="changes"] >> nth=0');
     check(new RegExp(`${word} · pick up to 3`).test(await p.locator('#g-panel .gv-head').innerText()), `${name}: ${fire} at ${word}, changes`);
@@ -361,7 +391,7 @@ for (const [di, name] of DEVICES.entries()) {
   // Changing the pace on Results starts a new run: the pop-up no longer reports "the run you watched" (Codex, PR #93).
   await p.click('#g-explore'); await p.click('[data-pace="central"]'); await p.waitForTimeout(300);
   await p.locator('[data-explain="ember"]').click();
-  check(!/run you watched/.test(await p.locator('#modal .gx').innerText()), `${name}: after a pace change on Results, no watched-run figure until the new run ends`);
+  check(!/run you watched/.test(await gxText()), `${name}: after a pace change on Results, no watched-run figure until the new run ends`);
   await p.locator('#modal .close').click(); await p.click('[data-go="map"] >> nth=0');
   await shot('24-quake-1991');
   const e1 = await paceRun('eastWind', 'low', 'Slower');
