@@ -12,6 +12,7 @@
 import { CARDS, GROUPS, cardById, makeGuided, sortItems, costLine, streetsOf, round10, SEVS, median, NETWORK_FIRES, PACES, paceOf, DEFAULT_PACE, backupRows, blockRange, BACKUP_TOP, BACKUP_ROW_MIN } from './guided-data.js';
 import { presence, direction, assumption } from './robust.js';
 import { CELL } from './fire.js';
+import { swatch } from './map.js';
 import { LEVER_OFF } from './presets.js';
 
 // Plain words for the three robustness labels (Eric, 2026-11-12, MASTER session; SOURCE_NOTES GV12). The rules are
@@ -60,6 +61,7 @@ const EMBER_NOTE = `The modeled embers follow each fire's start, wind, slope and
 
 export function guidedUI(ctx) {
   const { data, map, state, $, esc, fmt, FIRES, PRESETS, mit, spread, MEASURES, badge } = ctx;
+  const stripTags = t => String(t ?? '').replace(/<[^>]*>/g, '');
   const savedPace = ctx.store.get('bhe-pace');
   const g = state.g = { more: {}, screen: 'map', chip: 'fire', applied: [], picked: [], sort: 'benefit', live: null, sel: null, follow: true, anim: null, followSim: null, followT: -Infinity, pace: PACES.some(p => p.sev === savedPace) ? savedPace : DEFAULT_PACE };
   const pace = () => paceOf(g.pace), paceName = () => pace().label;
@@ -81,11 +83,14 @@ export function guidedUI(ctx) {
   const sq = t => String(t ?? '').replace(/today's plan/g, 'the status quo').replace(/Today's plan/g, 'The status quo');
 
   // ---------- header menu and fire line ----------
-  $('g-info').onclick = e => { e.stopPropagation(); $('g-menu').hidden = !$('g-menu').hidden; };
-  document.addEventListener('click', e => { if (!$('g-menu').hidden && !$('g-menu').contains(e.target)) $('g-menu').hidden = true; });
+  // A disclosure, not an ARIA menu: it holds a status line and the license next to its buttons and links (GV33).
+  const menu = open => { $('g-menu').hidden = !open; $('g-info').setAttribute('aria-expanded', String(open)); if (open) $('g-menu').querySelector('button, a')?.focus(); };
+  $('g-info').onclick = e => { e.stopPropagation(); menu($('g-menu').hidden); };
+  document.addEventListener('click', e => { if (!$('g-menu').hidden && !$('g-menu').contains(e.target)) menu(false); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('g-menu').hidden) { menu(false); $('g-info').focus(); } });
   $('g-menu').addEventListener('click', e => {
     const b = e.target.closest('[data-menu]'); if (!b) return;
-    $('g-menu').hidden = true;
+    menu(false);
     ({ intro: ctx.openIntro, assumptions: ctx.openAssumptions, sources: ctx.openSources, expert: () => ctx.setMode('expert') })[b.dataset.menu]?.();
   });
   const fireSel = $('g-fire');
@@ -306,15 +311,17 @@ export function guidedUI(ctx) {
   // The key for what the map shows (js/main.js legend calls this in Guided view).
   function legendHTML() {
     const sw = (c, t) => `<div><span class="sw" style="background:${c}"></span>${t}</div>`;
+    // Street classes: a line in the class's color and pattern, as drawn on the map (js/map.js swatch; SOURCE_NOTES GV31).
+    const sl = (mode, c, t) => `<div>${swatch(mode, c)}${t}</div>`;
     const fireKey = '<div><span class="dot" style="background:#ff7a00"></span>Fire front (last 15 min)</div><div><span class="dot" style="background:#5a1e19"></span>Burned</div><div><span class="dot" style="background:#ffb020;opacity:.6"></span>Embers</div>';
     if (!done()) return fireKey + sw('#7f1d1d', 'Cars backed up (over the last few minutes)');
     const runs = runsN();
     // Plain words for the robustness classes (GV12); the precise rule is in the street card and Explain this pop-ups.
     // One pace's 5 runs (GV21): reached in all 5, in some, or in none.
-    if (g.chip === 'fire') { const P = ctx.PALETTE.spread; return `<b>Embers reached the street, in ${runs} runs at ${paceName()}</b>${sw(P[4], 'Reached in every run')}${sw(P[2], 'Reached in some runs, by chance')}${sw(P[1], 'Not reached in any run')}${fireKey}<div class="small muted">${EMBER_NOTE}</div>`; }
-    if (g.chip === 'ways') { const P = ctx.PALETTE.access; return `<b>Streets with one way out: did the fire front reach it? In ${runs} runs at ${paceName()}</b>${g.applied.length ? '<div class="small muted">Today\'s street network, without your changes.</div>' : ''}${sw(P[4], 'Reached in every run')}${sw(P[2], 'Reached in some runs, by chance')}${sw(P[1], 'Not reached in any run')}${sw('#c8c8c8', 'More than one way out')}`; }
+    if (g.chip === 'fire') { const P = ctx.PALETTE.spread; return `<b>Embers reached the street, in ${runs} runs at ${paceName()}</b>${sl('robust', P[4], 'Reached in every run')}${sl('robust', P[2], 'Reached in some runs, by chance')}${sl('robust', P[1], 'Not reached in any run')}${fireKey}<div class="small muted">${EMBER_NOTE}</div>`; }
+    if (g.chip === 'ways') { const P = ctx.PALETTE.access; return `<b>Streets with one way out: did the fire front reach it? In ${runs} runs at ${paceName()}</b>${g.applied.length ? '<div class="small muted">Today\'s street network, without your changes.</div>' : ''}${sl('robust', P[4], 'Reached in every run')}${sl('robust', P[2], 'Reached in some runs, by chance')}${sl('robust', P[1], 'Not reached in any run')}${sl('robust', '#c8c8c8', 'More than one way out')}`; }
     const m = data.A.access.engineServiceMin;
-    return `<b>Engine drive time from the nearest station</b>${sw('#2f8a4a', `Within ${m} min`)}${sw('#e0a21e', `${m}–8 min`)}${sw('#c0262d', 'Over 8 min')}${sw('#7f1d1d', 'No engine route')}<div class="small muted">At ignition, with this run's parked cars.</div>`;
+    return `<b>Engine drive time from the nearest station</b>${sl('engineTime', '#2f8a4a', `Within ${m} min`)}${sl('engineTime', '#e0a21e', `${m}–8 min`)}${sl('engineTime', '#c0262d', 'Over 8 min')}${sl('engineTime', '#7f1d1d', 'No engine route')}<div class="small muted">At ignition, with this run's parked cars.</div>`;
   }
 
   // ---------- street card (bottom sheet) ----------
@@ -378,7 +385,7 @@ export function guidedUI(ctx) {
   const head = (title, sub) => `<div class="gv-head"><h2>${title}</h2><p>${sub}</p></div>`;
   function resultsHTML() {
     if (!mit() || !spread()) return `${head('Results', esc(fireTitle()))}<p>The run-set tables did not load.</p>${footHTML('results')}`;
-    const cards = CARDS.map(c => { const f = baseFigure(c); return `<div class="rc"><div class="rc-n">${f.na ? 'Not computed' : n(f.value)}</div><div class="rc-l">${c.line}</div>${paceLine(c, f)}${splitHTML(c)}<div class="rc-f">${chipHTML(f.label, c.id === 'oneWay' ? 'network' : 'result')}<button class="linkish" data-explain="${c.id}">Explain this</button></div></div>`; }).join('');
+    const cards = CARDS.map(c => { const f = baseFigure(c); const num = f.na ? 'Not computed' : n(f.value); return `<section class="rc" aria-labelledby="rc-h-${c.id}"><div class="rc-n" aria-hidden="true">${num}</div><div class="rc-l" role="heading" aria-level="3" id="rc-h-${c.id}"><span class="sr-only">${num}${f.na ? ': ' : ' '}</span>${c.line}</div>${paceLine(c, f)}${splitHTML(c)}<div class="rc-f">${chipHTML(f.label, c.id === 'oneWay' ? 'network' : 'result')}<button class="linkish" data-explain="${c.id}" aria-label="Explain this: ${esc(stripTags(c.line))}">Explain this</button></div></section>`; }).join('');
     return `${head(`Results: ${esc(fireTitle())}`, `${sqBtn()}, median of ${runsN()} runs at ${paceName()}`)}${cards}${backupsHTML()}${footHTML('results')}`;
   }
 
@@ -394,7 +401,7 @@ export function guidedUI(ctx) {
     const R = backups(); if (!R) return '';
     const flats = '<p class="bk-note">Hill streets only: the flats and I-80 approaches are not ranked.</p>';
     const top5 = R.slice(0, 5), stable = top5.filter(r => r.label === 'consistent').length;
-    const headH = `<div class="bk-head"><div class="rc-l"><b>Where traffic backed up in these runs</b></div><button class="linkish" data-explain-backups>Explain this</button></div>`;
+    const headH = `<div class="bk-head"><div class="rc-l" role="heading" aria-level="3"><b>Where traffic backed up in these runs</b></div><button class="linkish" data-explain-backups>Explain this</button></div>`;
     if (!R.length) return `<div class="bk">${headH}<p class="bk-one">No hill street held a backup of an hour of people's time or more in a median run at ${paceName()}.</p>${flats}</div>`;
     if (stable * 2 < top5.length) return `<div class="bk">${headH}<p class="bk-one">No street backed up in nearly every run of this fire at this pace; backups moved from run to run.</p>${flats}</div>`;
     const all = R.slice(0, BACKUP_LIST), lvl = g.bkOpen || 0, shown = all.slice(0, lvl === 0 ? 3 : lvl === 1 ? 5 : all.length);
@@ -589,9 +596,9 @@ export function guidedUI(ctx) {
       const same = r && (r.d.dir === 'same' || Math.abs(r.gain) < 0.5);
       const diff = !r ? '…' : same ? 'No change' : `${r.gain > 0 ? '−' : '+'}${fmt(round10(Math.abs(r.gain)))}${r.atLeast ? ' or more' : ''}`;
       const cls = !r ? '' : same ? 'same' : r.gain > 0 ? 'good' : 'worse';
-      return `<div class="rc cmp"><div class="rc-l">${cap(c.line)}</div>
+      return `<section class="rc cmp" aria-labelledby="rc-h-${c.id}"><div class="rc-l" role="heading" aria-level="3" id="rc-h-${c.id}">${cap(c.line)}</div>
         <div class="cmpgrid"><div><small>Status quo</small><b>${v(r?.a)}</b></div><div><small>With changes</small><b>${v(r?.b)}</b></div><div><small>Difference</small><b class="${cls}">${diff}</b></div></div>
-        <div class="rc-f">${r ? chipHTML(r.d, r.network ? 'networkChange' : 'change') : ''}<button class="linkish" data-explain-cmp="${c.id}"${r ? '' : ' disabled'}>Explain this</button></div></div>`;
+        <div class="rc-f">${r ? chipHTML(r.d, r.network ? 'networkChange' : 'change') : ''}<button class="linkish" data-explain-cmp="${c.id}"${r ? '' : ' disabled'} aria-label="Explain this: ${esc(stripTags(c.line))}">Explain this</button></div></section>`;
     }).join('');
     const title = ls.length === 1 ? `With ${esc(ls[0].title.charAt(0).toLowerCase() + ls[0].title.slice(1))}` : `With ${ls.length} changes`;
     const sub = `${ls.length > 1 ? `${ls.map(l => esc(l.title)).join('; ')}. ` : ''}${esc(fireTitle())} · ${runs} paired runs at ${paceName()}: same fire, households and parked cars with and without. Against the ${sqBtn('status quo')}`;
@@ -651,6 +658,7 @@ export function guidedUI(ctx) {
     enter() { G = null; map.barriers = false; map.queueSmooth = true; setup(); if (done()) frameSummary(); else frameStart(); show(g.screen === 'map' ? 'map' : g.screen); },
     leave() { map.barriers = true; map.queueSmooth = false; map.marks = []; },
     refresh, legendHTML, sheet, pickFire,
+    title: () => `${fireTitle()}, ${paceName()}`,
     onRunEnd() { g.chip = 'fire'; refresh(); if (g.follow) frameSummary(true); },
     tick,
     onRunStart() { $('g-sheet').hidden = true; refresh(); },

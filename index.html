@@ -15,14 +15,14 @@
     <div id="g-status" class="simple-only">Pending Berkeley Fire Department review · <a href="https://public.everbridge.net/sign-up?orgId=453003085612570" target="_blank" rel="noopener">Get alerts: AC Alert ↗</a></div>
     <div class="welcome expert-only">Explore how different wildfire scenarios could affect Berkeley's neighborhoods and routes, and see which access vulnerabilities and possible mitigations recur across scenarios.</div>
   </div>
-  <button id="g-info" class="simple-only" aria-label="Menu: how to use, assumptions, sources" aria-haspopup="true">ⓘ</button>
-  <div id="g-menu" class="simple-only" hidden role="menu">
+  <button id="g-info" class="simple-only" aria-label="Menu: how to use, assumptions, sources" aria-expanded="false" aria-controls="g-menu">ⓘ</button>
+  <div id="g-menu" class="simple-only" hidden>
     <p class="small g-menu-status">Status: pending Berkeley Fire Department review</p>
-    <button data-menu="intro" role="menuitem">How to use</button>
-    <button data-menu="assumptions" role="menuitem">Assumptions &amp; limits</button>
-    <button data-menu="sources" role="menuitem">Data sources</button>
-    <a href="https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation" target="_blank" rel="noopener" role="menuitem">Official City fire weather &amp; evacuation info ↗</a>
-    <button data-menu="expert" role="menuitem">Expert view<span class="phone-inline"> (best on a larger screen)</span></button>
+    <button data-menu="intro">How to use</button>
+    <button data-menu="assumptions">Assumptions &amp; limits</button>
+    <button data-menu="sources">Data sources</button>
+    <a href="https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation" target="_blank" rel="noopener">Official City fire weather &amp; evacuation info ↗</a>
+    <button data-menu="expert">Expert view<span class="phone-inline"> (best on a larger screen)</span></button>
     <p class="small">© 2026 Eric Friedman. Code: <a href="https://github.com/ericdf/berkeley-wildfire-evacuation-explorer/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>. Writing: <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>. Map data © OpenStreetMap contributors (ODbL).</p>
   </div>
   <nav class="expert-only">
@@ -78,7 +78,7 @@
 
     <section class="expert-only">
       <h2>2 · Operating plan</h2>
-      <div class="tabs" id="plan-tabs"><button data-plan="A" class="on">Plan A</button><button data-plan="B">Plan B</button></div>
+      <div class="tabs" id="plan-tabs" role="group" aria-label="Plan to edit"><button data-plan="A" class="on" aria-pressed="true">Plan A</button><button data-plan="B" aria-pressed="false">Plan B</button></div>
       <label>Name <input id="p-name" type="text"></label>
       <label>Zones ordered
         <select id="p-alertKm"><option value="0">The City's pre-defined zones for this scenario</option><option value="1">…plus any zone within 1 km of the fire</option><option value="2">…plus any zone within 2 km of the fire</option><option value="3">…plus any zone within 3 km of the fire</option></select></label>
@@ -140,7 +140,7 @@
       </div>
       <h3 class="expert-only">Compare Plan A and Plan B</h3>
       <div class="row expert-only">
-        <select id="cmp-scope">
+        <select id="cmp-scope" aria-label="What to compare">
           <option value="severities">This scenario · low / medium / high · seeds 1–3</option>
           <option value="scenarios">All 4 scenarios · medium · seeds 1–3</option>
         </select>
@@ -161,7 +161,8 @@
 
   <section id="g-panel" class="simple-only" hidden></section>
   <div id="mapwrap">
-    <canvas id="map"></canvas>
+    <canvas id="map" role="img" aria-label="Map of Berkeley" aria-describedby="map-desc"></canvas>
+    <div id="map-desc" class="sr-only"></div><div id="map-live" class="sr-only" aria-live="polite"></div>
     <div id="sim-banner" hidden><span id="sim-banner-text"></span><div class="track"><div id="sim-banner-bar"></div></div></div>
     <div id="clockbar"><div id="clock">Ready</div><div id="map-controls"><button id="map-run" class="primary" title="Run or pause the plan shown on the map">▶ Run</button><button id="map-reset" title="Start the plan shown on the map again from ignition">⟲ Restart</button></div></div>
     <div id="legend"></div>
@@ -179,12 +180,12 @@
     <section id="inspector" class="expert-only"><h2>Inspector</h2><p class="muted small">Click a street or an evacuation zone (turn on the Evacuation zones layer) to see its attributes. Hover a badge (ⓘ) for where each value comes from.</p></section>
     <section id="results"></section>
     <section id="compare-out"></section>
-    <section id="log"><h2>Event log (model time, h:mm after ignition)</h2><ol id="events"></ol></section>
+    <section id="log" aria-labelledby="log-h"><h2 id="log-h">Event log (model time, h:mm after ignition)</h2><ol id="events" tabindex="0" aria-labelledby="log-h"></ol></section>
   </aside>
 </main>
 <footer id="license-foot">© 2026 Eric Friedman. Code: <a href="https://github.com/ericdf/berkeley-wildfire-evacuation-explorer/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>. Writing, including this page's text: <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>. Both require attribution. Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a> (ODbL); other data from the publishers under Data sources, on their terms. <a href="https://github.com/ericdf/berkeley-wildfire-simulator" target="_blank" rel="noopener">Source code</a></footer>
 
-<dialog id="modal"><form method="dialog"><button class="close">✕</button></form><div id="modal-body"></div></dialog>
+<dialog id="modal" aria-labelledby="modal-title"><form method="dialog"><button class="close" aria-label="Close">✕</button></form><div id="modal-body"></div></dialog>
 <script type="module" src="js/main.js"></script>
 </body>
 </html>

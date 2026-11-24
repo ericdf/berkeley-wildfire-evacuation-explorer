@@ -25,6 +25,31 @@ export const riseColor = r => RISE_BINS.reduce((c, b) => r >= b[0] ? b[1] : c, R
 export const ACCESS_BINS = [[0, '#9ec5f4', '0'], [25, '#6da7ec', '25'], [100, '#3987e5', '100'], [250, '#256abf', '250'], [500, '#184f95', '500+']];
 export const accessColor = r => ACCESS_BINS.reduce((c, b) => r >= b[0] ? b[1] : c, ACCESS_BINS[0][1]);
 
+// A second cue besides color for the street classes of each map mode, so they can be told apart without color vision
+// (MASTER, 2026-11-23; SOURCE_NOTES GV31). Each class gets a line pattern, the same on the map and on the key's swatch:
+// solid, long dash, dash-dot, short dash, dotted, in the order of the mode's classes (gray "no data" classes stay solid). Lengths are in line widths (with
+// round caps, a near-zero dash draws a dot). Road class keeps solid lines: its classes also differ by width, and the
+// Inspector names each street. The single-hue ramps (homes above their street, access constraints) differ in lightness.
+export const DASH = { solid: [], long: [3, 2.5], dashdot: [3, 2.5, 0.01, 2.5], short: [1, 2.5], dot: [0.01, 2.2] };
+const DASH_BY_COLOR = {
+  // Run-set classes (js/explore.js PALETTE): reached in every run solid and wide; in some runs dashed; streets the fire
+  // never reached stay thin and light (the Fire chip), or dotted where they have one way out (the Ways out chip).
+  robust: { '#b45309': 'solid', '#b91c1c': 'solid', '#f59e0b': 'long', '#a855f7': 'dashdot', '#60a5fa': 'dot' },
+  engineTime: { '#2f8a4a': 'solid', '#e0a21e': 'long', '#c0262d': 'short', '#7f1d1d': 'dot' },
+  clearWidth: { '#2f8a4a': 'solid', '#9cc65a': 'long', '#e8c21e': 'dashdot', '#e07a1e': 'short', '#c0262d': 'dot' },
+  engine: { '#2f8a4a': 'solid', '#e08a1e': 'long', '#c0262d': 'dot' },
+  grade: { '#4f7f9b': 'solid', '#8fae4a': 'long', '#e0b21e': 'dashdot', '#e07a1e': 'short', '#c0262d': 'dot' },
+  widthSource: { '#2b6cb0': 'solid', '#8a3fb8': 'long' },
+  oneway: { '#d1495b': 'long' },
+  ops: { '#1d4ed8': 'solid', '#93c5fd': 'long', '#9ca3af': 'short', '#e07a1e': 'dot' },
+};
+export const dashOf = (mode, color) => DASH[DASH_BY_COLOR[mode]?.[color] || 'solid'];
+// The key's swatch: a short line in the class's color and pattern (decorative: the text beside it names the class).
+export const swatch = (mode, color) => {
+  const d = dashOf(mode, color), w = 3;
+  return `<svg class="swl" width="26" height="8" aria-hidden="true" focusable="false"><line x1="3" y1="4" x2="23" y2="4" stroke="${color}" stroke-width="${w}" stroke-linecap="round"${d.length ? ` stroke-dasharray="${d.map(x => +(x * w).toFixed(2)).join(' ')}"` : ''}/></svg>`;
+};
+
 export class MapView {
   constructor(canvas, data) {
     this.cv = canvas; this.ctx = canvas.getContext('2d'); this.data = data;
@@ -275,8 +300,10 @@ export class MapView {
     for (const e of data.net.edges) {
       if (e.mode !== 'vehicle') continue;
       const m = data.edgeMid[e.id]; if (m[0] < vb[0] - 500 || m[0] > vb[2] + 500 || m[1] < vb[1] - 500 || m[1] > vb[3] + 500) continue;
-      const [c, w] = this.streetStyle(e);
+      const [c, w0] = this.streetStyle(e), d = dashOf(this.streetMode, c), w = d.length ? Math.max(w0, 2) : w0;
+      ctx.setLineDash(d.length ? d.map(x => x * w) : d);
       ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); this.path(e.geom); ctx.stroke();
+      if (d.length) ctx.setLineDash([]);
       if (this.streetMode === 'oneway' && (e.trav === 'FT' || e.trav === 'TF') && this.scale > 0.5) this.arrow(e);
     }
     // Junctions under officer control, and dark signals in a power shutoff (street mode "ops")

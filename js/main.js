@@ -4,7 +4,7 @@ import { makeScenarios, familyOf, comparisonCases, familyWinds, QUAKE_ROS_FACTOR
 import { Evacuation, DEFAULT_PLAN, titleCase } from './sim.js';
 import { PARKING_PLANS, ENFORCE_PLANS } from './parking.js';
 import { PRESETS, FIRES } from './presets.js';
-import { MapView, STREET_MODES, RISE_BINS } from './map.js';
+import { MapView, STREET_MODES, RISE_BINS, swatch } from './map.js';
 import { fromUTM } from '../tools/utm.mjs';
 import { accessCard, accessSummary, accessTable, accessLegend } from './access.js';
 import { ROUTING, routingOf, complianceOf, worseOff, worseOffBeyondChance } from './guidance.js';
@@ -67,7 +67,7 @@ const PLAN_FIELDS = ['name', 'alertKm', 'orderDelayMin', 'hillsOrderMin', 'early
 function showPlan() {
   const p = state.plans[state.editing];
   for (const f of PLAN_FIELDS) $(`p-${f}`).value = p[f] ?? DEFAULT_PLAN[f] ?? '';
-  document.querySelectorAll('#plan-tabs button').forEach(b => b.classList.toggle('on', b.dataset.plan === state.editing));
+  document.querySelectorAll('#plan-tabs button').forEach(b => { b.classList.toggle('on', b.dataset.plan === state.editing); b.setAttribute('aria-pressed', String(b.dataset.plan === state.editing)); });
   parkingNote(); r0Note(); opsNote();
   showRouting(); // driver information and routing (js/guidance.js)
 }
@@ -361,7 +361,7 @@ function guidedRun(levers, sev = 'central') {
   state.plans.A = { ...state.preset.A }; state.plans.B = { ...state.preset.B }; state.editing = st ? 'B' : 'A'; showPlan();
   $('compare-out').innerHTML = ''; newRun();
 }
-function play(on) { state.playing = on; state.playRate = null; state.playAt = null; runLabel(on ? '❚❚ Pause' : '▶ Run'); if (on) guided?.onRunStart(); }
+function play(on) { state.playing = on; state.playRate = null; state.playAt = null; runLabel(on ? '❚❚ Pause' : '▶ Run'); if (on) { say(`Run started. ${mapTitle()}.`); guided?.onRunStart(); } }
 
 // Live paired comparison of two or three changes: the stored table's 5 passes at the chosen fire pace (seeds 1–5; GV21),
 // each running the status quo and the stack on the same fire, households, parked cars and seed. Status quo results are
@@ -463,7 +463,7 @@ function loop(now) {
     const t0 = sim.t; while (steps-- > 0 && sim.t < sim.end) sim.step();
     const wall = (now - (state.playAt ?? now)) / 1000; state.playAt = now; // achieved model seconds per wall second, smoothed
     if (wall > 0 && wall < 2) state.playRate = state.playRate ? state.playRate + Math.min(1, wall / 2) * ((sim.t - t0) / wall - state.playRate) : (sim.t - t0) / wall;
-    if (sim.t >= sim.end) { state.playing = false; runLabel('▶ Run again'); update(true); map.draw(); if (document.body.classList.contains('simple')) guided.onRunEnd(); requestAnimationFrame(loop); return; }
+    if (sim.t >= sim.end) { state.playing = false; runLabel('▶ Run again'); update(true); map.draw(); say(`Run complete. ${mapTitle()}.`); if (document.body.classList.contains('simple')) guided.onRunEnd(); requestAnimationFrame(loop); return; }
     $('scrub').value = Math.floor(sim.t / 60);
     if (document.body.classList.contains('simple')) guided.tick(); // Guided view: the view widens with the fire
     map.draw();
@@ -472,6 +472,27 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 
+// ---------- the map in words (MASTER, 2026-11-23; SOURCE_NOTES GV32) ----------
+// The canvas is an image to assistive technology: its name says which fire and when, and #map-desc (its description)
+// says that, the key in words, the map's caption and the longest queues. #map-live announces only a run's start and
+// end and a change of what the map shows, so a playing run does not speak every frame.
+// Messages that arrive together (a run ends and the map switches to its results) are spoken as one.
+let sayQueue = [], sayTimer = null;
+const say = t => { sayQueue.push(t); clearTimeout(sayTimer); sayTimer = setTimeout(() => { $('map-live').textContent = sayQueue.join(' '); sayQueue = []; }, 150); };
+function mapTitle() {
+  const sim = state.sim; if (!sim) return 'Map of Berkeley';
+  const simple = document.body.classList.contains('simple');
+  const what = simple ? guided.title() : `${sim.scenario.name}, ${SEVERITY[sim.sevKey].label.toLowerCase()} severity, seed ${sim.seed}, ${sim.plan.name}`;
+  const when = sim.t <= 0 ? 'before ignition' : `${hm(sim.t)} after ignition${sim.t >= sim.end ? ', run complete' : state.playing ? ', running' : ''}`;
+  return `Map: ${what}; ${when}`;
+}
+function describeMap(S = null) {
+  const sim = state.sim; if (!sim) return;
+  const cap = !$('g-caption').hidden && document.body.classList.contains('simple') ? $('g-caption').textContent.trim() : '';
+  const q = sim.t > 0 ? (S || sim.summary()).bottlenecks.slice(0, 3) : [];
+  $('map').setAttribute('aria-label', mapTitle());
+  $('map-desc').textContent = [`Key: ${state.keyText || ''}`, cap, q.length ? `Longest queues so far: ${q.map(b => `${b.name.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())}, ${b.max} cars`).join('; ')}.` : ''].filter(Boolean).join(' ');
+}
 // ---------- results panel ----------
 function update(full) {
   const sim = state.sim, S = sim.summary(), sc = sim.scenario;
@@ -526,6 +547,7 @@ function update(full) {
   spark(sim);
   $('events').innerHTML = sim.events.map(e => `<li class="k-${e.kind}"><span class="t">t+${hm(e.t)}</span>${esc(e.text)}</li>`).join('');
   if (map.selected) inspect(map.selected, true);
+  describeMap(S);
 }
 // Model performance (Assumptions & limits): the simulator's fire-off 90% times against the 2025 Evacuation Time Study,
 // shown as a known limitation of the traffic model, not as validation (product brief, "Evacuation-time outputs";
@@ -727,16 +749,18 @@ function opsRows(e, sim, row) {
 // ---------- legend ----------
 function legend() {
   const m = map.streetMode, sw = (c, t) => `<div><span class="sw" style="background:${c}"></span>${t}</div>`;
+  // Street classes: a line in the class's color and pattern (js/map.js swatch; SOURCE_NOTES GV31).
+  const sl = (c, t) => `<div>${swatch(m, c)}${t}</div>`;
   const L = {
-    class: sw('#c0703a', 'Principal arterial') + sw('#c09a3a', 'Collector') + sw('#3d4f63', 'Local, hill fire zones') + sw('#5b5b5b', 'Local, flats') + sw('#7a4b9c', 'Freeway / ramp'),
-    clearWidth: sw('#2f8a4a', '≥ 20 ft: two 10-ft lanes') + sw('#9cc65a', '10–20 ft: one 10-ft lane') + sw('#e8c21e', '9–10 ft: constrained') + sw('#e07a1e', '7–8 ft: moderately constrained') + sw('#c0262d', '≤ 6 ft: severely constrained') + sw('#aaa', 'width unknown') + '<div class="small muted">Tiers from the City SB 99 analysis (KLD)</div>',
-    engine: sw('#2f8a4a', 'Engine passes oncoming traffic') + sw('#e08a1e', 'Engine fits, but oncoming cars must pull over') + sw('#c0262d', 'Too narrow for an engine with parked cars') + sw('#aaa', 'unknown'),
-    engineTime: sw('#2f8a4a', `Within ${data.A.access.engineServiceMin} min (City standard)`) + sw('#e0a21e', `${data.A.access.engineServiceMin}–8 min`) + sw('#c0262d', 'Over 8 min') + sw('#7f1d1d', 'No engine route (parked cars, barriers)') + '<div class="small muted">At ignition, no traffic or fire.</div><div class="small muted">From Berkeley\'s 7 stations only.</div><div class="small muted">A home counts at its segment\'s nearer end.</div>',
-    grade: sw('#4f7f9b', '< 5%') + sw('#8fae4a', '5–10%') + sw('#e0b21e', '10–15%') + sw('#e07a1e', '15–20%') + sw('#c0262d', '≥ 20%') + sw('#aaa', 'unreliable (structure or DEM artefact)'),
-    widthSource: sw('#2b6cb0', 'City pavement-management width') + sw('#8a3fb8', 'City narrow-roads survey') + sw('#aaa', 'no width data'),
-    oneway: sw('#d1495b', 'One-way (arrow = direction)') + sw('#666', 'Two-way'),
-    walkRise: RISE_BINS.map(([, c, t]) => sw(c, t)).join('') + sw('#d4d4d4', 'not a hill street, or no data') + '<div class="small muted">90th percentile of hill homes\' height above or below the nearest point of their street (DEM at footprint centroids, Microsoft footprints). Segments with fewer than 5 buildings show their zone\'s figure.</div>',
-    ops: sw('#1d4ed8', 'Contraflow running: both lanes out') + sw('#93c5fd', 'Contraflow planned, not started') + sw('#e07a1e', 'On the plan, too narrow for two lanes out') + sw('#9ca3af', 'On the plan, not running (see event log)') + '<div class="small muted">Junctions: <span class="dot" style="background:#7c3aed"></span>officer control · <span class="dot" style="background:#111"></span>dark signal (all-way stop)</div>',
+    class: sl('#c0703a', 'Principal arterial') + sl('#c09a3a', 'Collector') + sl('#3d4f63', 'Local, hill fire zones') + sl('#5b5b5b', 'Local, flats') + sl('#7a4b9c', 'Freeway / ramp'),
+    clearWidth: sl('#2f8a4a', '≥ 20 ft: two 10-ft lanes') + sl('#9cc65a', '10–20 ft: one 10-ft lane') + sl('#e8c21e', '9–10 ft: constrained') + sl('#e07a1e', '7–8 ft: moderately constrained') + sl('#c0262d', '≤ 6 ft: severely constrained') + sl('#aaa', 'width unknown') + '<div class="small muted">Tiers from the City SB 99 analysis (KLD)</div>',
+    engine: sl('#2f8a4a', 'Engine passes oncoming traffic') + sl('#e08a1e', 'Engine fits, but oncoming cars must pull over') + sl('#c0262d', 'Too narrow for an engine with parked cars') + sl('#aaa', 'unknown'),
+    engineTime: sl('#2f8a4a', `Within ${data.A.access.engineServiceMin} min (City standard)`) + sl('#e0a21e', `${data.A.access.engineServiceMin}–8 min`) + sl('#c0262d', 'Over 8 min') + sl('#7f1d1d', 'No engine route (parked cars, barriers)') + '<div class="small muted">At ignition, no traffic or fire.</div><div class="small muted">From Berkeley\'s 7 stations only.</div><div class="small muted">A home counts at its segment\'s nearer end.</div>',
+    grade: sl('#4f7f9b', '< 5%') + sl('#8fae4a', '5–10%') + sl('#e0b21e', '10–15%') + sl('#e07a1e', '15–20%') + sl('#c0262d', '≥ 20%') + sl('#aaa', 'unreliable (structure or DEM artefact)'),
+    widthSource: sl('#2b6cb0', 'City pavement-management width') + sl('#8a3fb8', 'City narrow-roads survey') + sl('#aaa', 'no width data'),
+    oneway: sl('#d1495b', 'One-way (arrow = direction)') + sl('#666', 'Two-way'),
+    walkRise: RISE_BINS.map(([, c, t]) => sl(c, t)).join('') + sl('#d4d4d4', 'not a hill street, or no data') + '<div class="small muted">90th percentile of hill homes\' height above or below the nearest point of their street (DEM at footprint centroids, Microsoft footprints). Segments with fewer than 5 buildings show their zone\'s figure.</div>',
+    ops: sl('#1d4ed8', 'Contraflow running: both lanes out') + sl('#93c5fd', 'Contraflow planned, not started') + sl('#e07a1e', 'On the plan, too narrow for two lanes out') + sl('#9ca3af', 'On the plan, not running (see event log)') + '<div class="small muted">Junctions: <span class="dot" style="background:#7c3aed"></span>officer control · <span class="dot" style="background:#111"></span>dark signal (all-way stop)</div>',
   }[m];
   const extra = (map.layers.fire ? `<div><span class="dot" style="background:#ff7a00"></span>Active fire (last 15 min)</div><div><span class="dot" style="background:#5a1e19"></span>Burned</div><div><span class="dot" style="background:#ffb020;opacity:.6"></span>Ember exposure</div>` : '')
     + (map.layers.vehicles ? `<div><span class="dot" style="background:#1d4ed8"></span>Vehicle leaving · <span class="dot" style="background:#d97706"></span>commuter driving home · <span class="dot" style="background:#e11d48"></span>in ember area</div>` : '')
@@ -749,7 +773,13 @@ function legend() {
   const access = map.layers.access && data.access ? accessLegend() : '';
   let saved = null; try { saved = localStorage.getItem('bhe-key'); } catch {}
   const open = saved ? saved !== 'hidden' : !matchMedia('(max-width: 760px)').matches; // on a phone the key starts closed: open, it covers half the map
-  $('legend').innerHTML = `<button class="key-toggle" title="${open ? 'Hide' : 'Show'} the map key">${document.body.classList.contains('simple') ? (open ? 'Key ▾' : 'Key ▸') : open ? 'Hide key ▾' : 'Show key ▸'}</button>${open ? `<div>${document.body.classList.contains('simple') ? guided.legendHTML() : `<b>${STREET_MODES[m]}</b>${L}${extra}${access}`}</div>` : ''}`;
+  const keyHTML = document.body.classList.contains('simple') ? guided.legendHTML() : `<b>${STREET_MODES[m]}</b>${L}${extra}${access}`;
+  $('legend').innerHTML = `<button class="key-toggle" aria-expanded="${open}" title="${open ? 'Hide' : 'Show'} the map key">${document.body.classList.contains('simple') ? (open ? 'Key ▾' : 'Key ▸') : open ? 'Hide key ▾' : 'Show key ▸'}</button>${open ? `<div>${keyHTML}</div>` : ''}`;
+  // The key in words for the map's text description, whether or not the key is open (GV32).
+  const box = document.createElement('div'); box.innerHTML = keyHTML.replace(/<\/(div|b)>/g, '$&. ');
+  const keyText = box.textContent.replace(/\s+/g, ' ').replace(/(\. )+/g, '. ').replace(/\.\s*\./g, '.').trim();
+  if (state.keyText && keyText !== state.keyText) say(`Map shows: ${keyText.split('. ')[0]}.`);
+  state.keyText = keyText; describeMap();
   $('legend').querySelector('.key-toggle').onclick = () => { try { localStorage.setItem('bhe-key', open ? 'hidden' : 'shown'); } catch {} legend(); };
 }
 
@@ -909,7 +939,26 @@ function explain(results, g, scope) {
 }
 
 // ---------- modals ----------
-function modal(html, cls = '') { $('modal').className = cls; $('modal-body').innerHTML = html; $('modal').showModal(); }
+// Every pop-up is the one native modal <dialog>: it keeps focus inside and closes on Escape. Its first heading labels it,
+// and focus goes back to what opened it (MASTER, 2026-11-23; SOURCE_NOTES GV33).
+let modalOpener = null;
+function modal(html, cls = '') {
+  const M = $('modal'); M.className = cls; $('modal-body').innerHTML = html;
+  for (const h of M.querySelectorAll('[id="modal-title"]')) h.removeAttribute('id');
+  const h = $('modal-body').querySelector('h1, h2, h3'); if (h) h.id = 'modal-title';
+  if (h) { M.setAttribute('aria-labelledby', 'modal-title'); M.removeAttribute('aria-label'); } else { M.removeAttribute('aria-labelledby'); M.setAttribute('aria-label', 'Details'); }
+  if (!M.open) { modalOpener = document.activeElement; M.showModal(); }
+}
+// Tab and Shift+Tab cycle inside the open pop-up instead of leaving it for the browser's own controls.
+$('modal').addEventListener('keydown', e => {
+  if (e.key !== 'Tab') return;
+  const F = [...$('modal').querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter(x => !x.disabled && x.offsetParent !== null);
+  if (!F.length) return;
+  const first = F[0], last = F[F.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+});
+$('modal').addEventListener('close', () => { const o = modalOpener; modalOpener = null; if (o?.isConnected && typeof o.focus === 'function') o.focus(); });
 // How to use: the header's ⓘ menu in Guided view, the How to use button in Expert view (Eric, 2026-11-10: short, plain).
 function intro() {
   modal(`<div class="intro"><h2>How to use</h2>
