@@ -197,26 +197,38 @@ as driveways and the street loses capacity. Under 10 ft, a fire engine cannot ge
 7.3 m (24 ft).
 
 **Fire and embers** (`js/fire.js`). An illustrative overlay on 30 m cells. A shortest-time
-search spreads fire from the ignition, using wind (an elliptical shape), slope, and a
-proxy fuel factor taken from the City fire zones. An opt-in Expert-view setting (Scenario →
+search spreads fire from the ignition, using wind (an elliptical shape and a head rate that rises
+with wind speed), slope, and a proxy fuel factor taken from the City fire zones. Each severity's
+head rate is its rate in a 32 mph wind, the 1923 repeat's; other winds scale it by Rothermel's wind
+factor on hill and wildland cells (fuel model TL6: 0.13 of the 32 mph rate at 7 mph, 1.14 at 35 mph)
+and by Hamada's urban factor on the built-up flats (0.36 at 7 mph, 1.11 at 35 mph). High severity
+(the "1991 pace") runs faster for its first hour and never slower than medium; after the first hour
+it runs at medium's rate (Eric, 2026-11-24). An opt-in Expert-view setting (Scenario →
 Fuel) uses LANDFIRE 2025 FBFM40 fuel models instead, each with a spread factor from Rothermel's
 relative rate for its Scott and Burgan model, a model rule (`node tools/fetch-fuel.mjs`;
 checks against 1923, 1991, the Ember Threat Zones and Red Flag winds in
-`docs/fire-validation.md`). Random spot fires mean different seeds
-give different footprints. A cell is ember-exposed once anything burns within the ember
-distance upwind of it. The overlay puts plausible, comparable pressure on the evacuation;
-it does not predict how a real fire would behave. A scenario may carry a wind schedule
+`docs/fire-validation.md`). Burning cells throw spot fires downwind, most of them in the near half
+of the ember reach (the severity's 300, 800 or 1,500 m at 32 mph, in proportion to wind speed); the
+flats throw at a quarter of the hills' rate. Random spot fires mean different seeds give different
+footprints. A cell is ember-exposed once the cells burning upwind of it, each weighted by its
+nearness and its ember weight, add up to a quarter of what a fully burning upwind reach would send;
+a broad front gets there at half the reach. The calibration and every rule are in SOURCE_NOTES
+FW1–FW14; `node tools/fire-wind-fit.mjs` prints the checks. The overlay puts plausible, comparable
+pressure on the evacuation; it does not predict how a real fire would behave. A scenario may carry a wind schedule
 (`windSchedule`: `{ fromMin, windFrom, windMph }` entries): each crossing, spot throw and ember
 reach uses the wind in force when it starts, and a burning cell may start a crossing again at
 each wind change, which keeps the shortest-time search valid. Only the earthquake scenarios use
 one; every other fire runs exactly as before (`node tests/wind-schedule.mjs`).
 
-**Earthquake fires** (the spring-afternoon fire is also in Guided view since 2026-11-13, FF27; SOURCE_NOTES EQ11, WC1–WC9; `docs/wind-climate.md`).
-About 20 starts in buildings drawn from the USGS HayWired model, spread at 0.27 of medium
-severity's rate (fitted to HayWired's burned floor area in Berkeley), on three winds measured at
-the Oakland North weather station: a spring afternoon at HayWired's 4:18 p.m. (from 205°, 7.0 mph
-easing to 5.4 mph), a winter day with a north wind (0°, 5.9 to 9.2 mph) and the rare dry east wind
-(45° at 30 mph). Fault closures and dark signals come with them.
+**Earthquake fires** (the spring-afternoon fire is also in Guided view since 2026-11-13, FF27; SOURCE_NOTES EQ11, WC1–WC9, FW12; `docs/wind-climate.md`).
+About 20 starts in buildings drawn from the USGS HayWired model, spread at 0.8 of medium
+severity's rate in a 32 mph wind (fitted to HayWired's burned floor area in Berkeley on the spring
+wind), on three winds measured at the Oakland North weather station: a spring afternoon at HayWired's
+4:18 p.m. (from 205°, 7.0 mph easing to 5.4 mph), a winter day with a north wind (0°, 5.9 to 9.2 mph)
+and the rare dry east wind (45° at 30 mph), which reaches the most structures of the three. Guided
+view names its paces Slower, HayWired pace and Faster. Fault closures and dark signals come with
+them. Not modeled: the water system failing after the earthquake, and fire passing from building to
+building on its own.
 
 **Visibility** (scenario setting, Expert view, off by default; SOURCE_NOTES VZ1–VZ7). Poor
 visibility (fog or smoke) cuts free-flow speed on every street by 7.5% (FHWA-JPO-11-019 p. 7,
@@ -404,6 +416,7 @@ flow.
 | `tools/build-terrain-lite.mjs` | The browser's light terrain set from the 4 m DEM: 30 m fire-grid elevations, the DEM cells candidate new roads read, hillshade WebP and contours (`data/terrain/lite.json`, `elev30.i16`, `contours.i16`, `hillshade.webp`; SOURCE_NOTES GV19). Rerun after the DEM or `egress-candidates.json` changes; `node tests/terrain-lite.mjs` checks it gives the same model inputs and runs |
 | `tools/serve-gzip.mjs` | Serves a checkout gzipped, as GitHub Pages does, for `node tests/load-size.mjs` (first-load transfer and time on a throttled phone) |
 | `tools/quake-ros-fit.mjs` | Earthquake fires' spread factor: structures in Berkeley reached by 6 h for each factor and earthquake wind (SOURCE_NOTES WC8) |
+| `tools/fire-wind-fit.mjs` | Fire overlay checks for the wind-dependent head rate: the 1923 timing, the 1991-like fire, the earthquake factor, area burned against wind speed and pace order by hour; `--root` runs another checkout for before → after tables (SOURCE_NOTES FW1–FW14) |
 | `tools/visibility-check.mjs` | Today's plan with visibility clear and poor on the same fires and households (SOURCE_NOTES VZ7) |
 | `tools/fault-zone-check.mjs` | Which hill streets a Hayward Fault rupture closes, at two bounds, and whether the hills keep a way out; `--write` saves the lists to `data/model/fault-closures.json` for the scenario setting "Hayward Fault earthquake" (SOURCE_NOTES EQ4–EQ10). Rerun after every network rebuild |
 | `tools/build-fire-zones-2025.mjs` | Writes `data/model/fire-zones-2025.json`: the 2025 Fire Code's Panoramic and Grizzly Peak Mitigation Zones from the City layer `grizz_pano_mitigation`, which the fire overlay's proxy fuel uses (SOURCE_NOTES FV18). The page needs the file |

@@ -11,11 +11,12 @@ export const LEAVE_EARLY_ZONES = ['BER-006', 'BER-007', 'BER-008', 'BER-015', 'B
 export const SEVERITY = {
   low:     { label: 'Low',     rosMpm: 7,  windFactor: 0.75, emberM: 300,  spotProb: 0.004, spotDelayMin: 4 },
   central: { label: 'Medium', rosMpm: 14, windFactor: 1.0,  emberM: 800,  spotProb: 0.012, spotDelayMin: 3 },
-  high:    { label: 'High',    rosMpm: 28, windFactor: 1.3,  emberM: 1500, spotProb: 0.03,  spotDelayMin: 2, slowAfterMin: 60, slowFactor: 0.2 },
+  high:    { label: 'High',    rosMpm: 28, windFactor: 1.3,  emberM: 1500, spotProb: 0.03,  spotDelayMin: 2, slowAfterMin: 60 },
 };
-// High never crosses a cell slower than medium would on the same crossing (js/fire.js runFire; SOURCE_NOTES FW6).
+// High never crosses a cell slower than medium would on the same crossing, and after its first hour runs at medium's
+// rate (no slowFactor: js/fire.js runFire; Eric, 2026-11-24, SOURCE_NOTES FW6).
 SEVERITY.high.floor = SEVERITY.central;
-export const SEVERITY_NOTE = 'Medium severity ("central" in the code and data files): its head spread rate is calibrated to the City StoryMap\'s 1923 present-day repeat (about 5 h from the eastern edge to Shattuck; SOURCE_NOTES S11); low and high are half and double. High severity slows after its first hour to a fifth of its head spread rate, as the 1991 fire\'s head did ("more than a mile in the first hour", then "only three quarters of a mile in the next seven hours"); fitted to 1991\'s structures burned by 2 and 4 hours (SOURCE_NOTES FV17). Medium and low keep their rate: the 1923 fire kept its pace until the wind changed. Ember distance and spot-fire probability are illustrative. The Evacuation Time Study contains no fire modeling (E31). This is not a fire-behavior model.';
+export const SEVERITY_NOTE = 'Medium severity ("central" in the code and data files): its head spread rate is calibrated to the City StoryMap\'s 1923 present-day repeat (about 5 h from the eastern edge to Shattuck in a 32 mph wind; SOURCE_NOTES S11, FW5); low is half of it. Every rate is the rate in a 32 mph wind: a weaker wind slows the head and a stronger one speeds it, by Rothermel\'s wind factor on hill and wildland cells and by Hamada\'s urban factor on the built-up flats (FW2–FW4). High severity runs faster for its first hour, fitted to the 1991 fire\'s structures by 2 hours and its run of more than a mile in 64 minutes, and never spreads slower than medium; after the first hour it runs at medium\'s rate (Eric, 2026-11-24; FW6, FW7). The 1991 head then nearly stalled as the wind eased and firefighters arrived; the model includes neither, so high severity overshoots 1991\'s structures by 4 hours. Ember reach grows with wind speed, spot fires land mostly near, and the flats throw embers at a quarter of the hills\' weight (FW8–FW11); these are illustrative. The Evacuation Time Study contains no fire modeling (E31). This is not a fire-behavior model.';
 
 // The Evacuation Time Study's six scenarios (Table 6-5, p. 6-11; SOURCE_NOTES E11).
 // Residents are never reduced. commuterShare = households waiting for a returning commuter
@@ -90,7 +91,7 @@ export function quakeIgnitions(data) {
 }
 
 // Spread-rate factor for the earthquake fires, fitted to HayWired's floor area burned in Berkeley (SOURCE_NOTES EQ11).
-export const QUAKE_ROS_FACTOR = 0.27; // 0.37 until 2026-11-04, fitted on a wind from 270° at 10 mph; refitted on the measured spring wind (SOURCE_NOTES WC8)
+export const QUAKE_ROS_FACTOR = 0.8; // 0.37 until 2026-11-04 (wind from 270° at 10 mph); 0.27 until 2026-11-24 (WC8); refitted on the wind-dependent head rate (SOURCE_NOTES FW12)
 
 // Winds for the earthquake fires, from the Oakland North RAWS record by season and hour (tools/wind-climate.mjs,
 // data/model/wind-climate.json; SOURCE_NOTES WC1–WC8). Hours are local standard time (LST); HayWired's quake
@@ -137,7 +138,7 @@ export function makeScenarios(data) {
       ignition: [ne[0] + SHIFT * 0.97, ne[1] + SHIFT * 0.97], ignitionLabel: 'Present-day eastern edge, 1.3 km uphill of the 1923 entry point',
       windFrom: 45, windMph: 32, durationMin: 360, timeOfDay: 'S4', clip: footprint,
       orders: R02,
-      calibration: 'Medium-severity head spread rate (14 m/min in wildland, all scenarios) is tuned so the fire reaches the west end of the 1923 footprint (Shattuck) in about 4-5 h (240-302 min over seeds 1-3; StoryMap: about 5 h). Known mismatch: it reaches the 1923 entry point in 38-108 min, earlier than the StoryMap 2.5 h, because the model spreads faster in the hills than in the flats.',
+      calibration: 'Medium-severity head spread rate (14 m/min in wildland in this fire\'s 32 mph wind, all scenarios) is tuned so the fire reaches the west end of the 1923 footprint (Shattuck) in about 4-5 h (236-276 min over seeds 1-5; StoryMap: about 5 h; SOURCE_NOTES FW5). Known mismatch: it reaches the 1923 entry point in 85-108 min, earlier than the StoryMap 2.5 h, because the model spreads faster in the hills than in the flats.',
       sources: ['Footprint: City 1923_Archival_Boundary_COB, extended 1.3 km uphill per the City Evacuation StoryMap (July 2025) §3.2',
         'Timing: StoryMap §3.2, about 2.5 h from the eastern edge to Codornices Park, 5 h to Shattuck Ave; 1923 winds were Diablo, 25-40 mph',
         'Orders and warnings: Evacuation Time Study region R02 zone lists (p. 6-6). Default time: S4, fall midweek midday, as in the StoryMap\'s combined fire/traffic run'],
@@ -199,7 +200,7 @@ export function makeScenarios(data) {
         kind: 'earthquake', ignitions: ign, ignition: L(-122.2730, 37.8716), ignitionLabel: 'Starts in buildings across Berkeley, drawn for each pass from the USGS HayWired fire-following model',
         durationMin: 360, timeOfDay: 'S4', ordersByFire: true, quake: 'trace', rosFactor: QUAKE_ROS_FACTOR,
         sources: ['Starts: USGS HayWired scenario, fire following the M7.0 Hayward Fault mainshock (Scawthorn 2018, chap. P; data release ScienceBase 5d83a79be4b0c4f70d067ae0): expected ignitions per Berkeley fire station area, about 20 in all; each pass draws the number per area (Poisson) and puts each start in a building cell (our rule)',
-          'Spread: the wildfire spread rules with a rate fitted so the fire reaches about as many structures as HayWired burns in Berkeley (3.44 million sq ft of floor area, about 2,300 single-family-home equivalents at the 1,515 sq ft per equivalent of the regional summary); model rule',
+          'Spread: the wildfire spread rules with a rate fitted so the spring-afternoon fire reaches about as many structures as HayWired burns in Berkeley (3.44 million sq ft of floor area, about 2,300 single-family-home equivalents at the 1,515 sq ft per equivalent of the regional summary); model rule (SOURCE_NOTES FW12). Not modeled: the water system failing after the earthquake, and fire passing from building to building on its own',
           'Streets: segments crossing the mapped Hayward Fault trace are closed and every City signal is dark (the Hayward Fault earthquake setting, lower bound; its upper bound is in the scenario settings)',
           'Orders: each zone is ordered the plan\'s decision delay after the fire first comes within 300 m of it, so only zones the fire threatens (assumption); no pre-defined region. Other cities\' zones follow their 1 km rule',
           'Time: a weekday afternoon (Time Study S4), as in HayWired, whose earthquake strikes at 4:18 p.m.'],

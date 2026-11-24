@@ -4,14 +4,15 @@
 // shortest-time search (Dijkstra) from the ignition cell, where the time to cross
 // into a neighboring cell depends on:
 //   - a scenario head spread rate (low / central / high) at a reference wind of WIND_REF_MPH,
-//   - wind speed: the head rate scales with Rothermel's (1972) wind factor (headWind below),
+//   - wind speed: the head rate scales with Rothermel's (1972) wind factor on hill and wildland cells and with
+//     Hamada's urban factor on the built-up flats (headWind, headWindUrban below),
 //   - wind alignment (elliptical spread shape, length-to-breadth from Anderson 1983),
 //   - slope (faster uphill, slower downhill), from the DEM,
 //   - a proxy "fuel" factor taken from the City fire zones (not vegetation data), or, with the
 //     opt-in scenario setting "Fuel: LANDFIRE FBFM40", a factor per Scott and Burgan fuel model
 //     (withLandfireFuel below; data/terrain/fbfm40.json, tools/fetch-fuel.mjs).
-// Spot fires: when a hill or wildland cell ignites it may throw embers downwind, most of them a short
-// way; a landing ember can start a new ignition. That is random, so different seeds
+// Spot fires: when a cell ignites it may throw embers downwind (built-up flats at a quarter of the chance of hill
+// and wildland cells), most of them a short way; a landing ember can start a new ignition. That is random, so different seeds
 // give different fire footprints; the simulator shows the spread across seeds.
 // Ember exposure: a cell is under ember exposure once the ember-throwing cells burning upwind of it,
 // weighted by how near they are, add up to a set share of what a fully burning upwind reach would
@@ -122,6 +123,16 @@ export function headWind(mph20) {
   const { C, B, E, rel } = ROTHERMEL_WIND, U = 88 * 0.4 * Math.max(0, mph20);
   return 1 + C * U ** B * rel ** -E;
 }
+// Built-up cells (the proxy's flats, factor below 0.7) take an urban wind law instead (Eric, 2026-11-24; SOURCE_NOTES
+// FW4): Hamada's downwind spread factor 1 + 0.1 V + 0.007 V^2, V the wind in m/s (here the 20 ft wind), normalized at
+// the same reference wind. From 7 to 30 mph it rises about 2.6 times, against about 7.3 times for Rothermel's.
+export function headWindUrban(mph20) { const V = 0.44704 * Math.max(0, mph20); return 1 + 0.1 * V + 0.007 * V * V; }
+// Built-up for the wind law and for ember weight: a burnable cell whose proxy factor is under 0.7 (the flats).
+export const BUILT_MAX = 0.7;
+// Ember weight of a cell (Eric, 2026-11-24; FW10): hill residential, wildland interface and wildland 1, built-up flats
+// 0.25 (embers from burning buildings), water 0. Used both for spot-fire starts and for ember exposure.
+export const URBAN_EMBER = 0.25;
+export const emberWeight = s => (s >= BUILT_MAX ? 1 : s > 0 ? URBAN_EMBER : 0);
 // Ember reach (model rule, FW8): the severity's ember distance at the reference wind, in proportion to wind speed (in
 // Albini's 1979 spotting model a lofted firebrand drifts downwind in proportion to the wind at treetop height).
 export const emberReach = (sev, windMph) => sev.emberM * Math.max(0, windMph) / WIND_REF_MPH;
@@ -148,8 +159,9 @@ export function windSegments(sc, sev) {
     const wind = w.windMph * sev.windFactor, LB = lengthToBreadth(wind);
     // head: the head rate's wind factor against the reference wind at the same severity (headWind); reach: ember reach (emberReach)
     const head = headWind(wind) / headWind(WIND_REF_MPH * sev.windFactor), reach = emberReach(sev, w.windMph);
+    const headU = headWindUrban(wind) / headWindUrban(WIND_REF_MPH * sev.windFactor);
     // unit downwind vector (x east, y north)
-    return { from: w.fromMin, windFrom: w.windFrom, windMph: w.windMph, windTo, dwx: Math.sin(windTo), dwy: Math.cos(windTo), wind, LB, ecc: Math.sqrt(1 - 1 / (LB * LB)), head, reach };
+    return { from: w.fromMin, windFrom: w.windFrom, windMph: w.windMph, windTo, dwx: Math.sin(windTo), dwy: Math.cos(windTo), wind, LB, ecc: Math.sqrt(1 - 1 / (LB * LB)), head, headU, reach };
   });
 }
 
@@ -172,7 +184,8 @@ export function runFire(grid, sc, sev, seed) {
   const segAt = t => { let k = 0; while (k + 1 < segs.length && t >= segs[k + 1].from) k++; return k; };
   const ros = sev.rosMpm * (sc.rosFactor ?? 1);
   const stop = sc.durationMin;
-  const T1 = sev.slowAfterMin ?? Infinity, k1 = sev.slowFactor ?? 1, ks = sev.slowSpotFactor ?? 1;
+  // after T1 the rate is k1 times as fast; with a floor severity and no slowFactor, k1 = 0 leaves the floor's rate (FW6)
+  const T1 = sev.slowAfterMin ?? Infinity, k1 = sev.slowFactor ?? (sev.floor ? 0 : 1), ks = sev.slowSpotFactor ?? 1;
   // the floor severity's segments and rate (high: medium), on the same wind (FW6)
   const fsegs = sev.floor ? windSegments(sc, sev.floor) : null, rosF = sev.floor ? sev.floor.rosMpm * (sc.rosFactor ?? 1) : 0;
   const clip = sc.clip ? sc.clip.map(z => ({ rings: z.rings, bb: bbox(z.rings) })) : null;
@@ -208,13 +221,15 @@ export function runFire(grid, sc, sev, seed) {
       const tan = (elev[j] - elev[i]) / d;
       const slopeF = tan > 0 ? 1 + 5 * tan * tan : Math.max(0.7, 1 - 0.4 * -tan);
       const f = (fuel[i] + fuel[j]) / 2;
+      const ui = spot[i] < BUILT_MAX, uj = spot[j] < BUILT_MAX; // built-up ends of the crossing take the urban wind law
       for (let k = ki; k < segs.length; k++) {
         const S = segs[k], t0 = k === ki ? t : S.from;
         if (t0 > stop || t0 >= arrival[j]) break;
         const cosT = (dc * S.dwx + dr * S.dwy) / Math.hypot(dc, dr);
-        const windF = S.head * (1 - S.ecc) / (1 - S.ecc * cosT);
+        const hd = ((ui ? S.headU : S.head) + (uj ? S.headU : S.head)) / 2;
+        const windF = hd * (1 - S.ecc) / (1 - S.ecc * cosT);
         let rate = ros * windF * slopeF * f, rate2 = rate * k1;
-        if (fsegs) { const Fs = fsegs[k], rf = rosF * Fs.head * (1 - Fs.ecc) / (1 - Fs.ecc * cosT) * slopeF * f; if (rf > rate) rate = rf; if (rf > rate2) rate2 = rf; }
+        if (fsegs) { const Fs = fsegs[k], hf = ((ui ? Fs.headU : Fs.head) + (uj ? Fs.headU : Fs.head)) / 2, rf = rosF * hf * (1 - Fs.ecc) / (1 - Fs.ecc * cosT) * slopeF * f; if (rf > rate) rate = rf; if (rf > rate2) rate2 = rf; }
         if (rate <= 0) break;
         const tj = t0 + crossTime(t0, d, rate, T1, rate2);
         if (tj < arrival[j]) { arrival[j] = tj; heap.push(tj, j); }
@@ -222,7 +237,7 @@ export function runFire(grid, sc, sev, seed) {
     }
     // spotting from hill / wildland cells
     const { windTo, wind, reach } = segs[ki];
-    if (spot[i] >= 0.7 && rand() < sev.spotProb * (t > T1 ? ks : 1)) {
+    if (spot[i] > 0 && rand() < sev.spotProb * emberWeight(spot[i]) * (t > T1 ? ks : 1)) {
       // landing distance: density falling linearly to zero at the reach, so three quarters land in its near half (FW9)
       const dist = reach * (1 - Math.sqrt(rand()));
       const ang = windTo + normal(rand) * 0.26;
@@ -244,13 +259,13 @@ export function runFire(grid, sc, sev, seed) {
 
 // Ember exposure (model rule, SOURCE_NOTES FW10, FW11). Sample points upwind of each cell, every 90 m from 60 m out to
 // the wind segment's ember reach and 0.2 of the distance to either side, stand for the ground that can send embers
-// to it. Only cells that throw embers in the spread rule (proxy spot factor >= 0.7: hill residential, wildland
-// interface and wildland, not the flats) send any. A burning sample at distance d adds (1 - d / reach) times its
-// spot factor, the landing density of the spot-fire rule; the cell is exposed, one minute after the sample that
-// brings the sum to EMBER_SHARE of the weight all samples would give if all were burning wildland. A cell the front
-// reaches is exposed then at the latest. With a schedule, each wind segment [from, until) has its own direction and
-// reach; a cell burning at time a sends embers along it from max(a, from) on, if it was burning before the segment
-// ended; the exposure is the earliest over the segments.
+// to it. Each burning sample sends embers with its ember weight (emberWeight: hill and wildland cells 1, the built-up
+// flats 0.25, the same weight that scales spot-fire starts). A burning sample at distance d adds (1 - d / reach) times
+// its weight, the landing density of the spot-fire rule; the cell is exposed one minute after the sample that brings
+// the sum to EMBER_SHARE of the weight all samples would give if all were burning wildland. A cell the front reaches
+// is exposed then at the latest. With a schedule, each wind segment [from, until) has its own direction and reach; a
+// cell burning at time a sends embers along it from max(a, from) on, if it was burning before the segment ended; the
+// exposure is the earliest over the segments.
 export function emberExposure(grid, arrival, segs, stop, share = EMBER_SHARE) {
   const { W, H, elev } = grid, spot = grid.spotFuel ?? grid.fuel, N = W * H;
   const ember = Float32Array.from(arrival);
@@ -263,7 +278,7 @@ export function emberExposure(grid, arrival, segs, stop, share = EMBER_SHARE) {
       const w = 1 - d / S.reach; full += w;
       steps.push([Math.round((-S.dwx * d + S.dwy * lat * d) / CELL), Math.round((-S.dwy * d - S.dwx * lat * d) / CELL), w]);
     }
-    const need = share * full;
+    const need = share * full - 1e-9; // the tolerance keeps a split into equal wind segments, which sums ties in another order, from flipping a cell at the threshold
     for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) {
       const i = r * W + c;
       if (elev[i] < 0.5) continue;
@@ -271,8 +286,8 @@ export function emberExposure(grid, arrival, segs, stop, share = EMBER_SHARE) {
       for (const [dc, dr, w] of steps) {
         const cc = c + dc, rr = r + dr;
         if (cc < 0 || rr < 0 || cc >= W || rr >= H) continue;
-        const j = rr * W + cc, s = spot[j];
-        if (s < 0.7) continue;
+        const j = rr * W + cc, s = emberWeight(spot[j]);
+        if (s <= 0) continue;
         const a = arrival[j];
         if (a >= until) continue;
         te[n] = (a > S.from ? a : S.from) + 1; tw[n] = w * s; sum += tw[n]; n++;
