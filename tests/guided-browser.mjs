@@ -61,7 +61,7 @@ for (const [di, name] of DEVICES.entries()) {
   await p.click('#intro-ok');
   await p.reload(); await p.waitForSelector('#loading', { state: 'detached', timeout: 120000 }); await p.waitForTimeout(400);
   check(!(await p.locator('#modal[open]').count()), `${name}: How to use does not open again`);
-  check(await visible('#g-what') && /hills wildfire/.test(await p.locator('#g-what').innerText()), `${name}: one plain line on the first screen says what this is`);
+  check(await visible('#g-what') && /^How a wildfire could spread on Berkeley's streets/.test(await p.locator('#g-what').innerText()), `${name}: one plain line on the first screen says what this is`);
   check(await p.evaluate(() => document.body.classList.contains('simple')), `${name}: opens in Guided view`);
   check(await visible('#g-run') && !(await visible('#g-chips')) && !(await visible('#g-after')), `${name}: map screen shows Run simulation only`);
   // Status and official alerts link under the title; the status also tops the menu (Eric, 2026-11-23; SOURCE_NOTES GV15, GV16).
