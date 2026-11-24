@@ -36,7 +36,7 @@ const DASH_BY_COLOR = {
   // never reached stay thin and light (the Fire chip), or dotted where they have one way out (the Ways out chip).
   robust: { '#b45309': 'solid', '#b91c1c': 'solid', '#f59e0b': 'long', '#a855f7': 'dashdot', '#60a5fa': 'dot' },
   engineTime: { '#2f8a4a': 'solid', '#e0a21e': 'long', '#c0262d': 'short', '#7f1d1d': 'dot' },
-  // Guided view's engine reach (GV37): within 5 min green, over 5 min red, no engine route the same red dotted.
+  // Guided view's engine reach (GV42): within 5 min green, over 5 min red, no engine route the same red dotted.
   // '#c0262e' is that red under its own key, so it can carry its own pattern.
   engineReach: { '#2f8a4a': 'solid', '#c0262d': 'long', '#c0262e': 'dot' },
   clearWidth: { '#2f8a4a': 'solid', '#9cc65a': 'long', '#e8c21e': 'dashdot', '#e07a1e': 'short', '#c0262d': 'dot' },
@@ -218,7 +218,7 @@ export class MapView {
   }
 
   // A few street and landmark names, drawn in Guided view once zoomed in (reviewer round via MASTER, 2026-11-23;
-  // SOURCE_NOTES GV36). this.labels = { streets: [network names], places: [{ text, x, y }] }. A street's name goes at the
+  // SOURCE_NOTES GV41). this.labels = { streets: [network names], places: [{ text, x, y }] }. A street's name goes at the
   // middle of its longest segment inside the view; streets show from about 4 km across, places from about 6 km.
   drawLabels() {
     const { ctx } = this, across = this.w / this.scale, E = this.data.net.edges;
@@ -249,7 +249,7 @@ export class MapView {
   // a bought-out block (purple). The change the user is looking at is drawn heavier.
   drawMarks() {
     const { ctx } = this; if (!this.marks.length) return;
-    const C = { street: '#15803d', link: '#15803d', buyout: '#7e22ce', backup: '#7f1d1d' }; // backup: a street from Guided view's backups list
+    const C = { street: '#15803d', link: '#15803d', buyout: '#7e22ce', backup: '#1d4ed8' }; // backup: a street from Guided view's backups list (blue, GV37)
     ctx.save(); ctx.lineCap = 'round';
     for (const m of this.marks) {
       ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = m.focus ? 11 : 8; ctx.setLineDash([]); ctx.beginPath(); this.path(m.geom); ctx.stroke();
@@ -511,7 +511,7 @@ export class MapView {
       const x = this.sx(s.pt[0]), y = this.sy(s.pt[1]);
       ctx.fillStyle = '#b91c1c'; ctx.fillRect(x - 8, y - 7, 16, 14); ctx.fillStyle = '#fff'; ctx.fillText(s.name.replace(/\D+/g, '') || 'FS', x, y + 0.5);
     }
-    if (this.noShelters) { ctx.textBaseline = 'alphabetic'; return; } // Guided view's engine reach shows stations only (GV37)
+    if (this.noShelters) { ctx.textBaseline = 'alphabetic'; return; } // Guided view's engine reach shows stations only (GV42)
     for (const s of this.data.layers.shelters) {
       const x = this.sx(s.pt[0]), y = this.sy(s.pt[1]);
       ctx.fillStyle = '#15803d'; ctx.beginPath(); ctx.arc(x, y, 6, 0, 7); ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillText('S', x, y + 0.5);
@@ -554,14 +554,16 @@ export class MapView {
       ctx.beginPath(); this.path(this.data.net.edges[L.e].geom); ctx.stroke();
     }
   }
-  // Guided view (js/guided.js sets queueSmooth): queues smoothed over model time (js/queue-display.js), thin, one dark red.
+  // Guided view (js/guided.js sets queueSmooth): queues smoothed over model time (js/queue-display.js), thin, one blue
+  // on a white edge. Dark red (#7f1d1d) vanished over burned ground (#5a1e19); blue stays apart from the fire's reds and
+  // ambers under deuteranopia and protanopia too (reviewer subagent, MASTER, 2026-11-23; SOURCE_NOTES GV37).
   drawQueuesSmoothed() {
     const { ctx, sim } = this;
     const { s, on } = (this.qSmoother ??= new QueueSmoother()).update(sim);
     ctx.lineCap = 'round';
-    for (const lid of on) {
-      const L = sim.links[lid], frac = Math.min(1, s.get(lid) / L.storage);
-      ctx.strokeStyle = `rgba(127,29,29,${0.6 + 0.35 * frac})`; ctx.lineWidth = 1.5 + 2.5 * frac;
+    for (const pass of [0, 1]) for (const lid of on) {
+      const L = sim.links[lid], frac = Math.min(1, s.get(lid) / L.storage), w = 1.5 + 2.5 * frac;
+      ctx.strokeStyle = pass ? `rgba(29,78,216,${0.75 + 0.25 * frac})` : 'rgba(255,255,255,0.9)'; ctx.lineWidth = pass ? w : w + 2.5;
       ctx.beginPath(); this.path(this.data.net.edges[L.e].geom); ctx.stroke();
     }
   }

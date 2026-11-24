@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Berkeley Wildfire Spread and Access Explorer</title>
+<title>Berkeley Wildfire Evacuation Explorer</title>
 <meta name="description" content="Explore how different wildfire scenarios could affect Berkeley&#39;s neighborhoods and routes, and see which access vulnerabilities and possible mitigations recur across scenarios. Built from public data.">
 <link rel="stylesheet" href="css/style.css">
 <link rel="icon" href="data:,">
@@ -11,7 +11,7 @@
 <body>
 <header>
   <div class="title">
-    <h1>Berkeley Wildfire Spread and Access Explorer</h1>
+    <h1>Berkeley Wildfire Evacuation Explorer</h1>
     <div id="g-status" class="simple-only">Pending Berkeley Fire Department review · <a href="https://public.everbridge.net/sign-up?orgId=453003085612570" target="_blank" rel="noopener">Get alerts: AC Alert ↗</a></div>
     <div class="welcome expert-only">Explore how different wildfire scenarios could affect Berkeley's neighborhoods and routes, and see which access vulnerabilities and possible mitigations recur across scenarios.</div>
   </div>
@@ -59,7 +59,7 @@
       <p id="growth-note" class="small muted"></p>
       <label>Household mix (both plans) <select id="householdMix"><option value="place">By place (ACS 2020–2024; default)</option><option value="citywide">Citywide (2025 Time Study survey)</option></select></label>
       <p id="mix-note" class="small muted"></p>
-      <label>Red Flag power shutoff (both plans) <select id="powerShutoff"><option value="none">None: grid power on</option><option value="hills">Signals in and next to the hills go dark</option><option value="all">All 146 City signals go dark</option></select></label>
+      <label>Red Flag power shutoff (both plans) <select id="powerShutoff"><option value="none">None: grid power on</option><option value="hills">Signals in and next to the hills go dark</option><option value="all">All of the City's 146 signals (at 143 junctions) go dark</option></select></label>
       <p id="shutoff-note" class="small muted"></p>
       <label>Hayward Fault earthquake (both plans) <select id="quake"><option value="none">None</option><option value="trace">Lower bound: streets crossing the mapped fault close</option><option value="zone">Upper bound: streets in the Earthquake Fault Zone close</option></select></label>
       <p id="quake-note" class="small muted"></p>
@@ -67,7 +67,7 @@
       <p id="visibility-note" class="small muted"></p>
       <label>Signal green share (both plans) <select id="signalGreen"><option value="low">Low: 60 s cycle</option><option value="central" selected>Central: 90 s cycle (today's model)</option><option value="high">High: 120 s cycle</option></select></label>
       <p id="signalgreen-note" class="small muted"></p>
-      <label>Home-to-street access time (both plans) <select id="walkAccess"><option value="none">None (today's model)</option><option value="terrain">From terrain: walk and stairs to the street</option></select></label>
+      <label>Home-to-street access time (both plans) <select id="walkAccess"><option value="none">None (today's model)</option><option value="terrain">From terrain: walk and stairs to the street, at typical walking speed (not reduced mobility)</option></select></label>
       <p id="walk-note" class="small muted"></p>
       <label>Night parking on narrow hill streets (both plans) <select id="nightParking"><option value="count2026" selected>Both sides on most 17–24 ft streets (field count, 2026-11-05; today's model)</option><option value="pre20261105">Pre-2026-11-05 rule: residents leave 8 ft</option></select></label>
       <p id="nightparking-note" class="small muted"></p>

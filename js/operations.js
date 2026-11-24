@@ -30,7 +30,7 @@
 
 export const CONTRAFLOW_SETS = { none: 'none', main: 'main hill exit streets', custom: 'streets I choose' };
 export const POLICE_TARGETS = { none: 'none', pretimed: 'the City\'s 44 pre-timed signals', pretimedAppF: 'pre-timed signals and the Time Study\'s Appendix F congestion points', all: 'every signal and the Appendix F points' };
-export const SHUTOFF = { none: 'none', hills: 'signals in and next to the hills dark', all: 'all 146 City signals dark (143 junctions in the model)' };
+export const SHUTOFF = { none: 'none', hills: 'signals in and next to the hills dark', all: 'all of the City\'s 146 signals dark (at 143 junctions)' };
 
 export const opsActive = (plan, world = {}) => (plan.contraflow && plan.contraflow !== 'none') || (plan.police && plan.police !== 'none') || (world.powerShutoff && world.powerShutoff !== 'none');
 

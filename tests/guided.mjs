@@ -16,13 +16,22 @@ const G = makeGuided(M, SA, PRESETS, LEVER_OFF);
 let fail = 0;
 const check = (ok, what) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${what}`); if (!ok) fail++; };
 const ids = (gs, id) => gs.find(g => g.id === id).items.map(i => i.lever.id).sort().join(',');
+// The changes that help no result, in the three groups of 2026-11-24 (worse in every run, no consistent change, not offered).
+const restIds = gs => gs.filter(g => g.rest).flatMap(g => g.items.map(i => i.lever.id)).sort().join(',');
 const set = xs => [...xs].sort().join(',');
 
 const east = G.groups('eastWind');
 check(ids(east, 'people') === set(['leaveEarly', 'leaveEarlyEFW', 'orderSooner']), `east wind, people: ${ids(east, 'people')}`);
 check(ids(east, 'engine') === set(['parkingOneSide', 'redCurbFoot', 'widen-WP-001', 'link-AC-160-N3', 'retreat-footBlock', 'retreat-top100', 'retreat-panoramicUpper', 'widen-WP-007', 'link-CITY-1']), `east wind, engines: ${ids(east, 'engine')}`);
 check(ids(east, 'cars') === set(['leaveEarly', 'leaveEarlyEFW', 'orderSooner']), `east wind, cars: ${ids(east, 'cars')}`);
-check(ids(east, 'none') === set(['contraflow-officers', 'contraflow-signs', 'policeControl', 'egressGuidance', 'link-AC-193-N1']), `east wind, no consistent benefit: ${ids(east, 'none')}`);
+check(restIds(east) === set(['contraflow-officers', 'contraflow-signs', 'policeControl', 'egressGuidance', 'link-AC-193-N1']), `east wind, no consistent benefit (worse · no consistent change · not offered): ${ids(east, 'worse')} · ${ids(east, 'none')} · ${ids(east, 'off')}`);
+// "Worse in every run": some result worse in every run; at 1923 pace contraflow and police control (reviewer subagent, MASTER, 2026-11-23).
+// From the table (not every contraflow or police change is worse in every run on every fire): east wind, signed contraflow;
+// Panoramic Hill, both contraflow changes; the earthquake, police control; east wind, police control is mixed.
+for (const [f, id, worse] of [['eastWind', 'contraflow-signs', true], ['panoramic', 'contraflow-officers', true], ['panoramic', 'contraflow-signs', true], ['quake', 'policeControl', true], ['eastWind', 'policeControl', false]]) {
+  const w = G.groups(f, 'central').find(g => g.id === 'worse').items.some(i => i.lever.id === id && i.worse.some(x => x.worse === x.n));
+  check(w === worse, `${f} at 1923 pace: ${id} ${worse ? 'is' : 'is not'} in "Worse in every run"`);
+}
 
 // Leave on Extreme Fire Weather (SOURCE_NOTES GV20, GV23): the 10 Leave Early Zones lie in the hills, so on every fire its
 // gain in people still there when embers arrived is at most the Red Flag lever's (half of all hill households).
@@ -33,17 +42,17 @@ for (const f of M.meta.fires) {
 
 // Both leave-early changes are withheld on the earthquake fire: earthquakes come without warning (SOURCE_NOTES GV24).
 {
-  const q = G.groups('quake'), none = q.find(g => g.id === 'none');
+  const q = G.groups('quake'), none = q.find(g => g.id === 'off');
   for (const id of ['leaveEarly', 'leaveEarlyEFW']) {
     const it = none.items.find(i => i.lever.id === id);
-    check(!!it?.withheld && /^earthquakes come without warning/.test(it.withheld) && !q.filter(g => g.id !== 'none').some(g => g.items.some(i => i.lever.id === id)), `earthquake: ${id} withheld (GV24)`);
+    check(!!it?.withheld && /^earthquakes come without warning/.test(it.withheld) && !q.filter(g => g.id !== 'off').some(g => g.items.some(i => i.lever.id === id)), `earthquake: ${id} withheld (GV24)`);
   }
 }
 
 // P19: decide faster is withheld on the north hills (js/presets.js PRESETS orderSooner.off.northHills).
 const north = G.groups('northHills');
-const nf = north.find(g => g.id === 'none').items.find(i => i.lever.id === 'orderSooner');
-check(!!nf?.withheld && !north.filter(g => g.id !== 'none').some(g => g.items.some(i => i.lever.id === 'orderSooner')), 'north hills: decide faster withheld (P19)');
+const nf = north.find(g => g.id === 'off').items.find(i => i.lever.id === 'orderSooner');
+check(!!nf?.withheld && !north.filter(g => g.id !== 'off').some(g => g.items.some(i => i.lever.id === 'orderSooner')), 'north hills: decide faster withheld (P19)');
 
 // Every change appears somewhere on every fire.
 for (const f of M.meta.fires) {
@@ -75,9 +84,9 @@ if (M.levers.some(l => l.id === 'hardenHalfBlocks' && l.ran)) {
   }
 }
 // P19 cleanup (Eric, 2026-11-23): decide faster withdrawn on Panoramic Hill (4.96% against the 5% line, SOURCE_NOTES CD26).
-check(!!G.groups('panoramic').find(g => g.id === 'none').items.find(i => i.lever.id === 'orderSooner')?.withheld, 'Panoramic Hill: decide faster withheld (P19, 4.96%)');
+check(!!G.groups('panoramic').find(g => g.id === 'off').items.find(i => i.lever.id === 'orderSooner')?.withheld, 'Panoramic Hill: decide faster withheld (P19, 4.96%)');
 // The new fires of 2026-11-13 (SOURCE_NOTES FF24, FF27): decide faster withheld on the west-wind fire (P19).
-if (M.meta.fires.includes('westWind')) check(!!G.groups('westWind').find(g => g.id === 'none').items.find(i => i.lever.id === 'orderSooner')?.withheld, 'west wind: decide faster withheld (P19)');
+if (M.meta.fires.includes('westWind')) check(!!G.groups('westWind').find(g => g.id === 'off').items.find(i => i.lever.id === 'orderSooner')?.withheld, 'west wind: decide faster withheld (P19)');
 
 for (const c of CARDS.filter(c => c.key)) {
   const f = G.baseFigure('eastWind', c.key), runs = M.runs.filter(r => r.lever === 'baseline' && r.fire === 'eastWind');
@@ -142,9 +151,9 @@ for (const f of M.meta.fires) check(JSON.stringify(G.groups(f).map(g => g.items.
 const memb = (f, sev) => new Set(G.groups(f, sev).flatMap(g => g.items.map(i => `${g.id}:${i.lever.id}`)));
 for (const f of M.meta.fires) {
   const by = Object.fromEntries(SEVS.map(s => [s, memb(f, s)])), all = new Set(SEVS.flatMap(s => [...by[s]]));
-  const varies = [...all].filter(k => !SEVS.every(s => by[s].has(k)) && !k.startsWith('none:'));
+  const varies = [...all].filter(k => !SEVS.every(s => by[s].has(k)) && !/^(none|worse|off):/.test(k));
   console.log(`     ${f}: ${varies.length ? varies.map(k => `${k} (${SEVS.filter(s => by[s].has(k)).map(s => ({ low: 'Slower', central: '1923', high: '1991' })[s]).join('/')})`).join('; ') : 'same groups at every pace'}`);
-  for (const s of SEVS) for (const g of G.groups(f, s)) for (const it of g.items) if (g.id !== 'none') {
+  for (const s of SEVS) for (const g of G.groups(f, s)) for (const it of g.items) if (!g.rest) {
     const P = M.runs.filter(r => r.lever === it.lever.id && r.fire === f && r.sev === s), k = it.card.key;
     const b = P.filter(r => { const a = M.runs.find(x => x.lever === 'baseline' && x.fire === f && x.sev === s && x.seed === r.seed).m[k]; return r.m[k] < a && Math.abs(a - r.m[k]) > 1e-9 * Math.max(Math.abs(a), Math.abs(r.m[k])); }).length;
     const w = P.filter(r => { const a = M.runs.find(x => x.lever === 'baseline' && x.fire === f && x.sev === s && x.seed === r.seed).m[k]; return r.m[k] > a && Math.abs(a - r.m[k]) > 1e-9 * Math.max(Math.abs(a), Math.abs(r.m[k])); }).length;
@@ -152,7 +161,7 @@ for (const f of M.meta.fires) {
   }
 }
 const eastC = G.groups('eastWind', 'central');
-check(['people', 'engine', 'cars', 'none'].every(id => ids(eastC, id) === ids(east, id)), 'east wind at 1923 pace (the default): the groups Eric approved on 2026-11-10');
+check(['people', 'engine', 'cars'].every(id => ids(eastC, id) === ids(east, id)) && restIds(eastC) === restIds(east), 'east wind at 1923 pace (the default): the groups Eric approved on 2026-11-10');
 // The rule's edges: 4 better and 1 identical joins; 4 better and 1 worse does not (four Panoramic Hill engine changes are
 // better in 4 of 5 seeds and identical in the fifth, so they stay in the engine group at every pace).
 for (const sev of SEVS) check(['link-AC-160-N3', 'redCurbFoot', 'retreat-footBlock', 'widen-WP-001'].every(id => G.groups('eastWind', sev).find(g => g.id === 'engine').items.some(i => i.lever.id === id)), `east wind at ${sev}: the four engine changes better in 4 of 5 seeds, identical in the fifth, are in the engine group`);

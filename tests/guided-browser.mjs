@@ -45,7 +45,7 @@ for (const [di, name] of DEVICES.entries()) {
     return h;
   };
   const visible = sel => p.locator(sel).isVisible();
-  // Explain this pop-ups fold their detail under "Details" (SOURCE_NOTES GV36): open it before reading the text.
+  // Explain this pop-ups fold their detail under "Details" (SOURCE_NOTES GV41): open it before reading the text.
   const gxText = async () => { await p.evaluate(() => document.querySelectorAll('#modal details').forEach(d => { d.open = true; })); return p.locator('#modal .gx').innerText(); };
   const waitRunEnd = () => p.waitForSelector('#g-after:not([hidden])', { timeout: 180000 });
 
@@ -56,7 +56,7 @@ for (const [di, name] of DEVICES.entries()) {
   await p.reload();
   await p.waitForSelector('#loading', { state: 'detached', timeout: 120000 });
   await p.waitForTimeout(500);
-  // How to use opens by itself on the first visit only (SOURCE_NOTES GV36).
+  // How to use opens by itself on the first visit only (SOURCE_NOTES GV41).
   check(await p.locator('#modal[open] .intro').isVisible(), `${name}: How to use opens on the first visit`);
   await p.click('#intro-ok');
   await p.reload(); await p.waitForSelector('#loading', { state: 'detached', timeout: 120000 }); await p.waitForTimeout(400);
@@ -101,7 +101,7 @@ for (const [di, name] of DEVICES.entries()) {
   check(await visible('#g-chips') && await visible('#g-explore') && await visible('#g-again') && !(await visible('#g-run')), `${name}: after the run, chips, Explore results and Run again`);
   await noScroll('after a run'); await shot('03-after-run-fire');
   // Each map view's caption states its finding and has an Explain this; the key opens the first time each view is shown
-  // in a session (Eric, 2026-11-24; SOURCE_NOTES GV37).
+  // in a session (Eric, 2026-11-24; SOURCE_NOTES GV42).
   check(/Embers reached the dark streets in every run.*[\d,]+ people were not yet out/.test(await p.locator('#g-caption').innerText()) && await p.locator('#g-caption [data-cap-explain="ember"]').isVisible(), `${name}: the fire view's caption states its finding, with Explain this`);
   check((await p.locator('#legend .key-toggle').getAttribute('aria-expanded')) === 'true', `${name}: the key opens by itself for the fire view`);
   await p.click('[data-chip="ways"]'); await p.waitForTimeout(250);
@@ -138,7 +138,7 @@ for (const [di, name] of DEVICES.entries()) {
     check(/model rule/.test(src) && (!/ft of pavement/.test(src) || /(sourced|derived|assumption)/.test(src) && /synthetic/.test(src)), `${name}: the street card gives each figure's provenance`);
     await shot('06-street-card'); await p.click('#g-sheet .g-x');
   }
-  // Find my street (SOURCE_NOTES GV36): the search finds Panoramic Way and Telegraph Av; after a run it opens the
+  // Find my street (SOURCE_NOTES GV41): the search finds Panoramic Way and Telegraph Av; after a run it opens the
   // street card, which names the evacuation zone, links the City's page, rounds residents and clears Explore results.
   await p.click('#g-find-btn');
   check(await p.locator('#g-find-in').isVisible() && await p.locator('#g-find-in').evaluate(e => document.activeElement === e), `${name}: the street search opens with focus in its box`);
@@ -221,7 +221,7 @@ for (const [di, name] of DEVICES.entries()) {
   // Changes
   await p.click('[data-go="changes"] >> nth=0');
   const heads = await p.locator('h3.cg').allTextContents();
-  check(heads[0]?.startsWith('Fewer people') && heads.includes('No consistent benefit in our tests'), `${name}: changes grouped by result (${heads.join(' | ')})`);
+  check(heads[0]?.startsWith('Fewer people') && heads.includes('Other changes'), `${name}: changes grouped by result (${heads.join(' | ')})`);
   await p.click('[data-about-gains]');
   check(/Where it comes from/.test(await gxText()), `${name}: About these gains gives provenance`);
   await p.locator('#modal .close').click();
@@ -267,7 +267,7 @@ for (const [di, name] of DEVICES.entries()) {
   const diff = await p.locator('.rc.cmp').nth(2).locator('.cmpgrid b').nth(2).innerText();
   check(cmp1 === 6 && /^−/.test(diff), `${name}: one-change comparison from the table, engine row ${diff}`);
   const heads3 = await p.locator('.rc.cmp').first().locator('.cmpgrid small').allTextContents();
-  check(heads3.join('|') === 'Status quo|With changes|Difference' && (await p.locator('.rc.cmp .rc-p').count()) === 0, `${name}: comparison columns ${heads3.join(' / ')}, no other-paces line`);
+  check(heads3.join('|') === 'Status quo|With changes|Median change' && (await p.locator('.rc.cmp .rc-p').count()) === 0, `${name}: comparison columns ${heads3.join(' / ')}, no other-paces line`);
   // Difference colors: improvement green, worse amber, no change gray.
   const cls = await p.locator('.rc.cmp .cmpgrid div:nth-child(3) b').evaluateAll(bs => bs.map(b => [b.textContent, b.className]));
   check(cls.every(([t, c]) => t === 'No change' ? c === 'same' : t.startsWith('−') ? c === 'good' : t.startsWith('+') ? c === 'worse' : true), `${name}: difference colors (${cls.map(([t, c]) => `${t}:${c}`).join(' ')})`);

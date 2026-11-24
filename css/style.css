@@ -449,7 +449,7 @@ header :focus-visible { outline-color: #fbbf24; box-shadow: none; }
 #legend .muted { color: #4a4f57; }
 
 /* Find my street, landmark labels, the first-screen line, the street card's place and Explain this leads
-   (reviewer round via MASTER, 2026-11-23; SOURCE_NOTES GV36). */
+   (reviewer round via MASTER, 2026-11-23; SOURCE_NOTES GV41). */
 #g-what { flex: 0 0 auto; margin: 0; padding: 6px 12px 0; background: var(--panel); font-size: 14px; line-height: 1.35; color: #4b3a2a; }
 #g-find-btn { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%; padding: 0; font-size: 22px; line-height: 1; background: #fff; color: #2b2118; border: 1px solid #d6cfc4; font-weight: 700; }
 #g-find { position: absolute; top: 8px; left: 8px; right: 8px; z-index: 7; display: flex; flex-wrap: wrap; gap: 6px; }
@@ -467,7 +467,7 @@ header :focus-visible { outline-color: #fbbf24; box-shadow: none; }
 .gx-lead { font-size: 16px; line-height: 1.45; margin: 4px 0 8px; }
 .gx-kinds { font-size: 13px; color: var(--muted); margin: 0 0 8px; }
 .gx-more > summary { cursor: pointer; color: var(--accent); font-weight: 600; margin: 4px 0; }
-/* Guided text size (reviewer round via MASTER, 2026-11-23; GV36): base text --gfs, secondary lines 2 px smaller. */
+/* Guided text size (reviewer round via MASTER, 2026-11-23; GV41): base text --gfs, secondary lines 2 px smaller. */
 /* --gfs-read: Explain this pop-ups and the street card at 16 px (MASTER, 2026-11-24). The Results and Changes lists keep
    their sizes: at 14 px iPhone SE Changes reached 2.71–2.76 screens on three fires, over MASTER's 2.6 limit. */
 body.simple { --gfs-read: 16px; --gfs: 14px; }
@@ -483,7 +483,7 @@ body.simple #g-sheet .g-src p, body.simple #g-sheet .g-src b { font-size: calc(v
 /* The first-screen line shows on the map screen only, so Results and Changes keep their height. */
 body.simple:not([data-gscreen="map"]) #g-what { display: none; }
 
-/* Map view findings with Explain this (GV37); the fire-station symbol in the key; chips framed so an unselected one
+/* Map view findings with Explain this (GV42); the fire-station symbol in the key; chips framed so an unselected one
    stands out on light terrain. */
 #g-caption { pointer-events: auto; }
 #g-caption .g-cap-x { font-size: 13px; font-weight: 600; padding: 0; margin-left: 4px; }
@@ -491,3 +491,11 @@ body.simple:not([data-gscreen="map"]) #g-what { display: none; }
 #g-chips { border: 1px solid #b8ad9e; }
 /* The caption takes the map's width when it needs to (a centered box with left: 50% wrapped at half the width). */
 #g-caption { left: 0; right: 0; margin: 0 auto; transform: none; width: fit-content; max-width: calc(100% - 24px); }
+/* Reviewer fixes (2026-11-24; SOURCE_NOTES GV36, GV38): sub-groups in the folded "Other changes", a group note, the
+   "No cost estimate" band in the cost sort. */
+h4.cg-sub { font-size: 13px; margin: 10px 0 4px; color: #4b3a2a; }
+.cg-note { font-size: 12.5px; color: var(--muted); margin: -2px 0 6px; }
+.cr-band { font-size: 12px; font-weight: 600; color: var(--muted); margin: 8px 0 2px; }
+.cmpgrid small { white-space: nowrap; }
+.cr-s.muted { font-size: 12px; line-height: 1.3; margin-top: 1px; }
+.cg-note { line-height: 1.3; }
