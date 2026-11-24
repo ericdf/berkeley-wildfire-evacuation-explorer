@@ -100,7 +100,20 @@ for (const [di, name] of DEVICES.entries()) {
   check(views.length > 10 && narrowed < 0 && widened, `${name}: during the run the view only widens (${views.length} samples, ${Math.round(views[0][2] - views[0][0])} m → ${Math.round(views.at(-1)[2] - views.at(-1)[0])} m across${narrowed >= 0 ? `, narrowed at sample ${narrowed}` : ''})`);
   check(await visible('#g-chips') && await visible('#g-explore') && await visible('#g-again') && !(await visible('#g-run')), `${name}: after the run, chips, Explore results and Run again`);
   await noScroll('after a run'); await shot('03-after-run-fire');
-  check(/Streets embers reached across 5 runs of this fire/.test(await p.locator('#g-caption').innerText()), `${name}: caption after the run names the 5 runs at the pace`);
+  // Each map view's caption states its finding and has an Explain this; the key opens the first time each view is shown
+  // in a session (Eric, 2026-11-24; SOURCE_NOTES GV37).
+  check(/Embers reached the dark streets in every run.*[\d,]+ people were not yet out/.test(await p.locator('#g-caption').innerText()) && await p.locator('#g-caption [data-cap-explain="ember"]').isVisible(), `${name}: the fire view's caption states its finding, with Explain this`);
+  check((await p.locator('#legend .key-toggle').getAttribute('aria-expanded')) === 'true', `${name}: the key opens by itself for the fire view`);
+  await p.click('[data-chip="ways"]'); await p.waitForTimeout(250);
+  check(/Red: one-way-out streets the fire front reached in every run\. [\d,]+ hill residents/.test(await p.locator('#g-caption').innerText()), `${name}: the ways-out caption states its finding`);
+  await p.click('[data-chip="engine"]'); await p.waitForTimeout(250);
+  const engCap = await p.locator('#g-caption').innerText(), engKey = await p.locator('#legend').innerText();
+  check(/Red: hill streets no engine reaches within 5 minutes, mostly because parked cars narrow them \([\d,]+ residents\)/.test(engCap), `${name}: the engine caption states its finding (${engCap.replace(/\s*Explain this$/, '')})`);
+  check((await p.locator('#legend .key-toggle').getAttribute('aria-expanded')) === 'true' && /Yes, within 5 min/.test(engKey) && /No, over 5 min/.test(engKey) && /No engine route at all/.test(engKey) && /Fire station/.test(engKey) && !/5–8 min/.test(engKey) && (await p.locator('#legend svg.swl').count()) === 3, `${name}: the engine key has two classes, the no-route pattern and the fire station, and opened by itself`);
+  await p.click('#g-caption [data-cap-explain]');
+  check(/On the map/.test(await gxText()) && /5–8 minutes away/.test(await gxText()), `${name}: the engine caption's Explain this carries the 5–8 minute detail`);
+  await p.locator('#modal .close').click();
+  await p.click('[data-chip="fire"]'); await p.waitForTimeout(200);
   const keyOpen = async () => { const t = p.locator('#legend .key-toggle'); if (await t.count() && /▸/.test(await t.innerText())) { await t.click(); await p.waitForTimeout(150); return true; } return false; };
   const opened = await keyOpen();
   check(/in 5 runs at 1923 pace/.test(await p.locator('#legend').textContent()), `${name}: map key names the pace`);
@@ -108,6 +121,8 @@ for (const [di, name] of DEVICES.entries()) {
   await p.click('[data-chip="ways"]'); await p.waitForTimeout(300); await shot('04-chip-ways');
   await p.click('[data-chip="engine"]'); await p.waitForTimeout(300); await shot('05-chip-engine');
   await p.click('[data-chip="fire"]'); await p.waitForTimeout(300);
+  // The key opened by itself; close it so the taps reach the map (on a phone it covers part of the map).
+  if ((await p.locator('#legend .key-toggle').getAttribute('aria-expanded')) === 'true') await p.click('#legend .key-toggle');
   // Tap a hill street: the first map point that opens the street card.
   const box = await p.locator('#map').boundingBox();
   let sheet = false;
@@ -192,7 +207,7 @@ for (const [di, name] of DEVICES.entries()) {
   check(!(await visible('#g-panel')) && (await p.locator('#g-caption').innerText()).startsWith(firstStreet), `${name}: tapping ${firstStreet} goes to the map, captioned and highlighted`);
   await noScroll('on a backup street'); await shot('07b-backup-street');
   await p.click('[data-chip="ways"]'); await p.waitForTimeout(200);
-  check(/Ways out the fire front reached/.test(await p.locator('#g-caption').innerText()), `${name}: a map chip clears the backup street's caption and highlight`);
+  check(/one-way-out streets the fire front reached/.test(await p.locator('#g-caption').innerText()), `${name}: a map chip clears the backup street's caption and highlight`);
   await p.click('[data-chip="fire"]'); await p.waitForTimeout(200);
   await p.click('#g-explore');
   await p.locator('[data-explain="ember"]').click();

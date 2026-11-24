@@ -482,3 +482,12 @@ body.simple #g-sheet b { font-size: calc(var(--gfs-read) + 1px); }
 body.simple #g-sheet .g-src p, body.simple #g-sheet .g-src b { font-size: calc(var(--gfs-read) - 2px); }
 /* The first-screen line shows on the map screen only, so Results and Changes keep their height. */
 body.simple:not([data-gscreen="map"]) #g-what { display: none; }
+
+/* Map view findings with Explain this (GV37); the fire-station symbol in the key; chips framed so an unselected one
+   stands out on light terrain. */
+#g-caption { pointer-events: auto; }
+#g-caption .g-cap-x { font-size: 13px; font-weight: 600; padding: 0; margin-left: 4px; }
+.st-sym { display: inline-block; width: 16px; height: 14px; line-height: 14px; margin-right: 6px; background: #b91c1c; color: #fff; font-size: 10px; font-weight: 700; text-align: center; vertical-align: -2px; }
+#g-chips { border: 1px solid #b8ad9e; }
+/* The caption takes the map's width when it needs to (a centered box with left: 50% wrapped at half the width). */
+#g-caption { left: 0; right: 0; margin: 0 auto; transform: none; width: fit-content; max-width: calc(100% - 24px); }

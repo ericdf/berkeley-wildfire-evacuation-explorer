@@ -193,14 +193,34 @@ export function guidedUI(ctx) {
     // One line on the map saying what the colors show, visible without opening the key (Eric, 2026-11-12).
     const runs = runsN();
     // A backup street tapped on Results shows before or after a run (the list reads the stored runs; Codex, PR #94).
+    // After a run each map view's caption states its finding, with an Explain this (Eric, 2026-11-24; GV37).
+    const finding = d && !g.focus ? FINDING[g.chip]?.() : null;
     const cap = g.focus ? g.focus.caption || `${g.focus.street}: where traffic backed up in these runs` : !s ? '' : !d ? 'Red: cars backed up'
-      : g.chip === 'fire' ? `Streets embers reached across ${runs} runs of this fire`
-      : g.chip === 'ways' ? `Ways out the fire front reached across ${runs} runs of this fire`
-      : 'Engine drive time from the nearest station, this run';
-    $('g-caption').hidden = !cap; $('g-caption').textContent = cap;
+      : finding ? finding.text : '';
+    $('g-caption').hidden = !cap;
+    if (finding) { $('g-caption').innerHTML = `${esc(cap)} <button class="linkish g-cap-x" data-cap-explain="${finding.card}">Explain this</button>`; $('g-caption').querySelector('[data-cap-explain]').onclick = () => explain(finding.card); }
+    else $('g-caption').textContent = cap;
+    keyOnce();
     if (!d) $('g-sheet').hidden = true;
     mapLayers();
   }
+  // Engine reach on the map, in more detail than its two colors (GV37): hill street segments in the watched run by drive
+  // time from the nearest station at ignition.
+  function engineMapNote() {
+    const T = state.sim?.engineReach0, m = data.A.access.engineServiceMin; if (!T || !done()) return '';
+    let a = 0, b = 0, c = 0, z = 0;
+    data.net.edges.forEach((e, i) => { if (e.mode !== 'vehicle' || !(e.fireZone >= 2)) return; const t = T[i]; if (t == null) return; z++; if (t === Infinity) c++; else if (t > 480) b++; else if (t > m * 60) a++; });
+    return `<h3>On the map</h3><p>Green streets are within ${m} minutes of a station; red, over ${m} minutes; dotted red, no engine route at all. In the run you watched, of ${fmt(z)} hill street segments, ${fmt(a)} are ${m}–8 minutes away, ${fmt(b)} over 8 minutes and ${fmt(c)} have no engine route. ${badge('model rule')}</p>`;
+  }
+  // The finding each map view states after a run, from the same figures as the result cards (GV37).
+  const FINDING = {
+    fire: () => { const f = model().baseFigure(state.fire, 'ember', g.pace); return { card: 'ember', text: `Embers reached the dark streets in every run, the amber ones in some: ${n(f.value)} people were not yet out when they arrived.` }; },
+    ways: () => { const o = model().oneWay(data.access, state.fire); return o.na ? { card: 'oneWay', text: 'Streets with one way out: not computed on the earthquake\'s street network.' } : { card: 'oneWay', text: `Red: one-way-out streets the fire front reached in every run. ${n(o.value)} hill residents live on streets with one way out.` }; },
+    engine: () => { const f = baseFigure(cardById('engine')); return { card: 'engine', text: `Red: hill streets no engine reaches within ${data.A.access.engineServiceMin} minutes, mostly because parked cars narrow them (${n(f.value)} residents).` }; },
+  };
+  // The key opens by itself the first time each map view is shown in a session, then follows the remembered choice.
+  const keySeen = new Set();
+  function keyOnce() { const v = done() ? g.chip : 'run'; if (keySeen.has(v)) return; keySeen.add(v); if (done()) ctx.keyOpenFor?.(v); }
   $('g-run').onclick = () => { g.focus = null; ctx.play(!state.playing); refresh(); };
   $('g-again').onclick = () => { setup(); frameStart(); ctx.play(true); refresh(); };
   $('g-explore').onclick = () => show('results');
@@ -364,7 +384,7 @@ export function guidedUI(ctx) {
   const BASE = { terrain: true, contours: true, streets: true, paths: false, evacZones: false, fireZones: false, neighborhoods: false, fire1923: false, cityBoundary: true, stations: false, noParking: false, tightTurns: false, access: false, demand: false, structures: false, fire: false, vehicles: false, queues: false, responder: false };
   function mapLayers() {
     Object.assign(map.layers, BASE);
-    map.edgeClass = null; map.edgePalette = null; map.streetMode = 'class';
+    map.edgeClass = null; map.edgePalette = null; map.streetMode = 'class'; map.noShelters = false;
     if (!done()) { // during the run: fire and traffic only, streets gray (PR #79)
       // Moving-car dots are left out and queues are smoothed, thin and one dark red (GV11), so traffic does not compete with the fire.
       Object.assign(map.layers, { fire: true, queues: true });
@@ -375,7 +395,7 @@ export function guidedUI(ctx) {
     } else if (g.chip === 'ways') {
       map.layers.fire = true;
       if (spread()) { map.streetMode = 'robust'; map.edgeClass = ctx.areaEdgeClasses(data, state.fire, [g.pace]); map.edgePalette = [...ctx.PALETTE.access]; map.edgePalette[0] = '#c8c8c8'; }
-    } else { map.streetMode = 'engineTime'; map.layers.stations = true; }
+    } else { map.streetMode = 'engineReach'; map.layers.stations = true; map.noShelters = true; } // two classes and stations (GV37)
     map.marks = g.applied.map(leverById).filter(Boolean).flatMap(marksOf);
     if (g.focus) for (const id of g.focus.edges) map.marks.push({ geom: data.net.edges[id].geom, kind: 'backup', focus: true });
     map.draw(); ctx.legend();
@@ -401,7 +421,7 @@ export function guidedUI(ctx) {
     if (g.chip === 'fire') { const P = ctx.PALETTE.spread; return `<b>Embers reached the street, in ${runs} runs at ${paceName()}</b>${sl('robust', P[4], 'Reached in every run')}${sl('robust', P[2], 'Reached in some runs, by chance')}${sl('robust', P[1], 'Not reached in any run')}${fireKey}<div class="small muted">${EMBER_NOTE}</div>`; }
     if (g.chip === 'ways') { const P = ctx.PALETTE.access; return `<b>Streets with one way out: did the fire front reach it? In ${runs} runs at ${paceName()}</b>${g.applied.length ? '<div class="small muted">Today\'s street network, without your changes.</div>' : ''}${sl('robust', P[4], 'Reached in every run')}${sl('robust', P[2], 'Reached in some runs, by chance')}${sl('robust', P[1], 'Not reached in any run')}${sl('robust', '#c8c8c8', 'More than one way out')}`; }
     const m = data.A.access.engineServiceMin;
-    return `<b>Engine drive time from the nearest station</b>${sl('engineTime', '#2f8a4a', `Within ${m} min`)}${sl('engineTime', '#e0a21e', `${m}–8 min`)}${sl('engineTime', '#c0262d', 'Over 8 min')}${sl('engineTime', '#7f1d1d', 'No engine route')}<div class="small muted">At ignition, with this run's parked cars.</div>`;
+    return `<b>Can a fire engine get there within ${m} minutes?</b>${sl('engineReach', '#2f8a4a', `Yes, within ${m} min of a station`)}${sl('engineReach', '#c0262d', `No, over ${m} min`)}${sl('engineReach', '#c0262e', 'No engine route at all')}<div><span class="st-sym" aria-hidden="true">2</span>Fire station (its number)</div><div class="small muted">At ignition, with this run's parked cars.</div>`;
   }
 
   // ---------- street card (bottom sheet) ----------
@@ -561,6 +581,7 @@ export function guidedUI(ctx) {
       ${splitExplain(c)}
       <h3>Where it comes from</h3><p>${cat}</p>
       ${c.id === 'ember' ? `<h3>Where the embers go</h3><p>${EMBER_NOTE}</p>` : ''}
+      ${c.id === 'engine' ? engineMapNote() : ''}
       <h3>Limits</h3><p>${c.id === 'engine' && NETWORK_FIRES[state.fire] ? c.limits.replace(' The same on every fire.', ' Here it differs from the other fires: the earthquake closes the streets that cross the fault to engines.') : c.limits}</p>
       ${w != null ? `<h3>The run you watched</h3><p>${n(w)} (${paceName()}, seed 1)${g.applied.length ? ', with your changes' : ''}.</p>` : ''}</div>`, c.plain);
   }
@@ -750,6 +771,7 @@ export function guidedUI(ctx) {
     enter() { G = null; map.barriers = false; map.queueSmooth = true; map.labels = LABELS; setup(); if (done()) frameSummary(); else frameStart(); show(g.screen === 'map' ? 'map' : g.screen); },
     leave() { map.barriers = true; map.queueSmooth = false; map.marks = []; map.labels = null; openFind(false); },
     refresh, legendHTML, sheet, pickFire,
+    keyView: () => done() ? g.chip : 'run',
     title: () => `${fireTitle()}, ${paceName()}`,
     onRunEnd() { g.chip = 'fire'; refresh(); if (g.follow) frameSummary(true); },
     tick,

@@ -36,6 +36,9 @@ const DASH_BY_COLOR = {
   // never reached stay thin and light (the Fire chip), or dotted where they have one way out (the Ways out chip).
   robust: { '#b45309': 'solid', '#b91c1c': 'solid', '#f59e0b': 'long', '#a855f7': 'dashdot', '#60a5fa': 'dot' },
   engineTime: { '#2f8a4a': 'solid', '#e0a21e': 'long', '#c0262d': 'short', '#7f1d1d': 'dot' },
+  // Guided view's engine reach (GV37): within 5 min green, over 5 min red, no engine route the same red dotted.
+  // '#c0262e' is that red under its own key, so it can carry its own pattern.
+  engineReach: { '#2f8a4a': 'solid', '#c0262d': 'long', '#c0262e': 'dot' },
   clearWidth: { '#2f8a4a': 'solid', '#9cc65a': 'long', '#e8c21e': 'dashdot', '#e07a1e': 'short', '#c0262d': 'dot' },
   engine: { '#2f8a4a': 'solid', '#e08a1e': 'long', '#c0262d': 'dot' },
   grade: { '#4f7f9b': 'solid', '#8fae4a': 'long', '#e0b21e': 'dashdot', '#e07a1e': 'short', '#c0262d': 'dot' },
@@ -308,6 +311,7 @@ export class MapView {
     else if (m === 'engine') { const ok = sim ? sim.engineOK[e.id] : !e.engineBlocked; const eff = sim ? sim.eff[e.id] : e.effLanes; c = !ok ? '#c0262d' : eff === 1 || eff === 0 ? '#e08a1e' : eff === 2 ? '#2f8a4a' : '#aaa'; }
     else if (m === 'engineTime') { // minutes at ignition, no traffic (sim.engineReach0; SOURCE_NOTES ER1)
       const t = sim?.engineReach0?.[e.id]; c = t == null ? '#aaa' : t === Infinity ? '#7f1d1d' : t <= 300 ? '#2f8a4a' : t <= 480 ? '#e0a21e' : '#c0262d'; }
+    else if (m === 'engineReach') { const t = sim?.engineReach0?.[e.id], lim = this.data.A.access.engineServiceMin * 60; c = t == null ? '#aaa' : t === Infinity ? '#c0262e' : t <= lim ? '#2f8a4a' : '#c0262d'; }
     else if (m === 'grade') { const g = e.gradeReliable ? e.gradeMax : null; c = g == null ? '#aaa' : g < 5 ? '#4f7f9b' : g < 10 ? '#8fae4a' : g < 15 ? '#e0b21e' : g < 20 ? '#e07a1e' : '#c0262d'; }
     else if (m === 'widthSource') c = e.widthSrc === 'unknown' ? '#aaa' : e.narrow ? '#8a3fb8' : '#2b6cb0';
     else if (m === 'oneway') c = e.trav === 'FT' || e.trav === 'TF' ? '#d1495b' : e.trav === 'NT' ? '#aaa' : '#666';
@@ -507,6 +511,7 @@ export class MapView {
       const x = this.sx(s.pt[0]), y = this.sy(s.pt[1]);
       ctx.fillStyle = '#b91c1c'; ctx.fillRect(x - 8, y - 7, 16, 14); ctx.fillStyle = '#fff'; ctx.fillText(s.name.replace(/\D+/g, '') || 'FS', x, y + 0.5);
     }
+    if (this.noShelters) { ctx.textBaseline = 'alphabetic'; return; } // Guided view's engine reach shows stations only (GV37)
     for (const s of this.data.layers.shelters) {
       const x = this.sx(s.pt[0]), y = this.sy(s.pt[1]);
       ctx.fillStyle = '#15803d'; ctx.beginPath(); ctx.arc(x, y, 6, 0, 7); ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillText('S', x, y + 0.5);
