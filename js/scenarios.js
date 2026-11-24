@@ -9,14 +9,26 @@ import { CELL, inPoly, bbox, inBB } from './fire.js';
 export const LEAVE_EARLY_ZONES = ['BER-006', 'BER-007', 'BER-008', 'BER-015', 'BER-016', 'BER-017', 'BER-030', 'BER-031', 'BER-057', 'BER-058'];
 
 export const SEVERITY = {
-  low:     { label: 'Low',     rosMpm: 5.5,  windFactor: 0.75, emberM: 300,  spotProb: 0.004, spotDelayMin: 4 },
-  central: { label: 'Medium', rosMpm: 11, windFactor: 1.0,  emberM: 800,  spotProb: 0.012, spotDelayMin: 3 },
-  high:    { label: 'High',    rosMpm: 30, windFactor: 1.3,  emberM: 1500, spotProb: 0.03,  spotDelayMin: 2, slowAfterMin: 60 },
+// Every severity runs in the scenario's own wind: the per-severity wind multiplier (windFactor 0.75 / 1 / 1.3) was dropped
+// on 2026-11-24 (round-2 reviewers via MASTER; SOURCE_NOTES FW16). High's spotting is medium's, so the 1991 pace differs
+// from the 1923 pace only in its first-hour head rate, fitted to the 1991 fire (FW17).
+  low:     { label: 'Low',     rosMpm: 5.5, emberM: 300, spotProb: 0.004, spotDelayMin: 4 },
+  central: { label: 'Medium', rosMpm: 11,  emberM: 800, spotProb: 0.012, spotDelayMin: 3 },
+  high:    { label: 'High',    rosMpm: 45,  emberM: 800, spotProb: 0.012, spotDelayMin: 3, slowAfterMin: 60 },
 };
 // High never crosses a cell slower than medium would on the same crossing, and after its first hour runs at medium's
 // rate (no slowFactor: js/fire.js runFire; Eric, 2026-11-24, SOURCE_NOTES FW6).
 SEVERITY.high.floor = SEVERITY.central;
-export const SEVERITY_NOTE = 'Medium severity ("central" in the code and data files): its head spread rate is calibrated to the City StoryMap\'s 1923 present-day repeat (about 5 h from the eastern edge to Shattuck in a 32 mph wind; SOURCE_NOTES S11, FW5); low is half of it. Every rate is the rate in a 32 mph wind: a weaker wind slows the head and a stronger one speeds it, by Rothermel\'s wind factor on hill and wildland cells and by Hamada\'s urban factor on the built-up flats (FW2–FW4). High severity runs faster for its first hour, fitted to the 1991 fire\'s structures by 2 hours and its run of more than a mile in 64 minutes, and never spreads slower than medium; after the first hour it runs at medium\'s rate (Eric, 2026-11-24; FW6, FW7). The 1991 head then nearly stalled as the wind eased and firefighters arrived; the model includes neither, so high severity overshoots 1991\'s structures by 4 hours. Ember reach grows with wind speed, spot fires land mostly near, and the flats throw embers at a quarter of the hills\' weight (FW8–FW11); these are illustrative. The Evacuation Time Study contains no fire modeling (E31). This is not a fire-behavior model.';
+// The earthquake fires' Faster pace (MASTER, 2026-11-24; SOURCE_NOTES FW24): twice the HayWired rate for the whole run,
+// as Slower is half of it, with medium's spot fires. The 1991 pace's first-hour burst comes from one wildfire's head run
+// in a Diablo wind, and nothing ties it to building fires after an earthquake. No source anchors Faster.
+export const QUAKE_FASTER_FACTOR = 2;
+export function quakePace(sev) {
+  if (!sev.floor) return sev;
+  const { floor, slowAfterMin, ...s } = sev;
+  return { ...s, rosMpm: QUAKE_FASTER_FACTOR * floor.rosMpm };
+}
+export const SEVERITY_NOTE = 'Medium severity ("central" in the code and data files): its head spread rate is tuned to the City StoryMap\'s 1923 present-day repeat, the City\'s own scenario of about 5 h from the eastern edge to Shattuck in a 32 mph wind, not an observation of a fire (SOURCE_NOTES S11, FW15); low is half of it. Every rate is the rate in a 32 mph wind: a weaker wind slows the head and a stronger one speeds it, by Rothermel\'s wind factor on hill and wildland cells and by Hamada\'s urban factor on the built-up flats (FW2–FW4), the same at every severity (FW16). High severity runs faster for its first hour, fitted to the 1991 fire\'s structures in its first two hours and its run of more than a mile in 64 minutes, with medium\'s spot fires, and never spreads slower than medium; after the first hour it runs at medium\'s rate (Eric, 2026-11-24; FW6, FW17). The 1991 head then nearly stalled as the wind eased and firefighters arrived; the model includes neither, so high severity overshoots 1991\'s structures by 4 hours. The earthquake fires run high severity at twice medium\'s rate for the whole run instead, with no first-hour burst (FW24). Ember reach grows with wind speed, spot fires land mostly near, and the flats throw embers at a quarter of the hills\' weight (FW8–FW11); these are illustrative. The Evacuation Time Study contains no fire modeling (E31). This is not a fire-behavior model.';
 
 // The Evacuation Time Study's six scenarios (Table 6-5, p. 6-11; SOURCE_NOTES E11).
 // Residents are never reduced. commuterShare = households waiting for a returning commuter
@@ -138,7 +150,7 @@ export function makeScenarios(data) {
       ignition: [ne[0] + SHIFT * 0.97, ne[1] + SHIFT * 0.97], ignitionLabel: 'Present-day eastern edge, 1.3 km uphill of the 1923 entry point',
       windFrom: 45, windMph: 32, durationMin: 360, timeOfDay: 'S4', clip: footprint,
       orders: R02,
-      calibration: 'Medium-severity head spread rate (11 m/min in wildland in this fire\'s 32 mph wind, all scenarios) is tuned so the fire reaches the west end of the 1923 footprint (Shattuck) in about 5 h (238–346 min over seeds 1–5 on the fire-zone proxy fuel, median 293; StoryMap: about 5 h; SOURCE_NOTES FW15). Known mismatch: it reaches the 1923 entry point in 107–137 min, earlier than the StoryMap\'s 2.5 h, because the model spreads faster in the hills than in the flats.',
+      calibration: 'Medium-severity head spread rate (11 m/min in wildland in this fire\'s 32 mph wind, all scenarios) is tuned so the fire reaches the west end of the 1923 footprint (Shattuck) in about 5 h (238–346 min over seeds 1–5 on the fire-zone proxy fuel, median 293; StoryMap: about 5 h, the City\'s own present-day scenario, not an observation; SOURCE_NOTES S11, FW15). Only the timing is tuned: at medium severity the repeat loses about 1,230 buildings in Fire Zones 2–3 (status quo, median of seeds 1–5), against 584 homes destroyed in 1923 (Hills Emergency Forum, rev. 02/28/05, p. 1; SOURCE_NOTES FF8, FW22). Known mismatch: it reaches the 1923 entry point in 107–137 min, earlier than the StoryMap\'s 2.5 h, because the model spreads faster in the hills than in the flats.',
       sources: ['Footprint: City 1923_Archival_Boundary_COB, extended 1.3 km uphill per the City Evacuation StoryMap (July 2025) §3.2',
         'Timing: StoryMap §3.2, about 2.5 h from the eastern edge to Codornices Park, 5 h to Shattuck Ave; 1923 winds were Diablo, 25-40 mph',
         'Orders and warnings: Evacuation Time Study region R02 zone lists (p. 6-6). Default time: S4, fall midweek midday, as in the StoryMap\'s combined fire/traffic run'],
@@ -198,9 +210,9 @@ export function makeScenarios(data) {
       const ign = quakeIgnitions(data); if (!ign) return [];
       const base = {
         kind: 'earthquake', ignitions: ign, ignition: L(-122.2730, 37.8716), ignitionLabel: 'Starts in buildings across Berkeley, drawn for each pass from the USGS HayWired fire-following model',
-        durationMin: 360, timeOfDay: 'S4', ordersByFire: true, quake: 'trace', rosFactor: QUAKE_ROS_FACTOR,
+        durationMin: 360, timeOfDay: 'S4', ordersByFire: true, quake: 'trace', rosFactor: QUAKE_ROS_FACTOR, paceFor: quakePace,
         sources: ['Starts: USGS HayWired scenario, fire following the M7.0 Hayward Fault mainshock (Scawthorn 2018, chap. P; data release ScienceBase 5d83a79be4b0c4f70d067ae0): expected ignitions per Berkeley fire station area, about 20 in all; each pass draws the number per area (Poisson) and puts each start in a building cell (our rule)',
-          'Spread: the wildfire spread rules with a rate fitted so the spring-afternoon fire reaches about as many structures as HayWired burns in Berkeley (3.44 million sq ft of floor area, about 2,300 single-family-home equivalents at the 1,515 sq ft per equivalent of the regional summary); model rule (SOURCE_NOTES FW12). Not modeled: the water system failing after the earthquake, and fire passing from building to building on its own',
+          'Spread: the wildfire spread rules with a rate fitted so the spring-afternoon fire reaches about as many structures as HayWired burns in Berkeley (3.44 million sq ft of floor area, about 2,300 single-family-home equivalents at the 1,515 sq ft per equivalent of the regional summary); model rule (SOURCE_NOTES FW12). HayWired\'s estimate already allows for broken water mains and too few engines (chap. P, pp. 384, 388, 391), so the fitted rate includes both; not modeled: HayWired\'s block-to-block spread across streets and firebreaks (SOURCE_NOTES FW21)',
           'Streets: segments crossing the mapped Hayward Fault trace are closed and every City signal is dark (the Hayward Fault earthquake setting, lower bound; its upper bound is in the scenario settings)',
           'Orders: each zone is ordered the plan\'s decision delay after the fire first comes within 300 m of it, so only zones the fire threatens (assumption); no pre-defined region. Other cities\' zones follow their 1 km rule',
           'Time: a weekday afternoon (Time Study S4), as in HayWired, whose earthquake strikes at 4:18 p.m.'],
@@ -215,7 +227,7 @@ export function makeScenarios(data) {
           windFrom: 0, windMph: 5.9, windSchedule: QUAKE_WIND_WINTER_NORTH,
           windSource: 'Oakland North weather station, December–February, June 1992 – October 2026: 8.3% of hours blow from 340–20°; their median speed is 5.9–6.9 mph at 4–5 p.m. and 7.3–9.2 mph from 6 to 10 p.m. (standard time); their median humidity is 59%, and 6.9% of them are at 25% or below (SOURCE_NOTES WC6). Direction 0° is the middle of that sector (model choice)' },
         { ...base, id: 'quakeEastWind', name: 'Hayward Fault earthquake on a dry east-wind day',
-          blurb: 'The same earthquake fires, on the rare day with a dry wind from the north-east (about 2.5% of hours at the Oakland North station): wind-driven fires that carry embers toward the flats. A joint event of low probability, shown as the worst case.',
+          blurb: 'The same earthquake fires, on the rare day with a dry wind from the north-east (about 2.5% of hours at the Oakland North station): wind-driven fires that carry embers toward the flats. A joint event of low probability, shown as the worst case. The earthquake pace was fitted in the 7 mph spring breeze; at 30 mph its spread in the flats rests on Hamada\'s urban wind term alone, an extrapolation beyond that fit, and HayWired itself assumed ordinary April west winds. Its median of 7,803 structures reached by 6 h is that extrapolation (SOURCE_NOTES FW15, FW21).',
           windFrom: 45, windMph: 30,
           windSource: 'Dry, windy hours at the Oakland North weather station center on 40–50° (SOURCE_NOTES FF4); 30 mph sits in the top 1.3% of dry offshore hours there (FF5)' },
       ];

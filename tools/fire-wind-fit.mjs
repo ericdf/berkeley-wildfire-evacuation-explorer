@@ -3,7 +3,7 @@
 // default or a data file. Every figure is the fire overlay alone (js/fire.js runFire), no traffic.
 //
 //   node tools/fire-wind-fit.mjs [sections] [--root DIR] [--sev JSON] [--quake 0.27,0.5] [--seeds N]
-//     sections (comma list, default all): 1923, 1991, quake, wind, order
+//     sections (comma list, default all): 1923, 1991, quake, wind, order, advance
 //     --root   run another checkout's js/ (for example a worktree of main, for before → after tables)
 //     --sev    JSON merged onto SEVERITY, e.g. '{"high":{"rosMpm":30,"slowFactor":0.3}}' (fitting only)
 //     --quake  earthquake spread factors to try (default: QUAKE_ROS_FACTOR)
@@ -19,6 +19,8 @@
 // quake  structures inside Berkeley the front reaches by 6 h, medium severity, seeds 1–5, each earthquake wind
 //        (tools/quake-ros-fit.mjs; HayWired about 2,270 home equivalents, EQ11, WC8).
 // wind   the east-wind fire at medium severity, seeds 1–3: area burned by 2 h at 5, 15, 25 and 35 mph.
+// advance the east-wind fire at each severity, seeds 1–5: the farthest burned cell downwind of the ignition at 60 min
+//        (round-2 spread modeler via MASTER, 2026-11-24; SOURCE_NOTES FW16), and the same with spotting off.
 // order  every Guided fire at low, medium and high severity, seeds 1–5: medians of structures the front reached and
 //        of structures under ember exposure by 1, 2, 3, 4 and 6 h (each fire's run ends at its duration).
 import fs from 'node:fs';
@@ -36,7 +38,7 @@ const SC = await imp('js/scenarios.js');
 const { toUTM } = await imp('tools/utm.mjs');
 const flags = new Set(['--root', '--sev', '--quake', '--seeds']);
 const pos = argv.filter((a, i) => !a.startsWith('--') && !flags.has(argv[i - 1]));
-const SECTIONS = (pos[0] || '1923,1991,quake,wind,order').split(',');
+const SECTIONS = (pos[0] || '1923,1991,quake,wind,order,advance').split(',');
 const SEV = JSON.parse(JSON.stringify(SC.SEVERITY, (k, v) => (k === 'floor' ? undefined : v)));
 const over = JSON.parse(opt('--sev') || '{}');
 for (const [k, v] of Object.entries(over)) Object.assign(SEV[k], v);
@@ -87,6 +89,13 @@ if (SECTIONS.includes('quake')) {
     const r = [1, 2, 3, 4, 5].map(seed => { const F = runFire(grid, { ...sc, rosFactor: k }, SEV.central, seed); let s = 0; for (const [c, m] of cells) if (F.arrival[c] <= sc.durationMin) s += m; return s; });
     console.log(`quake ${sc.id.padEnd(15)} factor ${k}: median ${fmt(med(r))} structures in Berkeley by 6 h (seeds ${r.map(fmt).join(', ')}; HayWired ~2,270)`);
   }
+  // Each pace on the spring-afternoon fire: structures in Berkeley the front reached by 1 h and by 6 h (FW17's measured
+  // pace text for the earthquake's Faster pace).
+  const sq = byId('quake');
+  for (const sev of ['low', 'central', 'high']) {
+    const r = Array.from({ length: nSeeds }, (_, k) => { const F = runFire(grid, sq, SEV[sev], k + 1); let a = 0, b = 0; for (const [c, m] of cells) { if (F.arrival[c] <= 60) a += m; if (F.arrival[c] <= sq.durationMin) b += m; } return [a, b]; });
+    console.log(`quake pace ${sev.padEnd(7)}: structures in Berkeley by 1 h median ${fmt(med(r.map(x => x[0])))} (${r.map(x => fmt(x[0])).join(' / ')}), by 6 h median ${fmt(med(r.map(x => x[1])))} (${r.map(x => fmt(x[1])).join(' / ')})`);
+  }
 }
 
 if (SECTIONS.includes('wind')) {
@@ -94,6 +103,14 @@ if (SECTIONS.includes('wind')) {
   for (const mph of [5, 15, 25, 35]) {
     const r = [1, 2, 3].map(seed => { const F = runFire(grid, { ...sc, windMph: mph }, SEV.central, seed); let b = 0; for (let i = 0; i < N; i++) if (F.arrival[i] <= 120) b++; return b * CELL * CELL / 1e6; });
     console.log(`wind eastWind medium ${String(mph).padStart(2)} mph: burned by 2 h ${r.map(x => x.toFixed(2)).join(' / ')} km²`);
+  }
+}
+
+if (SECTIONS.includes('advance')) {
+  const sc = byId('eastWind'), toR = ((sc.windFrom + 180) % 360) * Math.PI / 180, dx = Math.sin(toR), dy = Math.cos(toR), [ox, oy] = sc.ignition;
+  for (const sev of ['low', 'central', 'high']) for (const spots of [true, false]) {
+    const r = Array.from({ length: nSeeds }, (_, k) => { const F = runFire(grid, sc, spots ? SEV[sev] : { ...SEV[sev], spotProb: 0 }, k + 1); let far = 0; for (let i = 0; i < N; i++) if (F.arrival[i] <= 60) { const [x, y] = center(i); far = Math.max(far, (x - ox) * dx + (y - oy) * dy); } return far; });
+    console.log(`advance eastWind ${sev.padEnd(7)} ${spots ? 'spotting  ' : 'no spots  '} at 60 min: ${r.map(fmt).join(' / ')} m, median ${fmt(med(r))}`);
   }
 }
 

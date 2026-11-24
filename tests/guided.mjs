@@ -21,10 +21,11 @@ const restIds = gs => gs.filter(g => g.rest).flatMap(g => g.items.map(i => i.lev
 const set = xs => [...xs].sort().join(',');
 
 const east = G.groups('eastWind');
-check(ids(east, 'people') === set(['leaveEarly', 'leaveEarlyEFW', 'orderSooner']), `east wind, people: ${ids(east, 'people')}`);
+// All paces pooled: egress guidance joins people since the round-2 refit (it helps at Slower and 1923 pace; SOURCE_NOTES FW23).
+check(ids(east, 'people') === set(['leaveEarly', 'leaveEarlyEFW', 'orderSooner', 'egressGuidance']), `east wind, people: ${ids(east, 'people')}`);
 check(ids(east, 'engine') === set(['parkingOneSide', 'redCurbFoot', 'widen-WP-001', 'link-AC-160-N3', 'retreat-footBlock', 'retreat-top100', 'retreat-panoramicUpper', 'widen-WP-007', 'link-CITY-1']), `east wind, engines: ${ids(east, 'engine')}`);
 check(ids(east, 'cars') === set(['leaveEarly', 'leaveEarlyEFW', 'orderSooner']), `east wind, cars: ${ids(east, 'cars')}`);
-check(restIds(east) === set(['contraflow-officers', 'contraflow-signs', 'policeControl', 'egressGuidance', 'link-AC-193-N1']), `east wind, no consistent benefit (worse · no consistent change · not offered): ${ids(east, 'worse')} · ${ids(east, 'none')} · ${ids(east, 'off')}`);
+check(restIds(east) === set(['contraflow-officers', 'contraflow-signs', 'policeControl', 'link-AC-193-N1']), `east wind, no consistent benefit (worse · no consistent change · not offered): ${ids(east, 'worse')} · ${ids(east, 'none')} · ${ids(east, 'off')}`);
 // "Worse in every run": some result worse in every run; at 1923 pace contraflow and police control (reviewer subagent, MASTER, 2026-11-23).
 // From the table (not every contraflow or police change is worse in every run on every fire): east wind, signed contraflow;
 // Panoramic Hill, both contraflow changes; the earthquake, signed contraflow and police control; east wind, police control is mixed.
@@ -164,7 +165,7 @@ const eastC = G.groups('eastWind', 'central');
 // Since the wind-dependent fire model (2026-11-24, SOURCE_NOTES FW14) egress guidance helps people out in all 5 runs at
 // 1923 pace on the east wind (it was worse in every run); the other groups are the ones Eric approved on 2026-11-10.
 const minus = (a, x) => a.split(',').filter(v => v !== x).join(',');
-check(ids(eastC, 'people') === set([...ids(east, 'people').split(','), 'egressGuidance']) && ['engine', 'cars'].every(id => ids(eastC, id) === ids(east, id)) && restIds(eastC) === minus(restIds(east), 'egressGuidance'), 'east wind at 1923 pace (the default): the groups Eric approved on 2026-11-10, plus egress guidance under people (FW14)');
+check(ids(eastC, 'people') === set(['leaveEarly', 'leaveEarlyEFW', 'orderSooner', 'egressGuidance']) && ['engine', 'cars'].every(id => ids(eastC, id) === ids(east, id)) && restIds(eastC) === minus(restIds(east), 'egressGuidance'), 'east wind at 1923 pace (the default): the groups Eric approved on 2026-11-10, plus egress guidance under people (FW14)');
 // The rule's edges: 4 better and 1 identical joins; 4 better and 1 worse does not (four Panoramic Hill engine changes are
 // better in 4 of 5 seeds and identical in the fifth, so they stay in the engine group at every pace).
 for (const sev of SEVS) check(['link-AC-160-N3', 'redCurbFoot', 'retreat-footBlock', 'widen-WP-001'].every(id => G.groups('eastWind', sev).find(g => g.id === 'engine').items.some(i => i.lever.id === id)), `east wind at ${sev}: the four engine changes better in 4 of 5 seeds, identical in the fifth, are in the engine group`);

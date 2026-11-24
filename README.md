@@ -203,17 +203,19 @@ head rate is its rate in a 32 mph wind, the 1923 repeat's; other winds scale it 
 factor on hill and wildland cells (fuel model TL6: 0.13 of the 32 mph rate at 7 mph, 1.14 at 35 mph)
 and by Hamada's urban factor on the built-up flats (0.36 at 7 mph, 1.11 at 35 mph). High severity
 (the "1991 pace") runs faster for its first hour and never slower than medium; after the first hour
-it runs at medium's rate (Eric, 2026-11-24). An opt-in Expert-view setting (Scenario →
+it runs at medium's rate (Eric, 2026-11-24). The wind acts the same way at every severity, and high
+severity throws spot fires as medium does (FW16, FW17). An opt-in Expert-view setting (Scenario →
 Fuel) uses LANDFIRE 2025 FBFM40 fuel models instead, each with a spread factor from Rothermel's
 relative rate for its Scott and Burgan model, a model rule (`node tools/fetch-fuel.mjs`;
 checks against 1923, 1991, the Ember Threat Zones and Red Flag winds in
 `docs/fire-validation.md`). Burning cells throw spot fires downwind, most of them in the near half
-of the ember reach (the severity's 300, 800 or 1,500 m at 32 mph, in proportion to wind speed); the
+of the ember reach (300 m at low severity and 800 m at medium and high, at 32 mph, in proportion to wind speed); the
 flats throw at a quarter of the hills' rate. Random spot fires mean different seeds give different
 footprints. A cell is ember-exposed once the cells burning upwind of it, each weighted by its
 nearness and its ember weight, add up to a quarter of what a fully burning upwind reach would send;
-a broad front gets there at half the reach. The calibration and every rule are in SOURCE_NOTES
-FW1–FW15; `node tools/fire-wind-fit.mjs` prints the checks. The overlay puts plausible, comparable
+a broad front gets there at half the reach. Medium severity's rate is tuned to the City StoryMap's
+1923 repeat, the City's own scenario, not an observation (S11). The fits and every rule are in SOURCE_NOTES
+FW1–FW22; `node tools/fire-wind-fit.mjs` prints the checks. The overlay puts plausible, comparable
 pressure on the evacuation; it does not predict how a real fire would behave. A scenario may carry a wind schedule
 (`windSchedule`: `{ fromMin, windFrom, windMph }` entries): each crossing, spot throw and ember
 reach uses the wind in force when it starts, and a burning cell may start a crossing again at
@@ -225,10 +227,12 @@ About 20 starts in buildings drawn from the USGS HayWired model, spread at 1.2 t
 severity's rate in a 32 mph wind (fitted to HayWired's burned floor area in Berkeley on the spring
 wind), on three winds measured at the Oakland North weather station: a spring afternoon at HayWired's
 4:18 p.m. (from 205°, 7.0 mph easing to 5.4 mph), a winter day with a north wind (0°, 5.9 to 9.2 mph)
-and the rare dry east wind (45° at 30 mph), which reaches the most structures of the three. Guided
-view names its paces Slower, HayWired pace and Faster. Fault closures and dark signals come with
-them. Not modeled: the water system failing after the earthquake, and fire passing from building to
-building on its own.
+and the rare dry east wind (45° at 30 mph), which reaches the most structures of the three; that
+count extrapolates Hamada's urban wind term beyond the 7 mph breeze the rate was fitted in (FW21). Guided
+view names its paces Slower, HayWired pace and Faster: half and twice the HayWired rate, without the
+1991 pace's first-hour burst (FW24). Fault closures and dark signals come with
+them. HayWired's burned estimate already allows for broken water mains and too few engines, so the fitted
+rate includes both; not modeled: HayWired's block-to-block spread across streets and firebreaks (FW21).
 
 **Visibility** (scenario setting, Expert view, off by default; SOURCE_NOTES VZ1–VZ7). Poor
 visibility (fog or smoke) cuts free-flow speed on every street by 7.5% (FHWA-JPO-11-019 p. 7,
