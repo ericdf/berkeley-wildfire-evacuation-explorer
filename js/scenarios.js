@@ -13,6 +13,8 @@ export const SEVERITY = {
   central: { label: 'Medium', rosMpm: 14, windFactor: 1.0,  emberM: 800,  spotProb: 0.012, spotDelayMin: 3 },
   high:    { label: 'High',    rosMpm: 28, windFactor: 1.3,  emberM: 1500, spotProb: 0.03,  spotDelayMin: 2, slowAfterMin: 60, slowFactor: 0.2 },
 };
+// High never crosses a cell slower than medium would on the same crossing (js/fire.js runFire; SOURCE_NOTES FW6).
+SEVERITY.high.floor = SEVERITY.central;
 export const SEVERITY_NOTE = 'Medium severity ("central" in the code and data files): its head spread rate is calibrated to the City StoryMap\'s 1923 present-day repeat (about 5 h from the eastern edge to Shattuck; SOURCE_NOTES S11); low and high are half and double. High severity slows after its first hour to a fifth of its head spread rate, as the 1991 fire\'s head did ("more than a mile in the first hour", then "only three quarters of a mile in the next seven hours"); fitted to 1991\'s structures burned by 2 and 4 hours (SOURCE_NOTES FV17). Medium and low keep their rate: the 1923 fire kept its pace until the wind changed. Ember distance and spot-fire probability are illustrative. The Evacuation Time Study contains no fire modeling (E31). This is not a fire-behavior model.';
 
 // The Evacuation Time Study's six scenarios (Table 6-5, p. 6-11; SOURCE_NOTES E11).
