@@ -282,7 +282,7 @@ body.simple #mapwrap { position: absolute; inset: 0; height: auto; min-height: 0
 #g-pace .g-pace-x { font-size: 17px; padding: 0 4px; text-decoration: none; }
 .rc-p { font-size: 13px; color: var(--muted); margin: -4px 0 6px; }
 /* Lines under a result (SOURCE_NOTES FL1–FL3, FL6) and the west-wind and What-you-can-do notes (FL5, FL7). */
-.rc-x { font-size: 12.5px; line-height: 1.3; margin: 1px 0 3px; }
+.rc-x { font-size: 12.5px; line-height: 1.25; margin: 1px 0 2px; }
 .gv-note { font-size: 13.5px; line-height: 1.4; margin: 6px 0 10px; }
 .g-menu-do { margin: 6px 0 0; }
 .sq-x { font-size: inherit; padding: 0; }
@@ -292,6 +292,9 @@ body.simple #clock { font-size: 16px; }
 body.simple #clock[hidden], body.simple #map-controls, body.simple #status { display: none; }
 body.simple #legend { top: 8px; bottom: auto; right: 8px; max-width: min(260px, 62%); max-height: calc(100% - 90px); overflow: auto; }
 body.simple #legend .key-toggle { font-size: 13px; padding: 3px 9px; }
+/* On a phone the open key is wider than the room beside the map chips: after a run it sits below them, so its heading
+   is never under the chip row (reviewer subagents round 2 via MASTER, 2026-11-24; SOURCE_NOTES GV43). */
+@media (max-width: 560px) { body.simple:has(#g-chips:not([hidden])) #legend { top: 51px; max-height: calc(100% - 133px); } }
 body.simple #legend div { white-space: normal; }
 #g-ctrl { position: absolute; left: 0; right: 0; bottom: 40px; display: flex; justify-content: center; z-index: 3; pointer-events: none; }
 #g-ctrl button, #g-after { pointer-events: auto; }

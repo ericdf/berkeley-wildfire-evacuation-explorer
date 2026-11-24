@@ -83,7 +83,7 @@ for (const [di, name] of DEVICES.entries()) {
     await p.click('[data-pace-explain]');
     if (sev !== 'central') await p.click(`#modal [data-pace-other="${sev}"]`);
     const t = await gxText();
-    check(new RegExp(`Fire pace: ${word}`).test(t) && /model rule/.test(t) && (sev !== 'central' || /S11/.test(t)) && (sev !== 'high' || /FV17/.test(t)) && (sev !== 'low' || /lower bound/.test(t)), `${name}: ${word} has its own Explain this`);
+    check(new RegExp(`Fire pace: ${word}`).test(t) && /model rule/.test(t) && (sev !== 'central' || /S11/.test(t)) && (sev !== 'high' || /FV17/.test(t)) && (sev !== 'low' || /a slower case, not a floor/.test(t)), `${name}: ${word} has its own Explain this`);
     await p.locator('#modal .close').click();
   }
 
@@ -91,12 +91,24 @@ for (const [di, name] of DEVICES.entries()) {
   // Before a run the map shows the whole city (FL4); Run frames the fire's starts, then the follow only widens.
   const v0 = await p.evaluate(() => JSON.parse(document.getElementById('map').dataset.view));
   check(v0[0] <= 1600 && v0[1] <= 1300 && v0[2] >= 10200 && v0[3] >= 7500, `${name}: before a run the map shows the whole city (${v0.slice(0, 4).map(Math.round).join(', ')})`);
-  check(/^At this pace, embers reach streets in Berkeley's flats on /.test(await p.locator('#g-flats').innerText()), `${name}: the line under the fire picker names the fires reaching the flats`);
+  check(/^At this pace, embers reach streets in Berkeley's flats in (the |every )/.test(await p.locator('#g-flats').innerText()), `${name}: the line under the fire picker names the fires reaching the flats`);
   await p.click('#g-run'); await p.waitForTimeout(700); // the eased zoom to the fire (0.5 s)
   await p.evaluate(() => { const c = document.getElementById('map'); window.__views = []; window.__vt = setInterval(() => { if (document.getElementById('g-after').hidden) window.__views.push(JSON.parse(c.dataset.view)); }, 100); });
   await p.waitForTimeout(1800);
   check(await visible('#clock'), `${name}: clock over the map while running`);
-  check(await visible('#g-caption') && (await p.locator('#g-caption').innerText()) === 'Red: cars backed up', `${name}: caption "Red: cars backed up" while running`);
+  check(await visible('#g-caption') && (await p.locator('#g-caption').innerText()) === 'Blue: cars backed up', `${name}: caption "Blue: cars backed up" while running`);
+  // The color word in the caption names the color the map key draws for backups (round 2 via MASTER, 2026-11-24; GV43).
+  const keyWasOpen = await p.locator('#legend .key-toggle[aria-expanded="true"]').count();
+  if (!keyWasOpen) await p.click('#legend .key-toggle');
+  const capKey = await p.evaluate(() => {
+    const word = document.getElementById('g-caption').innerText.split(':')[0].toLowerCase();
+    const sw = [...document.querySelectorAll('#legend .sw, #legend i, #legend span')].find(x => /Cars backed up/.test(x.parentElement?.textContent || '') && getComputedStyle(x).backgroundColor !== 'rgba(0, 0, 0, 0)');
+    const m = sw && getComputedStyle(sw).backgroundColor.match(/\d+/g).map(Number);
+    const hue = !m ? '' : m[2] > m[0] && m[2] > m[1] ? 'blue' : m[0] > m[1] && m[0] > m[2] ? 'red' : 'other';
+    return { word, hue };
+  });
+  if (!keyWasOpen) { await p.click('#legend .key-toggle'); await p.evaluate(() => { try { localStorage.removeItem('bhe-key'); } catch {} }); }
+  check(capKey.word === capKey.hue, `${name}: the caption's color word matches the key's backup swatch (${capKey.word} vs ${capKey.hue})`);
   await noScroll('while running');
   await shot('02-running');
   await waitRunEnd();
@@ -106,11 +118,16 @@ for (const [di, name] of DEVICES.entries()) {
   check(views.length > 10 && narrowed < 0 && widened, `${name}: during the run the view only widens (${views.length} samples, ${Math.round(views[0][2] - views[0][0])} m → ${Math.round(views.at(-1)[2] - views.at(-1)[0])} m across${narrowed >= 0 ? `, narrowed at sample ${narrowed}` : ''})`);
   check(await visible('#g-chips') && await visible('#g-explore') && await visible('#g-again') && !(await visible('#g-run')), `${name}: after the run, chips, Explore results and Run again`);
   await noScroll('after a run'); await shot('03-after-run-fire');
-  // Each map view's caption states its finding and has an Explain this; the key opens the first time each view is shown
-  // in a session (Eric, 2026-11-24; SOURCE_NOTES GV42).
+  // Each map view's caption states its finding and has an Explain this (Eric, 2026-11-24; SOURCE_NOTES GV42). The key
+  // does not open by itself when a run ends; it opens the first time each chip is chosen, and on a phone it sits below
+  // the chip row (reviewer subagents round 2 via MASTER, 2026-11-24; GV43).
+  const rect = sel => p.evaluate(s => { const r = document.querySelector(s)?.getBoundingClientRect(); return r && { l: r.left, r: r.right, t: r.top, b: r.bottom }; }, sel);
+  const apart = (a, b) => !a || !b || a.r <= b.l || b.r <= a.l || a.b <= b.t || b.b <= a.t;
   check(/Embers reached the dark streets in every run.*[\d,]+ people were not yet out/.test(await p.locator('#g-caption').innerText()) && await p.locator('#g-caption [data-cap-explain="ember"]').isVisible(), `${name}: the fire view's caption states its finding, with Explain this`);
-  check((await p.locator('#legend .key-toggle').getAttribute('aria-expanded')) === 'true', `${name}: the key opens by itself for the fire view`);
+  const keyAtEnd = await p.locator('#legend .key-toggle').getAttribute('aria-expanded');
+  check(name === 'desktop' ? keyAtEnd === 'true' : keyAtEnd === 'false', `${name}: the key ${name === 'desktop' ? 'stays open (desktop default)' : 'does not open by itself'} when the run ends`);
   await p.click('[data-chip="ways"]'); await p.waitForTimeout(250);
+  check((await p.locator('#legend .key-toggle').getAttribute('aria-expanded')) === 'true' && apart(await rect('#g-chips'), await rect('#legend')), `${name}: choosing Ways out opens the key, clear of the chip row`);
   check(/Red: one-way-out streets the fire front reached in every run\. [\d,]+ hill residents/.test(await p.locator('#g-caption').innerText()), `${name}: the ways-out caption states its finding`);
   await p.click('[data-chip="engine"]'); await p.waitForTimeout(250);
   const engCap = await p.locator('#g-caption').innerText(), engKey = await p.locator('#legend').innerText();
@@ -151,8 +168,17 @@ for (const [di, name] of DEVICES.entries()) {
   await p.keyboard.type('panoramic way');
   check((await p.locator('#g-find-list [role="option"]').first().innerText()) === 'Panoramic Wy', `${name}: search lists Panoramic Wy for "panoramic way"`);
   await p.keyboard.press('Enter'); await p.waitForTimeout(900);
-  check((await p.locator('#g-caption').innerText()) === 'Panoramic Wy' && await visible('#g-sheet'), `${name}: choosing Panoramic Wy frames it and opens its card`);
+  const findCap = await p.locator('#g-caption').innerText();
+  check(/^Embers reached \d+ of \d+ blocks? of Panoramic Wy in at least one run at this pace Explain this$/.test(findCap) && await visible('#g-sheet'), `${name}: choosing Panoramic Wy frames it, counts its blocks embers reached and opens its card (${findCap})`);
   const card = await p.locator('#g-sheet').innerText();
+  check(apart(await rect('#g-sheet'), await rect('#legend')), `${name}: the street card does not cover the key`);
+  // The count's provenance: in the card's sources and behind the caption's Explain this (Codex review of PR #104).
+  check(/Blocks embers reached model rule/.test(await p.locator('#g-sheet .g-src').textContent()), `${name}: the card's sources give the block count's category`);
+  await p.evaluate(() => document.querySelector('#g-caption [data-find-explain]').click());
+  const fx = await gxText();
+  check(/blocks of Panoramic Wy/.test(fx) && /model rule/.test(fx) && /spread-access\.json/.test(fx) && /no other named street/.test(fx), `${name}: the searched street's count has an Explain this with its category, runs and block rule`);
+  await p.keyboard.press('Escape'); await p.waitForTimeout(200);
+  check(/^Embers reached \d+ of \d+ blocks? of this street in at least one run at this pace\. This card: the block (from .+ to .+|near .+|nearest the middle)\. Tap your own block on the map\.$/m.test(card), `${name}: the card counts the street's blocks embers reached, names the block it shows and asks for the reader's own`);
   check(/Evacuation zone [A-Z]{3}-\d{3}/.test(card) && await p.locator('#g-sheet a[href*="fire-weather-and-evacuation"]').count() === 1, `${name}: the card shows the street's evacuation zone and the City's lookup (${(card.match(/Evacuation zone \S+/) || [''])[0]})`);
   check(!/\d\.\d modeled resident/.test(card), `${name}: modeled residents in whole people`);
   const clear = await p.evaluate(() => { const a = document.getElementById('g-explore').getBoundingClientRect(), b = document.getElementById('g-again').getBoundingClientRect(), s = document.getElementById('g-sheet').getBoundingClientRect(); return s.bottom <= Math.min(a.top, b.top) + 0.5; });
@@ -160,7 +186,7 @@ for (const [di, name] of DEVICES.entries()) {
   await noScroll('with the street card open'); await shot('06b-find-panoramic');
   await p.click('#g-find-btn'); await p.keyboard.type('telegraph av');
   await p.locator('#g-find-list [role="option"]', { hasText: 'Telegraph Av' }).first().click(); await p.waitForTimeout(900);
-  check((await p.locator('#g-caption').innerText()) === 'Telegraph Av' && /Telegraph Av/.test(await p.locator('#g-sheet').innerText()), `${name}: search finds Telegraph Av and opens its card`);
+  check(/ of Telegraph Av in at least one run/.test(await p.locator('#g-caption').innerText()) && /Telegraph Av/.test(await p.locator('#g-sheet').innerText()), `${name}: search finds Telegraph Av and opens its card`);
   // From Results the search returns to the map so the box can be used (Codex, PR #101).
   await p.click('#g-explore'); await p.click('#g-find-btn');
   check(!(await visible('#g-panel')) && await p.locator('#g-find-in').isVisible(), `${name}: opening the search from Results goes back to the map`);
@@ -179,8 +205,8 @@ for (const [di, name] of DEVICES.entries()) {
   check(/fire or its embers/.test(order[0]) && /engine/.test(order[1]) && /one way out/.test(order[2]) && /no open route/.test(order[3]) && /buildings lost in the hill fire zones \(not computed in the flats\)/.test(order[4]), `${name}: results in the agreed order`);
   // Under the people card: the front's share, where they live, who may need help; under buildings, the flats (FL1–FL3, FL6).
   const px = await p.locator('#g-panel .rc').first().locator('.rc-x').allTextContents();
-  check(px.length === 3 && /^Fire front reached [\d,]+ · embers only [\d,]+$/.test(px[0]) && /^In hill fire zones [\d,]+ · rest of Berkeley [\d,]+$/.test(px[1]) && /^[\d,]+–[\d,]+ may need a wheelchair van or ambulance/.test(px[2]), `${name}: people card lines (${px.join(' | ')})`);
-  check(/^Flats: the front reached /.test(await p.locator('#g-panel .rc').nth(4).locator('.rc-x').innerText()), `${name}: buildings card says what the front reached in the flats`);
+  check(px.length === 4 && /^Fire front reached [\d,]+ · embers only [\d,]+$/.test(px[0]) && /^In hill fire zones [\d,]+ · flats [\d,]+( · most from other cities or on the road)?$/.test(px[1]) && /^[\d,]+–[\d,]+ may need a wheelchair van or ambulance/.test(px[2]) && /^Orders: a pre-set region that does not grow with the fire$/.test(px[3]), `${name}: people card lines (${px.join(' | ')})`);
+  check(/^Flats: the front reached (streets where [\d,]+ people live, whether or not they had left|no street in a typical run)$/.test(await p.locator('#g-panel .rc').nth(4).locator('.rc-x').innerText()), `${name}: buildings card says what the front reached in the flats`);
   await noScroll('on results'); const hr = await panelHeight('Results view');
   await shot('07-results');
   // The four-way split under the people card (GV13); the fire front's split is in its Explain this (FL2).

@@ -1,6 +1,7 @@
 // Structures lost where the fire front reached them, and what home hardening and Zone 0 change (step 3e option A,
 // SOURCE_NOTES PH23; hardening and Zone 0, PH29–PH32). Loss only: the fire, its embers, orders and traffic are the
-// same with and without hardening or Zone 0, because the fire model does not spread from building to building.
+// same with and without hardening or Zone 0, because the fire model spreads through built-up blocks as an
+// area, at the urban spread rate, not house by house.
 //
 // For each 30 m cell the front has reached, the City footprints in Fire Zones 2–3 count by the gap to their nearest
 // neighbor (data/model/structures.json: under 25 ft, 25–50 ft, 50 ft or more). Under 50 ft a structure is lost with the
