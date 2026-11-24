@@ -257,6 +257,10 @@ for (const [di, name] of DEVICES.entries()) {
   await p.click('[data-chip="engine"]'); await p.waitForTimeout(250);
   const engWith = await p.locator('#g-caption').innerText();
   check(/\([\d,]+ residents with your changes\)/.test(engWith) && !engCap.includes(engWith.match(/\(([\d,]+) residents/)?.[1] + ' residents)'), `${name}: with one-side parking the engine caption gives the figure with the change (${engWith.match(/\(([^)]*)\)/)?.[1]})`);
+  await p.click('#g-caption [data-cap-explain]');
+  const cmpH = await p.locator('#modal .gx h2').innerText();
+  check(cmpH.includes(engWith.match(/\(([\d,]+) residents/)?.[1]) && /→/.test(cmpH), `${name}: its Explain this opens the comparison (${cmpH})`);
+  await p.locator('#modal .close').click();
   await p.click('[data-chip="fire"]'); await p.waitForTimeout(200);
   await p.click('#g-explore');
   const cmp1 = await p.locator('.rc.cmp').count();
