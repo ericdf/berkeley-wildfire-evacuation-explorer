@@ -78,13 +78,13 @@ const LABELS = {
 const PACE_LEAD = {
   low: 'Slower is a fire that spreads at half the speed of the 1923 pace. In a 32 mph wind three quarters of its spot-fire embers land within about 150 m of it, and none beyond about 300 m.',
   central: '1923 pace spreads about as fast as the City\'s present-day repeat of the 1923 Berkeley fire, faster in a stronger wind and slower in a weaker one. In a 32 mph wind three quarters of its spot-fire embers land within about 400 m of it, and none beyond about 800 m.',
-  high: '1991 pace spreads nearly three times as fast as the 1923 pace in its first hour, like the 1991 Oakland Hills fire, then at the 1923 pace. In a 32 mph wind three quarters of its spot-fire embers land within about 750 m of it, and none beyond about 1.5 km.',
+  high: '1991 pace runs about 3.4 times as far as the 1923 pace in its first hour, like the 1991 Oakland Hills fire: 2.3 km downwind against 670 m on the east-wind fire. Then it spreads at the 1923 pace. Its embers land as the 1923 pace\'s do.',
 };
 // The earthquake fire's leads (QUAKE_PACES in js/guided-data.js): its medium pace is fitted to the USGS HayWired scenario.
 const QUAKE_PACE_LEAD = {
   low: 'Slower is a fire that spreads at half the speed of the HayWired pace.',
   central: 'HayWired pace burns about as many buildings in Berkeley in 6 hours as the USGS HayWired earthquake scenario does, in the ordinary spring breeze.',
-  high: 'Faster spreads nearly three times as fast as the HayWired pace in its first hour, then at the HayWired pace.',
+  high: 'Faster reaches about 1,070 buildings in Berkeley in its first hour, against about 130 at the HayWired pace, then spreads at the HayWired pace.',
 };
 // The City's fire weather and evacuation page, also in the ⓘ menu (index.html).
 const CITY_EVAC = 'https://berkeleyca.gov/safety-health/disaster-preparedness/fire-weather-and-evacuation';
@@ -148,9 +148,9 @@ export function guidedUI(ctx) {
   function explainPace(sev) {
     const p = paceOf(sev, state.fire);
     pop(`<div class="gx"><h2>Fire pace: ${p.label}</h2><p>${p.explain}</p>
-      <p>The wind's direction and speed are the same at every pace; how strongly the wind pushes the fire is part of the pace. ${badge('model rule')} The illustrative fire model (js/scenarios.js SEVERITY: ${p.sev === 'central' ? 'medium' : p.sev} severity in Expert view). Ember distances and spot-fire chances are illustrative.</p>
+      <p>The wind, and how strongly it pushes the fire, are the same at every pace; the paces differ in head spread rate and spot fires. ${badge('model rule')} The illustrative fire model (js/scenarios.js SEVERITY: ${p.sev === 'central' ? 'medium' : p.sev} severity in Expert view). Ember distances and spot-fire chances are illustrative.</p>
       <p>Every result, change and comparison in Guided view uses the 5 runs at the chosen pace; each result also gives the other paces' medians.</p></div>`,
-      `${(/^quake/.test(state.fire) ? QUAKE_PACE_LEAD : PACE_LEAD)[p.sev]} The wind's direction and speed are the same at every pace.`,
+      `${(/^quake/.test(state.fire) ? QUAKE_PACE_LEAD : PACE_LEAD)[p.sev]} The wind is the same at every pace.`,
       `<p class="small">Other paces: ${paces().filter(x => x.sev !== sev).map(x => `<button class="linkish" data-pace-other="${x.sev}">${x.label}</button>`).join(' · ')}</p>`);
     document.querySelectorAll('#modal [data-pace-other]').forEach(b => b.onclick = () => explainPace(b.dataset.paceOther));
   }
@@ -587,8 +587,16 @@ export function guidedUI(ctx) {
   const head = (title, sub) => `<div class="gv-head"><h2>${title}</h2><p>${sub}</p></div>`;
   function resultsHTML() {
     if (!mit() || !spread()) return `${head('Results', esc(fireTitle()))}<p>The run-set tables did not load.</p>${footHTML('results')}`;
-    const cards = CARDS.filter(c => !c.sub).map(c => { const f = baseFigure(c); const num = f.na ? 'Not computed' : n(f.value); return `<section class="rc" aria-labelledby="rc-h-${c.id}"><div class="rc-n" aria-hidden="true">${num}</div><div class="rc-l" role="heading" aria-level="3" id="rc-h-${c.id}"><span class="sr-only">${num}${f.na ? ': ' : ' '}</span>${c.line}</div>${paceLine(c, f)}${splitHTML(c)}${c.id === 'ember' ? peopleLines(f) + ordersLine() : c.id === 'homes' ? flatsHomesLine() : ''}<div class="rc-f">${chipHTML(f.label, c.id === 'oneWay' ? 'network' : 'result')}<button class="linkish" data-explain="${c.id}" aria-label="Explain this: ${esc(stripTags(c.line))}">Explain this</button></div></section>`; }).join('');
+    const cards = CARDS.filter(c => !c.sub).map(c => { const q = quakeHomes(c), f = q || baseFigure(c); const num = f.na ? 'Not computed' : n(f.value), line = q ? q.line : c.line; return `<section class="rc" aria-labelledby="rc-h-${c.id}"><div class="rc-n" aria-hidden="true">${num}</div><div class="rc-l" role="heading" aria-level="3" id="rc-h-${c.id}"><span class="sr-only">${num}${f.na ? ': ' : ' '}</span>${line}</div>${paceLine(c, f)}${splitHTML(c)}${c.id === 'ember' ? peopleLines(f) + ordersLine() : q ? `<div class="rc-x">Lost in the hill fire zones: ${n(baseFigure(c).value)}</div>` : c.id === 'homes' ? flatsHomesLine() : ''}<div class="rc-f">${chipHTML(f.label, c.id === 'oneWay' ? 'network' : 'result')}<button class="linkish" data-explain="${c.id}" aria-label="Explain this: ${esc(stripTags(c.line))}">Explain this</button></div></section>`; }).join('');
     return `${head(`Results: ${esc(fireTitle())}`, `${sqBtn()}, median of ${runsN()} runs at ${paceName()}`)}${state.fire === 'westWind' ? WEST_NOTE() : ''}${cards}${backupsHTML()}${footHTML('results')}`;
+  }
+  // The earthquake's buildings card leads with the structures the front reached citywide, flats included, with the hill
+  // fire zones' loss figure as its second line (round-2 reviewers via MASTER, 2026-11-24; SOURCE_NOTES FW19).
+  const QUAKE_HOMES_LINE = 'structures in Berkeley the fire front reached';
+  function quakeHomes(c) {
+    if (c.id !== 'homes' || !NETWORK_FIRES[state.fire]) return null;
+    const f = model().cityStructures(state.fire, g.pace); if (!f) return null;
+    return { ...f, line: `${QUAKE_HOMES_LINE} (range ${n(f.min)}–${n(f.max)})` };
   }
   // Under the merged people card (MASTER, 2026-11-24; SOURCE_NOTES FL1, FL2, FL6): the fire front's share, where the
   // people live, and who among those on streets embers reached may need help to leave. Medians over the runs at the pace.
@@ -721,16 +729,21 @@ export function guidedUI(ctx) {
   }
   // Explain this on the merged people card: the fire front, where they live, who may need help (FL1, FL2, FL6).
   function peopleExplain() {
-    const fc = cardById('front'), fr = model().baseFigure(state.fire, fc.key, g.pace), eo = model().emberOnly(state.fire, g.pace), Z = model().zoneFigure(state.fire, g.pace);
-    return `<h3>When the fire front itself arrived</h3><p>${n(fr.value)} were still there when the fire front reached their street (range ${n(fr.min)}–${n(fr.max)}; ${otherPaces(Object.fromEntries(SEVS.map(s => [s, fr.bySev[s].median])))}). ${fc.counts} A harsher test than embers. Embers only: a median of ${n(eo)} per run were reached by embers but not by the front before they left. ${badge('synthetic')}</p>
+    const fc = cardById('front'), fr = model().baseFigure(state.fire, fc.key, g.pace), eo = model().emberOnly(state.fire, g.pace), eb = model().emberOnlyBand(state.fire, g.pace), Z = model().zoneFigure(state.fire, g.pace);
+    return `<h3>When the fire front itself arrived</h3><p>${n(fr.value)} were still there when the fire front reached their street (range ${n(fr.min)}–${n(fr.max)}; ${otherPaces(Object.fromEntries(SEVS.map(s => [s, fr.bySev[s].median])))}). ${fc.counts} A harsher test than embers. Embers only: a median of ${n(eo)} per run were reached by embers but not by the front before they left. ${badge('synthetic')}${eb ? ` A street counts as reached by embers once the burning cells upwind of it add up to a quarter of what a fully burning reach would send ${badge('assumption')}; with that threshold at a tenth or at half, the embers-only median runs ${n(eb[0])}–${n(eb[1])} (SOURCE_NOTES FW11, FW20).` : ''}</p>
       ${splitExplain(fc, 'Who they are, fire front')}
       ${Z ? `<h3>Where they live</h3><p>Medians of the ${Z.n} runs: ${n(Z.ember[0])} live in Berkeley's hill fire zones (a home street in Fire Zones 2–3) and ${n(Z.ember[1])} in the flats (outside Fire Zones 2–3); the rest live in Oakland's or other cities' zones, or are commuters and visitors on the road. Of those the fire front reached: ${n(Z.front[0])} in the hill fire zones and ${n(Z.front[1])} in the flats. Each part is its own median, so the parts need not add up to the total. ${badge('synthetic')} The zones: the City's 2013 Fire Zones map ${badge('sourced')} (Assumptions &amp; limits).</p>` : ''}
       ${ordersExplain()}
       ${Z?.needsHelp ? `<h3>Who may need help</h3><p>${n(Z.needsHelp[0])}–${n(Z.needsHelp[1])} people who may need a wheelchair van or ambulance live on streets embers reached within 3 hours of their zone's order or warning, the 2025 Evacuation Time Study's planned pickup time for transit-dependent routes ${badge('derived')}. A range, not an estimate: the low end applies the City's emPOWER count (348 Medicare beneficiaries using electricity-dependent equipment) as a share of residents, the high end the Time Study survey's 1.6% wheelchair van and 0.2% ambulance; the sources disagree, so both are shown (SOURCE_NOTES NH2). Medians of each end over the ${Z.n} runs. Everyone counted here is also among the synthetic households, which leave on the survey's timing as if they needed no help. Expert view's "Who may need help" table gives more groups.</p>` : ''}`;
   }
   function flatsHomesExplain() {
-    const Z = model().zoneFigure(state.fire, g.pace); if (!Z) return '';
-    return `<h3>The flats</h3><p>Building losses are computed only in Fire Zones 2–3, where the City's footprints and the loss rule apply. In the median run at ${paceName()} the fire front reached streets in the flats (outside Fire Zones 2–3) where about ${n(Z.flats.front)} people live, and embers reached streets where about ${n(Z.flats.ember)} live ${badge('synthetic')}, whether or not they had left. A street counts when the front or embers reach the 30 m cell at its middle.</p>`;
+    const Z = model().zoneFigure(state.fire, g.pace), C = NETWORK_FIRES[state.fire] && model().cityStructures(state.fire, g.pace);
+    // The 1923 repeat is tuned on timing only; its building loss is about twice 1923's (FW22).
+    const L23 = state.fire === 'ref1923' ? model().baseFigure('ref1923', 'homes').bySev.central.median : null;
+    const city = C ? `<h3>Citywide</h3><p>The card leads with the structures inside Berkeley the fire front reached, flats included: a median of ${n(C.value)} over the ${C.n} runs at ${paceName()} (range ${n(C.min)}–${n(C.max)}; ${otherPaces(Object.fromEntries(SEVS.map(s => [s, C.bySev[s].median])))}). City footprints in Fire Zones 2–3 and OpenStreetMap outlines elsewhere ${badge('sourced')}, reached by the illustrative ${badge('model rule')} fire. A structure the front reached is not counted as lost; the loss rule runs only in the hill fire zones, the figure in this pop-up's title. The HayWired pace is fitted so the front reaches about as many structures by 6 hours as the floor area HayWired burns in Berkeley, about 2,270 single-family-home equivalents (SOURCE_NOTES EQ11, FW12, FW19).</p>` : '';
+    const y1923 = L23 != null ? `<h3>Against 1923</h3><p>Only the repeat's timing is tuned, to the City StoryMap's present-day scenario (SOURCE_NOTES S11). At the 1923 pace it loses a median of ${n(L23)} buildings in Fire Zones 2–3, against 584 homes the 1923 fire destroyed (Hills Emergency Forum, "Fires in the Oakland - Berkeley Hills", rev. 02/28/05, p. 1; FF8, FW22). The two counts differ in kind: the footprints include garages and other outbuildings, and the repeat starts 1.3 km farther uphill, where neighborhoods now stand.</p>` : '';
+    if (!Z) return city + y1923;
+    return `${city}${y1923}<h3>The flats</h3><p>Building losses are computed only in Fire Zones 2–3, where the City's footprints and the loss rule apply. In the median run at ${paceName()} the fire front reached streets in the flats (outside Fire Zones 2–3) where about ${n(Z.flats.front)} people live, and embers reached streets where about ${n(Z.flats.ember)} live ${badge('synthetic')}, whether or not they had left. A street counts when the front or embers reach the 30 m cell at its middle.</p>`;
   }
   // Explain this, the four parts: what each counts, its median by severity, and the on-road limit (GV13).
   function splitExplain(c, title = 'Who they are') {

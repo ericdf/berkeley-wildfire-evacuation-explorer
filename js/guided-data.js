@@ -13,12 +13,12 @@ export const SEVS = ['low', 'central', 'high'];
 // SEVERITY under plain names, 1923 pace by default. Each pace's Explain this: what sets it and what anchors it.
 export const PACES = [
   { sev: 'low', label: 'Slower', explain: 'Half the 1923 pace\'s head spread rate. Embers reach up to about 300 m downwind in the 32 mph wind of the 1923 repeat, farther in a stronger wind and less far in a weaker one, and most land much nearer; spot fires are rarer. No historical fire anchors it; it is a slower case, not a floor.' },
-  { sev: 'central', label: '1923 pace', explain: 'The head spread rate is calibrated to the City StoryMap\'s present-day repeat of the 1923 fire, about 5 hours from the eastern edge of the city to Shattuck Avenue in a 32 mph wind (SOURCE_NOTES S11). In a weaker wind the head spreads more slowly, in a stronger one faster (FW2). Embers reach up to about 800 m downwind at 32 mph, in proportion to the wind speed, and most land much nearer (FW8, FW9). The default pace; no source says it is the most likely fire.' },
-  { sev: 'high', label: '1991 pace', explain: 'For its first hour the head spreads faster than the 1923 pace, fitted to the 1991 fire, which ran more than a mile downwind in its first 64 minutes; after that it spreads at the 1923 pace, never slower (Eric, 2026-11-24; SOURCE_NOTES FV17, FW6, FW7, S19). The 1991 head nearly stalled after its first hour as the wind eased and firefighters arrived; the model includes neither, so this pace burns more than 1991 did after the first hours. Embers reach up to about 1.5 km downwind at 32 mph, in proportion to the wind speed, and most land much nearer.' },
+  { sev: 'central', label: '1923 pace', explain: 'The head spread rate is tuned to the City StoryMap\'s present-day repeat of the 1923 fire, about 5 hours from the eastern edge of the city to Shattuck Avenue in a 32 mph wind: the City\'s own scenario, not an observation of a fire (SOURCE_NOTES S11). In a weaker wind the head spreads more slowly, in a stronger one faster (FW2). Embers reach up to about 800 m downwind at 32 mph, in proportion to the wind speed, and most land much nearer (FW8, FW9). The default pace; no source says it is the most likely fire.' },
+  { sev: 'high', label: '1991 pace', explain: 'For its first hour the head spreads faster than the 1923 pace, fitted to the 1991 fire, which ran more than a mile downwind in its first 64 minutes and ignited almost 800 structures in its first hour and about 1,100 by its second. On a 1991-like fire the model runs a median 2.4 km downwind in 64 minutes and reaches about 720 structures by 1 hour and 1,150 by 2 hours (SOURCE_NOTES FV17, FW17). After that it spreads at the 1923 pace, never slower (Eric, 2026-11-24; FW6, S19). The 1991 head nearly stalled after its first hour as the wind eased and firefighters arrived; the model includes neither, so this pace burns more than 1991 did after the first hours. Its embers and spot fires are the 1923 pace\'s, up to about 800 m downwind at 32 mph: with more or farther spot fires the model ran as far or farther in 64 minutes but reached fewer structures in the first two hours than 1991 did (FW17).' },
 ];
 // The earthquake fire's paces (FW12, FW15): its medium rate is fitted to the USGS HayWired scenario's floor area burned in
 // Berkeley, not to the 1923 fire, so it has its own names and Explain text.
-const QUAKE_LIMIT = 'The model does not include the water system failing after the earthquake, or fire passing from building to building on its own: buildings burn as fuel at the rate of the fire zone they stand in, and do not change how the fire spreads.';
+const QUAKE_LIMIT = 'HayWired\'s burned area already allows for water mains broken by the earthquake and too few engines for the number of fires (Scawthorn 2018, USGS HayWired chapter P, pp. 384, 388, 391), so the fitted pace includes both. The model leaves out HayWired\'s spread from block to block across streets and firebreaks: buildings burn as fuel at the rate of the fire zone they stand in (SOURCE_NOTES FW21).';
 export const QUAKE_PACES = [
   { sev: 'low', label: 'Slower', explain: `Half the HayWired pace's head spread rate, with fewer spot fires. No source anchors it; it is a slower case, not a floor. ${QUAKE_LIMIT}` },
   { sev: 'central', label: 'HayWired pace', explain: `The head spread rate is fitted so the spring-afternoon fire reaches about as many structures in Berkeley in 6 hours as the USGS HayWired scenario burns there (about 2,270 single-family-home equivalents of floor area; SOURCE_NOTES EQ11, FW12). The wind and the fire zones then set how fast each part burns. The default pace. ${QUAKE_LIMIT}` },
@@ -258,7 +258,22 @@ export function makeGuided(M, SA, presets = [], leverOff = {}) {
     return median(rs.map(r => r.m.ember - r.m.frontPeople));
   }
 
-  return { splitFigure, zoneFigure, flatsFires, emberOnly, levers, leverById, runsOf, baseFigure, oneWay, freed, tableCompare, tallyBySev, groups, anyFire, withheld, seeds: M?.meta?.seeds || [], severities: M?.meta?.severities || SEVS };
+  // The embers-only figure with the ember threshold (js/fire.js EMBER_SHARE 0.25, an assumption) at the ends of the band
+  // 0.1–0.5, each from its own runs (spread-access.json runs[].emberBand; SOURCE_NOTES FW20): [low, high] of the medians.
+  function emberOnlyBand(fire, sev) {
+    const rs = (SA?.runs || []).filter(r => r.fire === fire && r.sev === sev && r.emberBand); if (!rs.length) return null;
+    const v = Object.values(rs[0].emberBand).map((_, k) => median(rs.map(r => { const b = Object.values(r.emberBand)[k]; return b[0] - b[1]; })));
+    return [Math.min(...v), Math.max(...v)];
+  }
+  // Structures inside Berkeley the fire front reached, citywide (spread-access.json runs[].structuresCity; FW19): the
+  // earthquake buildings card leads with it. Median, range and each pace's median.
+  function cityStructures(fire, sev) {
+    const by = s => (SA?.runs || []).filter(r => r.fire === fire && r.sev === s && r.structuresCity != null).map(r => r.structuresCity);
+    const rs = by(sev); if (!rs.length) return null;
+    return { value: median(rs), min: Math.min(...rs), max: Math.max(...rs), n: rs.length, label: presence({ [sev]: [rs.filter(x => x > 0).length, rs.length] }), bySev: Object.fromEntries(SEVS.map(s => [s, { median: by(s).length ? median(by(s)) : null }])) };
+  }
+
+  return { splitFigure, zoneFigure, flatsFires, emberOnly, emberOnlyBand, cityStructures, levers, leverById, runsOf, baseFigure, oneWay, freed, tableCompare, tallyBySev, groups, anyFire, withheld, seeds: M?.meta?.seeds || [], severities: M?.meta?.severities || SEVS };
 }
 
 // Cost line and sort key (lever.cost; js/mitigate.js costText): a screening range, little capital cost, or not priced.

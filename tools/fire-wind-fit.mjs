@@ -89,6 +89,13 @@ if (SECTIONS.includes('quake')) {
     const r = [1, 2, 3, 4, 5].map(seed => { const F = runFire(grid, { ...sc, rosFactor: k }, SEV.central, seed); let s = 0; for (const [c, m] of cells) if (F.arrival[c] <= sc.durationMin) s += m; return s; });
     console.log(`quake ${sc.id.padEnd(15)} factor ${k}: median ${fmt(med(r))} structures in Berkeley by 6 h (seeds ${r.map(fmt).join(', ')}; HayWired ~2,270)`);
   }
+  // Each pace on the spring-afternoon fire: structures in Berkeley the front reached by 1 h and by 6 h (FW17's measured
+  // pace text for the earthquake's Faster pace).
+  const sq = byId('quake');
+  for (const sev of ['low', 'central', 'high']) {
+    const r = Array.from({ length: nSeeds }, (_, k) => { const F = runFire(grid, sq, SEV[sev], k + 1); let a = 0, b = 0; for (const [c, m] of cells) { if (F.arrival[c] <= 60) a += m; if (F.arrival[c] <= sq.durationMin) b += m; } return [a, b]; });
+    console.log(`quake pace ${sev.padEnd(7)}: structures in Berkeley by 1 h median ${fmt(med(r.map(x => x[0])))} (${r.map(x => fmt(x[0])).join(' / ')}), by 6 h median ${fmt(med(r.map(x => x[1])))} (${r.map(x => fmt(x[1])).join(' / ')})`);
+  }
 }
 
 if (SECTIONS.includes('wind')) {
